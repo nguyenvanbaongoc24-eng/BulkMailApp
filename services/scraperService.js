@@ -121,50 +121,42 @@ async function getLatestCertificate(browser, mst) {
             // Select the LAST "Tải về" link (latest certificate)
             const lastLink = matchingLinks[matchingLinks.length - 1];
             
-            // Get the href to determine if it's a direct download link
-            const href = await resultPage.evaluate(el => el.href, lastLink);
+            // Click-based download (most reliable for ASP.NET forms)
+            const beforeDownload = Date.now();
+            await lastLink.click();
             
-            if (href && (href.endsWith('.cer') || href.endsWith('.crt') || href.endsWith('.p7b') || href.includes('download'))) {
-                // Direct download link - download via fetch
-                const fileName = `cert_${mst}_${Date.now()}.cer`;
-                const filePath = path.join(DOWNLOAD_DIR, fileName);
+            // Wait for download to complete, checking periodically up to 15 seconds
+            let downloadedFile = null;
+            for (let i = 0; i < 30; i++) { // 30 * 500ms = 15s
+                await new Promise(r => setTimeout(r, 500));
                 
-                const response = await resultPage.goto(href, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
-                
-                if (response) {
-                    const buffer = await response.buffer();
-                    fs.writeFileSync(filePath, buffer);
-                    console.log(`[Scraper] ✅ Đã tải chứng thư số cho MST ${mst}: ${fileName}`);
-                    return { filePath, fileName };
-                }
-            } else {
-                // Click-based download
-                const fileName = `cert_${mst}_${Date.now()}.cer`;
-                const expectedPath = path.join(DOWNLOAD_DIR, fileName);
-
-                await lastLink.click();
-                
-                // Wait for download to complete
-                await new Promise(r => setTimeout(r, 5000));
-
-                // Check for downloaded files
-                const files = fs.readdirSync(DOWNLOAD_DIR)
-                    .filter(f => f.includes(mst) || f.endsWith('.cer') || f.endsWith('.crt') || f.endsWith('.p7b'))
-                    .sort((a, b) => {
-                        const statA = fs.statSync(path.join(DOWNLOAD_DIR, a));
-                        const statB = fs.statSync(path.join(DOWNLOAD_DIR, b));
-                        return statB.mtime - statA.mtime; // newest first
-                    });
-
-                if (files.length > 0) {
-                    const downloadedFile = files[0];
-                    const filePath = path.join(DOWNLOAD_DIR, downloadedFile);
-                    console.log(`[Scraper] ✅ Đã tải chứng thư số cho MST ${mst}: ${downloadedFile}`);
-                    return { filePath, fileName: downloadedFile };
+                try {
+                    const files = fs.readdirSync(DOWNLOAD_DIR);
+                    // Find files that do NOT have temporary chrome extensions
+                    const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp'))
+                        .map(f => ({ name: f, stat: fs.statSync(path.join(DOWNLOAD_DIR, f)) }))
+                        // Must be created/modified roughly after we clicked
+                        .filter(f => f.stat.mtimeMs >= beforeDownload - 2000 || f.stat.ctimeMs >= beforeDownload - 2000)
+                        .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs); // newest first
+                        
+                    if (validFiles.length > 0) {
+                        downloadedFile = validFiles[0].name;
+                        // Extra 500ms to ensure file handle is fully released by OS
+                        await new Promise(r => setTimeout(r, 500));
+                        break;
+                    }
+                } catch (err) {
+                    console.error('[Scraper] Lỗi đọc thư mục tải xuống:', err.message);
                 }
             }
 
-            console.log(`[Scraper] ⚠️ Không thể tải chứng thư số cho MST: ${mst}`);
+            if (downloadedFile) {
+                const filePath = path.join(DOWNLOAD_DIR, downloadedFile);
+                console.log(`[Scraper] ✅ Đã tải chứng thư số cho MST ${mst}: ${downloadedFile}`);
+                return { filePath, fileName: downloadedFile };
+            }
+
+            console.log(`[Scraper] ⚠️ Không thể tải chứng thư số cho MST: ${mst} (Time Out)`);
             return null;
 
         } else {
