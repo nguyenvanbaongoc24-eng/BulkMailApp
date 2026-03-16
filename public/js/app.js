@@ -122,7 +122,10 @@ async function handleAuthSubmit() {
             result = await supabaseClient.auth.signUp({ 
                 email, 
                 password,
-                options: { data: { full_name: name } }
+                options: { 
+                    data: { full_name: name },
+                    emailRedirectTo: window.location.origin 
+                }
             });
         }
 
@@ -130,8 +133,22 @@ async function handleAuthSubmit() {
             errorEl.innerText = result.error.message;
             errorEl.classList.remove('hidden');
         } else if (authMode === 'register') {
-            alert('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận (nếu có).');
-            toggleAuthMode();
+            // Show a nice success state instead of an alert
+            const authCard = document.querySelector('.auth-card');
+            authCard.innerHTML = `
+                <div class="text-center space-y-6 py-8 animate-in fade-in zoom-in duration-500">
+                    <div class="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-4xl">📧</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-white">Kiểm tra Email!</h2>
+                    <p class="text-gray-400">Chúng tôi đã gửi link xác nhận đến <b>${email}</b>. Vui lòng kiểm tra hộp thư (và cả mục Spam).</p>
+                    <div class="pt-6">
+                        <button onclick="window.location.reload()" class="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition-all">
+                            Quay lại đăng nhập
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     } catch (err) {
         errorEl.innerText = 'An unexpected error occurred.';
