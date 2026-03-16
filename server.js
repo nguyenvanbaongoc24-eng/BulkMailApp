@@ -281,6 +281,90 @@ app.get('/api/stats', authenticate, async (req, res) => {
     res.json(stats);
 });
 
+// CRM Routes
+app.get('/api/customers', authenticate, async (req, res) => {
+    let query = supabase.from('customers').select('*').eq('userId', req.user.id);
+    
+    const { filter } = req.query;
+    const now = new Date().toISOString().split('T')[0];
+    const getDateNDaysAway = (n) => {
+        const d = new Date();
+        d.setDate(d.getDate() + n);
+        return d.toISOString().split('T')[0];
+    };
+
+    if (filter === 'expired') {
+        query = query.lt('expirationDate', now);
+    } else if (filter === '30') {
+        query = query.gte('expirationDate', now).lte('expirationDate', getDateNDaysAway(30));
+    } else if (filter === '60') {
+        query = query.gte('expirationDate', now).lte('expirationDate', getDateNDaysAway(60));
+    } else if (filter === '90') {
+        query = query.gte('expirationDate', now).lte('expirationDate', getDateNDaysAway(90));
+    }
+
+    const { data, error } = await query.order('expirationDate', { ascending: true });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+app.post('/api/customers/import', authenticate, async (req, res) => {
+    const { data } = req.body;
+    if (!data || !Array.isArray(data)) return res.status(400).json({ error: 'Data must be an array' });
+
+    const customers = data.map(c => ({
+        id: (c.MST || Date.now().toString() + Math.random().toString(36).substr(2, 5)).toString(),
+        userId: req.user.id,
+        taxCode: c.MST,
+        companyName: c.TenCongTy,
+        email: c.Email,
+        expirationDate: c.NgayHetHanChuKySo,
+        status: 'Chưa liên hệ'
+    }));
+
+    const { error } = await supabase.from('customers').upsert(customers);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ message: `Đã nhập ${customers.length} khách hàng.` });
+});
+
+app.patch('/api/customers/:id', authenticate, async (req, res) => {
+    const { status, notes } = req.body;
+    const { data, error } = await supabase
+        .from('customers')
+        .update({ status, notes })
+        .eq('id', req.params.id)
+        .eq('userId', req.user.id)
+        .select();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data[0]);
+});
+
+app.get('/api/crm/stats', authenticate, async (req, res) => {
+    const { data: customers, error } = await supabase
+        .from('customers')
+        .select('expirationDate')
+        .eq('userId', req.user.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
+
+    const now = new Date();
+    const stats = { expired: 0, within30: 0, within60: 0, within90: 0, total: customers.length };
+
+    customers.forEach(c => {
+        if (!c.expirationDate) return;
+        const exp = new Date(c.expirationDate);
+        const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) stats.expired++;
+        else if (diffDays <= 30) stats.within30++;
+        else if (diffDays <= 60) stats.within60++;
+        else if (diffDays <= 90) stats.within90++;
+    });
+
+    res.json(stats);
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });

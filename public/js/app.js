@@ -181,35 +181,42 @@ function showPage(page) {
     document.getElementById('page-title').innerText = 
         page === 'dashboard' ? 'Bảng điều khiển' : 
         page === 'campaigns' ? 'Chiến dịch email' : 
-        page === 'senders' ? 'Cấu hình tài khoản gửi mail' : 'Cài đặt hệ thống';
+        page === 'senders' ? 'Cấu hình tài khoản gửi mail' : 
+        page === 'crm' ? 'Quản lý khách hàng (CRM)' : 'Cài đặt hệ thống';
     
     // Switch views
-    ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings'].forEach(id => {
+    ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings', 'view-crm'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
     
     if (page === 'dashboard') {
         document.getElementById('view-dashboard').classList.remove('hidden');
+        loadStats();
     } else if (page === 'campaigns') {
         document.getElementById('view-campaigns').classList.remove('hidden');
-        loadCampaigns('campaign-list-all'); // Target the list in campaigns view if needed
+        loadCampaigns('campaign-list-all');
     } else if (page === 'senders') {
         document.getElementById('view-senders').classList.remove('hidden');
         loadSenders();
+    } else if (page === 'crm') {
+        document.getElementById('view-crm').classList.remove('hidden');
+        loadCRM();
+        loadCRMStats();
     } else if (page === 'settings') {
         document.getElementById('view-settings').classList.remove('hidden');
     }
 
     // Update sidebar active state
-    ['nav-dashboard', 'nav-campaigns', 'nav-senders', 'nav-settings'].forEach(id => {
+    ['nav-dashboard', 'nav-campaigns', 'nav-senders', 'nav-crm', 'nav-settings'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         if (id === `nav-${page}`) {
             el.classList.add('sidebar-item-active');
             el.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+            el.classList.add('bg-white/10', 'text-white');
         } else {
-            el.classList.remove('sidebar-item-active');
+            el.classList.remove('sidebar-item-active', 'bg-white/10', 'text-white');
             el.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
         }
     });
@@ -382,7 +389,8 @@ async function handleFileUpload(event) {
     const formData = new FormData();
     formData.append('file', file);
 
-    document.getElementById('upload-status').innerText = '⏳ Đang phân tích dữ liệu Automation...';
+    const statusEl = document.getElementById('upload-status');
+    statusEl.innerText = '⏳ Đang phân tích dữ liệu Automation...';
 
     try {
         const response = await authedFetch('/api/upload', {
@@ -391,10 +399,18 @@ async function handleFileUpload(event) {
         });
         const result = await response.json();
         currentRecipients = result.data;
-        document.getElementById('upload-status').innerText = `✅ Đã nạp ${currentRecipients.length} khách hàng.`;
+        
+        // Auto-import to CRM for persistence
+        await authedFetch('/api/customers/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: currentRecipients })
+        });
+
+        statusEl.innerText = `✅ Đã nạp ${currentRecipients.length} khách hàng & Cập nhật CRM thành công.`;
         updatePreview();
     } catch (error) {
-        document.getElementById('upload-status').innerText = '❌ Lỗi khi tải file.';
+        statusEl.innerText = '❌ Lỗi khi tải file.';
     }
 }
 
@@ -405,7 +421,8 @@ async function handleGSheets() {
         return;
     }
 
-    document.getElementById('upload-status').innerText = '⏳ Đang đồng bộ Google Cloud...';
+    const statusEl = document.getElementById('upload-status');
+    statusEl.innerText = '⏳ Đang đồng bộ Google Cloud...';
 
     try {
         const response = await authedFetch('/api/gsheets', {
@@ -417,10 +434,18 @@ async function handleGSheets() {
         if (result.error) throw new Error(result.error);
 
         currentRecipients = result.data;
-        document.getElementById('upload-status').innerText = `✅ Đồng bộ thành công ${currentRecipients.length} dữ liệu.`;
+
+        // Auto-import to CRM for persistence
+        await authedFetch('/api/customers/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: currentRecipients })
+        });
+
+        statusEl.innerText = `✅ Đồng bộ thành công ${currentRecipients.length} dữ liệu & Cập nhật CRM.`;
         updatePreview();
     } catch (error) {
-        document.getElementById('upload-status').innerText = `❌ ${error.message}`;
+        statusEl.innerText = `❌ ${error.message}`;
     }
 }
 
@@ -554,19 +579,33 @@ function getStatusColor(status) {
 }
 
 async function loadStats() {
-    const response = await authedFetch('/api/stats');
-    if (!response || !response.ok) return;
-    const stats = await response.json();
-    
-    document.getElementById('stat-total').innerText = stats.totalSent.toLocaleString();
-    const successRate = stats.totalSent > 0 ? Math.round((stats.totalSuccess / stats.totalSent) * 100) : 0;
-    const errorRate = stats.totalSent > 0 ? Math.round((stats.totalError / stats.totalSent) * 100) : 0;
-    
-    document.getElementById('stat-success').innerText = `${successRate}%`;
-    document.getElementById('stat-error').innerText = `${errorRate}%`;
+    try {
+        const response = await authedFetch('/api/stats');
+        if (!response || !response.ok) return;
+        const stats = await response.json();
+        
+        document.getElementById('stat-total').innerText = stats.totalSent.toLocaleString();
+        const successRate = stats.totalSent > 0 ? Math.round((stats.totalSuccess / stats.totalSent) * 100) : 0;
+        const errorRate = stats.totalSent > 0 ? Math.round((stats.totalError / stats.totalSent) * 100) : 0;
+        
+        document.getElementById('stat-success').innerText = `${successRate}%`;
+        document.getElementById('stat-error').innerText = `${errorRate}%`;
 
-    const bar = document.getElementById('success-progress-bar');
-    if (bar) bar.style.width = `${successRate}%`;
+        const bar = document.getElementById('success-progress-bar');
+        if (bar) bar.style.width = `${successRate}%`;
+
+        // Load CRM summary for dashboard
+        const crmResp = await authedFetch('/api/crm/stats');
+        if (crmResp && crmResp.ok) {
+            const crmStats = await crmResp.json();
+            document.getElementById('dash-crm-expired').innerText = crmStats.expired;
+            document.getElementById('dash-crm-30').innerText = crmStats.within30;
+            document.getElementById('dash-crm-60').innerText = crmStats.within60;
+            document.getElementById('dash-crm-total').innerText = crmStats.total;
+        }
+    } catch (err) {
+        console.error('Lỗi khi tải thống kê:', err);
+    }
 }
 
 async function loadTemplates() {
@@ -705,3 +744,180 @@ async function saveCampaign() {
     }
 }
 
+/** ---------------- CRM LOGIC ---------------- */
+
+let currentCRMFilter = 'all';
+
+async function loadCRM(filter = null) {
+    if (filter) currentCRMFilter = filter;
+    const statusFilter = document.getElementById('crm-filter-status').value;
+    
+    try {
+        let url = `/api/customers?filter=${currentCRMFilter}`;
+        const response = await authedFetch(url);
+        if (!response || !response.ok) return;
+
+        let customers = await response.json();
+        
+        // Front-end status filtering
+        if (statusFilter !== 'all') {
+            customers = customers.filter(c => c.status === statusFilter);
+        }
+
+        const listEl = document.getElementById('crm-list');
+        listEl.innerHTML = '';
+
+        if (customers.length === 0) {
+            listEl.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500 italic">Không tìm thấy khách hàng nào khớp với bộ lọc.</td></tr>`;
+            return;
+        }
+
+        const now = new Date();
+
+        customers.forEach(c => {
+            const expDate = new Date(c.expirationDate);
+            const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+            
+            let rowColorClass = '';
+            let statusBadge = '';
+
+            if (diffDays < 0) {
+                rowColorClass = 'bg-red-500/5';
+                statusBadge = '<span class="px-2 py-1 bg-red-500/20 text-red-500 rounded text-[9px] font-bold">Hết hạn</span>';
+            } else if (diffDays <= 30) {
+                rowColorClass = 'bg-red-500/5 border-l-4 border-red-500';
+                statusBadge = '<span class="px-2 py-1 bg-red-500/20 text-red-500 rounded text-[9px] font-bold">Hạn < 30 ngày</span>';
+            } else if (diffDays <= 60) {
+                rowColorClass = 'bg-orange-500/5 border-l-4 border-orange-500';
+                statusBadge = '<span class="px-2 py-1 bg-orange-500/20 text-orange-500 rounded text-[9px] font-bold">Hạn < 60 ngày</span>';
+            } else if (diffDays <= 90) {
+                rowColorClass = 'bg-yellow-500/5 border-l-4 border-yellow-500';
+                statusBadge = '<span class="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded text-[9px] font-bold">Hạn < 90 ngày</span>';
+            }
+
+            const tr = document.createElement('tr');
+            tr.className = `${rowColorClass} hover:bg-white/5 transition-all`;
+            tr.innerHTML = `
+                <td class="px-6 py-4">
+                    <p class="text-sm font-bold text-white">${c.companyName || 'N/A'}</p>
+                    <p class="text-[10px] text-gray-500 font-medium">MST: ${c.taxCode || 'N/A'}</p>
+                </td>
+                <td class="px-6 py-4">
+                    <p class="text-sm font-bold text-white">${c.expirationDate || 'N/A'}</p>
+                    ${statusBadge}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 bg-white/5 text-gray-300 rounded-full text-[10px] font-bold border border-white/10 italic">${c.status || 'Chưa liên hệ'}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <p class="text-[11px] text-gray-400 max-w-[200px] truncate" title="${c.notes || ''}">${c.notes || '---'}</p>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="openCRMUpdateModal('${c.id}')" class="text-xs font-bold text-orange-gradient hover:underline">Cập nhật</button>
+                </td>
+            `;
+            listEl.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Error loading CRM:', err);
+    }
+}
+
+async function loadCRMStats() {
+    try {
+        const response = await authedFetch('/api/crm/stats');
+        if (!response || !response.ok) return;
+
+        const stats = await response.json();
+        document.getElementById('crm-stat-expired').innerText = stats.expired;
+        document.getElementById('crm-stat-30').innerText = stats.within30;
+        document.getElementById('crm-stat-60').innerText = stats.within60;
+        document.getElementById('crm-stat-total').innerText = stats.total;
+    } catch (err) {
+        console.error('Error loading CRM stats:', err);
+    }
+}
+
+function filterCRM(period) {
+    currentCRMFilter = period;
+    loadCRM();
+}
+
+let activeCRMId = null;
+function openCRMUpdateModal(id) {
+    activeCRMId = id;
+    document.getElementById('crm-update-id').value = id;
+    document.getElementById('modal-crm-update').classList.remove('hidden');
+    // We would ideally fetch latest notes here if there were many,
+    // but for simplicity we assume the list is fresh or we can just find it in memory.
+}
+
+function closeCRMUpdateModal() {
+    document.getElementById('modal-crm-update').classList.add('hidden');
+    activeCRMId = null;
+}
+
+async function saveCRMUpdate() {
+    const status = document.getElementById('crm-update-status').value;
+    const notes = document.getElementById('crm-update-notes').value;
+
+    try {
+        const response = await authedFetch(`/api/customers/${activeCRMId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status, notes })
+        });
+
+        if (response && response.ok) {
+            closeCRMUpdateModal();
+            loadCRM();
+            loadCRMStats();
+        } else {
+            alert('Không thể cập nhật thông tin khách hàng.');
+        }
+    } catch (err) {
+        alert('Lỗi: ' + err.message);
+    }
+}
+
+async function createCampaignFromCRM() {
+    try {
+        // Fetch current filtered customers
+        const response = await authedFetch(`/api/customers?filter=${currentCRMFilter}`);
+        if (!response || !response.ok) return;
+
+        let customers = await response.json();
+        const statusFilter = document.getElementById('crm-filter-status').value;
+        if (statusFilter !== 'all') {
+            customers = customers.filter(c => c.status === statusFilter);
+        }
+
+        if (customers.length === 0) {
+            alert('Không có khách hàng nào trong bộ lọc hiện tại để tạo chiến dịch.');
+            return;
+        }
+
+        // Map to recipients format
+        currentRecipients = customers.map(c => ({
+            MST: c.taxCode,
+            TenCongTy: c.companyName,
+            Email: c.email,
+            NgayHetHanChuKySo: c.expirationDate
+        }));
+
+        // Open create campaign modal
+        openCreateModal();
+        
+        // Populate fields with a suggested name
+        let filterName = "Tất cả";
+        if (currentCRMFilter === 'expired') filterName = "Đã hết hạn";
+        else if (currentCRMFilter === '30') filterName = "Hết hạn < 30 ngày";
+        
+        document.getElementById('input-name').value = `Chiến dịch Gia hạn - ${filterName} (${new Date().toLocaleDateString()})`;
+        
+        updatePreviewTable();
+        alert(`Đã chuẩn bị danh sách gửi cho ${currentRecipients.length} khách hàng!`);
+    } catch (err) {
+        alert('Lỗi khi tạo danh sách gửi: ' + err.message);
+    }
+}

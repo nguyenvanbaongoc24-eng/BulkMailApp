@@ -17,8 +17,8 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
     for (let i = 0; i < campaign.recipients.length; i++) {
         const recipient = campaign.recipients[i];
         
-        // Anti-spam random delay (2-6 seconds)
-        const delay = Math.floor(Math.random() * (6000 - 2000 + 1)) + 2000;
+        // Anti-spam random delay (2-5 seconds)
+        const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
         await new Promise(resolve => setTimeout(resolve, delay));
 
         // Personalized template
