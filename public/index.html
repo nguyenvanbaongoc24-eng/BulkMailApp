@@ -22,10 +22,18 @@
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%); 
         }
         .text-orange-gradient {
-            background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
+            background: linear-gradient(to right, #f97316, #fb923c);
             -webkit-background-clip: text;
             background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        
+        [contenteditable]:empty:before {
+            content: attr(data-placeholder);
+            color: rgba(255, 255, 255, 0.2);
+            font-style: italic;
+            pointer-events: none;
+            display: block;
         }
         .sidebar-item-active {
             background: rgba(255, 140, 0, 0.1);
@@ -306,7 +314,7 @@
                     <div class="lg:col-span-7 space-y-8">
                         <div class="space-y-4">
                             <div class="flex justify-between items-center">
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Nội dung Email (HTML Content)</label>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Nội dung Email (Biên tập trực quan)</label>
                                 <div class="flex items-center gap-2">
                                     <select id="select-template" onchange="applyTemplate()" class="text-[10px] font-bold py-1 px-3 border-0 bg-white/5 rounded-lg">
                                         <option value="">-- Mẫu đã lưu --</option>
@@ -314,8 +322,30 @@
                                     <button onclick="saveTemplate()" class="text-[10px] font-bold py-1 px-3 bg-orange-500/10 text-orange-500 rounded-lg hover:bg-orange-500/20">Lưu mẫu mới</button>
                                 </div>
                             </div>
-                            <textarea id="input-template" rows="10" placeholder="Chào {{TenCongTy}}, ..." class="w-full px-6 py-4 rounded-3xl font-mono text-sm custom-scrollbar"></textarea>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hỗ trợ: {{TenCongTy}}, {{MST}}, {{DiaChi}}, {{NgayHetHanChuKySo}}</p>
+                            
+                            <!-- Rich Text Toolbar -->
+                            <div class="flex items-center gap-2 p-2 bg-white/5 rounded-t-2xl border-x border-t border-white/10">
+                                <button onclick="formatDoc('bold')" title="In đậm" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all"><b>B</b></button>
+                                <button onclick="formatDoc('italic')" title="In nghiêng" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all"><i>I</i></button>
+                                <button onclick="formatDoc('underline')" title="Gạch chân" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all"><u>U</u></button>
+                                <div class="w-px h-4 bg-white/10 mx-1"></div>
+                                <button onclick="addCustomLink()" title="Chèn liên kết" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all">🔗</button>
+                                <button onclick="document.getElementById('image-upload').click()" title="Chèn ảnh" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all">🖼️</button>
+                                <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleEditorImage(event)">
+                            </div>
+                            
+                            <!-- Rich Text Editor -->
+                            <div id="input-template" contenteditable="true" 
+                                 class="w-full px-8 py-6 rounded-b-[32px] font-sans text-base bg-white/2 border border-white/10 outline-none focus:border-orange-500/30 transition-all min-h-[300px] text-gray-200 custom-scrollbar" 
+                                 data-placeholder="Chào {{TenCongTy}}, ...">
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <button onclick="insertVariable('{{TenCongTy}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#TênCôngTy</button>
+                                <button onclick="insertVariable('{{MST}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#MST</button>
+                                <button onclick="insertVariable('{{DiaChi}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#ĐịaChỉ</button>
+                                <button onclick="insertVariable('{{NgayHetHanChuKySo}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#NgàyHếtHạn</button>
+                            </div>
                         </div>
 
                         <div class="bg-white/5 p-6 rounded-3xl">

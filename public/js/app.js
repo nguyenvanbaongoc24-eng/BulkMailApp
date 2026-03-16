@@ -3,6 +3,27 @@ let currentRecipients = [];
 document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     loadCampaigns();
+    
+    // Rich Text Editor Paste handling
+    const editor = document.getElementById('input-template');
+    if (editor) {
+        editor.addEventListener('paste', function(e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file' && item.type.includes('image')) {
+                    e.preventDefault(); // Prevent double paste
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = `<img src="${event.target.result}" style="max-width: 100%; border-radius: 12px; margin: 10px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">`;
+                        document.execCommand('insertHTML', false, img);
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+    }
 });
 
 function showPage(page) {
@@ -312,8 +333,9 @@ async function loadTemplates() {
 }
 
 async function saveTemplate() {
-    const content = document.getElementById('input-template').value;
-    if (!content) {
+    const editor = document.getElementById('input-template');
+    const content = editor.innerHTML;
+    if (!content || content.trim() === '' || content === '<br>') {
         alert('Vui lòng nhập nội dung mẫu trước khi lưu.');
         return;
     }
@@ -340,8 +362,35 @@ function applyTemplate() {
     const select = document.getElementById('select-template');
     const selectedOption = select.options[select.selectedIndex];
     if (selectedOption && selectedOption.dataset.content) {
-        document.getElementById('input-template').value = selectedOption.dataset.content;
+        document.getElementById('input-template').innerHTML = selectedOption.dataset.content;
     }
+}
+
+// Rich Text Editor Functions
+function formatDoc(cmd, value = null) {
+    document.execCommand(cmd, false, value);
+    document.getElementById('input-template').focus();
+}
+
+function addCustomLink() {
+    const url = prompt("Nhập địa chỉ liên kết (URL):", "https://");
+    if (url) formatDoc('createLink', url);
+}
+
+function insertVariable(variable) {
+    formatDoc('insertText', variable);
+}
+
+function handleEditorImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = `<img src="${e.target.result}" style="max-width: 100%; border-radius: 12px; margin: 10px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">`;
+        formatDoc('insertHTML', img);
+    };
+    reader.readAsDataURL(file);
 }
 
 // Refresh every 5 seconds if sending
@@ -349,4 +398,33 @@ setInterval(() => {
     loadCampaigns();
     loadStats();
 }, 5000);
+
+async function saveCampaign() {
+    const name = document.getElementById('input-name').value;
+    const subject = document.getElementById('input-subject').value;
+    const senderAccountId = document.getElementById('select-sender').value;
+    const template = document.getElementById('input-template').innerHTML; // Use innerHTML for Rich Text
+
+    if (!name || !subject || !senderAccountId || !template || currentRecipients.length === 0) {
+        alert('Vui lòng hoàn tất thiết lập chiến dịch trước khi kích hoạt.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/campaigns', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, subject, senderAccountId, template, recipients: currentRecipients })
+        });
+        const campaign = await response.json();
+        
+        await fetch(`/api/campaigns/${campaign.id}/send`, { method: 'POST' });
+        
+        closeCreateModal();
+        loadCampaigns();
+        loadStats();
+    } catch (error) {
+        alert('Lỗi khi khởi tạo automation.');
+    }
+}
 
