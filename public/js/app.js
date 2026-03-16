@@ -195,7 +195,7 @@ function updatePreview() {
     const tbody = document.getElementById('preview-table-body');
     
     if (currentRecipients.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-gray-600 font-medium italic">Chờ nạp dữ liệu...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-600 font-medium italic">Chờ nạp dữ liệu...</td></tr>';
         return;
     }
 
@@ -207,7 +207,8 @@ function updatePreview() {
         tr.innerHTML = `
             <td class="px-4 py-3 text-white font-mono text-[11px]">${row.MST || '-'}</td>
             <td class="px-4 py-3 text-gray-400 font-medium">${row.TenCongTy || '-'}</td>
-            <td class="px-4 py-3 text-orange-500 font-bold">${row.NgayHetHanChuKySo || '-'}</td>
+            <td class="px-4 py-3 text-orange-gradient font-bold">${row.Email || '-'}</td>
+            <td class="px-4 py-3 text-orange-500 font-bold text-right">${row.NgayHetHanChuKySo || '-'}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -280,17 +281,38 @@ async function loadCampaigns(targetId = 'campaign-list') {
                 <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-widest">${c.sentCount}/${total} EMAILS</p>
             </td>
             <td class="px-8 py-5">
-                <button class="text-orange-500 hover:text-orange-400 font-extrabold text-xs uppercase tracking-widest bg-orange-500/10 px-4 py-2 rounded-xl transition-all">Báo cáo</button>
+                <div class="flex gap-2">
+                    <button class="text-white hover:text-white font-extrabold text-xs uppercase tracking-widest bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all">Báo cáo</button>
+                    <button onclick="deleteCampaign('${c.id}')" class="text-red-500 hover:text-red-400 font-extrabold text-xs uppercase tracking-widest bg-red-500/10 hover:bg-red-500/20 px-4 py-2 rounded-xl transition-all">Xóa</button>
+                </div>
             </td>
         `;
         list.appendChild(row);
     });
 }
 
+async function deleteCampaign(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.')) return;
+    
+    try {
+        const response = await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (response.ok) {
+            loadCampaigns();
+            loadStats();
+        } else {
+            alert(result.error || 'Lỗi khi xóa chiến dịch.');
+        }
+    } catch (error) {
+        alert('Lỗi kết nối máy chủ.');
+    }
+}
+
 function getStatusColor(status) {
+    if (status.includes('Hoàn thành')) return 'bg-orange-500/20 text-orange-500';
     switch(status) {
-        case 'Hoàn thành': return 'bg-orange-500/20 text-orange-500';
         case 'Đang gửi': return 'bg-purple-500/20 text-purple-400 animate-pulse';
+        case 'Thất bại':
         case 'Lỗi': return 'bg-red-500/20 text-red-500';
         default: return 'bg-white/10 text-gray-400';
     }

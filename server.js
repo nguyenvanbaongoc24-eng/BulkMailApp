@@ -110,6 +110,7 @@ app.post('/api/gsheets', async (req, res) => {
             const tenCongTy = row[3];
             const diaChi = row[6];
             const ngayHetHan = row[10];
+            const email = row[8]; // Column I
 
             if (!mst) return null;
 
@@ -117,6 +118,7 @@ app.post('/api/gsheets', async (req, res) => {
                 MST: mst.toString().trim(),
                 TenCongTy: tenCongTy ? tenCongTy.toString().trim() : '',
                 DiaChi: diaChi ? diaChi.toString().trim() : '',
+                Email: email ? email.toString().trim() : '',
                 NgayHetHanChuKySo: excelService.formatDate(ngayHetHan)
             };
         }).filter(row => row !== null);
@@ -180,6 +182,22 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
             writeData(CAMPAIGNS_FILE, latestCampaigns);
         }
     });
+});
+
+app.delete('/api/campaigns/:id', (req, res) => {
+    try {
+        const campaigns = readData(CAMPAIGNS_FILE);
+        const filteredCampaigns = campaigns.filter(c => c.id !== req.params.id);
+        
+        if (campaigns.length === filteredCampaigns.length) {
+            return res.status(404).json({ error: 'Không tìm thấy chiến dịch.' });
+        }
+        
+        writeData(CAMPAIGNS_FILE, filteredCampaigns);
+        res.json({ message: 'Đã xóa chiến dịch thành công.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Lỗi khi xóa chiến dịch.' });
+    }
 });
 
 app.get('/api/stats', (req, res) => {

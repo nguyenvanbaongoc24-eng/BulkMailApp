@@ -36,14 +36,14 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         try {
             await transporter.sendMail({
                 from: `"${sender.senderName}" <${sender.senderEmail}>`,
-                to: recipient.MST, // Based on user requirements, MST holds the destination
+                to: recipient.Email || recipient.MST, // Use Email if available, fallback to MST (which will fail but is safer than undefined)
                 subject: campaign.subject || `Thông báo từ ${sender.senderName}`,
                 html: html
             });
             success++;
             recipient.status = 'Đã gửi';
         } catch (err) {
-            console.error(`Lỗi khi gửi đến ${recipient.MST}:`, err.message);
+            console.error(`Lỗi khi gửi đến ${recipient.Email || recipient.MST}:`, err.message);
             errorCount++;
             recipient.status = 'Thất bại';
         }
@@ -52,7 +52,19 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         campaign.sentCount = i + 1;
         campaign.successCount = success;
         campaign.errorCount = errorCount;
-        campaign.status = (i === campaign.recipients.length - 1) ? 'Hoàn thành' : 'Đang gửi';
+        
+        // Improve status message
+        if (i === campaign.recipients.length - 1) {
+            if (success === 0 && errorCount > 0) {
+                campaign.status = 'Thất bại';
+            } else if (errorCount > 0) {
+                campaign.status = 'Hoàn thành (có lỗi)';
+            } else {
+                campaign.status = 'Hoàn thành';
+            }
+        } else {
+            campaign.status = 'Đang gửi';
+        }
         
         // Persistence handled by callback
         onUpdate(campaign);

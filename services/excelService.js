@@ -37,6 +37,7 @@ function parseExcel(filePath) {
         const tenCongTy = row[3];
         const diaChi = row[6];
         const ngayHetHan = row[10];
+        const email = row[8]; // Column I
 
         // Skip rows with empty MST (Column E)
         if (!mst || mst.toString().trim() === '') return null;
@@ -45,6 +46,7 @@ function parseExcel(filePath) {
             MST: mst.toString().trim(),
             TenCongTy: tenCongTy ? tenCongTy.toString().trim() : '',
             DiaChi: diaChi ? diaChi.toString().trim() : '',
+            Email: email ? email.toString().trim() : '',
             NgayHetHanChuKySo: formatDate(ngayHetHan)
         };
     }).filter(row => row !== null);
