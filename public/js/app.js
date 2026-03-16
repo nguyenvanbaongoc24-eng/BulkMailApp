@@ -425,7 +425,17 @@ async function saveCampaign() {
     const name = document.getElementById('input-name').value;
     const subject = document.getElementById('input-subject').value;
     const senderAccountId = document.getElementById('select-sender').value;
-    const template = document.getElementById('input-template').innerHTML; // Use innerHTML for Rich Text
+    const editor = document.getElementById('input-template');
+    let template = editor.innerHTML; 
+
+    // Wrap in default dark theme if it doesn't look like it's already wrapped
+    if (!template.includes('id="ca2-email-wrapper"')) {
+        template = `
+            <div id="ca2-email-wrapper" style="background-color: #050510; color: #ffffff; padding: 40px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; line-height: 1.6; border-radius: 16px;">
+                ${template}
+            </div>
+        `;
+    }
 
     if (!name || !subject || !senderAccountId || !template || currentRecipients.length === 0) {
         alert('Vui lòng hoàn tất thiết lập chiến dịch trước khi kích hoạt.');

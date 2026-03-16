@@ -324,11 +324,52 @@
                             </div>
                             
                             <!-- Rich Text Toolbar -->
-                            <div class="flex items-center gap-2 p-2 bg-white/5 rounded-t-2xl border-x border-t border-white/10">
-                                <button onclick="formatDoc('bold')" title="In đậm" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all"><b>B</b></button>
-                                <button onclick="formatDoc('italic')" title="In nghiêng" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all"><i>I</i></button>
-                                <button onclick="formatDoc('underline')" title="Gạch chân" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all"><u>U</u></button>
+                            <div class="flex flex-wrap items-center gap-1 p-2 bg-white/5 rounded-t-2xl border-x border-t border-white/10">
+                                <button onclick="formatDoc('bold')" title="In đậm" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs font-bold">B</button>
+                                <button onclick="formatDoc('italic')" title="In nghiêng" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs italic">I</button>
+                                <button onclick="formatDoc('underline')" title="Gạch chân" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs underline">U</button>
+                                
                                 <div class="w-px h-4 bg-white/10 mx-1"></div>
+                                
+                                <select onchange="formatDoc('fontSize', this.value)" class="bg-transparent text-[10px] text-white outline-none cursor-pointer p-1 hover:bg-white/10 rounded">
+                                    <option value="1">Rất nhỏ</option>
+                                    <option value="2">Nhỏ</option>
+                                    <option value="3" selected>Bình thường</option>
+                                    <option value="4">Lớn</option>
+                                    <option value="5">Rất lớn</option>
+                                    <option value="6">Cực lớn</option>
+                                    <option value="7">Khổng lồ</option>
+                                </select>
+
+                                <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+                                <div class="flex items-center gap-1">
+                                    <button onclick="document.getElementById('picker-color').click()" title="Màu chữ" class="p-2 hover:bg-white/10 rounded-lg flex flex-col items-center">
+                                        <span class="text-xs">A</span>
+                                        <div id="color-indicator" class="w-3 h-0.5 bg-white"></div>
+                                    </button>
+                                    <input type="color" id="picker-color" class="hidden" onchange="formatDoc('foreColor', this.value); document.getElementById('color-indicator').style.backgroundColor = this.value">
+                                    
+                                    <button onclick="document.getElementById('picker-bg').click()" title="Màu nền chữ" class="p-2 hover:bg-white/10 rounded-lg flex flex-col items-center">
+                                        <span class="text-xs">📝</span>
+                                        <div id="bg-indicator" class="w-3 h-0.5 bg-transparent border border-white/20"></div>
+                                    </button>
+                                    <input type="color" id="picker-bg" class="hidden" onchange="formatDoc('backColor', this.value); document.getElementById('bg-indicator').style.backgroundColor = this.value">
+                                </div>
+
+                                <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+                                <button onclick="formatDoc('justifyLeft')" title="Căn trái" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs">⬅️</button>
+                                <button onclick="formatDoc('justifyCenter')" title="Căn giữa" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs">↔️</button>
+                                <button onclick="formatDoc('justifyRight')" title="Căn phải" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs">➡️</button>
+
+                                <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+                                <button onclick="formatDoc('insertUnorderedList')" title="Danh sách không thứ tự" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs">•</button>
+                                <button onclick="formatDoc('insertOrderedList')" title="Danh sách có thứ tự" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs">1.</button>
+
+                                <div class="w-px h-4 bg-white/10 mx-1"></div>
+
                                 <button onclick="addCustomLink()" title="Chèn liên kết" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all">🔗</button>
                                 <button onclick="document.getElementById('image-upload').click()" title="Chèn ảnh" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all">🖼️</button>
                                 <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleEditorImage(event)">
@@ -336,7 +377,7 @@
                             
                             <!-- Rich Text Editor -->
                             <div id="input-template" contenteditable="true" 
-                                 class="w-full px-8 py-6 rounded-b-[32px] font-sans text-base bg-white/2 border border-white/10 outline-none focus:border-orange-500/30 transition-all min-h-[300px] text-gray-200 custom-scrollbar" 
+                                 class="w-full px-8 py-6 rounded-b-[32px] font-sans text-base bg-[#050510] border border-white/10 outline-none focus:border-orange-500/30 transition-all min-h-[300px] text-white custom-scrollbar shadow-inner" 
                                  data-placeholder="Chào {{TenCongTy}}, ...">
                             </div>
                             
