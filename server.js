@@ -17,6 +17,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Ensure required directories exist
+['data', 'uploads'].forEach(dir => {
+    if (!fs.existsSync(path.join(__dirname, dir))) {
+        fs.mkdirSync(path.join(__dirname, dir));
+    }
+});
+
 const upload = multer({ dest: 'uploads/' });
 
 // Campaigns mock database
