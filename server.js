@@ -87,6 +87,40 @@ app.post('/api/senders', authenticate, async (req, res) => {
     res.json(data[0]);
 });
 
+app.put('/api/senders/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const updates = {
+        senderName: req.body.senderName,
+        senderEmail: req.body.senderEmail,
+        smtpHost: req.body.smtpHost,
+        smtpPort: req.body.smtpPort,
+        smtpUser: req.body.smtpUser,
+        smtpPassword: req.body.smtpPassword
+    };
+    const { data, error } = await supabase
+        .from('senders')
+        .update(updates)
+        .eq('id', id)
+        .eq('userId', req.user.id)
+        .select();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    if (data.length === 0) return res.status(404).json({ error: 'Sender not found or unauthorized' });
+    res.json(data[0]);
+});
+
+app.delete('/api/senders/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { error } = await supabase
+        .from('senders')
+        .delete()
+        .eq('id', id)
+        .eq('userId', req.user.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ message: 'Sender deleted successfully' });
+});
+
 // Template Routes
 app.get('/api/templates', authenticate, async (req, res) => {
     const { data, error } = await supabase

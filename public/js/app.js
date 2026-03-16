@@ -1,4 +1,5 @@
 let currentRecipients = [];
+let allSenders = []; 
 let supabaseClient = null;
 let currentSession = null;
 
@@ -212,19 +213,20 @@ async function loadSenders() {
     const response = await authedFetch('/api/senders');
     if (!response || !response.ok) return;
     
-    const senders = await response.json();
+    allSenders = await response.json();
     const list = document.getElementById('sender-list');
     if (!list) return;
     list.innerHTML = '';
-    senders.forEach(s => {
+    allSenders.forEach(s => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-white/2 transition-colors duration-200';
         row.innerHTML = `
             <td class="px-8 py-4 font-bold text-white">${s.senderName}</td>
             <td class="px-8 py-4 text-gray-400">${s.senderEmail}</td>
             <td class="px-8 py-4 text-gray-400 font-mono text-xs">${s.smtpHost}</td>
-            <td class="px-8 py-4 text-right">
-                <button class="text-xs font-bold text-red-400 hover:text-red-500 bg-red-500/10 px-3 py-1 rounded-lg">Xóa</button>
+            <td class="px-8 py-4 text-right flex items-center justify-end gap-2">
+                <button onclick="openEditSenderModal('${s.id}')" class="text-xs font-bold text-orange-400 hover:text-orange-500 bg-orange-500/10 px-3 py-1 rounded-lg">Sửa</button>
+                <button onclick="deleteSender('${s.id}')" class="text-xs font-bold text-red-400 hover:text-red-500 bg-red-500/10 px-3 py-1 rounded-lg">Xóa</button>
             </td>
         `;
         list.appendChild(row);
@@ -272,16 +274,88 @@ async function loadSendersForModal() {
     const response = await authedFetch('/api/senders');
     if (!response || !response.ok) return;
     
-    const senders = await response.json();
+    allSenders = await response.json();
     const select = document.getElementById('select-sender');
     if (!select) return;
     select.innerHTML = '<option value="">-- Chọn tài khoản gửi mail --</option>';
-    senders.forEach(s => {
+    allSenders.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.id;
         opt.textContent = `${s.senderName} (${s.senderEmail})`;
         select.appendChild(opt);
     });
+}
+
+function openEditSenderModal(id) {
+    const sender = allSenders.find(s => s.id === id);
+    if (!sender) return;
+
+    document.getElementById('edit-sender-id').value = sender.id;
+    document.getElementById('edit-sender-name').value = sender.senderName;
+    document.getElementById('edit-sender-email').value = sender.senderEmail;
+    document.getElementById('edit-smtp-host').value = sender.smtpHost;
+    document.getElementById('edit-smtp-port').value = sender.smtpPort;
+    document.getElementById('edit-smtp-user').value = sender.smtpUser;
+    document.getElementById('edit-smtp-pass').value = ''; // Don't show password
+
+    document.getElementById('modal-edit-sender').classList.remove('hidden');
+}
+
+function closeEditSenderModal() {
+    document.getElementById('modal-edit-sender').classList.add('hidden');
+}
+
+async function updateSenderAccount() {
+    const id = document.getElementById('edit-sender-id').value;
+    const data = {
+        senderName: document.getElementById('edit-sender-name').value,
+        senderEmail: document.getElementById('edit-sender-email').value,
+        smtpHost: document.getElementById('edit-smtp-host').value,
+        smtpPort: document.getElementById('edit-smtp-port').value,
+        smtpUser: document.getElementById('edit-smtp-user').value
+    };
+
+    const pass = document.getElementById('edit-smtp-pass').value;
+    if (pass) data.smtpPassword = pass;
+
+    try {
+        const response = await authedFetch(`/api/senders/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response && response.ok) {
+            alert('Cập nhật tài khoản thành công!');
+            closeEditSenderModal();
+            loadSenders();
+        } else {
+            const err = response ? await response.json() : { error: 'Lỗi không xác định' };
+            alert('Lỗi: ' + (err.error || 'Không thể cập nhật tài khoản.'));
+        }
+    } catch (error) {
+        alert('Lỗi kết nối khi cập nhật tài khoản.');
+    }
+}
+
+async function deleteSender(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa tài khoản gửi này?')) return;
+
+    try {
+        const response = await authedFetch(`/api/senders/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response && response.ok) {
+            alert('Đã xóa tài khoản thành công!');
+            loadSenders();
+        } else {
+            const err = response ? await response.json() : { error: 'Lỗi không xác định' };
+            alert('Lỗi: ' + (err.error || 'Không thể xóa tài khoản.'));
+        }
+    } catch (error) {
+        alert('Lỗi kết nối khi xóa tài khoản.');
+    }
 }
 
 async function handleFileUpload(event) {
