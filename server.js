@@ -204,6 +204,7 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
         senderAccountId: req.body.senderAccountId,
         template: req.body.template,
         recipients: (req.body.recipients || []).map(r => ({ ...r, status: 'Chưa gửi', sentTime: null })),
+        attachCert: req.body.attachCert || false,
         status: 'Nháp',
         sentCount: 0,
         successCount: 0,

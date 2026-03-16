@@ -478,35 +478,6 @@ function updatePreview() {
     }
 }
 
-async function saveCampaign() {
-    const name = document.getElementById('input-name').value;
-    const subject = document.getElementById('input-subject').value;
-    const senderAccountId = document.getElementById('select-sender').value;
-    const template = document.getElementById('input-template').value;
-
-    if (!name || !subject || !senderAccountId || !template || currentRecipients.length === 0) {
-        alert('Vui lòng hoàn tất thiết lập chiến dịch trước khi kích hoạt.');
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/campaigns', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, subject, senderAccountId, template, recipients: currentRecipients })
-        });
-        const campaign = await response.json();
-        
-        await fetch(`/api/campaigns/${campaign.id}/send`, { method: 'POST' });
-        
-        closeCreateModal();
-        loadCampaigns();
-        loadStats();
-    } catch (error) {
-        alert('Lỗi khi khởi tạo automation.');
-    }
-}
-
 async function loadCampaigns(targetId = 'campaign-list') {
     const response = await authedFetch('/api/campaigns');
     if (!response || !response.ok) return;
@@ -704,6 +675,7 @@ async function saveCampaign() {
     const name = document.getElementById('input-name').value;
     const subject = document.getElementById('input-subject').value;
     const senderAccountId = document.getElementById('select-sender').value;
+    const attachCert = document.getElementById('toggle-attach-cert')?.checked || false;
     const editor = document.getElementById('input-template');
     let template = editor.innerHTML; 
 
@@ -725,7 +697,7 @@ async function saveCampaign() {
         const response = await authedFetch('/api/campaigns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, subject, senderAccountId, template, recipients: currentRecipients })
+            body: JSON.stringify({ name, subject, senderAccountId, template, recipients: currentRecipients, attachCert })
         });
 
         if (response && response.ok) {

@@ -453,6 +453,19 @@
                                     <option value="">-- Chọn tài khoản gửi mail --</option>
                                 </select>
                             </div>
+                            <div class="flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-transparent p-4 rounded-2xl border border-emerald-500/20">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-lg">🔐</span>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">Đính kèm chứng thư số</p>
+                                        <p class="text-[10px] text-gray-500">Tự động tra cứu & đính kèm CTS mới nhất</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-attach-cert" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </label>
+                            </div>
                         </div>
 
                         <div class="bg-orange-gradient/10 border border-orange-500/20 p-8 rounded-[32px] space-y-6">
