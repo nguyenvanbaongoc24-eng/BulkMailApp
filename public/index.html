@@ -60,9 +60,67 @@
             box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2) !important;
             outline: none !important;
         }
+
+        /* Auth Screen Styles */
+        #auth-screen {
+            background: radial-gradient(circle at top right, rgba(255, 140, 0, 0.15), transparent),
+                        radial-gradient(circle at bottom left, rgba(147, 51, 234, 0.15), transparent),
+                        #050510;
+        }
+        .auth-card {
+            background: rgba(15, 15, 30, 0.8);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="bg-dark-purple">
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div class="auth-card w-full max-w-md rounded-[40px] p-10 space-y-8 animate-in zoom-in duration-500">
+            <div class="text-center">
+                <h1 class="text-3xl font-black text-white tracking-tighter mb-2">
+                    Automation <span class="text-orange-gradient">CA2</span>
+                </h1>
+                <p class="text-gray-400 text-sm font-medium" id="auth-subtitle">Đăng nhập để tiếp tục quản lý chiến dịch</p>
+            </div>
+
+            <div class="space-y-4">
+                <div id="register-fields" class="hidden space-y-4 animate-in slide-in-from-top-4 duration-300">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Họ và tên</label>
+                        <input id="auth-name" type="text" placeholder="Nguyễn Văn A" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Email của bạn</label>
+                    <input id="auth-email" type="email" placeholder="name@company.com" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Mật khẩu</label>
+                    <input id="auth-password" type="password" placeholder="••••••••" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
+                </div>
+            </div>
+
+            <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="w-full bg-orange-gradient py-5 text-white rounded-2xl font-black text-lg shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-tighter">
+                Đăng nhập ngay
+            </button>
+
+            <div class="text-center">
+                <p class="text-gray-500 text-xs font-medium">
+                    <span id="auth-switch-text">Chưa có tài khoản?</span>
+                    <button onclick="toggleAuthMode()" class="text-orange-500 font-bold hover:underline ml-1" id="auth-switch-btn">Tham gia ngay</button>
+                </p>
+            </div>
+            
+            <div id="auth-error" class="hidden p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs text-center font-bold"></div>
+        </div>
+    </div>
+
+    <!-- Main App Wrapper (Initially hidden) -->
+    <div id="app-container" class="hidden flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
     <aside class="w-64 bg-[#0a0a1a] border-r border-white/5 flex flex-col z-30">
@@ -85,14 +143,17 @@
                 <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold">Cài đặt hệ thống</span>
             </a>
         </nav>
-        <div class="p-6 border-t border-white/5">
+        <div class="p-6 border-t border-white/5 space-y-3">
             <div class="bg-glass p-4 rounded-2xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-orange-gradient flex items-center justify-center text-white font-bold shadow-lg shadow-orange-900/40">CA2</div>
-                <div>
-                    <p class="text-sm font-bold text-white">System Admin</p>
-                    <p class="text-[10px] text-orange-500 font-bold uppercase tracking-widest">Enterprise Plan</p>
+                <div id="user-avatar" class="w-10 h-10 rounded-xl bg-orange-gradient flex items-center justify-center text-white font-bold shadow-lg shadow-orange-900/40">U</div>
+                <div class="overflow-hidden">
+                    <p id="user-display-name" class="text-sm font-bold text-white truncate">User Name</p>
+                    <p id="user-display-email" class="text-[10px] text-orange-500 font-bold uppercase tracking-widest truncate">user@email.com</p>
                 </div>
             </div>
+            <button onclick="handleLogout()" class="w-full py-3 rounded-xl text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center gap-2 border border-transparent hover:border-red-500/20">
+                <span>🚪</span> Đăng xuất
+            </button>
         </div>
     </aside>
 
@@ -421,6 +482,9 @@
         </div>
     </div>
 
+    </div> <!-- End of app-container -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,8 +1,9 @@
 let currentRecipients = [];
+let supabaseClient = null;
+let currentSession = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadStats();
-    loadCampaigns();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initAuth();
     
     // Rich Text Editor Paste handling
     const editor = document.getElementById('input-template');
@@ -25,6 +26,138 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+/** ---------------- AUTH LOGIC ---------------- */
+
+async function initAuth() {
+    try {
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+        
+        // Use window.supabase to refer to the library
+        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+        
+        // Check current session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        currentSession = session;
+
+        if (session) {
+            showApp(session.user);
+        } else {
+            showAuth();
+        }
+
+        // Listen for auth changes
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+            currentSession = session;
+            if (session) showApp(session.user);
+            else showAuth();
+        });
+    } catch (err) {
+        console.error('Auth Init Error:', err);
+    }
+}
+
+function showAuth() {
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('app-container').classList.add('hidden');
+}
+
+function showApp(user) {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-container').classList.remove('hidden');
+    
+    // Update Profile UI
+    document.getElementById('user-display-email').innerText = user.email;
+    document.getElementById('user-display-name').innerText = user.user_metadata.full_name || 'Người dùng';
+    document.getElementById('user-avatar').innerText = (user.user_metadata.full_name || user.email).charAt(0).toUpperCase();
+
+    // Initial Data Load
+    loadStats();
+    loadCampaigns();
+}
+
+let authMode = 'login'; // 'login' or 'register'
+
+function toggleAuthMode() {
+    authMode = authMode === 'login' ? 'register' : 'login';
+    const subtitle = document.getElementById('auth-subtitle');
+    const submitBtn = document.getElementById('auth-submit-btn');
+    const switchBtn = document.getElementById('auth-switch-btn');
+    const switchText = document.getElementById('auth-switch-text');
+    const regFields = document.getElementById('register-fields');
+
+    if (authMode === 'register') {
+        subtitle.innerText = 'Bắt đầu hành trình Automation của bạn';
+        submitBtn.innerText = 'Đăng ký tài khoản';
+        switchText.innerText = 'Đã có tài khoản?';
+        switchBtn.innerText = 'Đăng nhập';
+        regFields.classList.remove('hidden');
+    } else {
+        subtitle.innerText = 'Đăng nhập để tiếp tục quản lý chiến dịch';
+        submitBtn.innerText = 'Đăng nhập ngay';
+        switchText.innerText = 'Chưa có tài khoản?';
+        switchBtn.innerText = 'Tham gia ngay';
+        regFields.classList.add('hidden');
+    }
+}
+
+async function handleAuthSubmit() {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const name = document.getElementById('auth-name').value;
+    const errorEl = document.getElementById('auth-error');
+    const submitBtn = document.getElementById('auth-submit-btn');
+
+    errorEl.classList.add('hidden');
+    submitBtn.innerText = 'Đang xử lý...';
+    submitBtn.disabled = true;
+
+    try {
+        let result;
+        if (authMode === 'login') {
+            result = await supabaseClient.auth.signInWithPassword({ email, password });
+        } else {
+            result = await supabaseClient.auth.signUp({ 
+                email, 
+                password,
+                options: { data: { full_name: name } }
+            });
+        }
+
+        if (result.error) {
+            errorEl.innerText = result.error.message;
+            errorEl.classList.remove('hidden');
+        } else if (authMode === 'register') {
+            alert('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận (nếu có).');
+            toggleAuthMode();
+        }
+    } catch (err) {
+        errorEl.innerText = 'An unexpected error occurred.';
+        errorEl.classList.remove('hidden');
+    } finally {
+        submitBtn.innerText = authMode === 'login' ? 'Đăng nhập ngay' : 'Đăng ký tài khoản';
+        submitBtn.disabled = false;
+    }
+}
+
+async function handleLogout() {
+    await supabaseClient.auth.signOut();
+}
+
+/**
+ * Helper for authenticated API calls
+ */
+async function authedFetch(url, options = {}) {
+    if (!currentSession) return null;
+    
+    const headers = options.headers || {};
+    headers['Authorization'] = `Bearer ${currentSession.access_token}`;
+    
+    return fetch(url, { ...options, headers });
+}
+
+/** ---------------- END AUTH LOGIC ---------------- */
 
 function showPage(page) {
     document.getElementById('page-title').innerText = 
@@ -76,7 +209,7 @@ function closeCreateModal() {
 
 // Sender Management
 async function loadSenders() {
-    const response = await fetch('/api/senders');
+    const response = await authedFetch('/api/senders');
     const senders = await response.json();
     const list = document.getElementById('sender-list');
     list.innerHTML = '';
@@ -111,7 +244,7 @@ async function addSenderAccount() {
     }
 
     try {
-        const response = await fetch('/api/senders', {
+        const response = await authedFetch('/api/senders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -130,7 +263,7 @@ async function addSenderAccount() {
 }
 
 async function loadSendersForModal() {
-    const response = await fetch('/api/senders');
+    const response = await authedFetch('/api/senders');
     const senders = await response.json();
     const select = document.getElementById('select-sender');
     select.innerHTML = '<option value="">-- Chọn tài khoản gửi mail --</option>';
@@ -152,7 +285,7 @@ async function handleFileUpload(event) {
     document.getElementById('upload-status').innerText = '⏳ Đang phân tích dữ liệu Automation...';
 
     try {
-        const response = await fetch('/api/upload', {
+        const response = await authedFetch('/api/upload', {
             method: 'POST',
             body: formData
         });
@@ -175,7 +308,7 @@ async function handleGSheets() {
     document.getElementById('upload-status').innerText = '⏳ Đang đồng bộ Google Cloud...';
 
     try {
-        const response = await fetch('/api/gsheets', {
+        const response = await authedFetch('/api/gsheets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
@@ -250,7 +383,7 @@ async function saveCampaign() {
 }
 
 async function loadCampaigns(targetId = 'campaign-list') {
-    const response = await fetch('/api/campaigns');
+    const response = await authedFetch('/api/campaigns');
     const campaigns = await response.json();
     const list = document.getElementById(targetId);
     if (!list) return;
@@ -295,7 +428,7 @@ async function deleteCampaign(id) {
     if (!confirm('Bạn có chắc chắn muốn xóa chiến dịch này không? Hành động này không thể hoàn tác.')) return;
     
     try {
-        const response = await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+        const response = await authedFetch(`/api/campaigns/${id}`, { method: 'DELETE' });
         const result = await response.json();
         if (response.ok) {
             loadCampaigns();
@@ -319,7 +452,7 @@ function getStatusColor(status) {
 }
 
 async function loadStats() {
-    const response = await fetch('/api/stats');
+    const response = await authedFetch('/api/stats');
     const stats = await response.json();
     
     document.getElementById('stat-total').innerText = stats.totalSent.toLocaleString();
@@ -335,7 +468,7 @@ async function loadStats() {
 
 async function loadTemplates() {
     try {
-        const response = await fetch('/api/templates');
+        const response = await authedFetch('/api/templates');
         const templates = await response.json();
         const select = document.getElementById('select-template');
         
@@ -366,7 +499,7 @@ async function saveTemplate() {
     if (!name) return;
 
     try {
-        const response = await fetch('/api/templates', {
+        const response = await authedFetch('/api/templates', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, content })
@@ -443,14 +576,14 @@ async function saveCampaign() {
     }
 
     try {
-        const response = await fetch('/api/campaigns', {
+        const response = await authedFetch('/api/campaigns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, subject, senderAccountId, template, recipients: currentRecipients })
         });
         const campaign = await response.json();
         
-        await fetch(`/api/campaigns/${campaign.id}/send`, { method: 'POST' });
+        await authedFetch(`/api/campaigns/${campaign.id}/send`, { method: 'POST' });
         
         closeCreateModal();
         loadCampaigns();

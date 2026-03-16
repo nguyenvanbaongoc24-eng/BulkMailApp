@@ -25,6 +25,28 @@ if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
 
 const upload = multer({ dest: 'uploads/' });
 
+// Serve Supabase config to frontend
+app.get('/api/config', (req, res) => {
+    res.json({
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseKey: process.env.SUPABASE_KEY
+    });
+});
+
+// Middleware to verify Supabase Auth Session
+const authenticate = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) return res.status(401).json({ error: 'Invalid session' });
+
+    req.user = user;
+    next();
+};
+
 // Routes
 app.post('/api/upload', upload.single('file'), (req, res) => {
     try {
@@ -38,15 +60,20 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // Sender Routes
-app.get('/api/senders', async (req, res) => {
-    const { data, error } = await supabase.from('senders').select('*').order('createdAt', { ascending: false });
+app.get('/api/senders', authenticate, async (req, res) => {
+    const { data, error } = await supabase
+        .from('senders')
+        .select('*')
+        .eq('userId', req.user.id)
+        .order('createdAt', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
 
-app.post('/api/senders', async (req, res) => {
+app.post('/api/senders', authenticate, async (req, res) => {
     const newSender = {
         id: Date.now().toString(),
+        userId: req.user.id,
         senderName: req.body.senderName,
         senderEmail: req.body.senderEmail,
         smtpHost: req.body.smtpHost,
@@ -61,15 +88,20 @@ app.post('/api/senders', async (req, res) => {
 });
 
 // Template Routes
-app.get('/api/templates', async (req, res) => {
-    const { data, error } = await supabase.from('templates').select('*').order('createdAt', { ascending: false });
+app.get('/api/templates', authenticate, async (req, res) => {
+    const { data, error } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('userId', req.user.id)
+        .order('createdAt', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
 
-app.post('/api/templates', async (req, res) => {
+app.post('/api/templates', authenticate, async (req, res) => {
     const newTemplate = {
         id: Date.now().toString(),
+        userId: req.user.id,
         name: req.body.name,
         content: req.body.content,
         createdAt: new Date().toISOString()
@@ -119,20 +151,25 @@ app.post('/api/gsheets', async (req, res) => {
     }
 });
 
-app.get('/api/campaigns', async (req, res) => {
-    const { data, error } = await supabase.from('campaigns').select('*').order('createdAt', { ascending: false });
+app.get('/api/campaigns', authenticate, async (req, res) => {
+    const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('userId', req.user.id)
+        .order('createdAt', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
 
-app.post('/api/campaigns', async (req, res) => {
+app.post('/api/campaigns', authenticate, async (req, res) => {
     const newCampaign = {
         id: Date.now().toString(),
+        userId: req.user.id,
         name: req.body.name,
         subject: req.body.subject,
         senderAccountId: req.body.senderAccountId,
         template: req.body.template,
-        recipients: req.body.recipients.map(r => ({ ...r, status: 'Chưa gửi', sentTime: null })),
+        recipients: (req.body.recipients || []).map(r => ({ ...r, status: 'Chưa gửi', sentTime: null })),
         status: 'Nháp',
         sentCount: 0,
         successCount: 0,
@@ -144,24 +181,26 @@ app.post('/api/campaigns', async (req, res) => {
     res.json(data[0]);
 });
 
-app.post('/api/campaigns/:id/send', async (req, res) => {
-    // Fetch campaign from Supabase
+app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
+    // Fetch campaign from Supabase with userId check
     const { data: campaign, error: campaignError } = await supabase
         .from('campaigns')
         .select('*')
         .eq('id', req.params.id)
+        .eq('userId', req.user.id)
         .single();
     
-    if (campaignError || !campaign) return res.status(404).send('Campaign not found');
+    if (campaignError || !campaign) return res.status(404).json({ error: 'Campaign not found or unauthorized' });
     
-    // Fetch sender account details
+    // Fetch sender account details with userId check
     const { data: sender, error: senderError } = await supabase
         .from('senders')
         .select('*')
         .eq('id', campaign.senderAccountId)
+        .eq('userId', req.user.id)
         .single();
     
-    if (senderError || !sender) return res.status(400).json({ error: 'Không tìm thấy cấu hình người gửi.' });
+    if (senderError || !sender) return res.status(400).json({ error: 'Không tìm thấy cấu hình người gửi hợp lệ.' });
 
     // Update status to "Đang gửi"
     await supabase.from('campaigns').update({ status: 'Đang gửi' }).eq('id', campaign.id);
@@ -181,14 +220,21 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
     });
 });
 
-app.delete('/api/campaigns/:id', async (req, res) => {
-    const { error } = await supabase.from('campaigns').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: 'Lỗi khi xóa chiến dịch.' });
+app.delete('/api/campaigns/:id', authenticate, async (req, res) => {
+    const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', req.params.id)
+        .eq('userId', req.user.id);
+    if (error) return res.status(500).json({ error: 'Lỗi khi xóa chiến dịch hoặc Unauthorized.' });
     res.json({ message: 'Đã xóa chiến dịch thành công.' });
 });
 
-app.get('/api/stats', async (req, res) => {
-    const { data: campaigns, error } = await supabase.from('campaigns').select('sentCount, successCount, errorCount');
+app.get('/api/stats', authenticate, async (req, res) => {
+    const { data: campaigns, error } = await supabase
+        .from('campaigns')
+        .select('sentCount, successCount, errorCount')
+        .eq('userId', req.user.id);
     if (error) return res.status(500).json({ error: error.message });
 
     const stats = campaigns.reduce((acc, c) => {
