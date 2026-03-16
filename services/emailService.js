@@ -55,10 +55,26 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                 'Email này được gửi tự động từ hệ thống Automation CA2. ' +
                 'Nếu bạn không muốn nhận email này, vui lòng <a href="#">hủy đăng ký tại đây</a>.</p>';
 
+        // Skip if no valid email address
+        const targetEmail = recipient.Email && recipient.Email.trim() !== '' ? recipient.Email : null;
+        if (!targetEmail) {
+            console.warn(`[EmailService] Bỏ qua khách hàng ${recipient.TenCongTy || recipient.MST} vì không có địa chỉ email.`);
+            errorCount++;
+            recipient.status = 'Thiếu Email';
+            recipient.sentTime = new Date().toISOString();
+            
+            // Update stats
+            campaign.sentCount = i + 1;
+            campaign.successCount = success;
+            campaign.errorCount = errorCount;
+            onUpdate(campaign);
+            continue; // Skip trying to send
+        }
+
         // Build mail options
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
-            to: recipient.Email || recipient.MST,
+            to: targetEmail,
             subject: campaign.subject || `Thông báo từ ${sender.senderName}`,
             html: html,
             attachments: []

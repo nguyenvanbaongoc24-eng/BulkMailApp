@@ -10,42 +10,37 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
+async function initBrowser() {
+    const launchOptions = {
+        headless: 'new',
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process'
+        ]
+    };
+
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
+    return await puppeteer.launch(launchOptions);
+}
+
 /**
  * Scrape the latest digital certificate for a given MST (tax code).
  * 
- * Flow:
- * 1. Navigate to SearchInfoCert.aspx
- * 2. Enter MST in search field and submit
- * 3. Handle potential new tab opening
- * 4. Find all "Tải về" links and click the LAST one (latest cert)
- * 5. Download the certificate file
- * 
+ * @param {Object} browser - Puppeteer browser instance
  * @param {string} mst - Tax code to search
  * @returns {Object|null} { filePath, fileName } or null if not found
  */
-async function getLatestCertificate(mst) {
-    let browser = null;
+async function getLatestCertificate(browser, mst) {
+    let page = null;
     
     try {
-        const launchOptions = {
-            headless: 'new',
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process'
-            ]
-        };
-
-        // Use system Chromium on Render (set via Dockerfile env)
-        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-            launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-        }
-
-        browser = await puppeteer.launch(launchOptions);
-
-        const page = await browser.newPage();
+        page = await browser.newPage();
         
         // Set download behavior
         const client = await page.createCDPSession();
@@ -181,8 +176,8 @@ async function getLatestCertificate(mst) {
         console.error(`[Scraper] Lỗi khi tra cứu MST ${mst}:`, error.message);
         return null;
     } finally {
-        if (browser) {
-            await browser.close();
+        if (page) {
+            await page.close().catch(() => {});
         }
     }
 }
@@ -208,4 +203,4 @@ function cleanupCerts() {
     }
 }
 
-module.exports = { getLatestCertificate, cleanupCerts };
+module.exports = { initBrowser, getLatestCertificate, cleanupCerts };
