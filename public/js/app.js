@@ -210,8 +210,11 @@ function closeCreateModal() {
 // Sender Management
 async function loadSenders() {
     const response = await authedFetch('/api/senders');
+    if (!response || !response.ok) return;
+    
     const senders = await response.json();
     const list = document.getElementById('sender-list');
+    if (!list) return;
     list.innerHTML = '';
     senders.forEach(s => {
         const row = document.createElement('tr');
@@ -249,13 +252,16 @@ async function addSenderAccount() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (response.ok) {
+        if (response && response.ok) {
             alert('Đã thêm tài khoản Automation CA2 thành công!');
             loadSenders();
             // Clear inputs
             ['sender-name', 'sender-email', 'smtp-host', 'smtp-port', 'smtp-user', 'smtp-pass'].forEach(id => {
                 document.getElementById(id).value = '';
             });
+        } else {
+            const err = response ? await response.json() : { error: 'No session' };
+            alert('Lỗi: ' + (err.error || 'Không thể thêm tài khoản.'));
         }
     } catch (error) {
         alert('Lỗi khi lưu tài khoản.');
@@ -264,8 +270,11 @@ async function addSenderAccount() {
 
 async function loadSendersForModal() {
     const response = await authedFetch('/api/senders');
+    if (!response || !response.ok) return;
+    
     const senders = await response.json();
     const select = document.getElementById('select-sender');
+    if (!select) return;
     select.innerHTML = '<option value="">-- Chọn tài khoản gửi mail --</option>';
     senders.forEach(s => {
         const opt = document.createElement('option');
@@ -384,6 +393,7 @@ async function saveCampaign() {
 
 async function loadCampaigns(targetId = 'campaign-list') {
     const response = await authedFetch('/api/campaigns');
+    if (!response || !response.ok) return;
     const campaigns = await response.json();
     const list = document.getElementById(targetId);
     if (!list) return;
@@ -429,6 +439,7 @@ async function deleteCampaign(id) {
     
     try {
         const response = await authedFetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+        if (!response) return;
         const result = await response.json();
         if (response.ok) {
             loadCampaigns();
@@ -453,6 +464,7 @@ function getStatusColor(status) {
 
 async function loadStats() {
     const response = await authedFetch('/api/stats');
+    if (!response || !response.ok) return;
     const stats = await response.json();
     
     document.getElementById('stat-total').innerText = stats.totalSent.toLocaleString();
@@ -469,6 +481,7 @@ async function loadStats() {
 async function loadTemplates() {
     try {
         const response = await authedFetch('/api/templates');
+        if (!response || !response.ok) return;
         const templates = await response.json();
         const select = document.getElementById('select-template');
         
@@ -504,9 +517,12 @@ async function saveTemplate() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, content })
         });
-        if (response.ok) {
+        if (response && response.ok) {
             alert('Đã lưu mẫu thành công!');
             loadTemplates();
+        } else {
+            const err = response ? await response.json() : { error: 'No session' };
+            alert('Lỗi: ' + (err.error || 'Không thể lưu mẫu.'));
         }
     } catch (error) {
         alert('Lỗi khi lưu mẫu.');
@@ -581,15 +597,20 @@ async function saveCampaign() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, subject, senderAccountId, template, recipients: currentRecipients })
         });
-        const campaign = await response.json();
-        
-        await authedFetch(`/api/campaigns/${campaign.id}/send`, { method: 'POST' });
-        
-        closeCreateModal();
-        loadCampaigns();
-        loadStats();
+
+        if (response && response.ok) {
+            const campaign = await response.json();
+            await authedFetch(`/api/campaigns/${campaign.id}/send`, { method: 'POST' });
+            
+            closeCreateModal();
+            loadCampaigns();
+            loadStats();
+        } else {
+            const err = response ? await response.json() : { error: 'Phiên làm việc hết hạn. Vui lòng đăng nhập lại.' };
+            alert('Lỗi: ' + (err.error || 'Không thể khởi tạo automation.'));
+        }
     } catch (error) {
-        alert('Lỗi khi khởi tạo automation.');
+        alert('Lỗi khi khởi tạo automation: ' + error.message);
     }
 }
 
