@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automation CA2 - Giải pháp automation gửi email hàng loạt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #050510;
+            color: #e2e8f0;
+        }
+        .bg-dark-purple { background-color: #050510; }
+        .bg-glass { 
+            background: rgba(15, 15, 30, 0.6); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+        .bg-orange-gradient { 
+            background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%); 
+        }
+        .text-orange-gradient {
+            background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-item-active {
+            background: rgba(255, 140, 0, 0.1);
+            border-right: 4px solid #ff8c00;
+            color: #ff8c00;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        
+        .card-glow:hover {
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.15);
+            border-color: rgba(255, 140, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        input, select, textarea {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2) !important;
+            outline: none !important;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-[#0a0a1a] border-r border-white/5 flex flex-col z-30">
+        <div class="p-8 text-center cursor-pointer" onclick="showPage('dashboard')">
+            <h1 class="text-xl font-extrabold tracking-tighter">
+                <span class="text-white">Automation</span> <span class="text-orange-gradient">CA2</span>
+            </h1>
+        </div>
+        <nav class="flex-1 px-4 space-y-4 mt-4">
+            <a href="javascript:void(0)" onclick="showPage('dashboard'); return false;" id="nav-dashboard" class="sidebar-item-active flex items-center px-4 py-3 rounded-xl transition-all duration-200">
+                <span class="mr-3 text-lg">📊</span> <span class="font-semibold">Bảng điều khiển</span>
+            </a>
+            <a href="javascript:void(0)" onclick="showPage('campaigns'); return false;" id="nav-campaigns" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                <span class="mr-3 text-lg">📧</span> <span class="font-semibold">Chiến dịch email</span>
+            </a>
+            <a href="javascript:void(0)" onclick="showPage('senders'); return false;" id="nav-senders" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                <span class="mr-3 text-lg">🔑</span> <span class="font-semibold">Tài khoản gửi</span>
+            </a>
+            <a href="javascript:void(0)" onclick="showPage('settings'); return false;" id="nav-settings" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold">Cài đặt hệ thống</span>
+            </a>
+        </nav>
+        <div class="p-6 border-t border-white/5">
+            <div class="bg-glass p-4 rounded-2xl flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-gradient flex items-center justify-center text-white font-bold shadow-lg shadow-orange-900/40">CA2</div>
+                <div>
+                    <p class="text-sm font-bold text-white">System Admin</p>
+                    <p class="text-[10px] text-orange-500 font-bold uppercase tracking-widest">Enterprise Plan</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-dark-purple relative">
+        <!-- Abstract Glow Background -->
+        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 blur-[120px] -z-10 rounded-full"></div>
+        <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] -z-10 rounded-full"></div>
+
+        <!-- Header -->
+        <header class="h-20 border-b border-white/5 flex items-center justify-between px-10 bg-[#050510]/80 backdrop-blur-md z-20">
+            <h2 id="page-title" class="text-2xl font-bold text-white tracking-tight">Bảng điều khiển</h2>
+            <button onclick="openCreateModal()" class="bg-orange-gradient px-6 py-2.5 text-white rounded-xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/30 flex items-center gap-2">
+                <span>+</span> Tạo chiến dịch mới
+            </button>
+        </header>
+
+        <!-- Content Area -->
+        <div id="main-content" class="flex-1 overflow-y-auto p-10 custom-scrollbar">
+            
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="space-y-10 animate-in fade-in duration-500">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-glass p-8 rounded-[32px] card-glow">
+                        <div class="flex items-baseline justify-between">
+                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tổng email gửi</p>
+                            <span class="text-orange-500">📊</span>
+                        </div>
+                        <h3 id="stat-total" class="text-5xl font-extrabold text-white mt-4 tracking-tighter">0</h3>
+                        <div class="mt-4 flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-lg">+12.5%</span>
+                            <span class="text-xs text-gray-500">so với tháng trước</span>
+                        </div>
+                    </div>
+                    <div class="bg-glass p-8 rounded-[32px] card-glow">
+                        <div class="flex items-baseline justify-between">
+                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tỷ lệ thành công</p>
+                            <span class="text-green-500">✅</span>
+                        </div>
+                        <h3 id="stat-success" class="text-5xl font-extrabold text-white mt-4 tracking-tighter">0%</h3>
+                        <div class="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-gradient w-[0%]" id="success-progress-bar"></div>
+                        </div>
+                    </div>
+                    <div class="bg-glass p-8 rounded-[32px] card-glow">
+                        <div class="flex items-baseline justify-between">
+                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tỷ lệ lỗi lỗi</p>
+                            <span class="text-red-500">⚠️</span>
+                        </div>
+                        <h3 id="stat-error" class="text-5xl font-extrabold text-red-500 mt-4 tracking-tighter">0%</h3>
+                        <p class="text-xs text-gray-500 mt-4 italic font-medium">Ngưỡng cảnh báo an toàn: 15%</p>
+                    </div>
+                </div>
+
+                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white uppercase tracking-tight">Chiến dịch gần đây</h3>
+                        <button class="text-sm text-orange-500 font-bold hover:underline">Xem tất cả</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-white/2 border-b border-white/5">
+                                <tr>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Tên chiến dịch</th>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Tiến độ</th>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaign-list" class="divide-y divide-white/5">
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaigns View (Separate but same list) -->
+            <div id="view-campaigns" class="hidden space-y-10 animate-in fade-in duration-500">
+                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-white/5 bg-white/5">
+                        <h3 class="text-lg font-bold text-white uppercase tracking-tight">Danh sách tất cả chiến dịch</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-white/2 border-b border-white/5">
+                                <tr>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Tên chiến dịch</th>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Tiến độ</th>
+                                    <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaign-list-all" class="divide-y divide-white/5">
+                                <!-- Duplicated logic for campaigns view -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Senders View -->
+            <div id="view-senders" class="hidden space-y-10 animate-in fade-in duration-500">
+                <div class="bg-glass rounded-[32px] p-8 border border-white/5">
+                    <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                        <span class="bg-orange-gradient p-2 rounded-lg text-white">🔑</span>
+                        Thêm tài khoản gửi mail mới
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tên người gửi</label>
+                            <input type="text" id="sender-name" class="w-full px-5 py-3 rounded-2xl outline-none" placeholder="VD: CA2 Support">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Email gửi</label>
+                            <input type="email" id="sender-email" class="w-full px-5 py-3 rounded-2xl outline-none" placeholder="support@ca2.vn">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">SMTP Host</label>
+                            <input type="text" id="smtp-host" class="w-full px-5 py-3 rounded-2xl outline-none" placeholder="smtp.gmail.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">SMTP Port</label>
+                            <input type="number" id="smtp-port" class="w-full px-5 py-3 rounded-2xl outline-none" placeholder="587">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">SMTP Username</label>
+                            <input type="text" id="smtp-user" class="w-full px-5 py-3 rounded-2xl outline-none" placeholder="user@gmail.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">SMTP Password</label>
+                            <input type="password" id="smtp-pass" class="w-full px-5 py-3 rounded-2xl outline-none" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button onclick="addSenderAccount()" class="bg-orange-gradient px-10 py-3 text-white rounded-2xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/40">
+                            Xác nhận thêm tài khoản
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden mt-10">
+                    <table class="w-full text-left">
+                        <thead class="bg-white/5 border-b border-white/5">
+                            <tr>
+                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Người gửi</th>
+                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Email</th>
+                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Host</th>
+                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest text-right">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sender-list" class="divide-y divide-white/5">
+                            <!-- Senders injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="view-settings" class="hidden space-y-10 animate-in fade-in duration-500">
+                <div class="bg-glass p-20 rounded-[48px] text-center border border-white/5">
+                    <div class="text-6xl mb-6">⚙️</div>
+                    <h3 class="text-3xl font-bold text-white mb-4">Cài đặt hệ thống</h3>
+                    <p class="text-gray-400 max-w-md mx-auto">Tính năng này đang được nâng cấp để hỗ trợ nhiều tùy chọn automation hơn. Vui lòng quay lại sau!</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Create Campaign -->
+    <div id="modal-create" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-50 overflow-y-auto">
+        <div class="min-h-screen flex items-center justify-center p-8">
+            <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-6xl p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-orange-600/10 blur-[100px] -z-10 rounded-full"></div>
+                
+                <div class="flex justify-between items-center mb-10">
+                    <h3 class="text-4xl font-extrabold text-white tracking-tighter">Thiết lập <span class="text-orange-gradient">chiến dịch mới</span></h3>
+                    <button onclick="closeCreateModal()" class="text-gray-500 hover:text-white transition-all text-4xl">&times;</button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                    <!-- Left: Config -->
+                    <div class="lg:col-span-5 space-y-8">
+                        <div class="bg-white/5 p-6 rounded-3xl space-y-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tên chiến dịch</label>
+                                <input id="input-name" type="text" placeholder="VD: Tri ân khách hàng thân thiết" class="w-full px-5 py-4 rounded-2xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tiêu đề email gửi đi</label>
+                                <input id="input-subject" type="text" placeholder="Nhập tiêu đề mail của khách hàng" class="w-full px-5 py-4 rounded-2xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tài khoản gửi mail</label>
+                                <select id="select-sender" class="w-full px-5 py-4 rounded-2xl outline-none cursor-pointer">
+                                    <option value="">-- Chọn tài khoản gửi mail --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-orange-gradient/10 border border-orange-500/20 p-8 rounded-[32px] space-y-6">
+                            <h4 class="font-bold text-orange-500 uppercase tracking-widest text-sm">Dữ liệu đầu vào</h4>
+                            <div class="grid grid-cols-1 gap-4">
+                                <button onclick="document.getElementById('file-upload').click()" class="w-full py-4 border-2 border-dashed border-orange-500/30 rounded-2xl hover:bg-orange-500/10 transition-all text-orange-500 font-bold group">
+                                    <span class="block text-lg">📁 Tải file (.xlsx)</span>
+                                    <input id="file-upload" type="file" accept=".xlsx" class="hidden" onchange="handleFileUpload(event)">
+                                </button>
+                                <div class="bg-black/20 p-4 rounded-2xl space-y-3">
+                                    <input id="gsheets-link" type="text" placeholder="Dán link Google Sheet..." class="w-full px-4 py-3 rounded-xl !bg-black/40 border-0 outline-none text-sm">
+                                    <button onclick="handleGSheets()" class="w-full py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all text-sm font-bold border border-white/5">🚀 Kết nối dữ liệu</button>
+                                </div>
+                            </div>
+                            <div id="upload-status" class="text-sm font-bold text-orange-400 text-center"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Template & Preview -->
+                    <div class="lg:col-span-7 space-y-8">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Nội dung Email (HTML Content)</label>
+                                <div class="flex items-center gap-2">
+                                    <select id="select-template" onchange="applyTemplate()" class="text-[10px] font-bold py-1 px-3 border-0 bg-white/5 rounded-lg">
+                                        <option value="">-- Mẫu đã lưu --</option>
+                                    </select>
+                                    <button onclick="saveTemplate()" class="text-[10px] font-bold py-1 px-3 bg-orange-500/10 text-orange-500 rounded-lg hover:bg-orange-500/20">Lưu mẫu mới</button>
+                                </div>
+                            </div>
+                            <textarea id="input-template" rows="10" placeholder="Chào {{TenCongTy}}, ..." class="w-full px-6 py-4 rounded-3xl font-mono text-sm custom-scrollbar"></textarea>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hỗ trợ: {{TenCongTy}}, {{MST}}, {{DiaChi}}, {{NgayHetHanChuKySo}}</p>
+                        </div>
+
+                        <div class="bg-white/5 p-6 rounded-3xl">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Dữ liệu trích xuất (Preview)</h4>
+                            <div class="max-h-40 overflow-y-auto custom-scrollbar border border-white/10 rounded-2xl">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-white/5 border-b border-white/5 sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-3 font-bold text-gray-400 uppercase">MST</th>
+                                            <th class="px-4 py-3 font-bold text-gray-400 uppercase">Công ty</th>
+                                            <th class="px-4 py-3 font-bold text-gray-400 uppercase">Ngày hết hạn</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-table-body" class="divide-y divide-white/5">
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-8 text-center text-gray-600 font-medium italic">Chờ nạp dữ liệu...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button onclick="saveCampaign()" class="flex-1 bg-orange-gradient py-5 text-white rounded-[24px] hover:scale-[1.02] active:scale-95 transition-all font-black text-lg shadow-2xl shadow-orange-900/50 uppercase tracking-tighter">
+                                Phê duyệt & Kích hoạt chiến dịch ngay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
+
