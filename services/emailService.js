@@ -24,12 +24,24 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
     let errorCount = 0;
     const attachCert = campaign.attachCert || false;
 
+    let browser = null;
+    if (attachCert && scraperService) {
+        try {
+            console.log(`[EmailService] Khởi tạo trình duyệt cho campaign (tiết kiệm thời gian)...`);
+            browser = await scraperService.initBrowser();
+        } catch (e) {
+            console.error('[EmailService] Lỗi khởi tạo trình duyệt:', e.message);
+        }
+    }
+
     for (let i = 0; i < campaign.recipients.length; i++) {
         const recipient = campaign.recipients[i];
         
-        // Anti-spam random delay (2-5 seconds)
-        const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // Anti-spam random delay (skip for single email or the first email in a batch to improve speed)
+        if (campaign.recipients.length > 1 && i > 0) {
+            const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
 
         // Personalized template
         let html = campaign.template || '';
@@ -52,12 +64,11 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
             attachments: []
         };
 
-        // Auto-attach certificate if enabled
         let certInfo = null;
-        if (attachCert && scraperService && recipient.MST) {
+        if (attachCert && scraperService && browser && recipient.MST) {
             try {
                 console.log(`[EmailService] 🔍 Tra cứu chứng thư số cho MST: ${recipient.MST}...`);
-                certInfo = await scraperService.getLatestCertificate(recipient.MST);
+                certInfo = await scraperService.getLatestCertificate(browser, recipient.MST);
                 if (certInfo && certInfo.filePath && fs.existsSync(certInfo.filePath)) {
                     mailOptions.attachments.push({
                         filename: certInfo.fileName,
@@ -107,6 +118,10 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         
         // Persistence handled by callback
         onUpdate(campaign);
+    }
+
+    if (browser) {
+        try { await browser.close(); } catch(e) { console.error('Error closing browser:', e); }
     }
 
     // Cleanup old certs
