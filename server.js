@@ -3,12 +3,13 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const axios = require('axios'); // Added axios for fetching gsheets
+const axios = require('axios');
 const XLSX = require('xlsx');
 require('dotenv').config();
 
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
+const supabase = require('./services/supabaseClient');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,33 +18,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Ensure required directories exist
-['data', 'uploads'].forEach(dir => {
-    if (!fs.existsSync(path.join(__dirname, dir))) {
-        fs.mkdirSync(path.join(__dirname, dir));
-    }
-});
+// Ensure required directories exist for temp file processing
+if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
+    fs.mkdirSync(path.join(__dirname, 'uploads'));
+}
 
 const upload = multer({ dest: 'uploads/' });
-
-// Campaigns mock database
-const CAMPAIGNS_FILE = path.join(__dirname, 'data', 'campaigns.json');
-const TEMPLATES_FILE = path.join(__dirname, 'data', 'templates.json');
-const SENDERS_FILE = path.join(__dirname, 'data', 'senders.json');
-
-function readData(file) {
-    if (!fs.existsSync(file)) return [];
-    try {
-        const data = fs.readFileSync(file);
-        return JSON.parse(data);
-    } catch (e) {
-        return [];
-    }
-}
-
-function writeData(file, data) {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
 
 // Routes
 app.post('/api/upload', upload.single('file'), (req, res) => {
@@ -58,12 +38,13 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // Sender Routes
-app.get('/api/senders', (req, res) => {
-    res.json(readData(SENDERS_FILE));
+app.get('/api/senders', async (req, res) => {
+    const { data, error } = await supabase.from('senders').select('*').order('createdAt', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
 });
 
-app.post('/api/senders', (req, res) => {
-    const senders = readData(SENDERS_FILE);
+app.post('/api/senders', async (req, res) => {
     const newSender = {
         id: Date.now().toString(),
         senderName: req.body.senderName,
@@ -74,27 +55,28 @@ app.post('/api/senders', (req, res) => {
         smtpPassword: req.body.smtpPassword,
         createdAt: new Date().toISOString()
     };
-    senders.push(newSender);
-    writeData(SENDERS_FILE, senders);
-    res.json(newSender);
+    const { data, error } = await supabase.from('senders').insert([newSender]).select();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data[0]);
 });
 
 // Template Routes
-app.get('/api/templates', (req, res) => {
-    res.json(readData(TEMPLATES_FILE));
+app.get('/api/templates', async (req, res) => {
+    const { data, error } = await supabase.from('templates').select('*').order('createdAt', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
 });
 
-app.post('/api/templates', (req, res) => {
-    const templates = readData(TEMPLATES_FILE);
+app.post('/api/templates', async (req, res) => {
     const newTemplate = {
         id: Date.now().toString(),
-        name: req.body.name || `Mẫu ${templates.length + 1}`,
+        name: req.body.name,
         content: req.body.content,
         createdAt: new Date().toISOString()
     };
-    templates.push(newTemplate);
-    writeData(TEMPLATES_FILE, templates);
-    res.json(newTemplate);
+    const { data, error } = await supabase.from('templates').insert([newTemplate]).select();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data[0]);
 });
 
 // Google Sheets Integration
@@ -117,7 +99,7 @@ app.post('/api/gsheets', async (req, res) => {
             const tenCongTy = row[3];
             const diaChi = row[6];
             const ngayHetHan = row[10];
-            const email = row[8]; // Column I
+            const email = row[8];
 
             if (!mst) return null;
 
@@ -137,12 +119,13 @@ app.post('/api/gsheets', async (req, res) => {
     }
 });
 
-app.get('/api/campaigns', (req, res) => {
-    res.json(readData(CAMPAIGNS_FILE));
+app.get('/api/campaigns', async (req, res) => {
+    const { data, error } = await supabase.from('campaigns').select('*').order('createdAt', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
 });
 
-app.post('/api/campaigns', (req, res) => {
-    const campaigns = readData(CAMPAIGNS_FILE);
+app.post('/api/campaigns', async (req, res) => {
     const newCampaign = {
         id: Date.now().toString(),
         name: req.body.name,
@@ -156,59 +139,58 @@ app.post('/api/campaigns', (req, res) => {
         errorCount: 0,
         createdAt: new Date().toISOString()
     };
-    campaigns.push(newCampaign);
-    writeData(CAMPAIGNS_FILE, campaigns);
-    res.json(newCampaign);
+    const { data, error } = await supabase.from('campaigns').insert([newCampaign]).select();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data[0]);
 });
 
 app.post('/api/campaigns/:id/send', async (req, res) => {
-    const campaigns = readData(CAMPAIGNS_FILE);
-    const campaignIndex = campaigns.findIndex(c => c.id === req.params.id);
+    // Fetch campaign from Supabase
+    const { data: campaign, error: campaignError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
     
-    if (campaignIndex === -1) return res.status(404).send('Campaign not found');
-    
-    const campaign = campaigns[campaignIndex];
+    if (campaignError || !campaign) return res.status(404).send('Campaign not found');
     
     // Fetch sender account details
-    const senders = readData(SENDERS_FILE);
-    const sender = senders.find(s => s.id === campaign.senderAccountId);
+    const { data: sender, error: senderError } = await supabase
+        .from('senders')
+        .select('*')
+        .eq('id', campaign.senderAccountId)
+        .single();
     
-    if (!sender) return res.status(400).json({ error: 'Không tìm thấy cấu hình người gửi.' });
+    if (senderError || !sender) return res.status(400).json({ error: 'Không tìm thấy cấu hình người gửi.' });
 
-    campaign.status = 'Đang gửi';
-    writeData(CAMPAIGNS_FILE, campaigns);
+    // Update status to "Đang gửi"
+    await supabase.from('campaigns').update({ status: 'Đang gửi' }).eq('id', campaign.id);
 
     res.json({ message: 'Bắt đầu gửi email...' });
 
     // Background sending process
-    emailService.sendBulkEmails(campaign, sender, (updatedCampaign) => {
-        const latestCampaigns = readData(CAMPAIGNS_FILE);
-        const idx = latestCampaigns.findIndex(c => c.id === updatedCampaign.id);
-        if (idx !== -1) {
-            latestCampaigns[idx] = updatedCampaign;
-            writeData(CAMPAIGNS_FILE, latestCampaigns);
-        }
+    emailService.sendBulkEmails(campaign, sender, async (updatedCampaign) => {
+        // Persist update to Supabase
+        await supabase.from('campaigns').update({
+            recipients: updatedCampaign.recipients,
+            status: updatedCampaign.status,
+            sentCount: updatedCampaign.sentCount,
+            successCount: updatedCampaign.successCount,
+            errorCount: updatedCampaign.errorCount
+        }).eq('id', updatedCampaign.id);
     });
 });
 
-app.delete('/api/campaigns/:id', (req, res) => {
-    try {
-        const campaigns = readData(CAMPAIGNS_FILE);
-        const filteredCampaigns = campaigns.filter(c => c.id !== req.params.id);
-        
-        if (campaigns.length === filteredCampaigns.length) {
-            return res.status(404).json({ error: 'Không tìm thấy chiến dịch.' });
-        }
-        
-        writeData(CAMPAIGNS_FILE, filteredCampaigns);
-        res.json({ message: 'Đã xóa chiến dịch thành công.' });
-    } catch (error) {
-        res.status(500).json({ error: 'Lỗi khi xóa chiến dịch.' });
-    }
+app.delete('/api/campaigns/:id', async (req, res) => {
+    const { error } = await supabase.from('campaigns').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: 'Lỗi khi xóa chiến dịch.' });
+    res.json({ message: 'Đã xóa chiến dịch thành công.' });
 });
 
-app.get('/api/stats', (req, res) => {
-    const campaigns = readData(CAMPAIGNS_FILE);
+app.get('/api/stats', async (req, res) => {
+    const { data: campaigns, error } = await supabase.from('campaigns').select('sentCount, successCount, errorCount');
+    if (error) return res.status(500).json({ error: error.message });
+
     const stats = campaigns.reduce((acc, c) => {
         acc.totalSent += c.sentCount || 0;
         acc.totalSuccess += c.successCount || 0;
@@ -218,7 +200,6 @@ app.get('/api/stats', (req, res) => {
     
     res.json(stats);
 });
-
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
