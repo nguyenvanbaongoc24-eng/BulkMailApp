@@ -1,49 +1,33 @@
-const supabase = require('./services/supabaseClient');
+const { createClient } = require('@supabase/supabase-js');
+const supabaseUrl = 'https://bqsksnxazkhaqqcxqbtl.supabase.co';
+const supabaseKey = 'sb_publishable_ywBp6Y6tSP_usD_THCB-NQ_mbZbX6Vz';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function diagnostic() {
-    try {
-        console.log("--- BẮT ĐẦU CHẨN ĐOÁN CHIẾN DỊCH ---");
-        const { data, error } = await supabase
-            .from('campaigns')
-            .select('id, createdAt, status, successCount, errorCount, recipients')
-            .order('createdAt', { ascending: false })
-            .limit(1);
+async function check() {
+    console.log('--- ERROR LOG INSPECTION ---');
+    const { data: failedLogs, error } = await supabase
+        .from('email_logs')
+        .select('id, email, status, retry_count, error_message, last_retry_time')
+        .eq('status', 'failed')
+        .order('last_retry_time', { ascending: false })
+        .limit(5);
 
-        if (error) {
-            console.error("Lỗi Supabase:", error);
-            return;
-        }
+    if (error) {
+        console.error('Error fetching failed logs:', error.message);
+        return;
+    }
 
-        if (!data || data.length === 0) {
-            console.log("Không tìm thấy chiến dịch nào.");
-            return;
-        }
-
-        const c = data[0];
-        console.log(`Chiến dịch ID: ${c.id}`);
-        console.log(`Thời gian: ${c.createdAt}`);
-        console.log(`Trạng thái: ${c.status}`);
-        console.log(`Thành công: ${c.successCount}`);
-        console.log(`Lỗi: ${c.errorCount}`);
-        console.log(`Tổng số người nhận: ${c.recipients.length}`);
-
-        console.log("\n--- TRẠNG THÁI CHI TIẾT NGƯỜI NHẬN (5 người đầu) ---");
-        c.recipients.slice(0, 5).forEach((r, i) => {
-            console.log(`[${i}] MST: ${r.MST}, Email: ${r.Email}, Status: ${r.status}`);
+    if (failedLogs.length === 0) {
+        console.log('No failed logs found.');
+    } else {
+        failedLogs.forEach((log, i) => {
+            console.log(`[${i+1}] Email: ${log.email}`);
+            console.log(`    Status: ${log.status} (Retry: ${log.retry_count})`);
+            console.log(`    Error: ${log.error_message}`);
+            console.log(`    Last Time: ${log.last_retry_time}`);
+            console.log('-----------------------------');
         });
-
-        console.log("\n--- CHI TIẾT TRẠNG THÁI TẤT CẢ NGƯỜI NHẬN ---");
-        c.recipients.forEach((r, i) => {
-            console.log(`[${i}] MST: ${r.MST}, Email: ${r.Email}, Lỗi: ${r.status}`);
-        });
-
-        console.log(`\nTổng kết: ${c.successCount} thành công, ${c.errorCount} lỗi trên tổng số ${c.recipients.length}`);
-
-    } catch (err) {
-        console.error("Lỗi thực thi diag:", err);
-    } finally {
-        console.log("\n--- KẾT THÚC CHẨN ĐOÁN ---");
     }
 }
 
-diagnostic();
+check();
