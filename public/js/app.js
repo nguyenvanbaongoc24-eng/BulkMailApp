@@ -588,7 +588,7 @@ async function loadCampaigns(targetId = 'campaign-list') {
             </td>
             <td class="px-8 py-5">
                 <div class="flex items-center gap-2">
-                    <button onclick="window.location.href='/api/reports/${c.id}'" class="text-white hover:text-white font-extrabold text-[9px] uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl transition-all">Báo cáo</button>
+                    <button onclick="window.location.href='/api/reports/${c.id}?access_token=' + currentSession.access_token" class="text-white hover:text-white font-extrabold text-[9px] uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl transition-all">Báo cáo</button>
                     <div class="flex items-center bg-white/5 rounded-xl p-1 gap-1 border border-white/5">
                         <span class="text-[8px] font-black text-gray-500 uppercase px-1">Xuất:</span>
                         <button onclick="exportCampaignData('${c.id}', 'json')" class="text-orange-500 hover:text-orange-400 font-black text-[9px] uppercase px-2 py-1 rounded-lg hover:bg-white/5 transition-all">JSON</button>

@@ -13,9 +13,7 @@ const scraperService = require('./services/scraperService');
 const supabase = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
-if (process.env.RENDER) {
-    process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
-}
+// Removed PUPPETEER_CACHE_DIR override to allow .puppeteerrc.cjs to manage cache location (Phase 8)
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -49,12 +47,15 @@ app.get('/api/config', (req, res) => {
 
 // Middleware to verify Supabase Auth Session
 const authenticate = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    let token = req.query.access_token; // Support URL-based auth for reports
+    
+    if (!token && req.headers.authorization) {
+        token = req.headers.authorization.split(' ')[1];
+    }
 
-    const token = authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
     const { data: { user }, error } = await supabase.auth.getUser(token);
-
     if (error || !user) return res.status(401).json({ error: 'Invalid session' });
 
     req.user = user;
@@ -787,6 +788,286 @@ app.get('/api/crm/stats', authenticate, async (req, res) => {
     });
 
     res.json(stats);
+});
+
+// Detailed Campaign Report Route (Phase 8 Implementation)
+app.get('/api/reports/:id', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Fetch campaign details
+        const { data: campaign, error: campaignError } = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq('id', id)
+            .eq('userId', req.user.id)
+            .single();
+        
+        if (campaignError || !campaign) {
+            return res.status(404).send('<h1>Chiến dịch không tồn tại hoặc bạn không có quyền xem.</h1>');
+        }
+
+        // Fetch logs for this campaign
+        const { data: logs, error: logsError } = await supabase
+            .from('email_logs')
+            .select('*')
+            .eq('campaign_id', id)
+            .order('created_at', { ascending: false });
+
+        if (logsError) throw logsError;
+
+        // SSR HTML Template (Matching the dark/orange UI)
+        const html = `
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Báo cáo Chiến dịch - ${campaign.name}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+                body { font-family: 'Outfit', sans-serif; background: #0c0c0e; color: #fff; }
+                .orange-gradient { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+                .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+            </style>
+        </head>
+        <body class="p-4 md:p-8 min-h-screen">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-black uppercase tracking-tighter text-white">NHẬT KÝ GỬI MAIL CHI TIẾT</h1>
+                        <p class="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">CHIẾN DỊCH: ${campaign.name} (${id})</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="retryAllErrors()" id="btn-retry-all" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all">THỬ LẠI TẤT CẢ LỖI</button>
+                        <button onclick="exportToExcel()" class="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all">XUẤT EXCEL</button>
+                        <button onclick="window.location.reload()" class="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all">LÀM MỚI</button>
+                        <button onclick="window.history.back()" class="orange-gradient px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all">QUAY LẠI</button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass p-5 rounded-3xl">
+                        <p class="text-xs text-gray-500 font-black uppercase tracking-widest mb-1">Tổng cộng</p>
+                        <p class="text-3xl font-black">${logs.length}</p>
+                    </div>
+                    <div class="glass p-5 rounded-3xl">
+                        <p class="text-xs text-green-500 font-black uppercase tracking-widest mb-1">Thành công</p>
+                        <p class="text-3xl font-black text-green-500">${logs.filter(l => l.status === 'sent').length}</p>
+                    </div>
+                    <div class="glass p-5 rounded-3xl">
+                        <p class="text-xs text-red-500 font-black uppercase tracking-widest mb-1">Thất bại</p>
+                        <p class="text-3xl font-black text-red-500">${logs.filter(l => l.status.includes('failed')).length}</p>
+                    </div>
+                    <div class="glass p-5 rounded-3xl">
+                        <p class="text-xs text-blue-500 font-black uppercase tracking-widest mb-1">Đang chờ/Retry</p>
+                        <p class="text-3xl font-black text-blue-500">${logs.filter(l => l.status === 'pending' || l.status === 'retrying').length}</p>
+                    </div>
+                </div>
+
+                <!-- Log Table -->
+                <div class="glass rounded-[40px] overflow-hidden border border-white/5">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-black/40 border-b border-white/5">
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">THỜI GIAN</th>
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">EMAIL</th>
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">TRẠNG THÁI</th>
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">CHI TIẾT LỖI</th>
+                                    <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">THAO TÁC</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${logs.map(log => `
+                                    <tr class="border-b border-white/5 hover:bg-white/2 transition-all group">
+                                        <td class="px-8 py-5">
+                                            <p class="text-xs font-bold text-gray-300">
+                                                ${new Date(log.last_retry_time || log.created_at).toLocaleString('vi-VN')}
+                                            </p>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <p class="text-sm font-black text-white">${log.email}</p>
+                                            <p class="text-[10px] text-gray-600 font-mono">MST: ${log.customer_id}</p>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <span class="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg ${getStatusColor(log.status)}">
+                                                ${log.status}
+                                            </span>
+                                            ${log.retry_count > 0 ? `<span class="text-[9px] text-gray-500 ml-2 font-bold">(Lần ${log.retry_count})</span>` : ''}
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <p class="text-xs text-red-400/80 italic line-clamp-2" title="${log.retry_reason || ''}">
+                                                ${log.retry_reason || '-'}
+                                            </p>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            ${(log.status.includes('failed')) ? `
+                                                <button onclick="retryEmail('${log.id}')" id="btn-${log.id}" class="text-orange-500 hover:text-white border border-orange-500/30 hover:bg-orange-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                                                    GỬI LẠI
+                                                </button>
+                                            ` : '-'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function exportToExcel() {
+                    let csv = '\uFEFFTHỜI GIAN,EMAIL,MST,TRẠNG THÁI,LỖI\n';
+                    const rows = document.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const cols = row.querySelectorAll('td');
+                        if (cols.length < 4) return;
+                        const time = cols[0].innerText.trim().replace(',', ' ');
+                        const email = cols[1].querySelector('p').innerText.trim();
+                        const mst = cols[1].querySelectorAll('p')[1].innerText.trim().replace('MST: ', '');
+                        const status = cols[2].querySelector('span').innerText.trim();
+                        const error = cols[3].innerText.trim().replace(',', ';');
+                        csv += '"' + time + '","' + email + '","' + mst + '","' + status + '","' + error + '"\n';
+                    });
+
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.setAttribute("download", "Bao_cao_Campaign_${id}.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+
+                async function retryAllErrors() {
+                    const btn = document.getElementById('btn-retry-all');
+                    if (!confirm('Bạn có chắc muốn gửi lại tất cả các email bị lỗi trong chiến dịch này?')) return;
+                    btn.innerText = 'ĐANG XỬ LÝ...';
+                    btn.disabled = true;
+                    try {
+                        const token = new URLSearchParams(window.location.search).get('access_token');
+                        const res = await fetch('/api/campaigns/${id}/retry-all', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (res.ok) {
+                            alert('Đã đưa tất cả lỗi vào hàng đợi gửi lại!');
+                            window.location.reload();
+                        } else {
+                            alert('Lỗi khi thực hiện.');
+                            btn.innerText = 'THỬ LẠI TẤT CẢ LỖI';
+                            btn.disabled = false;
+                        }
+                    } catch (e) {
+                        alert('Lỗi kết nối: ' + e.message);
+                        btn.innerText = 'THỬ LẠI TẤT CẢ LỖI';
+                        btn.disabled = false;
+                    }
+                }
+
+                async function retryEmail(logId) {
+                    const btn = document.getElementById('btn-' + logId);
+                    const originalText = btn.innerText;
+                    btn.innerText = 'ĐANG ĐỢI...';
+                    btn.disabled = true;
+
+                    try {
+                        const token = new URLSearchParams(window.location.search).get('access_token');
+                        const res = await fetch('/api/email-logs/' + logId + '/retry', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        
+                        if (res.ok) {
+                            btn.innerText = 'ĐÃ RESET';
+                            btn.classList.replace('text-orange-500', 'text-green-500');
+                        } else {
+                            const err = await res.json();
+                            alert('Lỗi: ' + err.error);
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                        }
+                    } catch (e) {
+                        alert('Lỗi kết nối: ' + e.message);
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }
+                }
+            </script>
+        </body>
+        </html>
+        `;
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'sent': return 'bg-green-500/10 text-green-500';
+                case 'pending': return 'bg-blue-500/10 text-blue-500';
+                case 'processing': return 'bg-orange-500/10 text-orange-500';
+                case 'retrying': return 'bg-yellow-500/10 text-yellow-500';
+                case 'failed': return 'bg-red-500/10 text-red-500';
+                case 'failed_permanent': return 'bg-red-900/40 text-red-500 border border-red-500/20';
+                default: return 'bg-gray-500/10 text-gray-500';
+            }
+        }
+
+        res.send(html);
+    } catch (error) {
+        console.error('Report view error:', error);
+        res.status(500).send('Lỗi máy chủ khi tạo báo cáo: ' + error.message);
+    }
+});
+
+app.post('/api/email-logs/:id/retry', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Reset status to pending and reset retry count to allow worker to pick it up again
+        const { error } = await supabase
+            .from('email_logs')
+            .update({ 
+                status: 'pending', 
+                retry_count: 0, 
+                retry_reason: 'User manual retry trigger',
+                last_retry_time: null 
+            })
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true, message: 'Task has been reset to pending.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/campaigns/:id/retry-all', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase
+            .from('email_logs')
+            .update({ 
+                status: 'pending', 
+                retry_count: 0, 
+                retry_reason: 'User manual bulk retry',
+                last_retry_time: null 
+            })
+            .eq('campaign_id', id)
+            .ilike('status', '%failed%');
+
+        if (error) throw error;
+        
+        // Also update the campaign status to "Đang gửi" if it was finished/error
+        await supabase.from('campaigns').update({ status: 'Đang gửi' }).eq('id', id);
+
+        res.json({ success: true, message: 'All failed tasks have been reset.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.listen(port, () => {

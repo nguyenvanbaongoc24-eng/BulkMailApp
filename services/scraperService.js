@@ -51,7 +51,7 @@ async function initBrowser() {
         }
     };
 
-    // Phase 7: Robust failsafe path discovery (Final Absolute Fix)
+    // Phase 8: Official .puppeteerrc.cjs support with failsafe fallbacks
     let foundPath = null;
 
     // 1. Check and UNSET invalid environment variable
@@ -65,16 +65,16 @@ async function initBrowser() {
         }
     }
 
-    // 2. Aggressive multi-root search
+    // 2. Aggressive multi-root search including the NEW .cache folder from .puppeteerrc.cjs
     if (!foundPath) {
         const homeDir = require('os').homedir();
         const searchRoots = [
-            path.join(homeDir, '.cache/puppeteer/chrome'), // Default user home cache
+            path.join(process.cwd(), '.cache', 'puppeteer', 'chrome'), // Configured in .puppeteerrc.cjs (Phase 8)
+            path.join(homeDir, '.cache', 'puppeteer', 'chrome'), // Default user home cache
             '/opt/render/.cache/puppeteer/chrome',
             '/home/render/.cache/puppeteer/chrome',
             '/opt/render/project/src/.cache/puppeteer/chrome',
-            '/opt/render/project/.render/chrome',
-            path.join(process.cwd(), '.cache/puppeteer/chrome') // Project local
+            '/opt/render/project/.render/chrome'
         ];
 
         console.log(`[Scraper] 🔍 STARTING AGGRESSIVE CHROME SEARCH. Home: ${homeDir}, CWD: ${process.cwd()}`);
