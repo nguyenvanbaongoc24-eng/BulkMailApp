@@ -54,10 +54,23 @@ async function initBrowser() {
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     } else if (process.env.RENDER) {
-        // Try to locate Chrome installed by npx puppeteer browsers install chrome on Render
-        const possiblePath = '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.76/chrome-linux64/chrome';
-        if (require('fs').existsSync(possiblePath)) {
-            launchOptions.executablePath = possiblePath;
+        // Dynamic search for Chrome in Render's Puppeteer cache (Phase 7)
+        const fs = require('fs');
+        const baseCache = '/opt/render/.cache/puppeteer/chrome';
+        try {
+            if (fs.existsSync(baseCache)) {
+                const versions = fs.readdirSync(baseCache);
+                for (const v of versions) {
+                    const p = path.join(baseCache, v, 'chrome-linux64', 'chrome');
+                    if (fs.existsSync(p)) {
+                        console.log(`[Scraper] Found Chrome at: ${p}`);
+                        launchOptions.executablePath = p;
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[Scraper] Error searching for Chrome:', e.message);
         }
     }
 
