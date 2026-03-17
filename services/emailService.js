@@ -67,48 +67,8 @@ async function sendWithRetry(transporter, mailOptions, maxRetries = 2) {
  * Phase 2: Send emails via SMTP.
  */
 async function sendBulkEmails(campaign, sender, onUpdate) {
-    let transporter;
-    if (sender.smtpHost === 'oauth2.google') {
-        transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                type: 'OAuth2',
-                user: sender.smtpUser,
-                clientId: process.env.GOOGLE_CLIENT_ID,
-                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-                refreshToken: sender.smtpPassword
-            }
-        });
-    } else {
-        // Pre-resolve SMTP host to IPv4 to avoid IPv6 ENETUNREACH errors
-        const resolvedHost = await resolveToIPv4(sender.smtpHost);
-        
-        // Initialize SMTP transporter with resolved IPv4 address
-        transporter = nodemailer.createTransport({
-            pool: false, // Disable pooling to avoid long-lived connection hanging
-            host: resolvedHost,
-            port: parseInt(sender.smtpPort),
-            secure: sender.smtpPort == 465, // Use true for 465, false for 587
-            auth: {
-                user: sender.smtpUser,
-                pass: sender.smtpPassword
-            },
-            tls: { 
-                rejectUnauthorized: false, // Accept self-signed certs if any
-                minVersion: 'TLSv1.2',
-                servername: sender.smtpHost // Use original hostname for TLS certificate verification
-            },
-            connectionTimeout: 60000, // 60s
-            greetingTimeout: 60000,   // 60s
-            socketTimeout: 60000,     // 60s
-            logger: true,             // Enable logging for debugging
-            debug: true               // Show SMTP transcript
-        });
-    }
-
     let success = 0;
     let errorCount = 0;
-    const attachCert = campaign.attachCert || false;
     const totalRecipients = campaign.recipients.length;
 
     function updateProgress() {
@@ -124,6 +84,45 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         }
         if (onUpdate) onUpdate(campaign);
     }
+
+    try {
+        let transporter;
+        if (sender.smtpHost === 'oauth2.google') {
+            if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+                throw new Error("Hệ thống chưa được cấu hình Google API (Thiếu Client ID/Secret).");
+            }
+            if (!sender.smtpPassword || sender.smtpPassword.length < 10) {
+                throw new Error("Tài khoản gửi chưa được cấp phép đẩy đủ (Thiếu Refresh Token). Hãy xóa tài khoản và kết nối lại Gmail.");
+            }
+            
+            transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    type: 'OAuth2',
+                    user: sender.smtpUser,
+                    clientId: process.env.GOOGLE_CLIENT_ID,
+                    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                    refreshToken: sender.smtpPassword
+                }
+            });
+        } else {
+            // ... non OAuth logic
+            const resolvedHost = await resolveToIPv4(sender.smtpHost);
+            transporter = nodemailer.createTransport({
+                pool: false,
+                host: resolvedHost,
+                port: parseInt(sender.smtpPort),
+                secure: sender.smtpPort == 465,
+                auth: {
+                    user: sender.smtpUser,
+                    pass: sender.smtpPassword
+                },
+                tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2', servername: sender.smtpHost },
+                connectionTimeout: 60000, greetingTimeout: 60000, socketTimeout: 60000, logger: true, debug: true
+            });
+        }
+
+        const attachCert = campaign.attachCert || false;
 
     // --- PHASE 1: CERTIFICATE SCRAPING & SERIAL VALIDATION ---
     const certMap = new Map(); 
@@ -245,6 +244,17 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
     }
 
     console.log(`[EmailService] --- CAMPAIGN END: Success ${success}, Error ${errorCount} ---`);
+    } catch (err) {
+        console.error(`[EmailService] FATAL ERROR:`, err);
+        errorCount = totalRecipients || 1; 
+        campaign.status = 'Thất bại';
+        
+        // Show error on first recipient so user can see it
+        if (campaign.recipients && campaign.recipients.length > 0) {
+            campaign.recipients[0].status = `Lỗi hệ thống: ${err.message}`;
+        }
+        if (onUpdate) onUpdate(campaign);
+    }
 }
 
 module.exports = { sendBulkEmails };
