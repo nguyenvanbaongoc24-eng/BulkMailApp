@@ -10,9 +10,18 @@ require('dotenv').config();
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
 const supabase = require('./services/supabaseClient');
+const { google } = require('googleapis');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.NODE_ENV === 'production' 
+        ? 'https://automation-ca2.onrender.com/api/auth/google/callback'
+        : 'http://localhost:3000/api/auth/google/callback'
+);
 
 app.use(cors());
 app.use(express.json());
@@ -56,6 +65,90 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         res.json({ data });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Google OAuth2 Routes
+app.get('/api/auth/google/url', authenticate, (req, res) => {
+    // We pass the userId in state so we know who is connecting this account
+    const state = req.user.id;
+    
+    const url = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        prompt: 'consent', // Force consent so we get a refresh token
+        scope: [
+            'https://mail.google.com/', 
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+        ],
+        state: state
+    });
+    res.json({ url });
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+    try {
+        const { code, state: userId } = req.query;
+        if (!code || !userId) {
+            return res.status(400).send('Missing code or state (userId).');
+        }
+
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        // Fetch user info (email)
+        const oauth2 = google.oauth2({
+            auth: oauth2Client,
+            version: 'v2'
+        });
+        const userInfo = await oauth2.userinfo.get();
+        const email = userInfo.data.email;
+        const name = userInfo.data.name || email;
+
+        // Ensure we got a refresh token
+        if (!tokens.refresh_token) {
+            return res.status(400).send(`
+                <h2>Kết nối thất bại</h2>
+                <p>Google không trả về Refresh Token. Vui lòng thu hồi quyền ứng dụng trên Google Account và thử lại, nhớ TICK chọn cấp báo quyền truy cập Gmail.</p>
+                <script>setTimeout(() => window.close(), 5000)</script>
+            `);
+        }
+
+        // Save sender inside Supabase using smtpPassword as the refresh_token placeholder
+        const newSender = {
+            id: Date.now().toString(),
+            userId: userId,
+            senderName: name,
+            senderEmail: email,
+            smtpHost: 'oauth2.google', // Marker to indicate OAuth2
+            smtpPort: 465,
+            smtpUser: email,
+            smtpPassword: tokens.refresh_token,
+            createdAt: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from('senders').insert([newSender]);
+        if (error) {
+            return res.status(500).send('Lỗi khi lưu tài khoản vào CSDL: ' + error.message);
+        }
+
+        // Return a simple success page that closes itself and refreshes parent
+        res.send(`
+            <html><body>
+            <h2>Kết nối Gmail thành công!</h2>
+            <p>Tài khoản <b>${email}</b> đã được kết nối.</p>
+            <p>Cửa sổ này sẽ tự đóng...</p>
+            <script>
+                if (window.opener) {
+                    window.opener.postMessage('google_auth_success', '*');
+                    window.setTimeout(() => window.close(), 2000);
+                }
+            </script>
+            </body></html>
+        `);
+    } catch (error) {
+        console.error('Google OAuth Callback Error:', error);
+        res.status(500).send('Lỗi máy chủ nội bộ khi xác thực Google: ' + error.message);
     }
 });
 

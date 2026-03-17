@@ -257,40 +257,39 @@ async function loadSenders() {
     });
 }
 
-async function addSenderAccount() {
-    const data = {
-        senderName: document.getElementById('sender-name').value,
-        senderEmail: document.getElementById('sender-email').value,
-        smtpHost: document.getElementById('smtp-host').value,
-        smtpPort: document.getElementById('smtp-port').value,
-        smtpUser: document.getElementById('smtp-user').value,
-        smtpPassword: document.getElementById('smtp-pass').value
-    };
-
-    if (!data.senderName || !data.senderEmail || !data.smtpHost || !data.smtpPassword) {
-        alert('Vui lòng nhập đầy đủ thông tin SMTP.');
-        return;
-    }
-
+async function connectGoogleAccount() {
     try {
-        const response = await authedFetch('/api/senders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (response && response.ok) {
-            alert('Đã thêm tài khoản Automation CA2 thành công!');
-            loadSenders();
-            // Clear inputs
-            ['sender-name', 'sender-email', 'smtp-host', 'smtp-port', 'smtp-user', 'smtp-pass'].forEach(id => {
-                document.getElementById(id).value = '';
-            });
-        } else {
-            const err = response ? await response.json() : { error: 'No session' };
-            alert('Lỗi: ' + (err.error || 'Không thể thêm tài khoản.'));
+        const response = await authedFetch('/api/auth/google/url');
+        if (!response || !response.ok) {
+            alert('Lỗi: Không thể lấy đường dẫn kết nối Google.');
+            return;
         }
-    } catch (error) {
-        alert('Lỗi khi lưu tài khoản.');
+        const { url } = await response.json();
+        
+        // Open popup
+        const popup = window.open(url, 'GoogleAuth', 'width=600,height=700');
+        
+        // Setup listener for success message from popup
+        const authMessageListener = (event) => {
+            if (event.data === 'google_auth_success') {
+                window.removeEventListener('message', authMessageListener);
+                alert('🎉 Đã kết nối tài khoản Gmail thành công!');
+                loadSenders(); // reload the sender list
+            }
+        };
+        window.addEventListener('message', authMessageListener);
+        
+        // Fallback checker if popup closed but didn't trigger message (optional)
+        const checkPopup = setInterval(() => {
+            if (!popup || popup.closed || popup.closed === undefined) {
+                clearInterval(checkPopup);
+                window.removeEventListener('message', authMessageListener);
+                loadSenders(); // Try reloading anyway just in case it succeeded
+            }
+        }, 1000);
+
+    } catch (err) {
+        alert('Lỗi khi kết nối Google: ' + err.message);
     }
 }
 
