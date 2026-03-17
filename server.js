@@ -517,9 +517,33 @@ app.post('/api/customers/import', authenticate, async (req, res) => {
         status: 'Chưa liên hệ'
     }));
 
-    const { error } = await supabase.from('customers').upsert(customers);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ message: `Đã nhập ${customers.length} khách hàng.` });
+    try {
+        // 1. Get IDs of customers being imported
+        const ids = customers.map(c => c.id);
+
+        // 2. Fetch existing customers to preserve fields like pdf_url
+        const { data: existingCustomers } = await supabase
+            .from('customers')
+            .select('id, pdf_url')
+            .in('id', ids)
+            .eq('userId', req.user.id);
+
+        // 3. Map existing pdf_url back to the new objects
+        if (existingCustomers && existingCustomers.length > 0) {
+            const pdfMap = {};
+            existingCustomers.forEach(ec => { if (ec.pdf_url) pdfMap[ec.id] = ec.pdf_url; });
+            
+            customers.forEach(c => {
+                if (pdfMap[c.id]) c.pdf_url = pdfMap[c.id];
+            });
+        }
+
+        const { error } = await supabase.from('customers').upsert(customers);
+        if (error) throw error;
+        res.json({ message: `Đã nhập ${customers.length} khách hàng.` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.patch('/api/customers/:id', authenticate, async (req, res) => {

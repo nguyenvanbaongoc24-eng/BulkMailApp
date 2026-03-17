@@ -132,13 +132,24 @@ async function processEmailTask(log) {
         };
 
         // 4. Attach PDF if required and available
-        if (campaign.attachCert && customer && customer.pdf_url) {
-            console.log(`[Worker] Downloading PDF from: ${customer.pdf_url}`);
-            const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer' });
-            mailOptions.attachments.push({
-                filename: `${customer.taxCode}_Certification.pdf`,
-                content: Buffer.from(response.data)
-            });
+        if (campaign.attachCert) {
+            if (customer && customer.pdf_url) {
+                console.log(`[Worker] Attempting to attach PDF: ${customer.pdf_url}`);
+                try {
+                    const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 10000 });
+                    mailOptions.attachments.push({
+                        filename: `${customer.taxCode}_Certification.pdf`,
+                        content: Buffer.from(response.data)
+                    });
+                    console.log(`[Worker] PDF attached successfully for ${log.email}`);
+                } catch (pdfErr) {
+                    console.error(`[Worker] CRITICAL: Failed to download PDF for ${log.email}:`, pdfErr.message);
+                    // We continue sending the email even if PDF fails, but log it
+                    html = `<p style="color: red; font-weight: bold;">[Chú ý: File đính kèm lỗi, vui lòng liên hệ kỹ thuật]</p>` + html;
+                }
+            } else {
+                console.warn(`[Worker] PDF requested but not found for customer: ${log.customer_id}`);
+            }
         }
 
         // 5. Send

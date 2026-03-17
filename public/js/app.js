@@ -411,9 +411,10 @@ async function handleFileUpload(event) {
         });
 
         statusEl.innerText = `✅ Đã nạp ${currentRecipients.length} khách hàng & Cập nhật CRM thành công.`;
-        updatePreview();
+        updatePreviewTable();
     } catch (error) {
-        statusEl.innerText = '❌ Lỗi khi tải file.';
+        console.error('File Upload Error:', error);
+        statusEl.innerText = `❌ Lỗi khi tải file: ${error.message}`;
     }
 }
 
@@ -446,7 +447,7 @@ async function handleGSheets() {
         });
 
         statusEl.innerText = `✅ Đồng bộ thành công ${currentRecipients.length} dữ liệu & Cập nhật CRM.`;
-        updatePreview();
+        updatePreviewTable();
     } catch (error) {
         statusEl.innerText = `❌ ${error.message}`;
     }
