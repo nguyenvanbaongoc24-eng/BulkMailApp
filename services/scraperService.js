@@ -183,7 +183,9 @@ async function getLatestCertificate(browser, mst) {
             let downloadBtn = null;
             for (const link of pdfLinks) {
                 const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
-                if (text && text.trim().toLowerCase().includes('tải giấy chứng nhận điện tử')) {
+                if (!text) continue;
+                const normalizedText = text.trim().toLowerCase();
+                if (normalizedText.includes('tải giấy chứng nhận điện tử') || /t[ảả]i gi[ấấ]y ch[ứứ]ng nh[ậậ]n/i.test(normalizedText)) {
                     downloadBtn = link;
                     break;
                 }
