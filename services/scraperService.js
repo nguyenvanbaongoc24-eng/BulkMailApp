@@ -70,26 +70,31 @@ async function initBrowser() {
         const searchRoots = [
             '/opt/render/.cache/puppeteer/chrome',
             '/home/render/.cache/puppeteer/chrome',
-            '/opt/render/project/src/.cache/puppeteer/chrome'
+            '/opt/render/project/src/.cache/puppeteer/chrome',
+            '/opt/render/project/.render/chrome'
         ];
 
-        console.log('[Scraper] 🔍 Aggressively searching for Chrome on Render...');
+        console.log(`[Scraper] 🔍 Aggressively searching for Chrome. Local __dirname: ${__dirname}`);
         for (const root of searchRoots) {
             try {
                 if (require('fs').existsSync(root)) {
-                    console.log(`[Scraper] Checking root: ${root}`);
+                    console.log(`[Scraper] Found root: ${root}. Listing versions...`);
                     const versions = require('fs').readdirSync(root);
+                    console.log(`[Scraper] Versions in ${root}: ${versions.join(', ')}`);
                     for (const v of versions) {
                         const p = path.join(root, v, 'chrome-linux64', 'chrome');
+                        console.log(`[Scraper] Checking path: ${p}`);
                         if (require('fs').existsSync(p)) {
-                            console.log(`[Scraper] ✅ Found Chrome at: ${p}`);
+                            console.log(`[Scraper] ✅ SUCCESS! Found Chrome at: ${p}`);
                             foundPath = p;
                             break;
                         }
                     }
+                } else {
+                    console.log(`[Scraper] Root NOT found: ${root}`);
                 }
             } catch (e) {
-                console.error(`[Scraper] Error reading ${root}:`, e.message);
+                console.error(`[Scraper] ❌ Error reading ${root}:`, e.message);
             }
             if (foundPath) break;
         }
