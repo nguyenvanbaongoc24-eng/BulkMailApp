@@ -51,27 +51,43 @@ async function initBrowser() {
         }
     };
 
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    } else if (process.env.RENDER) {
-        // Dynamic search for Chrome in Render's Puppeteer cache (Phase 7)
-        const fs = require('fs');
-        const baseCache = '/opt/render/.cache/puppeteer/chrome';
-        try {
-            if (fs.existsSync(baseCache)) {
-                const versions = fs.readdirSync(baseCache);
-                for (const v of versions) {
-                    const p = path.join(baseCache, v, 'chrome-linux64', 'chrome');
-                    if (fs.existsSync(p)) {
-                        console.log(`[Scraper] Found Chrome at: ${p}`);
-                        launchOptions.executablePath = p;
-                        break;
+    // Phase 7: Robust failsafe path discovery
+    let foundPath = null;
+
+    // 1. Try environment variable (if it actually exists)
+    if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+        foundPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    } 
+
+    // 2. If no valid env var, search Render's cache aggressively
+    if (!foundPath && process.env.RENDER) {
+        const searchRoots = [
+            '/opt/render/.cache/puppeteer/chrome',
+            '/home/render/.cache/puppeteer/chrome',
+            path.join(__dirname, '../.cache/puppeteer/chrome') // Local relative
+        ];
+
+        console.log('[Scraper] Searching for Chrome on Render...');
+        for (const root of searchRoots) {
+            try {
+                if (fs.existsSync(root)) {
+                    const versions = fs.readdirSync(root);
+                    for (const v of versions) {
+                        const p = path.join(root, v, 'chrome-linux64', 'chrome');
+                        if (fs.existsSync(p)) {
+                            console.log(`[Scraper] ✅ Found Chrome at: ${p}`);
+                            foundPath = p;
+                            break;
+                        }
                     }
                 }
-            }
-        } catch (e) {
-            console.error('[Scraper] Error searching for Chrome:', e.message);
+            } catch (e) {}
+            if (foundPath) break;
         }
+    }
+
+    if (foundPath) {
+        launchOptions.executablePath = foundPath;
     }
 
     return await puppeteer.launch(launchOptions);
