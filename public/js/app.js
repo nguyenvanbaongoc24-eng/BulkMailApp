@@ -253,8 +253,10 @@ async function loadSenders() {
             <td class="px-8 py-4 text-gray-400">${s.senderEmail}</td>
             <td class="px-8 py-4 text-gray-400 font-mono text-xs">${s.smtpHost}</td>
             <td class="px-8 py-4 text-right flex items-center justify-end gap-2">
-                <button onclick="openEditSenderModal('${s.id}')" class="text-xs font-bold text-orange-400 hover:text-orange-500 bg-orange-500/10 px-3 py-1 rounded-lg">Sửa</button>
-                <button onclick="deleteSender('${s.id}')" class="text-xs font-bold text-red-400 hover:text-red-500 bg-red-500/10 px-3 py-1 rounded-lg">Xóa</button>
+                <button onclick="testSenderConnection('${s.id}')" class="text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 transition-all">Kiểm tra</button>
+                <button onclick="testSendToSelf('${s.id}')" class="text-[10px] font-black text-purple-400 hover:text-purple-300 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20 transition-all">Gửi thử</button>
+                <button onclick="openEditSenderModal('${s.id}')" class="text-[10px] font-black text-orange-400 hover:text-orange-300 bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20 transition-all">Sửa</button>
+                <button onclick="deleteSender('${s.id}')" class="text-[10px] font-black text-red-400 hover:text-red-300 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition-all">Xóa</button>
             </td>
         `;
         list.appendChild(row);
@@ -382,6 +384,76 @@ async function deleteSender(id) {
         }
     } catch (error) {
         alert('Lỗi kết nối khi xóa tài khoản.');
+    }
+}
+
+/** ---------------- DEBUG TOOLS ---------------- */
+
+async function testSenderConnection(id) {
+    try {
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = '⏳...';
+        btn.disabled = true;
+
+        const response = await authedFetch(`/api/senders/${id}/test-connection`);
+        const result = await response.json();
+
+        if (result.success) {
+            let msg = `✅ Kết nối Gmail API thành công!\n\n`;
+            if (result.authorizedEmail) {
+                msg += `Tài khoản ủy quyền: ${result.authorizedEmail}\n`;
+                msg += `Khớp với cấu hình: ${result.matchesSenderEmail ? 'Có (Chuẩn)' : 'KHÔNG (Email sẽ bị Google thay đổi From header)'}`;
+            } else {
+                msg += result.message;
+            }
+            alert(msg);
+        } else {
+            alert(`❌ Lỗi kết nối: ${result.error}`);
+        }
+    } catch (err) {
+        alert(`❌ Lỗi hệ thống: ${err.message}`);
+    } finally {
+        const btn = document.querySelector(`button[onclick="testSenderConnection('${id}')"]`);
+        if (btn) {
+            btn.innerText = 'Kiểm tra';
+            btn.disabled = false;
+        }
+    }
+}
+
+async function testSendToSelf(senderId) {
+    const testEmail = prompt('Nhập địa chỉ email nhận test (Inbox hoặc Spam):', currentSession.user.email);
+    if (!testEmail) return;
+
+    const testPdfUrl = prompt('Nhập link PDF test (tùy chọn - để trống nếu không cần):', '');
+
+    try {
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = '⏳...';
+        btn.disabled = true;
+
+        const response = await authedFetch('/api/test-send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ senderId, testEmail, testPdfUrl, testTaxCode: 'TEST_MST' })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            alert(`✅ Email test đã được gửi!\nMessageID: ${result.messageId}\nCó đính kèm: ${result.pdfAttached ? 'Có' : 'Không'}\n\nHãy kiểm tra Inbox/Spam của ${testEmail}`);
+        } else {
+            alert(`❌ Gửi test thất bại: ${result.error}`);
+        }
+    } catch (err) {
+        alert(`❌ Lỗi hệ thống: ${err.message}`);
+    } finally {
+        const btn = document.querySelector(`button[onclick="testSendToSelf('${senderId}')"]`);
+        if (btn) {
+            btn.innerText = 'Gửi thử';
+            btn.disabled = false;
+        }
     }
 }
 
