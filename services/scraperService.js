@@ -31,11 +31,26 @@ async function initBrowser() {
             '--no-first-run',
             '--safebrowsing-disable-auto-update',
             '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-site-isolation-trials'
+            '--disable-site-isolation-trials',
+            // Disable download prompt and force path
+            '--no-proxy-server',
+            '--disable-blink-features=AutomationControlled',
+            '--no-first-run',
+            '--disable-infobars',
+            '--password-store=basic',
+            '--use-mock-keychain'
         ],
-        headless: 'new',
         ignoreHTTPSErrors: true,
-        acceptInsecureCerts: true
+        acceptInsecureCerts: true,
+        defaultViewport: null,
+        userDataDir: path.join(__dirname, '..', 'tmp_puppeteer'),
+        // Add more specific preferences
+        extraPrefsCP: {
+            'download.default_directory': DOWNLOAD_DIR,
+            'download.prompt_for_download': false,
+            'download.directory_upgrade': true,
+            'safebrowsing.enabled': true
+        }
     };
 
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
