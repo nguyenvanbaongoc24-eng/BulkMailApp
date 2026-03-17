@@ -100,11 +100,21 @@ async function processEmailTask(log) {
 
         // 3. Prepare Email Content
         let html = campaign.template || '';
+        let subject = campaign.subject || 'Thông báo từ Automation CA2';
+
         if (customer) {
-            html = html.replace(/{{TenCongTy}}/g, customer.companyName || '')
-                       .replace(/{{MST}}/g, customer.taxCode || '')
-                       .replace(/{{DiaChi}}/g, customer.diaChi || '')
-                       .replace(/{{NgayHetHanChuKySo}}/g, customer.expirationDate || '');
+            const replacements = {
+                '{{TenCongTy}}': customer.companyName || '',
+                '{{MST}}': customer.taxCode || '',
+                '{{DiaChi}}': customer.diaChi || '',
+                '{{NgayHetHanChuKySo}}': customer.expirationDate || ''
+            };
+
+            for (const [key, value] of Object.entries(replacements)) {
+                const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                html = html.replace(regex, value);
+                subject = subject.replace(regex, value);
+            }
         }
         
         html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
@@ -113,7 +123,7 @@ async function processEmailTask(log) {
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
             to: log.email,
-            subject: campaign.subject || 'Thông báo từ Automation CA2',
+            subject: subject,
             html: html,
             attachments: []
         };
