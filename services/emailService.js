@@ -162,8 +162,11 @@ async function processEmailTask(log) {
 
                         // Update local customer object and DB
                         if (!customer) {
-                            // If customer didn't exist in DB, we should ideally have created it, 
-                            // but here we just ensure we have the URL to send the mail
+                            // Create a temporary object so the email can still be sent
+                            customer = { 
+                                taxCode: lookupCustomer.taxCode, 
+                                pdf_url: publicUrl 
+                            };
                         } else {
                             await supabase.from('customers').update({ pdf_url: publicUrl }).eq('id', customer.id);
                             customer.pdf_url = publicUrl;
