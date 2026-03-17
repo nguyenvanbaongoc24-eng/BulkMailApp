@@ -12,11 +12,7 @@ function formatDate(dateVal) {
 
     if (isNaN(date.getTime())) return dateVal; // Return original if invalid
 
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    
-    return `${day}/${month}/${year}`;
+    return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
 }
 
 function parseExcel(filePath) {

@@ -500,7 +500,7 @@ async function loadCampaigns(targetId = 'campaign-list') {
                 <p class="text-[10px] text-gray-500 font-mono mt-1">ID: ${c.id.slice(0,8)}</p>
             </td>
             <td class="px-8 py-5">
-                <span class="px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-lg ${getStatusColor(c.status)}">
+                <span class="px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-lg ${getStatusBadgeClass(c.status)}">
                     ${c.status}
                 </span>
             </td>
@@ -853,7 +853,7 @@ async function loadCRM(filter = null) {
                     </div>
                 </td>
                 <td class="px-6 py-4">
-                    <p class="text-sm font-bold text-white">${c.expirationDate || 'N/A'}</p>
+                    <p class="text-sm font-bold text-white">${c.expirationDate ? c.expirationDate.split('-').reverse().join('/') : 'N/A'}</p>
                     ${statusBadge}
                 </td>
                 <td class="px-6 py-4">
