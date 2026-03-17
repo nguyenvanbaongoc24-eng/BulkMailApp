@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 
-const SEARCH_URL = 'http://www.cavn.vn/SearchInfoCert.aspx';
+const SEARCH_URL = 'http://118.71.99.154:8888/SearchInfoCert.aspx';
 const DOWNLOAD_DIR = path.join(__dirname, '..', 'uploads', 'certs');
 
 // Ensure download directory exists
@@ -121,12 +121,57 @@ async function getLatestCertificate(browser, mst) {
                 return null;
             }
 
-            // Select the LAST "Tải về" link (latest certificate)
+            // Select the latest "Tải về" link
             const lastLink = matchingLinks[matchingLinks.length - 1];
-            
-            // Click-based download (most reliable for ASP.NET forms)
-            const beforeDownload = Date.now();
+
+            // Click 'Tải về' to go to the certificate details/install page
+            console.log(`[Scraper] Chuyển đến trang chi tiết chứng thư...`);
             await lastLink.click();
+
+            // Wait for navigation and the actual PDF download link to appear
+            // The user says the last page has "Tải giấy chứng nhận điện tử"
+            try {
+                await resultPage.waitForFunction(
+                    () => {
+                        const links = Array.from(document.querySelectorAll('a'));
+                        return links.some(l => l.innerText.includes('Tải giấy chứng nhận điện tử') || l.innerText.includes('Tải file chứng thư'));
+                    },
+                    { timeout: 15000 }
+                );
+            } catch (e) {
+                console.warn(`[Scraper] ⚠️ Không thấy link tải PDF trên trang chi tiết: ${e.message}`);
+            }
+
+            // Find the PDF download link
+            const pdfLinks = await resultPage.$$('a');
+            let downloadBtn = null;
+            for (const link of pdfLinks) {
+                const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
+                if (text && text.trim().toLowerCase().includes('tải giấy chứng nhận điện tử')) {
+                    downloadBtn = link;
+                    break;
+                }
+            }
+
+            // Fallback to .CER button if PDF link not found
+            if (!downloadBtn) {
+                for (const link of pdfLinks) {
+                    const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
+                    if (text && text.trim().toLowerCase().includes('tải file chứng thư')) {
+                        downloadBtn = link;
+                        break;
+                    }
+                }
+            }
+
+            if (!downloadBtn) {
+                console.error(`[Scraper] ❌ Không tìm thấy nút tải xuống PDF/CER trên trang cuối.`);
+                return null;
+            }
+
+            console.log(`[Scraper] 📥 Đang bắt đầu tải xuống file...`);
+            const beforeDownload = Date.now();
+            await downloadBtn.click();
             
             // Wait for download to complete, checking periodically up to 15 seconds
             let downloadedFile = null;
@@ -135,17 +180,17 @@ async function getLatestCertificate(browser, mst) {
                 
                 try {
                     const files = fs.readdirSync(DOWNLOAD_DIR);
-                    // Find files that do NOT have temporary chrome extensions
-                    const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp'))
+                    // Find files that do NOT have temporary chrome extensions or partial downloads
+                    const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'))
                         .map(f => ({ name: f, stat: fs.statSync(path.join(DOWNLOAD_DIR, f)) }))
-                        // Must be created/modified roughly after we clicked
-                        .filter(f => f.stat.mtimeMs >= beforeDownload - 2000 || f.stat.ctimeMs >= beforeDownload - 2000)
+                        // Must be created/modified roughly after we clicked the download button
+                        .filter(f => f.stat.mtimeMs >= beforeDownload - 3000 || f.stat.ctimeMs >= beforeDownload - 3000)
                         .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs); // newest first
                         
                     if (validFiles.length > 0) {
                         downloadedFile = validFiles[0].name;
-                        // Extra 500ms to ensure file handle is fully released by OS
-                        await new Promise(r => setTimeout(r, 500));
+                        // Extra time to ensure file handle is fully released by OS
+                        await new Promise(r => setTimeout(r, 1000));
                         break;
                     }
                 } catch (err) {
