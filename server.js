@@ -376,9 +376,9 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
 
         // Create initial logs in email_logs table for the worker
         const logs = (req.body.recipients || []).map(r => ({
-            customer_id: r.MST,
+            customer_id: r.MST ? String(r.MST).trim() : '',
             campaign_id: campaignId,
-            email: r.Email,
+            email: r.Email ? String(r.Email).trim() : '',
             status: 'pending',
             retry_count: 0,
             created_at: new Date().toISOString()
@@ -508,12 +508,12 @@ app.post('/api/customers/import', authenticate, async (req, res) => {
     if (!data || !Array.isArray(data)) return res.status(400).json({ error: 'Data must be an array' });
 
     const customers = data.map(c => ({
-        id: (c.MST || Date.now().toString() + Math.random().toString(36).substr(2, 5)).toString(),
+        id: (c.MST ? String(c.MST).trim() : Date.now().toString() + Math.random().toString(36).substr(2, 5)).toString(),
         userId: req.user.id,
-        taxCode: c.MST,
-        companyName: c.TenCongTy,
-        email: c.Email,
-        expirationDate: c.NgayHetHanChuKySo,
+        taxCode: c.MST ? String(c.MST).trim() : '',
+        companyName: c.TenCongTy ? String(c.TenCongTy).trim() : '',
+        email: c.Email ? String(c.Email).trim() : '',
+        expirationDate: c.NgayHetHanChuKySo ? String(c.NgayHetHanChuKySo).trim() : '',
         status: 'Chưa liên hệ'
     }));
 

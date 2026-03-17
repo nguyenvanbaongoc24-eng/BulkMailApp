@@ -71,7 +71,10 @@ async function processEmailTask(log) {
         // 1. Fetch Campaign and Sender
         const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', log.campaign_id).single();
         const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
-        const { data: customer } = await supabase.from('customers').select('*').eq('taxCode', log.customer_id).single();
+        
+        // Use trimmed customer_id for lookup
+        const lookupId = log.customer_id ? String(log.customer_id).trim() : '';
+        const { data: customer } = await supabase.from('customers').select('*').eq('taxCode', lookupId).single();
 
         if (!campaign || !sender) throw new Error('Campaign or Sender not found');
 
