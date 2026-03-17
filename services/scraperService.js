@@ -51,43 +51,68 @@ async function initBrowser() {
         }
     };
 
-    // Phase 7: Robust failsafe path discovery
+    // Phase 7: Robust failsafe path discovery (Absolute Fix)
     let foundPath = null;
 
-    // 1. Try environment variable (if it actually exists)
-    if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
-        foundPath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    } 
+    // 1. Check and UNSET invalid environment variable (prevents Puppeteer from using it internally)
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        if (require('fs').existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+            console.log(`[Scraper] Using custom path from Env: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
+            foundPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        } else {
+            console.warn(`[Scraper] ⚠ Invalid Env Path: ${process.env.PUPPETEER_EXECUTABLE_PATH}. Deleting to allow auto-discovery.`);
+            delete process.env.PUPPETEER_EXECUTABLE_PATH;
+        }
+    }
 
-    // 2. If no valid env var, search Render's cache aggressively
+    // 2. Search Render's cache aggressively if no valid path yet
     if (!foundPath && process.env.RENDER) {
         const searchRoots = [
             '/opt/render/.cache/puppeteer/chrome',
             '/home/render/.cache/puppeteer/chrome',
-            path.join(__dirname, '../.cache/puppeteer/chrome') // Local relative
+            '/opt/render/project/src/.cache/puppeteer/chrome'
         ];
 
-        console.log('[Scraper] Searching for Chrome on Render...');
+        console.log('[Scraper] 🔍 Aggressively searching for Chrome on Render...');
         for (const root of searchRoots) {
             try {
-                if (fs.existsSync(root)) {
-                    const versions = fs.readdirSync(root);
+                if (require('fs').existsSync(root)) {
+                    console.log(`[Scraper] Checking root: ${root}`);
+                    const versions = require('fs').readdirSync(root);
                     for (const v of versions) {
                         const p = path.join(root, v, 'chrome-linux64', 'chrome');
-                        if (fs.existsSync(p)) {
+                        if (require('fs').existsSync(p)) {
                             console.log(`[Scraper] ✅ Found Chrome at: ${p}`);
                             foundPath = p;
                             break;
                         }
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error(`[Scraper] Error reading ${root}:`, e.message);
+            }
             if (foundPath) break;
+        }
+    }
+
+    // 3. Final Fallback: try to find any chrome in the system
+    if (!foundPath && process.env.RENDER) {
+        const fallbacks = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser'
+        ];
+        for (const f of fallbacks) {
+            if (require('fs').existsSync(f)) {
+                foundPath = f;
+                break;
+            }
         }
     }
 
     if (foundPath) {
         launchOptions.executablePath = foundPath;
+    } else {
+        console.warn('[Scraper] ⚠ Could not find Chrome in common Render locations. Falling back to Puppeteer default.');
     }
 
     return await puppeteer.launch(launchOptions);
