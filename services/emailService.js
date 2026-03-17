@@ -17,7 +17,10 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         auth: {
             user: sender.smtpUser,
             pass: sender.smtpPassword
-        }
+        },
+        connectionTimeout: 60000, // 60s
+        greetingTimeout: 60000,
+        socketTimeout: 60000
     });
 
     let success = 0;
@@ -101,8 +104,18 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
             recipient.status = `Thất bại: ${err.message}`;
         }
 
-        if (certInfo && certInfo.filePath && fs.existsSync(certInfo.filePath)) {
-            try { fs.unlinkSync(certInfo.filePath); } catch (e) { /* ignore */ }
+        // Small delay to ensure nodemailer has fully closed the file handle before cleanup
+        if (certInfo && certInfo.dirPath && fs.existsSync(certInfo.dirPath)) {
+            setTimeout(() => {
+                try { 
+                    if (certInfo.filePath && fs.existsSync(certInfo.filePath)) {
+                        fs.unlinkSync(certInfo.filePath);
+                    }
+                    fs.rmSync(certInfo.dirPath, { recursive: true, force: true }); 
+                } catch (e) {
+                    console.error(`[EmailService] Cleanup error for ${recipient.MST}:`, e.message);
+                }
+            }, 5000); // 5s delay
         }
 
         recipient.sentTime = new Date().toISOString();

@@ -19,9 +19,23 @@ async function initBrowser() {
             '--disable-dev-shm-usage',
             '--disable-gpu',
             '--ignore-certificate-errors',
-            '--ignore-certificate-errors-spki-list'
+            '--ignore-certificate-errors-spki-list',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-extensions',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--metrics-recording-only',
+            '--mute-audio',
+            '--no-first-run',
+            '--safebrowsing-disable-auto-update',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--disable-site-isolation-trials'
         ],
-        ignoreHTTPSErrors: true
+        headless: 'new',
+        ignoreHTTPSErrors: true,
+        acceptInsecureCerts: true
     };
 
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
@@ -42,13 +56,19 @@ async function getLatestCertificate(browser, mst) {
     let page = null;
     
     try {
+        // Create unique download directory for this MST to avoid concurrent collisions
+        const mstDownloadDir = path.join(DOWNLOAD_DIR, `${mst}_${Date.now()}`);
+        if (!fs.existsSync(mstDownloadDir)) {
+            fs.mkdirSync(mstDownloadDir, { recursive: true });
+        }
+
         page = await browser.newPage();
         
-        // Set download behavior
+        // Set download behavior for this specific page
         const client = await page.createCDPSession();
         await client.send('Page.setDownloadBehavior', {
             behavior: 'allow',
-            downloadPath: DOWNLOAD_DIR
+            downloadPath: mstDownloadDir
         });
 
         // Navigate to search page
@@ -178,7 +198,8 @@ async function getLatestCertificate(browser, mst) {
                 await new Promise(r => setTimeout(r, 500));
                 
                 try {
-                    const files = fs.readdirSync(DOWNLOAD_DIR);
+                    if (!fs.existsSync(mstDownloadDir)) break;
+                    const files = fs.readdirSync(mstDownloadDir);
                     // Find files that do NOT have temporary chrome extensions or partial downloads
                     const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'))
                         .map(f => ({ name: f, stat: fs.statSync(path.join(DOWNLOAD_DIR, f)) }))
@@ -198,12 +219,14 @@ async function getLatestCertificate(browser, mst) {
             }
 
             if (downloadedFile) {
-                const filePath = path.join(DOWNLOAD_DIR, downloadedFile);
+                const filePath = path.join(mstDownloadDir, downloadedFile);
                 console.log(`[Scraper] ✅ Đã tải chứng thư số cho MST ${mst}: ${downloadedFile}`);
-                return { filePath, fileName: downloadedFile };
+                return { filePath, fileName: downloadedFile, dirPath: mstDownloadDir };
             }
 
-            console.log(`[Scraper] ⚠️ Không thể tải chứng thư số cho MST: ${mst} (Time Out)`);
+            console.log(`[Scraper] ⚠️ Không thể tải chứng thư số cho MST: ${mst} (Time Out hoặc Blocked)`);
+            // Cleanup empty dir if timeout
+            try { fs.rmSync(mstDownloadDir, { recursive: true, force: true }); } catch(e) {}
             return null;
 
         } else {
