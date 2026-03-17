@@ -87,7 +87,11 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
 
     try {
         let transporter;
+        let isGoogleHttpApi = false;
+        let gmailClient = null;
+
         if (sender.smtpHost === 'oauth2.google') {
+            isGoogleHttpApi = true;
             if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
                 throw new Error("Hệ thống chưa được cấu hình Google API (Thiếu Client ID/Secret).");
             }
@@ -95,16 +99,16 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                 throw new Error("Tài khoản gửi chưa được cấp phép đẩy đủ (Thiếu Refresh Token). Hãy xóa tài khoản và kết nối lại Gmail.");
             }
             
-            transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    type: 'OAuth2',
-                    user: sender.smtpUser,
-                    clientId: process.env.GOOGLE_CLIENT_ID,
-                    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-                    refreshToken: sender.smtpPassword
-                }
-            });
+            const { google } = require('googleapis');
+            const oauth2Client = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET
+            );
+            oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
+            gmailClient = google.gmail({ version: 'v1', auth: oauth2Client });
+            
+            // We still create a Nodemailer transporter to help compile the MIME message easily before passing it to Google API
+            transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
         } else {
             // ... non OAuth logic
             const resolvedHost = await resolveToIPv4(sender.smtpHost);
@@ -216,12 +220,41 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
 
             try {
                 console.log(`[EmailService] 📤 Sending to: ${targetEmail}...`);
-                await sendWithRetry(transporter, mailOptions);
+                
+                if (isGoogleHttpApi) {
+                    // 1. Compile email to RFC822 using local stream transporter
+                    const info = await transporter.sendMail(mailOptions);
+                    
+                    // 2. Read stream to buffer
+                    const chunks = [];
+                    for await (const chunk of info.message) {
+                        chunks.push(chunk);
+                    }
+                    const messageBuffer = Buffer.concat(chunks);
+                    
+                    // 3. Convert to base64url format required by Gmail API
+                    const base64EncodedEmail = messageBuffer.toString('base64')
+                        .replace(/\+/g, '-')
+                        .replace(/\//g, '_')
+                        .replace(/=+$/, '');
+                    
+                    // 4. Send via HTTP API (Port 443 - Bypasses Render Port 465 Block)
+                    await gmailClient.users.messages.send({
+                        userId: 'me',
+                        requestBody: {
+                            raw: base64EncodedEmail
+                        }
+                    });
+                } else {
+                    // Standard SMTP sending (Blocked on Render, works locally/VPS)
+                    await sendWithRetry(transporter, mailOptions);
+                }
+
                 success++;
                 recipient.status = certInfo ? 'Đã gửi (có CTS)' : 'Đã gửi';
                 console.log(`[EmailService] ✅ Success: ${targetEmail}`);
             } catch (err) {
-                console.error(`[EmailService] ❌ SMTP Error (${targetEmail}):`, err.message);
+                console.error(`[EmailService] ❌ Delivery Error (${targetEmail}):`, err.message);
                 errorCount++;
                 recipient.status = `Thất bại: ${err.message}`;
             }
