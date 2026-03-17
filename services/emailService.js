@@ -11,6 +11,9 @@ try {
 
 async function sendBulkEmails(campaign, sender, onUpdate) {
     const transporter = nodemailer.createTransport({
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
         host: sender.smtpHost,
         port: parseInt(sender.smtpPort),
         secure: sender.smtpPort == 465,
@@ -18,9 +21,9 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
             user: sender.smtpUser,
             pass: sender.smtpPassword
         },
-        connectionTimeout: 60000, // 60s
-        greetingTimeout: 60000,
-        socketTimeout: 60000
+        connectionTimeout: 120000, // 120s
+        greetingTimeout: 120000,
+        socketTimeout: 120000
     });
 
     let success = 0;

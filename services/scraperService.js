@@ -38,7 +38,8 @@ async function initBrowser() {
             '--no-first-run',
             '--disable-infobars',
             '--password-store=basic',
-            '--use-mock-keychain'
+            '--use-mock-keychain',
+            '--disable-features=CalculateNativeWinOcclusion'
         ],
         ignoreHTTPSErrors: true,
         acceptInsecureCerts: true,
@@ -221,7 +222,7 @@ async function getLatestCertificate(browser, mst) {
                     const files = fs.readdirSync(mstDownloadDir);
                     // Find files that do NOT have temporary chrome extensions or partial downloads
                     const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'))
-                        .map(f => ({ name: f, stat: fs.statSync(path.join(DOWNLOAD_DIR, f)) }))
+                        .map(f => ({ name: f, stat: fs.statSync(path.join(mstDownloadDir, f)) }))
                         // Must be created/modified roughly after we clicked the download button
                         .filter(f => f.stat.mtimeMs >= beforeDownload - 3000 || f.stat.ctimeMs >= beforeDownload - 3000)
                         .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs); // newest first
