@@ -77,7 +77,7 @@ app.get('/api/auth/google/url', authenticate, (req, res) => {
         access_type: 'offline',
         prompt: 'consent', // Force consent so we get a refresh token
         scope: [
-            'https://mail.google.com/', 
+            'https://www.googleapis.com/auth/gmail.send', 
             'https://www.googleapis.com/auth/userinfo.email',
             'https://www.googleapis.com/auth/userinfo.profile'
         ],
@@ -109,8 +109,24 @@ app.get('/api/auth/google/callback', async (req, res) => {
         if (!tokens.refresh_token) {
             return res.status(400).send(`
                 <h2>Kết nối thất bại</h2>
-                <p>Google không trả về Refresh Token. Vui lòng thu hồi quyền ứng dụng trên Google Account và thử lại, nhớ TICK chọn cấp báo quyền truy cập Gmail.</p>
-                <script>setTimeout(() => window.close(), 5000)</script>
+                <p>Google không trả về Refresh Token. Vui lòng vào Cài đặt tài khoản Google -> Xóa quyền của ứng dụng Automation CA2. Sau đó kết nối lại và nhớ TICK chọn vào ô "Gửi email thay bạn" (Send email on your behalf).</p>
+                <script>setTimeout(() => window.close(), 10000)</script>
+            `);
+        }
+        
+        // Verify scopes if possible
+        if (tokens.scope && !tokens.scope.includes('gmail.send') && !tokens.scope.includes('mail.google.com')) {
+            return res.status(400).send(`
+                <div style="font-family: sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: red;">⚠ LỖI: Bạn chưa cấp quyền gửi thư!</h2>
+                    <p>Ở màn hình đăng nhập Google, bạn đã BỎ QUA việc đánh dấu tick (☑) vào ô cho phép ứng dụng gửi email.</p>
+                    <p><b>Cách khắc phục:</b></p>
+                    <ol>
+                        <li>Đóng cửa sổ này lại.</li>
+                        <li>Bấm "Kết nối Gmail API" lại một lần nữa.</li>
+                        <li>Đến bước đòi quyền, <b>HÃY TICK VÀO Ô VUÔNG CÓ CHỮ "Gửi email"</b> rồi mới bấm Tiếp tục.</li>
+                    </ol>
+                </div>
             `);
         }
 
