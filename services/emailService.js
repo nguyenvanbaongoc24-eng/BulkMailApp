@@ -151,23 +151,30 @@ async function processEmailTask(log) {
             });
         }
 
-        // 3. Prepare Email Content
+        // 3. Prepare Email Content & Handle Placeholder Replacements (Phase 9: Fallback to campaign data)
         let html = campaign.template || '';
         let subject = campaign.subject || 'Thông báo từ Automation CA2';
 
-        if (customer) {
-            const replacements = {
-                '{{TenCongTy}}': customer.companyName || '',
-                '{{MST}}': customer.taxCode || '',
-                '{{DiaChi}}': customer.diaChi || '',
-                '{{NgayHetHanChuKySo}}': customer.expirationDate || ''
-            };
+        // Get details from campaign recipients if database lookup fails
+        const recipientData = (campaign.recipients || []).find(r => String(r.MST || r.taxCode).trim() === lookupId);
+        
+        const replacements = {
+            '{{TenCongTy}}': (customer?.companyName) || (recipientData?.TenCongTy) || '',
+            '{{MST}}': (customer?.taxCode) || (recipientData?.MST) || lookupId,
+            '{{DiaChi}}': (customer?.diaChi) || (recipientData?.DiaChi) || '',
+            '{{NgayHetHanChuKySo}}': (customer?.expirationDate) || (recipientData?.NgayHetHanChuKySo) || ''
+        };
 
-            for (const [key, value] of Object.entries(replacements)) {
-                const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                html = html.replace(regex, value);
-                subject = subject.replace(regex, value);
-            }
+        for (const [key, value] of Object.entries(replacements)) {
+            const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            html = html.replace(regex, value || '');
+            subject = subject.replace(regex, value || '');
+        }
+
+        // Phase 9: STOP LEAK - Final check for unreplaced placeholders
+        if (html.includes('{{TenCongTy}}') || html.includes('{{MST}}')) {
+            console.error(`[Worker] ❌ Placeholder leak detected for ${log.email}. Aborting send.`);
+            throw new Error(`Dữ liệu không đầy đủ: Còn sót tag {{TenCongTy}} hoặc {{MST}}`);
         }
         
         // 1. Validation Cứng (Phase 6)
