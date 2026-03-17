@@ -13,6 +13,10 @@ const scraperService = require('./services/scraperService');
 const supabase = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
+if (process.env.RENDER) {
+    process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
+}
+
 const app = express();
 const port = process.env.PORT || 3000;
 
