@@ -425,10 +425,20 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
 // Email Logs Route
 app.get('/api/email-logs', authenticate, async (req, res) => {
     try {
+        // First get user's campaign IDs
+        const { data: campaigns } = await supabase
+            .from('campaigns')
+            .select('id')
+            .eq('userId', req.user.id);
+        
+        const campaignIds = campaigns.map(c => c.id);
+
+        if (campaignIds.length === 0) return res.json([]);
+
         const { data, error } = await supabase
             .from('email_logs')
-            .select('*, campaigns!inner(userId)')
-            .eq('campaigns.userId', req.user.id)
+            .select('*')
+            .in('campaign_id', campaignIds)
             .order('created_at', { ascending: false })
             .limit(100);
 

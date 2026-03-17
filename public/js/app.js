@@ -185,7 +185,7 @@ function showPage(page) {
         page === 'crm' ? 'Quản lý khách hàng (CRM)' : 'Cài đặt hệ thống';
     
     // Switch views
-    ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings', 'view-crm'].forEach(id => {
+    ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings', 'view-crm', 'view-reports'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -193,6 +193,7 @@ function showPage(page) {
     if (page === 'dashboard') {
         document.getElementById('view-dashboard').classList.remove('hidden');
         loadStats();
+        loadCampaigns('campaign-list');
     } else if (page === 'campaigns') {
         document.getElementById('view-campaigns').classList.remove('hidden');
         loadCampaigns('campaign-list-all');
@@ -451,7 +452,7 @@ async function handleGSheets() {
     }
 }
 
-function updatePreview() {
+function updatePreviewTable() {
     const tbody = document.getElementById('preview-table-body');
     
     if (currentRecipients.length === 0) {
