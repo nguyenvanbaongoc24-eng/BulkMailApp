@@ -68,6 +68,52 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     }
 });
 
+// PDF Upload to Supabase Storage
+app.post('/api/customers/upload-pdf', authenticate, upload.single('pdf'), async (req, res) => {
+    try {
+        const { taxCode } = req.body;
+        if (!taxCode || !req.file) {
+            return res.status(400).json({ error: 'Missing taxCode or pdf file' });
+        }
+
+        const fileExt = path.extname(req.file.originalname);
+        const fileName = `${req.user.id}/${taxCode}_${Date.now()}${fileExt}`;
+        const filePath = req.file.path;
+        const fileBuffer = fs.readFileSync(filePath);
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('pdf-attachments')
+            .upload(fileName, fileBuffer, {
+                contentType: 'application/pdf',
+                upsert: true
+            });
+
+        fs.unlinkSync(filePath); // Cleanup local temp file
+
+        if (uploadError) throw uploadError;
+
+        // Get Public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('pdf-attachments')
+            .getPublicUrl(fileName);
+
+        // Update customer record
+        const { error: updateError } = await supabase
+            .from('customers')
+            .update({ pdf_url: publicUrl })
+            .eq('taxCode', taxCode)
+            .eq('userId', req.user.id);
+
+        if (updateError) throw updateError;
+
+        res.json({ message: 'Upload thành công', pdfUrl: publicUrl });
+    } catch (error) {
+        console.error('PDF Upload Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Google OAuth2 Routes
 app.get('/api/auth/google/url', authenticate, (req, res) => {
     // We pass the userId in state so we know who is connecting this account
@@ -307,24 +353,46 @@ app.get('/api/campaigns', authenticate, async (req, res) => {
 });
 
 app.post('/api/campaigns', authenticate, async (req, res) => {
+    const campaignId = Date.now().toString();
     const newCampaign = {
-        id: Date.now().toString(),
+        id: campaignId,
         userId: req.user.id,
         name: req.body.name,
         subject: req.body.subject,
         senderAccountId: req.body.senderAccountId,
         template: req.body.template,
-        recipients: (req.body.recipients || []).map(r => ({ ...r, status: 'Chưa gửi', sentTime: null })),
+        recipients: (req.body.recipients || []).map(r => ({ ...r, status: 'Chờ xử lý', sentTime: null })),
         attachCert: req.body.attachCert || false,
-        status: 'Nháp',
+        status: 'Chờ gửi',
         sentCount: 0,
         successCount: 0,
         errorCount: 0,
         createdAt: new Date().toISOString()
     };
-    const { data, error } = await supabase.from('campaigns').insert([newCampaign]).select();
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data[0]);
+
+    try {
+        const { data, error } = await supabase.from('campaigns').insert([newCampaign]).select();
+        if (error) throw error;
+
+        // Create initial logs in email_logs table for the worker
+        const logs = (req.body.recipients || []).map(r => ({
+            customer_id: r.MST,
+            campaign_id: campaignId,
+            email: r.Email,
+            status: 'pending',
+            retry_count: 0,
+            created_at: new Date().toISOString()
+        }));
+
+        if (logs.length > 0) {
+            const { error: logsError } = await supabase.from('email_logs').insert(logs);
+            if (logsError) console.error('Error creating email_logs:', logsError);
+        }
+
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
@@ -351,20 +419,24 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
     // Update status to "Đang gửi"
     await supabase.from('campaigns').update({ status: 'Đang gửi' }).eq('id', campaign.id);
 
-    res.json({ message: 'Bắt đầu gửi email...' });
+    res.json({ message: 'Chiến dịch đã được đưa vào hàng đợi gửi ngầm.' });
+});
 
-    // Background sending process
-    console.log(`[Server] 🚀 Bắt đầu tiến trình gửi ngầm cho campaign ID: ${campaign.id}`);
-    emailService.sendBulkEmails(campaign, sender, async (updatedCampaign) => {
-        // Persist update to Supabase
-        await supabase.from('campaigns').update({
-            recipients: updatedCampaign.recipients,
-            status: updatedCampaign.status,
-            sentCount: updatedCampaign.sentCount,
-            successCount: updatedCampaign.successCount,
-            errorCount: updatedCampaign.errorCount
-        }).eq('id', updatedCampaign.id);
-    });
+// Email Logs Route
+app.get('/api/email-logs', authenticate, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('email_logs')
+            .select('*, campaigns!inner(userId)')
+            .eq('campaigns.userId', req.user.id)
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.delete('/api/campaigns/:id', authenticate, async (req, res) => {
@@ -480,4 +552,6 @@ app.get('/api/crm/stats', authenticate, async (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+    // Start the background worker
+    emailService.startWorker();
 });

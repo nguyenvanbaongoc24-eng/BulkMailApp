@@ -205,10 +205,13 @@ function showPage(page) {
         loadCRMStats();
     } else if (page === 'settings') {
         document.getElementById('view-settings').classList.remove('hidden');
+    } else if (page === 'reports') {
+        document.getElementById('view-reports').classList.remove('hidden');
+        loadEmailLogs();
     }
 
     // Update sidebar active state
-    ['nav-dashboard', 'nav-campaigns', 'nav-senders', 'nav-crm', 'nav-settings'].forEach(id => {
+    ['nav-dashboard', 'nav-campaigns', 'nav-senders', 'nav-crm', 'nav-reports'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         if (id === `nav-${page}`) {
@@ -543,9 +546,11 @@ async function deleteCampaign(id) {
     }
 }
 
-function getStatusColor(status) {
+function getStatusBadgeClass(status) {
+    if (!status) return 'bg-white/10 text-gray-400';
     if (status.includes('Hoàn thành')) return 'bg-orange-500/20 text-orange-500';
     switch(status) {
+        case 'Chờ gửi': 
         case 'Đang gửi': return 'bg-purple-500/20 text-purple-400 animate-pulse';
         case 'Thất bại':
         case 'Lỗi': return 'bg-red-500/20 text-red-500';
@@ -669,11 +674,70 @@ function handleEditorImage(event) {
     reader.readAsDataURL(file);
 }
 
-// Refresh every 5 seconds if sending
+// Refresh every 10 seconds (aligned with worker)
 setInterval(() => {
-    loadCampaigns();
+    const activePage = document.querySelector('a.sidebar-item-active')?.id;
+    if (activePage === 'nav-dashboard') loadCampaigns();
+    if (activePage === 'nav-reports') loadEmailLogs();
     loadStats();
-}, 5000);
+}, 10000);
+
+async function loadEmailLogs() {
+    try {
+        const response = await authedFetch('/api/email-logs');
+        if (!response || !response.ok) return;
+        const logs = await response.json();
+        const listEl = document.getElementById('email-logs-list');
+        listEl.innerHTML = '';
+
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-white/5 transition-all text-xs';
+            let statusClass = 'text-gray-400';
+            if (log.status === 'sent') statusClass = 'text-green-500 font-bold';
+            if (log.status === 'failed') statusClass = 'text-red-500 font-bold';
+
+            tr.innerHTML = `
+                <td class="px-6 py-4 text-gray-400">${new Date(log.created_at).toLocaleString('vi-VN')}</td>
+                <td class="px-6 py-4 font-bold text-white">${log.email}</td>
+                <td class="px-6 py-4 text-gray-400">${log.campaign_id}</td>
+                <td class="px-6 py-4 ${statusClass}">${log.status === 'sent' ? '✅ Thành công' : (log.status === 'failed' ? '❌ Thất bại' : '⏳ Đang chờ')}</td>
+                <td class="px-6 py-4 text-[10px] text-red-400 italic max-w-[200px] truncate" title="${log.error_message || ''}">${log.error_message || ''}</td>
+            `;
+            listEl.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Lỗi tải nhật ký:', err);
+    }
+}
+
+async function exportEmailLogs() {
+    try {
+        const response = await authedFetch('/api/email-logs');
+        if (!response || !response.ok) return;
+        const logs = await response.json();
+        
+        if (logs.length === 0) {
+            alert('Không có dữ liệu nhật ký để xuất.');
+            return;
+        }
+
+        const dataToExport = logs.map(l => ({
+            'Thời gian': new Date(l.created_at).toLocaleString('vi-VN'),
+            'Email': l.email,
+            'Chiến dịch ID': l.campaign_id,
+            'Trạng thái': l.status === 'sent' ? 'Thành công' : (l.status === 'failed' ? 'Thất bại' : 'Đang xử lý'),
+            'Lỗi': l.error_message || ''
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Nhật ký gửi mail");
+        XLSX.writeFile(workbook, `Bao_cao_gui_mail_${new Date().getTime()}.xlsx`);
+    } catch (error) {
+        alert('Lỗi khi xuất báo cáo: ' + error.message);
+    }
+}
 
 async function saveCampaign() {
     const name = document.getElementById('input-name').value;
@@ -771,12 +835,21 @@ async function loadCRM(filter = null) {
                 statusBadge = '<span class="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded text-[9px] font-bold">Hạn < 90 ngày</span>';
             }
 
+            const pdfBadge = c.pdf_url 
+                ? '<span class="ml-2 text-[10px] text-green-500 font-black cursor-help" title="Đã có file PDF">📄 PDF</span>' 
+                : '<span class="ml-2 text-[10px] text-gray-600 font-medium">🈚 No PDF</span>';
+
             const tr = document.createElement('tr');
             tr.className = `${rowColorClass} hover:bg-white/5 transition-all`;
             tr.innerHTML = `
                 <td class="px-6 py-4">
-                    <p class="text-sm font-bold text-white">${c.companyName || 'N/A'}</p>
-                    <p class="text-[10px] text-gray-500 font-medium">MST: ${c.taxCode || 'N/A'}</p>
+                    <div class="flex items-center">
+                        <div>
+                            <p class="text-sm font-bold text-white">${c.companyName || 'N/A'}</p>
+                            <p class="text-[10px] text-gray-500 font-medium">MST: ${c.taxCode || 'N/A'}</p>
+                        </div>
+                        ${pdfBadge}
+                    </div>
                 </td>
                 <td class="px-6 py-4">
                     <p class="text-sm font-bold text-white">${c.expirationDate || 'N/A'}</p>
@@ -820,17 +893,75 @@ function filterCRM(period) {
 }
 
 let activeCRMId = null;
-function openCRMUpdateModal(id) {
+let activeCRMTaxCode = null;
+
+async function openCRMUpdateModal(id) {
     activeCRMId = id;
     document.getElementById('crm-update-id').value = id;
+    
+    // Fetch customer details to show current PDF status
+    try {
+        const response = await authedFetch(`/api/customers/${id}`);
+        if (response && response.ok) {
+            const customer = await response.json();
+            activeCRMTaxCode = customer.taxCode;
+            document.getElementById('crm-update-taxcode').value = customer.taxCode;
+            document.getElementById('crm-update-status').value = customer.status || 'Chưa liên hệ';
+            document.getElementById('crm-update-notes').value = customer.notes || '';
+            
+            // PDF UI
+            const pdfStatus = document.getElementById('crm-pdf-status');
+            const pdfView = document.getElementById('crm-pdf-view');
+            if (customer.pdf_url) {
+                pdfStatus.innerText = 'Đã có file';
+                pdfStatus.className = 'text-[10px] font-bold text-green-500 px-2 py-0.5 bg-green-500/10 rounded';
+                pdfView.href = customer.pdf_url;
+                pdfView.classList.remove('hidden');
+            } else {
+                pdfStatus.innerText = 'Chưa có file';
+                pdfStatus.className = 'text-[10px] font-bold text-gray-500 px-2 py-0.5 bg-white/5 rounded';
+                pdfView.classList.add('hidden');
+            }
+        }
+    } catch (e) { console.error(e); }
+
     document.getElementById('modal-crm-update').classList.remove('hidden');
-    // We would ideally fetch latest notes here if there were many,
-    // but for simplicity we assume the list is fresh or we can just find it in memory.
+}
+
+async function uploadCustomerPDF() {
+    const fileInput = document.getElementById('crm-pdf-file');
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+    formData.append('taxCode', activeCRMTaxCode);
+
+    try {
+        const pdfStatus = document.getElementById('crm-pdf-status');
+        pdfStatus.innerText = '⏳ Đang tải...';
+        
+        const response = await fetch('/api/customers/upload-pdf', {
+            method: 'POST',
+            body: formData
+            // Note: authedFetch handles token if needed, but FormData needs manual fetch here or utility update
+        });
+
+        if (response.ok) {
+            alert('Tải lên PDF thành công!');
+            openCRMUpdateModal(activeCRMId); // Refresh modal
+        } else {
+            alert('Lỗi khi tải lên PDF.');
+        }
+    } catch (err) {
+        alert('Lỗi: ' + err.message);
+    }
 }
 
 function closeCRMUpdateModal() {
     document.getElementById('modal-crm-update').classList.add('hidden');
     activeCRMId = null;
+    activeCRMTaxCode = null;
 }
 
 async function saveCRMUpdate() {

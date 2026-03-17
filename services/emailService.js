@@ -2,302 +2,200 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 const dns = require('dns').promises;
+const axios = require('axios');
+const supabase = require('./supabaseClient');
 
-let scraperService = null;
-try {
-    scraperService = require('./scraperService');
-} catch (e) {
-    console.warn('[EmailService] scraperService not available:', e.message);
-}
+/**
+ * Polling interval for the worker (e.g., every 10 seconds)
+ */
+const WORKER_INTERVAL = 10000;
+let isWorkerRunning = false;
 
 /**
  * Resolves an SMTP hostname to its IPv4 address.
- * This avoids IPv6 ENETUNREACH errors on hosts that don't support IPv6 routing
- * (e.g., Render.com free tier).
  */
 async function resolveToIPv4(hostname) {
     try {
-        // If already an IP address, return as-is
         const net = require('net');
-        if (net.isIP(hostname)) {
-            return hostname;
-        }
+        if (net.isIP(hostname)) return hostname;
         const addresses = await dns.resolve4(hostname);
-        if (addresses && addresses.length > 0) {
-            console.log(`[EmailService] ✅ Resolved ${hostname} -> ${addresses[0]} (IPv4)`);
-            return addresses[0];
-        }
-    } catch (err) {
-        console.warn(`[EmailService] ⚠️ IPv4 DNS resolution failed for ${hostname}: ${err.message}, using hostname as fallback`);
-    }
-    return hostname; // fallback to original hostname
+        if (addresses && addresses.length > 0) return addresses[0];
+    } catch (err) {}
+    return hostname;
 }
 
 /**
- * Sends a single email with retry logic.
- * Retries up to maxRetries times on transient SMTP errors.
+ * Worker main loop
  */
-async function sendWithRetry(transporter, mailOptions, maxRetries = 2) {
-    let lastError;
-    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            return info;
-        } catch (err) {
-            lastError = err;
-            const isTransient = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'ENETUNREACH', 'EAI_AGAIN'].some(code => 
-                err.message.includes(code) || err.code === code
-            ) || err.message.includes('Connection timeout');
-            
-            if (isTransient && attempt <= maxRetries) {
-                const delay = attempt * 3000; // progressive backoff: 3s, 6s
-                console.log(`[EmailService] ⏳ Retry ${attempt}/${maxRetries} for ${mailOptions.to} in ${delay/1000}s...`);
-                await new Promise(r => setTimeout(r, delay));
-            } else {
-                throw lastError;
-            }
-        }
-    }
-    throw lastError;
-}
-
-/**
- * Sends bulk emails for a campaign.
- * Phase 1: Scrape certificates if required.
- * Phase 2: Send emails via SMTP.
- */
-async function sendBulkEmails(campaign, sender, onUpdate) {
-    let success = 0;
-    let errorCount = 0;
-    const totalRecipients = campaign.recipients.length;
-
-    function updateProgress() {
-        const processedCount = campaign.recipients.filter(r => r.status && r.status !== 'Chưa gửi').length;
-        campaign.sentCount = processedCount;
-        campaign.successCount = success;
-        campaign.errorCount = errorCount;
-        
-        if (processedCount === totalRecipients) {
-            campaign.status = success > 0 ? (errorCount > 0 ? 'Hoàn thành (có lỗi)' : 'Hoàn thành') : 'Thất bại';
-        } else {
-            campaign.status = 'Đang gửi';
-        }
-        if (onUpdate) onUpdate(campaign);
-    }
+async function startWorker() {
+    if (isWorkerRunning) return;
+    isWorkerRunning = true;
 
     try {
+        // 1. Fetch pending or failed (retry < 2) logs
+        const { data: tasks, error } = await supabase
+            .from('email_logs')
+            .select('*')
+            .or('status.eq.pending,status.eq.failed')
+            .lt('retry_count', 2)
+            .limit(5) // Process a small batch
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        if (!tasks || tasks.length === 0) {
+            isWorkerRunning = false;
+            return;
+        }
+
+        console.log(`[Worker] Found ${tasks.length} tasks to process.`);
+
+        for (const log of tasks) {
+            await processEmailTask(log);
+            // Wait 3-5 seconds between emails to avoid spam
+            await new Promise(r => setTimeout(r, 3000));
+        }
+    } catch (err) {
+        console.error('[Worker] Fatal Error:', err.message);
+    } finally {
+        isWorkerRunning = false;
+    }
+}
+
+/**
+ * Process a single email task from email_logs
+ */
+async function processEmailTask(log) {
+    console.log(`[Worker] Processing Task ID: ${log.id} for ${log.email}`);
+
+    try {
+        // 1. Fetch Campaign and Sender
+        const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', log.campaign_id).single();
+        const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
+        const { data: customer } = await supabase.from('customers').select('*').eq('taxCode', log.customer_id).single();
+
+        if (!campaign || !sender) throw new Error('Campaign or Sender not found');
+
+        // 2. Prepare Transporter
         let transporter;
         let isGoogleHttpApi = false;
         let gmailClient = null;
 
         if (sender.smtpHost === 'oauth2.google') {
             isGoogleHttpApi = true;
-            if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-                throw new Error("Hệ thống chưa được cấu hình Google API (Thiếu Client ID/Secret).");
-            }
-            if (!sender.smtpPassword || sender.smtpPassword.length < 10) {
-                throw new Error("Tài khoản gửi chưa được cấp phép đẩy đủ (Thiếu Refresh Token). Hãy xóa tài khoản và kết nối lại Gmail.");
-            }
-            
             const { google } = require('googleapis');
-            const oauth2Client = new google.auth.OAuth2(
-                process.env.GOOGLE_CLIENT_ID,
-                process.env.GOOGLE_CLIENT_SECRET
-            );
+            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
             oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
             gmailClient = google.gmail({ version: 'v1', auth: oauth2Client });
-            
-            // We still create a Nodemailer transporter to help compile the MIME message easily before passing it to Google API
             transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
         } else {
-            // ... non OAuth logic
             const resolvedHost = await resolveToIPv4(sender.smtpHost);
             transporter = nodemailer.createTransport({
-                pool: false,
                 host: resolvedHost,
                 port: parseInt(sender.smtpPort),
                 secure: sender.smtpPort == 465,
-                auth: {
-                    user: sender.smtpUser,
-                    pass: sender.smtpPassword
-                },
-                tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2', servername: sender.smtpHost },
-                connectionTimeout: 60000, greetingTimeout: 60000, socketTimeout: 60000, logger: true, debug: true
+                auth: { user: sender.smtpUser, pass: sender.smtpPassword },
+                tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2', servername: sender.smtpHost }
             });
         }
 
-        const attachCert = campaign.attachCert || false;
-
-    // --- PHASE 1: CERTIFICATE SCRAPING & SERIAL VALIDATION ---
-    const certMap = new Map(); 
-    let phase1FatalError = null;
-
-    if (attachCert && scraperService) {
-        try {
-            console.log(`[EmailService] --- PHASE 1: SEARCHING & VALIDATING SERIAL ---`);
-            const browser = await scraperService.initBrowser();
-            
-            for (let i = 0; i < totalRecipients; i++) {
-                const recipient = campaign.recipients[i];
-                if (!recipient.MST) continue;
-
-                try {
-                    console.log(`[EmailService] 🔍 (${i+1}/${totalRecipients}) Tra cứu MST: ${recipient.MST} (Serial: ${recipient.Serial || 'N/A'})...`);
-                    let info = await scraperService.getLatestCertificate(browser, recipient.MST, recipient.Serial, recipient);
-                    
-                    if (info && info.status === 'Matched') {
-                        certMap.set(recipient.MST, info);
-                        recipient.status = '✔ Khớp - Đã tải';
-                    } else if (info && info.status === 'Not Matched') {
-                        recipient.status = '✖ Không khớp - Bỏ qua';
-                    } else {
-                        recipient.status = 'Không tìm thấy CTS';
-                    }
-                } catch (e) {
-                    console.error(`[EmailService] Scraper error for ${recipient.MST}:`, e.message);
-                    recipient.status = 'Lỗi tải CTS';
-                }
-                
-                // Rate limiting delay (3s as requested)
-                if (i < totalRecipients - 1) await new Promise(r => setTimeout(r, 3000));
-            }
-            
-            await browser.close().catch(() => {});
-            console.log(`[EmailService] --- PHASE 1 COMPLETE: Downloaded ${certMap.size} files ---`);
-        } catch (e) {
-            phase1FatalError = e.message;
-            console.error('[EmailService] Serious phase 1 error:', e.message);
-            campaign.errorLogs = campaign.errorLogs ? campaign.errorLogs + '\nPhase 1 Lỗi: ' + e.message : 'Phase 1 Lỗi: ' + e.message;
+        // 3. Prepare Email Content
+        let html = campaign.template || '';
+        if (customer) {
+            html = html.replace(/{{TenCongTy}}/g, customer.companyName || '')
+                       .replace(/{{MST}}/g, customer.taxCode || '')
+                       .replace(/{{DiaChi}}/g, customer.diaChi || '')
+                       .replace(/{{NgayHetHanChuKySo}}/g, customer.expirationDate || '');
         }
-    }
-
-    // --- PHASE 2: SMTP DELIVERY ---
-    console.log(`[EmailService] --- PHASE 2: SENDING EMAILS ---`);
-    
-    // Process sequentially or in very small chunks for reliability
-    const SEND_CONCURRENCY = 1; 
-    for (let i = 0; i < totalRecipients; i += SEND_CONCURRENCY) {
-        const chunk = campaign.recipients.slice(i, i + SEND_CONCURRENCY);
         
-        await Promise.all(chunk.map(async (recipient) => {
-            // Skip if serial mismatch
-            if (recipient.status === '✖ Không khớp - Bỏ qua') {
-                errorCount++;
-                updateProgress();
-                return;
-            }
+        html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
+                'Email này được gửi tự động từ hệ thống Automation CA2.</p>';
 
-            const targetEmail = (recipient.Email || '').trim();
-            if (!targetEmail) {
-                recipient.status = 'Thiếu Email';
-                errorCount++;
-                updateProgress();
-                return;
-            }
+        const mailOptions = {
+            from: `"${sender.senderName}" <${sender.senderEmail}>`,
+            to: log.email,
+            subject: campaign.subject || 'Thông báo từ Automation CA2',
+            html: html,
+            attachments: []
+        };
 
-            // Replace template placeholders
-            let html = campaign.template || '';
-            html = html.replace(/{{TenCongTy}}/g, recipient.TenCongTy || '')
-                       .replace(/{{MST}}/g, recipient.MST || '')
-                       .replace(/{{DiaChi}}/g, recipient.DiaChi || '')
-                       .replace(/{{NgayHetHanChuKySo}}/g, recipient.NgayHetHanChuKySo || '');
-            
-            html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
-                    'Email này được gửi tự động từ hệ thống Automation CA2.</p>';
-
-            const mailOptions = {
-                from: `"${sender.senderName}" <${sender.senderEmail}>`,
-                to: targetEmail,
-                subject: campaign.subject || `Thông báo từ ${sender.senderName}`,
-                html: html,
-                attachments: []
-            };
-
-            const certInfo = certMap.get(recipient.MST);
-            if (certInfo && fs.existsSync(certInfo.filePath)) {
-                mailOptions.attachments.push({
-                    filename: certInfo.fileName,
-                    path: certInfo.filePath
-                });
-                console.log(`[EmailService] 📎 Attaching PDF for: ${recipient.MST}`);
-            }
-
-            try {
-                console.log(`[EmailService] 📤 Sending to: ${targetEmail}...`);
-                
-                if (isGoogleHttpApi) {
-                    // 1. Compile email to RFC822 using local stream transporter
-                    const info = await transporter.sendMail(mailOptions);
-                    
-                    // 2. Read stream to buffer
-                    const chunks = [];
-                    for await (const chunk of info.message) {
-                        chunks.push(chunk);
-                    }
-                    const messageBuffer = Buffer.concat(chunks);
-                    
-                    // 3. Convert to base64url format required by Gmail API
-                    const base64EncodedEmail = messageBuffer.toString('base64')
-                        .replace(/\+/g, '-')
-                        .replace(/\//g, '_')
-                        .replace(/=+$/, '');
-                    
-                    // 4. Send via HTTP API (Port 443 - Bypasses Render Port 465 Block)
-                    await gmailClient.users.messages.send({
-                        userId: 'me',
-                        requestBody: {
-                            raw: base64EncodedEmail
-                        }
-                    });
-                } else {
-                    // Standard SMTP sending (Blocked on Render, works locally/VPS)
-                    await sendWithRetry(transporter, mailOptions);
-                }
-
-                success++;
-                if (certInfo) {
-                    recipient.status = 'Đã gửi (có CTS)';
-                } else if (attachCert) {
-                    recipient.status = phase1FatalError ? 'Đã gửi (Lỗi bot trình duyệt)' : 'Đã gửi (Không lấy được CTS)';
-                } else {
-                    recipient.status = 'Đã gửi';
-                }
-                console.log(`[EmailService] ✅ Success: ${targetEmail}`);
-            } catch (err) {
-                console.error(`[EmailService] ❌ Delivery Error (${targetEmail}):`, err.message);
-                errorCount++;
-                recipient.status = `Thất bại: ${err.message}`;
-            }
-
-            // Cleanup temp file
-            if (certInfo && certInfo.dirPath) {
-                setTimeout(() => {
-                    try { fs.rmSync(certInfo.dirPath, { recursive: true, force: true }); } catch(e) {}
-                }, 10000);
-            }
-
-            recipient.sentTime = new Date().toISOString();
-            updateProgress();
-        }));
-
-        // Delay between chunks
-        if (i + SEND_CONCURRENCY < totalRecipients) {
-            await new Promise(r => setTimeout(r, 2000)); 
+        // 4. Attach PDF if required and available
+        if (campaign.attachCert && customer && customer.pdf_url) {
+            console.log(`[Worker] Downloading PDF from: ${customer.pdf_url}`);
+            const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer' });
+            mailOptions.attachments.push({
+                filename: `${customer.taxCode}_Certification.pdf`,
+                content: Buffer.from(response.data)
+            });
         }
-    }
 
-    console.log(`[EmailService] --- CAMPAIGN END: Success ${success}, Error ${errorCount} ---`);
+        // 5. Send
+        if (isGoogleHttpApi) {
+            const info = await transporter.sendMail(mailOptions);
+            const chunks = [];
+            for await (const chunk of info.message) chunks.push(chunk);
+            const messageBuffer = Buffer.concat(chunks);
+            const base64EncodedEmail = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            await gmailClient.users.messages.send({ userId: 'me', requestBody: { raw: base64EncodedEmail } });
+        } else {
+            await transporter.sendMail(mailOptions);
+        }
+
+        // 6. Update Success
+        await supabase.from('email_logs').update({
+            status: 'sent',
+            sent_time: new Date().toISOString(),
+            error_message: null
+        }).eq('id', log.id);
+
+        // Update counts in campaign
+        await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
+
+        console.log(`[Worker] ✅ Sent successfully to ${log.email}`);
+
+        // 7. Check if Campaign is finished
+        await checkCampaignCompletion(log.campaign_id);
+
     } catch (err) {
-        console.error(`[EmailService] FATAL ERROR:`, err);
-        errorCount = totalRecipients || 1; 
-        campaign.status = 'Thất bại';
+        console.error(`[Worker] ❌ Failed to send to ${log.email}:`, err.message);
         
-        // Show error on first recipient so user can see it
-        if (campaign.recipients && campaign.recipients.length > 0) {
-            campaign.recipients[0].status = `Lỗi hệ thống: ${err.message}`;
-        }
-        if (onUpdate) onUpdate(campaign);
+        await supabase.from('email_logs').update({
+            status: 'failed',
+            error_message: err.message,
+            retry_count: log.retry_count + 1
+        }).eq('id', log.id);
+
+        await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+
+        // Check completion even on error (in case it was the last one and exceeded retries)
+        await checkCampaignCompletion(log.campaign_id);
     }
 }
 
-module.exports = { sendBulkEmails };
+/**
+ * Checks if all logs for a campaign are finished and updates the campaign status
+ */
+async function checkCampaignCompletion(campaign_id) {
+    try {
+        const { data: remaining, error } = await supabase
+            .from('email_logs')
+            .select('id')
+            .eq('campaign_id', campaign_id)
+            .or('status.eq.pending,status.eq.failed')
+            .lt('retry_count', 2);
+
+        if (!error && remaining.length === 0) {
+            // All done or max retries reached for all
+            const { data: stats } = await supabase.from('campaigns').select('successCount, errorCount, sentCount').eq('id', campaign_id).single();
+            const finalStatus = stats.errorCount > 0 ? 'Hoàn thành (có lỗi)' : 'Hoàn thành';
+            await supabase.from('campaigns').update({ status: finalStatus }).eq('id', campaign_id);
+            console.log(`[Worker] 🏁 Campaign ${campaign_id} finished with status: ${finalStatus}`);
+        }
+    } catch (e) {
+        console.error('[Worker] Completion check error:', e.message);
+    }
+}
+
+// Start polling
+setInterval(startWorker, WORKER_INTERVAL);
+
+module.exports = { startWorker };

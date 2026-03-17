@@ -140,17 +140,17 @@
             <a href="javascript:void(0)" onclick="showPage('dashboard'); return false;" id="nav-dashboard" class="sidebar-item-active flex items-center px-4 py-3 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📊</span> <span class="font-semibold">Bảng điều khiển</span>
             </a>
+            <a href="javascript:void(0)" onclick="showPage('crm'); return false;" id="nav-crm" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                <span class="mr-3 text-lg">💼</span> <span class="font-semibold">Khách hàng</span>
+            </a>
             <a href="javascript:void(0)" onclick="showPage('campaigns'); return false;" id="nav-campaigns" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📧</span> <span class="font-semibold">Chiến dịch email</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('senders'); return false;" id="nav-senders" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">🔑</span> <span class="font-semibold">Tài khoản gửi</span>
+                <span class="mr-3 text-lg">🔑</span> <span class="font-semibold">Tài khoản Gmail</span>
             </a>
-            <a href="javascript:void(0)" onclick="showPage('crm'); return false;" id="nav-crm" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">💼</span> <span class="font-semibold">Khách hàng (CRM)</span>
-            </a>
-            <a href="javascript:void(0)" onclick="showPage('settings'); return false;" id="nav-settings" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold">Cài đặt hệ thống</span>
+            <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
             </a>
         </nav>
         <div class="p-6 border-t border-white/5 space-y-3">
@@ -410,6 +410,35 @@
                 </div>
             </div>
 
+            <!-- Reports View -->
+            <div id="view-reports" class="hidden space-y-10 animate-in fade-in duration-500">
+                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white uppercase tracking-tight">Nhật ký <span class="text-orange-gradient">gửi mail chi tiết</span></h3>
+                        <div class="flex gap-4">
+                            <button onclick="exportEmailLogs()" class="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-all uppercase tracking-widest bg-blue-400/10 px-3 py-1.5 rounded-lg border border-blue-400/20">📥 Xuất Excel</button>
+                            <button onclick="loadEmailLogs()" class="text-[10px] font-bold text-orange-500 hover:text-orange-400 transition-all uppercase tracking-widest bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20">🔄 Làm mới</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-white/2 border-b border-white/5">
+                                <tr>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời gian</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Email</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chiến dịch</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chi tiết lỗi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="email-logs-list" class="divide-y divide-white/5">
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -634,41 +663,49 @@
         </div>
     </div>
 
-    <!-- Modal CRM Update -->
+    <!-- Modal Update CRM -->
     <div id="modal-crm-update" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-50 overflow-y-auto">
         <div class="min-h-screen flex items-center justify-center p-8">
             <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-2xl p-10 shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-[200px] h-[200px] bg-blue-600/10 blur-[80px] -z-10 rounded-full"></div>
-                
-                <div class="flex justify-between items-center mb-10">
-                    <h3 class="text-3xl font-extrabold text-white tracking-tighter">Cập nhật <span class="text-orange-gradient">khách hàng</span></h3>
+                <div class="absolute top-0 right-0 w-[200px] h-[200px] bg-orange-600/10 blur-[80px] -z-10 rounded-full"></div>
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-2xl font-black text-white tracking-tighter">Cập nhật <span class="text-orange-gradient">thông tin khách hàng</span></h3>
                     <button onclick="closeCRMUpdateModal()" class="text-gray-500 hover:text-white transition-all text-4xl">&times;</button>
                 </div>
-
-                <div class="space-y-8">
+                <div class="space-y-6">
                     <input type="hidden" id="crm-update-id">
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Trạng thái chăm sóc</label>
-                            <select id="crm-update-status" class="w-full px-5 py-3 rounded-2xl outline-none bg-white/5 border border-white/10 text-white font-bold">
-                                <option value="Chưa liên hệ">Chưa liên hệ</option>
-                                <option value="Đã gọi">Đã gọi</option>
-                                <option value="Đã gửi email">Đã gửi email</option>
-                                <option value="Đang tư vấn">Đang tư vấn</option>
-                                <option value="Đã gia hạn">Đã gia hạn</option>
-                                <option value="Không quan tâm">Không quan tâm</option>
-                            </select>
+                    <input type="hidden" id="crm-update-taxcode">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Trạng thái liên hệ</label>
+                        <select id="crm-update-status" class="w-full px-5 py-4 rounded-2xl outline-none">
+                            <option value="Chưa liên hệ">Chưa liên hệ</option>
+                            <option value="Đã gọi">Đã gọi</option>
+                            <option value="Đã gửi email">Đã gửi email</option>
+                            <option value="Đang tư vấn">Đang tư vấn</option>
+                            <option value="Đã gia hạn">Đã gia hạn</option>
+                            <option value="Không quan tâm">Không quan tâm</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Ghi chú chi tiết</label>
+                        <textarea id="crm-update-notes" rows="4" placeholder="Nhập ghi chú sau khi liên hệ..." class="w-full px-5 py-4 rounded-2xl outline-none resize-none"></textarea>
+                    </div>
+                    
+                    <!-- PDF Upload Section -->
+                    <div class="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs font-bold text-white uppercase tracking-widest">Tệp đính kèm (PDF)</p>
+                            <span id="crm-pdf-status" class="text-[10px] font-bold text-gray-500 px-2 py-0.5 bg-white/5 rounded">Chưa có file</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Ghi chú chi tiết</label>
-                            <textarea id="crm-update-notes" rows="5" class="w-full px-5 py-4 rounded-2xl outline-none bg-white/5 border border-white/10 text-white font-medium" placeholder="Nhập lịch sử trao đổi, nhu cầu khách hàng..."></textarea>
+                        <div class="flex gap-3">
+                            <input type="file" id="crm-pdf-file" accept=".pdf" class="hidden" onchange="uploadCustomerPDF()">
+                            <button onclick="document.getElementById('crm-pdf-file').click()" class="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all">📂 Tải lên PDF mới</button>
+                            <a id="crm-pdf-view" href="#" target="_blank" class="hidden px-4 py-3 bg-blue-500/10 text-blue-500 rounded-xl text-xs font-bold hover:bg-blue-500/20">👁 Xem</a>
                         </div>
                     </div>
-                    <div class="flex justify-end gap-4 mt-8">
-                        <button onclick="closeCRMUpdateModal()" class="px-8 py-3 rounded-2xl font-bold text-gray-400 hover:text-white transition-all">Hủy bỏ</button>
-                        <button onclick="saveCRMUpdate()" class="bg-orange-gradient px-10 py-3 text-white rounded-2xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/40">
-                            Lưu cập nhật
-                        </button>
+
+                    <div class="flex gap-4 pt-4">
+                        <button onclick="saveCRMUpdate()" class="flex-1 bg-orange-gradient py-4 text-white rounded-2xl hover:scale-[1.02] active:scale-95 transition-all font-black text-lg uppercase shadow-xl shadow-orange-900/30">Lưu thay đổi</button>
                     </div>
                 </div>
             </div>
