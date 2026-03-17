@@ -639,7 +639,7 @@ app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
 // 3. Test Email Endpoint (Mục 3)
 app.post('/api/test-send-email', authenticate, async (req, res) => {
     try {
-        const { senderId, testEmail } = req.body;
+        const { senderId, testEmail, testPdfUrl, testTaxCode } = req.body;
         if (!senderId || !testEmail) return res.status(400).json({ error: 'Missing senderId or testEmail' });
 
         // 1. Fetch Sender
@@ -652,28 +652,23 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
         
         if (senderError || !sender) return res.status(404).json({ error: 'Sender not found' });
 
-        console.log(`[TestSend] 🧪 Starting test send From: ${sender.senderEmail} To: ${testEmail}`);
+        console.log(`[TestSend] 🧪 Starting test send To: ${testEmail} (PDF: ${testPdfUrl || 'No'})`);
 
         // 2. Prepare Transporter (OAuth2)
         const { google } = require('googleapis');
         const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
         oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
         
-        // 4. OAuth2 Token Refresh Check (Mục 4)
         try {
-            const { token } = await oauth2Client.getAccessToken();
-            if (!token) throw new Error('Could not refresh access token');
-            console.log(`[TestSend] OAuth2 Token is valid/refreshed.`);
+            await oauth2Client.getAccessToken();
         } catch (tokenErr) {
-            console.error(`[TestSend] ❌ Token Refresh Failed:`, tokenErr.message);
-            return res.status(401).json({ error: 'Không thể làm mới quyền Gmail. Vui lòng kết nối lại tài khoản.', details: tokenErr.message });
+            return res.status(401).json({ error: 'Không thể làm mới quyền Gmail. Vui lòng kết nối lại.', details: tokenErr.message });
         }
 
         const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
         const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
 
-        // 8. Add Anti-Spam Headers (Mục 8)
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
             to: testEmail,
@@ -682,12 +677,25 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
             html: `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                     <h2 style="color: #f97316;">Hello World!</h2>
-                    <p>Đây là email thử nghiệm để kiểm tra kết nối Gmail API.</p>
+                    <p>Đây là email thử nghiệm để kiểm tra kết nối Gmail API và Đính kèm PDF.</p>
                     <hr>
                     <p style="font-size: 12px; color: gray;">Timestamp: ${new Date().toISOString()}</p>
                 </div>
-            `
+            `,
+            attachments: []
         };
+
+        // 3. Optional PDF Attachment for Testing
+        if (testPdfUrl) {
+            console.log(`[TestSend] Downloading test PDF from: ${testPdfUrl}`);
+            const response = await axios.get(testPdfUrl, { responseType: 'arraybuffer' });
+            mailOptions.attachments.push({
+                filename: `${testTaxCode || 'TEST'}_Certification.pdf`,
+                content: Buffer.from(response.data),
+                contentType: 'application/pdf'
+            });
+            console.log(`[TestSend] PDF attached. Size: ${response.data.length} bytes`);
+        }
 
         const info = await transporter.sendMail(mailOptions);
         const chunks = [];
@@ -695,24 +703,21 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
         const messageBuffer = Buffer.concat(chunks);
         const base64EncodedEmail = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         
-        const response = await gmail.users.messages.send({
+        const gResponse = await gmail.users.messages.send({
             userId: 'me',
             requestBody: { raw: base64EncodedEmail }
         });
 
-        console.log(`[TestSend] ✅ Gmail API Response:`, response.data);
-
-        if (response.data && response.data.id) {
+        if (gResponse.data && gResponse.data.id) {
             res.json({ 
                 success: true, 
-                message: 'Email đã được gửi thành công!', 
-                messageId: response.data.id,
-                threadId: response.data.threadId 
+                message: 'Email test đã được gửi!', 
+                messageId: gResponse.data.id,
+                pdfAttached: !!testPdfUrl
             });
         } else {
             throw new Error('Gmail API không trả về messageId');
         }
-
     } catch (error) {
         console.error('[TestSend] ❌ Error:', error);
         res.status(500).json({ error: 'Lỗi khi gửi test: ' + error.message });

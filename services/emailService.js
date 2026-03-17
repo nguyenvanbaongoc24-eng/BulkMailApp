@@ -209,19 +209,49 @@ async function processEmailTask(log) {
             }
 
             // Case B: Has pdf_url (either pre-existing or just scraped) -> Download & Attach
-            console.log(`[Worker] Attempting to download PDF: ${customer.pdf_url}`);
+            // 1. Pre-send PDF Validation (Mục 1)
+            if (!customer || !customer.pdf_url) {
+                const msg = `❌ BẮT BUỘC THIẾU: Không có PDF_URL cho ${log.customer_id}. Hệ thống ngừng gửi.`;
+                console.error(`[Worker] ${msg}`);
+                throw new Error(msg);
+            }
+
+            console.log(`[Worker] 📥 Attempting to download PDF: ${customer.pdf_url}`);
             try {
-                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
-                mailOptions.attachments.push({
-                    filename: `${customer.taxCode}_Certification.pdf`,
-                    content: Buffer.from(response.data)
+                const response = await axios.get(customer.pdf_url, { 
+                    responseType: 'arraybuffer', 
+                    timeout: 20000 
                 });
-                console.log(`[Worker] PDF attached successfully for ${log.email}`);
+                
+                if (!response.data || response.data.length === 0) {
+                    throw new Error('File download returned empty content');
+                }
+
+                // 7. Log file size (Mục 7)
+                console.log(`[Worker] PDF fetched. Size: ${response.data.length} bytes`);
+
+                // 5. Custom Filename (Mục 5)
+                const safeCompanyName = (customer.companyName || 'Document').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+                const filename = `${customer.taxCode || 'Cert'}_${safeCompanyName}.pdf`;
+
+                mailOptions.attachments.push({
+                    filename: filename,
+                    content: Buffer.from(response.data),
+                    contentType: 'application/pdf'
+                });
+                console.log(`[Worker] ✅ PDF attached: ${filename}`);
             } catch (pdfErr) {
                 const msg = `Lỗi đính kèm: Không tải được file từ link: ${customer.pdf_url}. ${pdfErr.message}`;
                 console.error(`[Worker] ${msg}`);
                 throw new Error(msg);
             }
+        }
+
+        // 2 & 8. HARD FAIL if attachment is missing for a certificate campaign
+        if (campaign.attachCert && mailOptions.attachments.length === 0) {
+            const msg = `❌ FAILSAFE: Campaign yêu cầu PDF nhưng không có attachment nào được tạo. Hủy gửi.`;
+            console.error(`[Worker] ${msg}`);
+            throw new Error(msg);
         }
 
         // 5. Send
