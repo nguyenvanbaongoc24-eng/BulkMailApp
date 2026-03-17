@@ -32,27 +32,27 @@ async function startWorker() {
     isWorkerRunning = true;
 
     try {
-        // 1. Fetch pending or failed (retry < 2) logs
+        // 1. Fetch tasks atomically using RPC to avoid double-processing (Lỗi 175%)
         const { data: tasks, error } = await supabase
-            .from('email_logs')
-            .select('*')
-            .or('status.eq.pending,status.eq.failed')
-            .lt('retry_count', 2)
-            .limit(5) // Process a small batch
-            .order('created_at', { ascending: true });
+            .rpc('pick_email_tasks', { batch_size: 5 });
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Worker] RPC pick_email_tasks error:', error.message);
+            isWorkerRunning = false;
+            return;
+        }
+
         if (!tasks || tasks.length === 0) {
             isWorkerRunning = false;
             return;
         }
 
-        console.log(`[Worker] Found ${tasks.length} tasks to process.`);
+        console.log(`[Worker] Picked ${tasks.length} tasks to process.`);
 
         for (const log of tasks) {
             await processEmailTask(log);
-            // Wait 3-5 seconds between emails to avoid spam
-            await new Promise(r => setTimeout(r, 3000));
+            // Wait 2-3 seconds between emails
+            await new Promise(r => setTimeout(r, 2000));
         }
     } catch (err) {
         console.error('[Worker] Fatal Error:', err.message);

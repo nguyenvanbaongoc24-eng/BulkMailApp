@@ -741,7 +741,10 @@ async function exportEmailLogs() {
     }
 }
 
-async function saveCampaign() {
+async function saveCampaign(event) {
+    const btn = event.target;
+    const originalText = btn.innerText;
+
     const name = document.getElementById('input-name').value;
     const subject = document.getElementById('input-subject').value;
     const senderAccountId = document.getElementById('select-sender').value;
@@ -764,6 +767,9 @@ async function saveCampaign() {
     }
 
     try {
+        btn.disabled = true;
+        btn.innerText = '⏳ Đang khởi tạo & Gửi...';
+
         const response = await authedFetch('/api/campaigns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -782,7 +788,11 @@ async function saveCampaign() {
             alert('Lỗi: ' + (err.error || 'Không thể khởi tạo automation.'));
         }
     } catch (error) {
+        console.error('Save Campaign Error:', error);
         alert('Lỗi khi khởi tạo automation: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 }
 
@@ -930,33 +940,44 @@ async function openCRMUpdateModal(id) {
     document.getElementById('modal-crm-update').classList.remove('hidden');
 }
 
-async function uploadCustomerPDF() {
-    const fileInput = document.getElementById('crm-pdf-file');
-    const file = fileInput.files[0];
-    if (!file) return;
+async function scrapeCustomerPDF() {
+    if (!activeCRMId || !activeCRMTaxCode) {
+        alert('Không xác định được khách hàng để tra cứu.');
+        return;
+    }
 
-    const formData = new FormData();
-    formData.append('pdf', file);
-    formData.append('taxCode', activeCRMTaxCode);
+    const pdfStatus = document.getElementById('crm-pdf-status');
+    const originalStatusText = pdfStatus.innerText;
+    const originalStatusClass = pdfStatus.className;
 
     try {
-        const pdfStatus = document.getElementById('crm-pdf-status');
-        pdfStatus.innerText = '⏳ Đang tải...';
+        pdfStatus.innerText = '🔍 Đang tra cứu từ hệ thống CA... (Có thể mất 1-2 phút)';
+        pdfStatus.className = 'text-[10px] font-bold text-orange-500 px-2 py-0.5 bg-orange-500/10 rounded animate-pulse';
         
-        const response = await fetch('/api/customers/upload-pdf', {
+        // Use standard fetch since it might take a while and we want fine control
+        const response = await fetch(`/api/customers/${activeCRMId}/scrape`, {
             method: 'POST',
-            body: formData
-            // Note: authedFetch handles token if needed, but FormData needs manual fetch here or utility update
+            headers: { 
+                'Authorization': `Bearer ${currentSession.access_token}`
+            }
         });
 
-        if (response.ok) {
-            alert('Tải lên PDF thành công!');
-            openCRMUpdateModal(activeCRMId); // Refresh modal
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            alert('Tra cứu & Đồng bộ PDF thành công!');
+            openCRMUpdateModal(activeCRMId); // Refresh modal to show "Xem" button
+            loadCRM(); // Refresh list background
         } else {
-            alert('Lỗi khi tải lên PDF.');
+            alert('Kết quả: ' + (result.error || 'Không tìm thấy chứng thư số phù hợp.'));
+            pdfStatus.innerText = originalStatusText;
+            pdfStatus.className = originalStatusClass;
         }
     } catch (err) {
-        alert('Lỗi: ' + err.message);
+        console.error('Scrape Error:', err);
+        alert('Lỗi khi tra cứu: ' + err.message);
+        pdfStatus.innerText = originalStatusText;
+        pdfStatus.className = originalStatusClass;
     }
 }
 

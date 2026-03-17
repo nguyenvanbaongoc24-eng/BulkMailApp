@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
+const scraperService = require('./services/scraperService');
 const supabase = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
@@ -514,6 +515,7 @@ app.post('/api/customers/import', authenticate, async (req, res) => {
         companyName: c.TenCongTy ? String(c.TenCongTy).trim() : '',
         email: c.Email ? String(c.Email).trim() : '',
         expirationDate: c.NgayHetHanChuKySo ? String(c.NgayHetHanChuKySo).trim() : '',
+        Serial: c.Serial ? String(c.Serial).trim() : '',
         status: 'Chưa liên hệ'
     }));
 
@@ -557,6 +559,81 @@ app.patch('/api/customers/:id', authenticate, async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
     res.json(data[0]);
+});
+
+app.get('/api/customers/:id', authenticate, async (req, res) => {
+    const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', req.params.id)
+        .eq('userId', req.user.id)
+        .single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+// Scrape Certificate for a customer
+app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
+    const { id } = req.params;
+    let browser = null;
+    try {
+        // 1. Get customer
+        const { data: customer, error: fetchError } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('id', id)
+            .eq('userId', req.user.id)
+            .single();
+        
+        if (fetchError || !customer) return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
+        if (!customer.taxCode) return res.status(400).json({ error: 'Khách hàng không có MST' });
+
+        console.log(`[Scraper] Starting manual scrape for MST: ${customer.taxCode}`);
+        
+        // 2. Init Browser
+        const { initBrowser, getLatestCertificate } = require('./services/scraperService');
+        browser = await initBrowser();
+        
+        // 3. Scrape
+        const result = await getLatestCertificate(browser, customer.taxCode, customer.Serial || '', customer);
+        
+        if (result && result.status === 'Matched') {
+            console.log(`[Scraper] Scrape success for ${customer.taxCode}. Uploading to Supabase...`);
+            
+            // 4. Upload to Supabase Storage
+            const fileBuffer = fs.readFileSync(result.filePath);
+            const path = require('path');
+            const fileName = `${req.user.id}/${customer.taxCode}_${Date.now()}.pdf`;
+            
+            const { error: uploadError } = await supabase.storage
+                .from('pdf-attachments')
+                .upload(fileName, fileBuffer, { contentType: 'application/pdf', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            // 5. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('pdf-attachments')
+                .getPublicUrl(fileName);
+
+            // 6. Update Customer record
+            await supabase.from('customers').update({ pdf_url: publicUrl }).eq('id', id);
+
+            // Cleanup local file
+            try { 
+                if (result.dirPath) fs.rmSync(result.dirPath, { recursive: true, force: true }); 
+            } catch(e) {}
+
+            res.json({ success: true, pdf_url: publicUrl });
+        } else {
+            res.status(404).json({ error: result?.message || 'Không tìm thấy chứng thư trên hệ thống CA' });
+        }
+    } catch (error) {
+        console.error('[Scraper Error]:', error);
+        res.status(500).json({ error: 'Lỗi khi tra cứu: ' + error.message });
+    } finally {
+        if (browser) await browser.close();
+    }
 });
 
 app.get('/api/crm/stats', authenticate, async (req, res) => {
