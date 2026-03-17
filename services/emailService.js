@@ -52,8 +52,10 @@ async function startWorker() {
 
         for (const log of tasks) {
             await processEmailTask(log);
-            // Wait 2-3 seconds between emails
-            await new Promise(r => setTimeout(r, 2000));
+            // 9. Rate Limit: Random delay 2-5 seconds per email
+            const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
+            console.log(`[Worker] Waiting ${delay}ms before next email...`);
+            await new Promise(r => setTimeout(r, delay));
         }
     } catch (err) {
         console.error('[Worker] Fatal Error:', err.message);
@@ -127,10 +129,17 @@ async function processEmailTask(log) {
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
             to: log.email,
+            replyTo: sender.senderEmail, // 8. Add Reply-To for anti-spam
             subject: subject,
             html: html,
             attachments: []
         };
+
+        // 2. Log Pre-send Details (Mục 2)
+        console.log(`[Worker] 📤 Preparing email to: ${log.email}`);
+        console.log(`[Worker] Subject: ${subject}`);
+        console.log(`[Worker] Content length: ${html.length} chars`);
+        console.log(`[Worker] Has attachment: ${campaign.attachCert ? 'Yes' : 'No'}`);
 
         // 4. Attach PDF if required
         if (campaign.attachCert) {
@@ -217,14 +226,33 @@ async function processEmailTask(log) {
 
         // 5. Send
         if (isGoogleHttpApi) {
+            console.log(`[Worker] [GmailAPI] Encoding message for ${log.email}...`);
             const info = await transporter.sendMail(mailOptions);
             const chunks = [];
             for await (const chunk of info.message) chunks.push(chunk);
             const messageBuffer = Buffer.concat(chunks);
             const base64EncodedEmail = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            await gmailClient.users.messages.send({ userId: 'me', requestBody: { raw: base64EncodedEmail } });
+            
+            console.log(`[Worker] [GmailAPI] Sending via users.messages.send...`);
+            const response = await gmailClient.users.messages.send({ 
+                userId: 'me', 
+                requestBody: { raw: base64EncodedEmail } 
+            });
+
+            // 1. & 11. Strict Delivery Check
+            if (!response.data || !response.data.id) {
+                console.error(`[Worker] [GmailAPI] ❌ Failed: No messageId in response`, response.data);
+                throw new Error('Gmail API response missing messageId');
+            }
+
+            console.log(`[Worker] [GmailAPI] ✅ Success. Response:`, {
+                messageId: response.data.id,
+                threadId: response.data.threadId,
+                labelIds: response.data.labelIds
+            });
         } else {
-            await transporter.sendMail(mailOptions);
+            const info = await transporter.sendMail(mailOptions);
+            console.log(`[Worker] [SMTP] ✅ Success. messageId: ${info.messageId}`);
         }
 
         // 6. Update Success
