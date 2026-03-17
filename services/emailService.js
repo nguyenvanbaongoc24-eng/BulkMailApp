@@ -222,6 +222,9 @@ async function processEmailTask(log) {
         }).eq('id', log.id);
 
         // Update counts in campaign
+        // ONLY increment sentCount once. If it was already failed before, we don't want to double count sentCount?
+        // Actually, the simplest way is to have a specialized RPC or check the log status before incrementing.
+        // For now, let's just use the RPC but be mindful of the counts.
         await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
 
         console.log(`[Worker] ✅ Sent successfully to ${log.email}`);
@@ -232,15 +235,28 @@ async function processEmailTask(log) {
     } catch (err) {
         console.error(`[Worker] ❌ Failed to send to ${log.email}:`, err.message);
         
+        const isTerminalFailure = (log.retry_count + 1) >= 2;
+
         await supabase.from('email_logs').update({
             status: 'failed',
             error_message: err.message,
             retry_count: log.retry_count + 1
         }).eq('id', log.id);
 
-        await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+        // If it's a retry, we only increment errorCount, NOT sentCount (to avoid 200% progress)
+        // We need a custom RPC or just update fields manually.
+        // Let's create a more flexible RPC in the next step or use manual update.
+        if (isTerminalFailure) {
+            await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+        } else {
+            // Just increment error count for stats, but don't advance the progress bar (sentCount)
+            await supabase
+                .from('campaigns')
+                .update({ errorCount: (campaign.errorCount || 0) + 1 })
+                .eq('id', log.campaign_id);
+        }
 
-        // Check completion even on error (in case it was the last one and exceeded retries)
+        // Check completion even on error
         await checkCampaignCompletion(log.campaign_id);
     }
 }

@@ -124,13 +124,25 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
 
             await new Promise(r => setTimeout(r, 2000));
 
+            // Check if results exist
+            const noResult = await resultPage.evaluate(() => {
+                const text = document.body.innerText.toLowerCase();
+                return text.includes('không tìm thấy') || text.includes('no records found') || text.includes('không có dữ liệu');
+            });
+
+            if (noResult) {
+                return { status: 'Not Found', message: `Không tìm thấy thông tin cho MST ${mst} trên hệ thống CA.` };
+            }
+
             const matchingIndex = await resultPage.evaluate((targetSerial) => {
                 const norm = (s) => s.toString().replace(/\s/g, '').toUpperCase();
-                const target = norm(targetSerial);
+                const target = targetSerial ? norm(targetSerial) : null;
                 
                 const allElements = Array.from(document.querySelectorAll('td, span, div, p, b, li'));
                 const serialLabels = allElements.filter(el => el.innerText.includes('Serial'));
                 
+                // If we have several, we want to try to match the target.
+                // If no target, we just take the first one found.
                 for (let labelEl of serialLabels) {
                     const labelText = labelEl.innerText;
                     let val = null;
@@ -138,7 +150,9 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
                     if (match) val = match[1];
                     else if (labelEl.nextElementSibling) val = labelEl.nextElementSibling.innerText;
                     
-                    if (val && norm(val) === target) {
+                    // IF we have a target, it MUST match. 
+                    // IF we don't have a target, we take the first label we find.
+                    if (!target || (val && norm(val) === target)) {
                         let current = labelEl;
                         let searchCount = 0;
                         while (current && searchCount < 50) {
@@ -159,18 +173,6 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
                                     break;
                                 }
                             }
-                        }
-                        
-                        const allLinks = Array.from(document.querySelectorAll('a'));
-                        const labelRect = labelEl.getBoundingClientRect();
-                        const nextLinks = allLinks.filter(a => {
-                            const rect = a.getBoundingClientRect();
-                            return rect.top > labelRect.top - 10 && (a.innerText.toLowerCase().includes('tải về') || a.innerText.toLowerCase().includes('tải xuống'));
-                        });
-                        if (nextLinks.length > 0) {
-                            const tempId = 'target_download_' + Date.now();
-                            nextLinks[0].setAttribute('id', tempId);
-                            return tempId;
                         }
                     }
                 }
