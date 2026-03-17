@@ -637,6 +637,42 @@ app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
 });
 
 // 3. Test Email Endpoint (Mục 3)
+app.get('/api/senders/:id/test-connection', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: sender, error } = await supabase
+            .from('senders')
+            .select('*')
+            .eq('id', id)
+            .eq('userId', req.user.id)
+            .single();
+        
+        if (error || !sender) return res.status(404).json({ error: 'Sender not found' });
+        if (sender.smtpHost !== 'oauth2.google') return res.json({ success: true, message: 'SMTP account (No OAuth2 verification needed)' });
+
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET
+        );
+        oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
+
+        const { token } = await oauth2Client.getAccessToken();
+        if (!token) throw new Error('Refresh token invalid');
+
+        const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+        const userInfo = await oauth2.userinfo.get();
+
+        res.json({
+            success: true,
+            authorizedEmail: userInfo.data.email,
+            matchesSenderEmail: userInfo.data.email === sender.senderEmail,
+            scopes: oauth2Client.credentials.scope
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Connection failed: ' + error.message });
+    }
+});
+
 app.post('/api/test-send-email', authenticate, async (req, res) => {
     try {
         const { senderId, testEmail, testPdfUrl, testTaxCode } = req.body;

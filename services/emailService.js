@@ -89,8 +89,35 @@ async function processEmailTask(log) {
         if (sender.smtpHost === 'oauth2.google') {
             isGoogleHttpApi = true;
             const { google } = require('googleapis');
-            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+            const oauth2Client = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID, 
+                process.env.GOOGLE_CLIENT_SECRET,
+                process.env.NODE_ENV === 'production' 
+                    ? 'https://automation-ca2.onrender.com/api/auth/google/callback'
+                    : 'http://localhost:3000/api/auth/google/callback'
+            );
             oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
+            
+            // 4. Verify OAuth2 Credentials (Mục 4)
+            try {
+                const { token } = await oauth2Client.getAccessToken();
+                if (!token) throw new Error('Refresh token is invalid or expired');
+                
+                // Fetch authorized email to verify (Mục 6)
+                const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+                const userInfo = await oauth2.userinfo.get();
+                const authEmail = userInfo.data.email;
+                
+                console.log(`[Worker] [GmailAPI] OAuth2 Token valid. Authorized account: ${authEmail}`);
+                
+                if (authEmail !== sender.senderEmail) {
+                    console.warn(`[Worker] [GmailAPI] ⚠ Mismatch: Authorized as ${authEmail} but configured to send as ${sender.senderEmail}. Gmail may reject/change the From header.`);
+                }
+            } catch (authErr) {
+                console.error(`[Worker] [GmailAPI] ❌ Auth Failure for ${sender.senderEmail}:`, authErr.message);
+                throw new Error(`Xác thực Gmail thất bại cho ${sender.senderEmail}: ${authErr.message}`);
+            }
+
             gmailClient = google.gmail({ version: 'v1', auth: oauth2Client });
             transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
         } else {
