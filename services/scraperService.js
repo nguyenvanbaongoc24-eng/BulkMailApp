@@ -168,9 +168,7 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
             }, excelSerial);
 
             if (!matchingIndex) {
-                const msg = excelSerial 
-                    ? `Không tìm thấy chứng thư có Serial [${excelSerial}] cho MST ${mst} trên hệ thống CA.` 
-                    : `Không tìm thấy bất kỳ chứng thư nào cho MST ${mst} trên hệ thống CA.`;
+                const msg = `PDF mismatch or not found (Serial: ${excelSerial || 'N/A'})`;
                 console.error(`[Scraper] ✖ ${msg}`);
                 return { status: 'Not Matched', message: msg };
             }

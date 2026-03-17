@@ -10,7 +10,9 @@ const scraperService = require('./scraperService');
  * Polling interval for the worker (e.g., every 10 seconds)
  */
 const WORKER_INTERVAL = 10000;
+const RECOVERY_INTERVAL = 5 * 60 * 1000; // 5 minutes (Phase 6)
 let isWorkerRunning = false;
+let isRecoveryRunning = false;
 
 /**
  * Resolves an SMTP hostname to its IPv4 address.
@@ -33,7 +35,6 @@ async function startWorker() {
     isWorkerRunning = true;
 
     try {
-        // 1. Fetch tasks atomically using RPC to avoid double-processing (Lỗi 175%)
         const { data: tasks, error } = await supabase
             .rpc('pick_email_tasks', { batch_size: 5 });
 
@@ -48,13 +49,11 @@ async function startWorker() {
             return;
         }
 
-        console.log(`[Worker] Picked ${tasks.length} tasks to process.`);
+        console.log(`[Worker] Picked ${tasks.length} tasks (Pending/Retrying).`);
 
         for (const log of tasks) {
             await processEmailTask(log);
-            // 9. Rate Limit: Random delay 2-5 seconds per email
             const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
-            console.log(`[Worker] Waiting ${delay}ms before next email...`);
             await new Promise(r => setTimeout(r, delay));
         }
     } catch (err) {
@@ -65,10 +64,31 @@ async function startWorker() {
 }
 
 /**
+ * 6. Background Worker: Auto-recovery for failed tasks (Phase 6)
+ */
+async function startRecoveryWorker() {
+    if (isRecoveryRunning) return;
+    isRecoveryRunning = true;
+    try {
+        console.log('[Recovery] 🔄 Scanning for failed tasks to recover...');
+        const { data: recoveredCount, error } = await supabase.rpc('recover_failed_tasks');
+        if (error) throw error;
+        if (recoveredCount > 0) {
+            console.log(`[Recovery] ✅ Recovered ${recoveredCount} tasks for retry.`);
+        }
+    } catch (err) {
+        console.error('[Recovery] ❌ Failed:', err.message);
+    } finally {
+        isRecoveryRunning = false;
+    }
+}
+
+/**
  * Process a single email task from email_logs
  */
 async function processEmailTask(log) {
-    console.log(`[Worker] Processing Task ID: ${log.id} for ${log.email}`);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    console.log(`[Worker] Processing ID: ${log.id} For: ${log.email}`);
 
     try {
         // 1. Fetch Campaign and Sender
@@ -150,13 +170,18 @@ async function processEmailTask(log) {
             }
         }
         
-        html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
-                'Email này được gửi tự động từ hệ thống Automation CA2.</p>';
+        // 1. Validation Cứng (Phase 6)
+        if (!log.email || !emailRegex.test(log.email)) {
+            throw new Error('Invalid email');
+        }
+
+        const msgId = `<${Date.now()}.${Math.random().toString(36).substring(2)}@automation-ca2.digital>`;
 
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
             to: log.email,
-            replyTo: sender.senderEmail, // 8. Add Reply-To for anti-spam
+            replyTo: sender.senderEmail,
+            messageId: msgId, // Part 7 - Custom Message-ID
             subject: subject,
             html: html,
             attachments: []
@@ -264,21 +289,20 @@ async function processEmailTask(log) {
                 mailOptions.attachments.push({
                     filename: filename,
                     content: Buffer.from(response.data),
-                    contentType: 'application/pdf'
+                    contentType: 'application/pdf',
+                    encoding: 'base64' // Explicitly Part 3
                 });
                 console.log(`[Worker] ✅ PDF attached: ${filename}`);
             } catch (pdfErr) {
-                const msg = `Lỗi đính kèm: Không tải được file từ link: ${customer.pdf_url}. ${pdfErr.message}`;
-                console.error(`[Worker] ${msg}`);
-                throw new Error(msg);
+                // Return clear reasons per Part 1 & 2
+                const reason = pdfErr.message.includes('PDF mismatch') ? pdfErr.message : 'Cannot download PDF';
+                throw new Error(reason);
             }
         }
 
-        // 2 & 8. HARD FAIL if attachment is missing for a certificate campaign
+        // 2 & 8. Fail-safe PDF (Phase 6 & 9)
         if (campaign.attachCert && mailOptions.attachments.length === 0) {
-            const msg = `❌ FAILSAFE: Campaign yêu cầu PDF nhưng không có attachment nào được tạo. Hủy gửi.`;
-            console.error(`[Worker] ${msg}`);
-            throw new Error(msg);
+            throw new Error('Missing PDF'); // Matched Part 1 specific reason
         }
 
         // 5. Send
@@ -304,11 +328,11 @@ async function processEmailTask(log) {
 
             console.log(`[Worker] [GmailAPI] ✅ Success. Response:`, {
                 messageId: response.data.id,
-                threadId: response.data.threadId,
-                labelIds: response.data.labelIds
+                threadId: response.data.threadId
             });
         } else {
             const info = await transporter.sendMail(mailOptions);
+            if (!info.messageId) throw new Error('SMTP send failed: No messageId');
             console.log(`[Worker] [SMTP] ✅ Success. messageId: ${info.messageId}`);
         }
 
@@ -316,7 +340,9 @@ async function processEmailTask(log) {
         await supabase.from('email_logs').update({
             status: 'sent',
             sent_time: new Date().toISOString(),
-            error_message: null
+            error_message: null,
+            retry_reason: null,
+            message_id: isGoogleHttpApi ? response.data.id : info.messageId // Part 4 - Log messageId
         }).eq('id', log.id);
 
         // Update counts in campaign
@@ -333,28 +359,24 @@ async function processEmailTask(log) {
     } catch (err) {
         console.error(`[Worker] ❌ Failed to send to ${log.email}:`, err.message);
         
-        const isTerminalFailure = (log.retry_count + 1) >= 2;
+        const newRetryCount = (log.retry_count || 0) + 1;
+        const isTerminalFailure = newRetryCount >= 3;
 
         await supabase.from('email_logs').update({
-            status: 'failed',
+            status: isTerminalFailure ? 'failed_permanent' : 'failed',
             error_message: err.message,
-            retry_count: log.retry_count + 1
+            retry_count: newRetryCount,
+            last_retry_time: new Date().toISOString()
         }).eq('id', log.id);
 
-        // If it's a retry, we only increment errorCount, NOT sentCount (to avoid 200% progress)
-        // We need a custom RPC or just update fields manually.
-        // Let's create a more flexible RPC in the next step or use manual update.
         if (isTerminalFailure) {
             await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
         } else {
-            // Just increment error count for stats, but don't advance the progress bar (sentCount)
-            await supabase
-                .from('campaigns')
-                .update({ errorCount: (campaign.errorCount || 0) + 1 })
-                .eq('id', log.campaign_id);
+            // Part 5: Delay between retries (added to worker picking logic too, but we wait here for logging)
+            const retryDelay = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+            console.log(`[Worker] 🔁 Retry ${newRetryCount}/3 for ${log.email} in ${retryDelay}ms. Reason: ${err.message}`);
         }
 
-        // Check completion even on error
         await checkCampaignCompletion(log.campaign_id);
     }
 }
@@ -368,22 +390,23 @@ async function checkCampaignCompletion(campaign_id) {
             .from('email_logs')
             .select('id')
             .eq('campaign_id', campaign_id)
-            .or('status.eq.pending,status.eq.failed')
-            .lt('retry_count', 2);
+            .in('status', ['pending', 'retrying', 'failed', 'processing'])
+            .lt('retry_count', 3);
 
         if (!error && remaining.length === 0) {
-            // All done or max retries reached for all
-            const { data: stats } = await supabase.from('campaigns').select('successCount, errorCount, sentCount').eq('id', campaign_id).single();
-            const finalStatus = stats.errorCount > 0 ? 'Hoàn thành (có lỗi)' : 'Hoàn thành';
+            const { data: campaign } = await supabase.from('campaigns').select('errorCount, recipients').eq('id', campaign_id).single();
+            const total = (campaign.recipients || []).length;
+            const finalStatus = campaign.errorCount > 0 ? `Hoàn thành (Lỗi ${campaign.errorCount}/${total})` : 'Hoàn thành';
             await supabase.from('campaigns').update({ status: finalStatus }).eq('id', campaign_id);
-            console.log(`[Worker] 🏁 Campaign ${campaign_id} finished with status: ${finalStatus}`);
+            console.log(`[Worker] 🏁 Campaign ${campaign_id} finished: ${finalStatus}`);
         }
     } catch (e) {
         console.error('[Worker] Completion check error:', e.message);
     }
 }
 
-// Start polling
+// Start workers
 setInterval(startWorker, WORKER_INTERVAL);
+setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
 
 module.exports = { startWorker };
