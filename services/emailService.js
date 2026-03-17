@@ -21,118 +21,60 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
             user: sender.smtpUser,
             pass: sender.smtpPassword
         },
-        connectionTimeout: 120000, // 120s
+        tls: { rejectUnauthorized: false }, // Avoid SSL issues with SMTP
+        connectionTimeout: 120000,
         greetingTimeout: 120000,
-        socketTimeout: 120000
+        socketTimeout: 120000,
+        debug: true // Enable for troubleshooting
     });
 
     let success = 0;
     let errorCount = 0;
     const attachCert = campaign.attachCert || false;
-
-    let browser = null;
-    if (attachCert && scraperService) {
-        try {
-            console.log(`[EmailService] Khởi tạo trình duyệt cho campaign (tiết kiệm thời gian)...`);
-            browser = await scraperService.initBrowser();
-        } catch (e) {
-            console.error('[EmailService] Lỗi khởi tạo trình duyệt:', e.message);
-        }
-    }
-
-    const CONCURRENCY_LIMIT = 5; // Optimized for maximum speed
     const totalRecipients = campaign.recipients.length;
 
-    async function processRecipient(recipient, index, retryCount = 0) {
-        // Personalized template
-        let html = campaign.template || '';
-        html = html.replace(/{{TenCongTy}}/g, recipient.TenCongTy || '')
-                   .replace(/{{MST}}/g, recipient.MST || '')
-                   .replace(/{{DiaChi}}/g, recipient.DiaChi || '')
-                   .replace(/{{NgayHetHanChuKySo}}/g, recipient.NgayHetHanChuKySo || '');
-        
-        html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
-                'Email này được gửi tự động từ hệ thống Automation CA2. ' +
-                'Nếu bạn không muốn nhận email này, vui lòng <a href="#">hủy đăng ký tại đây</a>.</p>';
-
-        const targetEmail = recipient.Email && recipient.Email.trim() !== '' ? recipient.Email : null;
-        if (!targetEmail) {
-            console.warn(`[EmailService] Bỏ qua khách hàng ${recipient.TenCongTy || recipient.MST} vì không có địa chỉ email.`);
-            errorCount++;
-            recipient.status = 'Thiếu Email';
-            recipient.sentTime = new Date().toISOString();
-            updateProgress();
-            return;
-        }
-
-        const mailOptions = {
-            from: `"${sender.senderName}" <${sender.senderEmail}>`,
-            to: targetEmail,
-            subject: campaign.subject || `Thông báo từ ${sender.senderName}`,
-            html: html,
-            attachments: []
-        };
-
-        let certInfo = null;
-        if (attachCert && scraperService && browser && recipient.MST) {
-            try {
-                console.log(`[EmailService] 🔍 Tra cứu chứng thư số cho MST: ${recipient.MST} (Lần ${retryCount + 1})...`);
-                certInfo = await scraperService.getLatestCertificate(browser, recipient.MST);
-                
-                // Retry logic if scraper fails
-                if (!certInfo && retryCount < 1) {
-                    console.log(`[EmailService] 🔄 Thử lại tra cứu cho MST: ${recipient.MST}...`);
-                    return await processRecipient(recipient, index, retryCount + 1);
-                }
-
-                if (certInfo && certInfo.filePath && fs.existsSync(certInfo.filePath)) {
-                    mailOptions.attachments.push({
-                        filename: certInfo.fileName,
-                        path: certInfo.filePath
-                    });
-                    console.log(`[EmailService] 📎 Đính kèm chứng thư: ${certInfo.fileName}`);
-                } else {
-                    console.log(`[EmailService] ⚠️ Không tìm thấy chứng thư cho MST: ${recipient.MST}`);
-                }
-            } catch (scrapeErr) {
-                console.error(`[EmailService] Scraper error for MST ${recipient.MST}:`, scrapeErr.message);
-                if (retryCount < 1) return await processRecipient(recipient, index, retryCount + 1);
-            }
-        }
-
+    // --- PHASE 1: PRE-SCRAPE ALL CERTIFICATES ---
+    const certMap = new Map(); // MST -> certInfo
+    if (attachCert && scraperService) {
         try {
-            console.log(`[EmailService] 📤 Đang gửi tới: ${targetEmail}...`);
-            await transporter.sendMail(mailOptions);
-            success++;
-            recipient.status = certInfo ? 'Đã gửi (có CTS)' : 'Đã gửi';
-            console.log(`[EmailService] ✅ Gửi thành công tới: ${targetEmail}`);
-        } catch (err) {
-            console.error(`[EmailService] ❌ Lỗi SMTP khi gửi đến ${targetEmail}:`, {
-                message: err.message,
-                code: err.code
-            });
-            errorCount++;
-            recipient.status = `Thất bại: ${err.message}`;
-        }
-
-        // Small delay to ensure nodemailer has fully closed the file handle before cleanup
-        if (certInfo && certInfo.dirPath && fs.existsSync(certInfo.dirPath)) {
-            setTimeout(() => {
-                try { 
-                    if (certInfo.filePath && fs.existsSync(certInfo.filePath)) {
-                        fs.unlinkSync(certInfo.filePath);
+            console.log(`[EmailService] --- GIAI ĐOẠN 1: TRA CỨU CHỨNG THƯ ---`);
+            const browser = await scraperService.initBrowser();
+            
+            // Process scraping in chunks for safety
+            const SCRAPE_CONCURRENCY = 2; // Keep low to avoid blocking on target site
+            for (let i = 0; i < totalRecipients; i += SCRAPE_CONCURRENCY) {
+                const chunk = campaign.recipients.slice(i, i + SCRAPE_CONCURRENCY);
+                await Promise.all(chunk.map(async (recipient) => {
+                    if (!recipient.MST) return;
+                    try {
+                        console.log(`[EmailService] 🔍 Đang tra cứu cho MST: ${recipient.MST}...`);
+                        let info = await scraperService.getLatestCertificate(browser, recipient.MST);
+                        
+                        // Simple retry
+                        if (!info) {
+                            console.log(`[EmailService] 🔄 Thử lại (lần 2) cho MST: ${recipient.MST}...`);
+                            info = await scraperService.getLatestCertificate(browser, recipient.MST);
+                        }
+                        
+                        if (info) certMap.set(recipient.MST, info);
+                    } catch (e) {
+                        console.error(`[EmailService] Lỗi scraper cho ${recipient.MST}:`, e.message);
                     }
-                    fs.rmSync(certInfo.dirPath, { recursive: true, force: true }); 
-                } catch (e) {
-                    console.error(`[EmailService] Cleanup error for ${recipient.MST}:`, e.message);
-                }
-            }, 10000); // 10s delay to be safe
+                }));
+                // Short pause between scrape chunks
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            
+            await browser.close().catch(() => {});
+            console.log(`[EmailService] --- GIAI ĐOẠN 1 HOÀN TẤT: Đã tìm thấy ${certMap.size}/${totalRecipients} chứng thư ---`);
+        } catch (e) {
+            console.error('[EmailService] Lỗi giai đoạn tra cứu:', e.message);
         }
-
-        recipient.sentTime = new Date().toISOString();
-        updateProgress();
     }
 
+    // --- PHASE 2: SEND ALL EMAILS ---
+    console.log(`[EmailService] --- GIAI ĐOẠN 2: TIẾN HÀNH GỬI MAIL ---`);
+    
     function updateProgress() {
         const processedCount = campaign.recipients.filter(r => r.status !== 'Chưa gửi').length;
         campaign.sentCount = processedCount;
@@ -147,23 +89,72 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         onUpdate(campaign);
     }
 
-    // Parallel execution with limit
-    for (let i = 0; i < totalRecipients; i += CONCURRENCY_LIMIT) {
-        const chunk = campaign.recipients.slice(i, i + CONCURRENCY_LIMIT);
-        await Promise.all(chunk.map((recipient, index) => processRecipient(recipient, i + index)));
+    const SEND_CONCURRENCY = 3;
+    for (let i = 0; i < totalRecipients; i += SEND_CONCURRENCY) {
+        const chunk = campaign.recipients.slice(i, i + SEND_CONCURRENCY);
+        await Promise.all(chunk.map(async (recipient) => {
+            // Personalized template
+            let html = campaign.template || '';
+            html = html.replace(/{{TenCongTy}}/g, recipient.TenCongTy || '')
+                       .replace(/{{MST}}/g, recipient.MST || '')
+                       .replace(/{{DiaChi}}/g, recipient.DiaChi || '')
+                       .replace(/{{NgayHetHanChuKySo}}/g, recipient.NgayHetHanChuKySo || '');
+            
+            html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
+                    'Email này được gửi tự động từ hệ thống Automation CA2.</p>';
+
+            const targetEmail = recipient.Email && recipient.Email.trim() !== '' ? recipient.Email : null;
+            if (!targetEmail) {
+                recipient.status = 'Thiếu Email';
+                errorCount++;
+                updateProgress();
+                return;
+            }
+
+            const mailOptions = {
+                from: `"${sender.senderName}" <${sender.senderEmail}>`,
+                to: targetEmail,
+                subject: campaign.subject || `Thông báo từ ${sender.senderName}`,
+                html: html,
+                attachments: []
+            };
+
+            const certInfo = certMap.get(recipient.MST);
+            if (certInfo && fs.existsSync(certInfo.filePath)) {
+                mailOptions.attachments.push({ filename: certInfo.fileName, path: certInfo.filePath });
+                console.log(`[EmailService] 📎 Đính kèm PDF cho MST ${recipient.MST}`);
+            }
+
+            try {
+                console.log(`[EmailService] 📤 Đang gửi tới: ${targetEmail}...`);
+                await transporter.sendMail(mailOptions);
+                success++;
+                recipient.status = certInfo ? 'Đã gửi (có CTS)' : 'Đã gửi';
+                console.log(`[EmailService] ✅ Thành công: ${targetEmail}`);
+            } catch (err) {
+                console.error(`[EmailService] ❌ Lỗi SMTP (${targetEmail}):`, err.message);
+                errorCount++;
+                recipient.status = `Thất bại: ${err.message}`;
+            }
+
+            // Cleanup cert file/folder after sending
+            if (certInfo && certInfo.dirPath) {
+                setTimeout(() => {
+                    try { fs.rmSync(certInfo.dirPath, { recursive: true, force: true }); } catch(e) {}
+                }, 15000);
+            }
+
+            recipient.sentTime = new Date().toISOString();
+            updateProgress();
+        }));
         
-        // Small delay between chunks to avoid SMTP server rate limits
-        if (i + CONCURRENCY_LIMIT < totalRecipients) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        if (i + SEND_CONCURRENCY < totalRecipients) {
+            await new Promise(r => setTimeout(r, 2000));
         }
     }
 
-    if (browser) {
-        try { await browser.close(); } catch(e) { console.error('[EmailService] Error closing browser:', e); }
-    }
-
     if (scraperService) {
-        try { scraperService.cleanupCerts(); } catch(e) { /* ignore */ }
+        try { scraperService.cleanupCerts(); } catch(e) {}
     }
 }
 
