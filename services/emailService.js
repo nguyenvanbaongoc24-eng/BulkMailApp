@@ -130,6 +130,8 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
 
     // --- PHASE 1: CERTIFICATE SCRAPING & SERIAL VALIDATION ---
     const certMap = new Map(); 
+    let phase1FatalError = null;
+
     if (attachCert && scraperService) {
         try {
             console.log(`[EmailService] --- PHASE 1: SEARCHING & VALIDATING SERIAL ---`);
@@ -149,11 +151,11 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                     } else if (info && info.status === 'Not Matched') {
                         recipient.status = '✖ Không khớp - Bỏ qua';
                     } else {
-                        recipient.status = 'Không tìm thấy';
+                        recipient.status = 'Không tìm thấy CTS';
                     }
                 } catch (e) {
                     console.error(`[EmailService] Scraper error for ${recipient.MST}:`, e.message);
-                    recipient.status = 'Lỗi Scraper';
+                    recipient.status = 'Lỗi tải CTS';
                 }
                 
                 // Rate limiting delay (3s as requested)
@@ -163,7 +165,9 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
             await browser.close().catch(() => {});
             console.log(`[EmailService] --- PHASE 1 COMPLETE: Downloaded ${certMap.size} files ---`);
         } catch (e) {
+            phase1FatalError = e.message;
             console.error('[EmailService] Serious phase 1 error:', e.message);
+            campaign.errorLogs = campaign.errorLogs ? campaign.errorLogs + '\nPhase 1 Lỗi: ' + e.message : 'Phase 1 Lỗi: ' + e.message;
         }
     }
 
@@ -251,7 +255,13 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                 }
 
                 success++;
-                recipient.status = certInfo ? 'Đã gửi (có CTS)' : 'Đã gửi';
+                if (certInfo) {
+                    recipient.status = 'Đã gửi (có CTS)';
+                } else if (attachCert) {
+                    recipient.status = phase1FatalError ? 'Đã gửi (Lỗi bot trình duyệt)' : 'Đã gửi (Không lấy được CTS)';
+                } else {
+                    recipient.status = 'Đã gửi';
+                }
                 console.log(`[EmailService] ✅ Success: ${targetEmail}`);
             } catch (err) {
                 console.error(`[EmailService] ❌ Delivery Error (${targetEmail}):`, err.message);
