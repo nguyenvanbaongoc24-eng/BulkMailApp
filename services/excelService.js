@@ -33,6 +33,7 @@ function parseExcel(filePath) {
     // Column K -> Index 10 (NgayHetHanChuKySo)
     
     return rawData.map(row => {
+        const serial = row[2]; // Column C
         const mst = row[4];
         const tenCongTy = row[3];
         const diaChi = row[6];
@@ -43,6 +44,7 @@ function parseExcel(filePath) {
         if (!mst || mst.toString().trim() === '') return null;
 
         return {
+            Serial: serial ? serial.toString().trim() : '',
             MST: mst.toString().trim(),
             TenCongTy: tenCongTy ? tenCongTy.toString().trim() : '',
             DiaChi: diaChi ? diaChi.toString().trim() : '',

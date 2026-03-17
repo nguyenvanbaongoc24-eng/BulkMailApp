@@ -61,14 +61,21 @@ async function initBrowser() {
     return await puppeteer.launch(launchOptions);
 }
 
+function normalizeSerial(s) {
+    if (!s) return '';
+    return s.toString().replace(/\s/g, '').toUpperCase();
+}
+
 /**
  * Scrape the latest digital certificate for a given MST (tax code).
  * 
  * @param {Object} browser - Puppeteer browser instance
  * @param {string} mst - Tax code to search
- * @returns {Object|null} { filePath, fileName } or null if not found
+ * @param {string} excelSerial - Serial from Excel for validation
+ * @param {Object} recipientInfo - Full recipient info for filename formatting
+ * @returns {Object|null} { filePath, fileName, status, message } or null
  */
-async function getLatestCertificate(browser, mst) {
+async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
     let page = null;
     
     try {
@@ -132,38 +139,87 @@ async function getLatestCertificate(browser, mst) {
             // Wait a bit more for dynamic content
             await new Promise(r => setTimeout(r, 2000));
 
-            // Find all "Tải về" download links using page.$$
-            const downloadLinks = await resultPage.$$('a');
-            const matchingLinks = [];
-
-            for (const link of downloadLinks) {
-                const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
-                if (text && text.trim().toLowerCase().includes('tải về')) {
-                    matchingLinks.push(link);
-                } else if (text && /t[ảả]i v[ềề]/i.test(text)) { // Regex for accented variations
-                    matchingLinks.push(link);
+            // --- NEW: MATCH SERIAL IN SEARCH RESULTS ---
+            console.log(`[Scraper] 🔍 Đang tìm block có Serial: ${excelSerial} trong danh sách kết quả...`);
+            
+            const matchingIndex = await resultPage.evaluate((targetSerial) => {
+                const norm = (s) => s.toString().replace(/\s/g, '').toUpperCase();
+                const target = norm(targetSerial);
+                
+                // Find all "Serial" labels
+                const allElements = Array.from(document.querySelectorAll('td, span, div, p, b, li'));
+                const serialLabels = allElements.filter(el => el.innerText.includes('Serial'));
+                
+                for (let labelEl of serialLabels) {
+                    const labelText = labelEl.innerText;
+                    let val = null;
+                    const match = labelText.match(/Serial[:\s]+([A-Z0-9]{10,})/i);
+                    if (match) val = match[1];
+                    else if (labelEl.nextElementSibling) val = labelEl.nextElementSibling.innerText;
+                    
+                    if (val && norm(val) === target) {
+                        // Found matching Serial! Now find the EARLIEST "Tải về" link AFTER this label
+                        // We iterate siblings or common parent to find the link
+                        let current = labelEl;
+                        // Search up to 50 next elements in the DOM to find the link
+                        let searchCount = 0;
+                        while (current && searchCount < 50) {
+                            searchCount++;
+                            // Check if current is the link
+                            if (current.tagName === 'A' && (current.innerText.toLowerCase().includes('tải về') || current.innerText.toLowerCase().includes('tải xuống'))) {
+                                // Mark this link with a temporary ID to click from Puppeteer
+                                const tempId = 'target_download_' + Date.now();
+                                current.setAttribute('id', tempId);
+                                return tempId;
+                            }
+                            
+                            // Traverse DOM: next sibling or parent's next sibling
+                            if (current.nextElementSibling) {
+                                current = current.nextElementSibling;
+                                // If it has children, start from first child
+                                if (current.firstElementChild) {
+                                    // This is a bit complex, simpler: look at all <a> after this label
+                                }
+                            } else {
+                                current = current.parentElement;
+                                if (current && current.nextElementSibling) {
+                                    current = current.nextElementSibling;
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Alternate search: find all <a> after this element
+                        const allLinks = Array.from(document.querySelectorAll('a'));
+                        const labelRect = labelEl.getBoundingClientRect();
+                        const nextLinks = allLinks.filter(a => {
+                            const rect = a.getBoundingClientRect();
+                            return rect.top > labelRect.top - 10 && (a.innerText.toLowerCase().includes('tải về') || a.innerText.toLowerCase().includes('tải xuống'));
+                        });
+                        if (nextLinks.length > 0) {
+                            const tempId = 'target_download_' + Date.now();
+                            nextLinks[0].setAttribute('id', tempId);
+                            return tempId;
+                        }
+                    }
                 }
-            }
-
-            if (matchingLinks.length === 0) {
-                // Try alternate: look for download icons or buttons
-                const altLinks = await resultPage.$$('a[href*="download"], a[href*="Download"], a[href*=".cer"], a[href*=".crt"], a[href*=".p7b"]');
-                if (altLinks.length > 0) {
-                    matchingLinks.push(...altLinks);
-                }
-            }
-
-            if (matchingLinks.length === 0) {
-                console.log(`[Scraper] Không tìm thấy link "Tải về" cho MST: ${mst}`);
                 return null;
+            }, excelSerial);
+
+            if (!matchingIndex) {
+                const msg = `Không tìm thấy block kết quả có Serial khớp: ${excelSerial}`;
+                console.error(`[Scraper] ✖ ${msg}`);
+                return { status: 'Not Matched', message: msg };
             }
 
-            // Select the latest "Tải về" link
-            const lastLink = matchingLinks[matchingLinks.length - 1];
+            console.log(`[Scraper] ✔ Đã tìm thấy Serial khớp. Chuyển đến trang chi tiết...`);
+            const targetLink = await resultPage.$(`#${matchingIndex}`);
+            if (!targetLink) {
+                return { status: 'Error', message: 'Lỗi khi định vị link tải sau khi khớp Serial' };
+            }
 
-            // Click 'Tải về' to go to the certificate details/install page
-            console.log(`[Scraper] Chuyển đến trang chi tiết chứng thư...`);
-            await lastLink.click();
+            await targetLink.click();
 
             // Wait for navigation and the actual PDF download link to appear
             // The user says the last page has "Tải giấy chứng nhận điện tử"
@@ -178,6 +234,10 @@ async function getLatestCertificate(browser, mst) {
             } catch (e) {
                 console.warn(`[Scraper] ⚠️ Không thấy link tải PDF trên trang chi tiết: ${e.message}`);
             }
+
+            console.log(`[Scraper] 🛡️ Serial khớp từ trang kết quả. Tiến hành tải file...`);
+            // Add required 2-3s delay before clicking download
+            await new Promise(r => setTimeout(r, 2500));
 
             // Find the PDF download link
             const pdfLinks = await resultPage.$$('a');
@@ -239,9 +299,22 @@ async function getLatestCertificate(browser, mst) {
             }
 
             if (downloadedFile) {
-                const filePath = path.join(mstDownloadDir, downloadedFile);
-                console.log(`[Scraper] ✅ Đã tải chứng thư số cho MST ${mst}: ${downloadedFile}`);
-                return { filePath, fileName: downloadedFile, dirPath: mstDownloadDir };
+                const originalPath = path.join(mstDownloadDir, downloadedFile);
+                
+                // Format new filename: [MST]*[TenCongTy]*[NgayHetHan].pdf
+                const cleanTen = (recipientInfo.TenCongTy || '').replace(/[\\/:*?"<>|]/g, '-').trim();
+                const cleanNgay = (recipientInfo.NgayHetHanChuKySo || '').replace(/\//g, '-');
+                const newFileName = `${mst}*${cleanTen}*${cleanNgay}.pdf`;
+                const newPath = path.join(mstDownloadDir, newFileName);
+                
+                try {
+                    fs.renameSync(originalPath, newPath);
+                    console.log(`[Scraper] ✅ Đã tải và đổi tên: ${newFileName}`);
+                    return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
+                } catch (renameErr) {
+                    console.error(`[Scraper] Lỗi đổi tên file:`, renameErr.message);
+                    return { filePath: originalPath, fileName: downloadedFile, dirPath: mstDownloadDir, status: 'Matched' };
+                }
             }
 
             console.log(`[Scraper] ⚠️ Không thể tải chứng thư số cho MST: ${mst} (Time Out hoặc Blocked)`);

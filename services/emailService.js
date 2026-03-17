@@ -33,44 +33,48 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
     const attachCert = campaign.attachCert || false;
     const totalRecipients = campaign.recipients.length;
 
-    // --- PHASE 1: PRE-SCRAPE ALL CERTIFICATES ---
-    const certMap = new Map(); // MST -> certInfo
-    if (attachCert && scraperService) {
-        try {
-            console.log(`[EmailService] --- GIAI ĐOẠN 1: TRA CỨU CHỨNG THƯ ---`);
-            const browser = await scraperService.initBrowser();
-            
-            // Process scraping in chunks for safety
-            const SCRAPE_CONCURRENCY = 2; // Keep low to avoid blocking on target site
-            for (let i = 0; i < totalRecipients; i += SCRAPE_CONCURRENCY) {
-                const chunk = campaign.recipients.slice(i, i + SCRAPE_CONCURRENCY);
-                await Promise.all(chunk.map(async (recipient) => {
-                    if (!recipient.MST) return;
-                    try {
-                        console.log(`[EmailService] 🔍 Đang tra cứu cho MST: ${recipient.MST}...`);
-                        let info = await scraperService.getLatestCertificate(browser, recipient.MST);
-                        
-                        // Simple retry
-                        if (!info) {
-                            console.log(`[EmailService] 🔄 Thử lại (lần 2) cho MST: ${recipient.MST}...`);
-                            info = await scraperService.getLatestCertificate(browser, recipient.MST);
+            // --- PHASE 1: PRE-SCRAPE ALL CERTIFICATES ---
+            const certMap = new Map(); // MST -> certInfo
+            if (attachCert && scraperService) {
+                try {
+                    console.log(`[EmailService] --- GIAI ĐOẠN 1: TRA CỨU CHỨNG THƯ & XÁC THỰC SERIAL ---`);
+                    const browser = await scraperService.initBrowser();
+                    
+                    // User requested: Avoid multiple parallel requests
+                    const SCRAPE_CONCURRENCY = 1; 
+                    for (let i = 0; i < totalRecipients; i += SCRAPE_CONCURRENCY) {
+                        const chunk = campaign.recipients.slice(i, i + SCRAPE_CONCURRENCY);
+                        await Promise.all(chunk.map(async (recipient) => {
+                            if (!recipient.MST) return;
+                            try {
+                                console.log(`[EmailService] 🔍 Đang tra cứu cho MST: ${recipient.MST} (Serial Excel: ${recipient.Serial || 'N/A'})...`);
+                                let info = await scraperService.getLatestCertificate(browser, recipient.MST, recipient.Serial, recipient);
+                                
+                                if (info && info.status === 'Matched') {
+                                    certMap.set(recipient.MST, info);
+                                    recipient.status = '✔ Khớp - Đã tải';
+                                } else if (info && info.status === 'Not Matched') {
+                                    recipient.status = '✖ Không khớp - Bỏ qua';
+                                } else {
+                                    recipient.status = 'Không tìm thấy';
+                                }
+                            } catch (e) {
+                                console.error(`[EmailService] Lỗi scraper cho ${recipient.MST}:`, e.message);
+                                recipient.status = 'Lỗi Scraper';
+                            }
+                        }));
+                        // User requested: 2-3s delay between requests
+                        if (i + SCRAPE_CONCURRENCY < totalRecipients) {
+                            await new Promise(r => setTimeout(r, 3000));
                         }
-                        
-                        if (info) certMap.set(recipient.MST, info);
-                    } catch (e) {
-                        console.error(`[EmailService] Lỗi scraper cho ${recipient.MST}:`, e.message);
                     }
-                }));
-                // Short pause between scrape chunks
-                await new Promise(r => setTimeout(r, 1000));
+                    
+                    await browser.close().catch(() => {});
+                    console.log(`[EmailService] --- GIAI ĐOẠN 1 HOÀN TẤT: Đã tải ${certMap.size} file hợp lệ ---`);
+                } catch (e) {
+                    console.error('[EmailService] Lỗi giai đoạn tra cứu:', e.message);
+                }
             }
-            
-            await browser.close().catch(() => {});
-            console.log(`[EmailService] --- GIAI ĐOẠN 1 HOÀN TẤT: Đã tìm thấy ${certMap.size}/${totalRecipients} chứng thư ---`);
-        } catch (e) {
-            console.error('[EmailService] Lỗi giai đoạn tra cứu:', e.message);
-        }
-    }
 
     // --- PHASE 2: SEND ALL EMAILS ---
     console.log(`[EmailService] --- GIAI ĐOẠN 2: TIẾN HÀNH GỬI MAIL ---`);
