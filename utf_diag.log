@@ -1,0 +1,55 @@
+﻿[dotenv@17.3.1] injecting env (7) from .env -- tip: ΓÜÖ∩╕Å  suppress all logs with { quiet: true }
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ≡ƒñû agentic secret storage: https://dotenvx.com/as2
+Fetching latest campaign...
+Campaign recipients: [
+  {
+    MST: '2301127500',
+    Email: 'nguyenvan.baongoc24@gmail.com',
+    DiaChi: 'L├┤ CN09-1, Khu c├┤ng nghiß╗çp Y├¬n Phong (khu mß╗ƒ rß╗Öng),  X├ú Y├¬n Trung, Huyß╗çn Y├¬n Phong, Tß╗ënh Bß║»c Ninh.Viß╗çt Nam',
+    status: 'Thß║Ñt bß║íi',
+    sentTime: '2026-03-17T02:25:43.831Z',
+    TenCongTy: 'C├öNG TY TNHH THREE LINK TECHNOLOGY',
+    NgayHetHanChuKySo: '28/07/2026'
+  },
+  {
+    MST: '2343535345',
+    Email: 'nguyenvan.baongoc24@gmail.com',
+    DiaChi: 'L├┤ CN09-1, Khu c├┤ng nghiß╗çp Y├¬n Phong (khu mß╗ƒ rß╗Öng),  X├ú Y├¬n Trung, Huyß╗çn',
+    status: 'Thß║Ñt bß║íi',
+    sentTime: '2026-03-17T02:27:45.361Z',
+    TenCongTy: 'C├öNG TY TNHH THREE LINK fffsdf',
+    NgayHetHanChuKySo: '28/07/2026'
+  }
+]
+Fetching sender...
+Testing email send...
+[EmailService] Khß╗ƒi tß║ío tr├¼nh duyß╗çt cho campaign (tiß║┐t kiß╗çm thß╗¥i gian)...
+[EmailService] ≡ƒöì Tra cß╗⌐u chß╗⌐ng th╞░ sß╗æ cho MST: 2301127500...
+node : [Scraper] Lß╗ùi 
+khi tra cß╗⌐u MST 
+2301127500: net::ERR_BLOC
+KED_BY_CLIENT at http://w
+ww.cavn.vn/SearchInfoCert
+.aspx
+At line:1 char:1
++ node testSend.js > 
+error_diag.log 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  ([Scraper] Lß╗ùi...c   
+ hInfoCert.aspx:Strin    
+g) [], RemoteExcepti    
+on
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+[EmailService] ΓÜá∩╕Å Kh├┤ng t├¼m thß║Ñy chß╗⌐ng th╞░ cho MST: 2301127500
+Update received: ─Éang gß╗¡i Success: 1 Error: 0
+[EmailService] ≡ƒöì Tra cß╗⌐u chß╗⌐ng th╞░ sß╗æ cho MST: 2343535345...
+[Scraper] Kh├┤ng t├¼m 
+thß║Ñy ├┤ t├¼m kiß║┐m 
+tr├¬n trang.
+[EmailService] ΓÜá∩╕Å Kh├┤ng t├¼m thß║Ñy chß╗⌐ng th╞░ cho MST: 2343535345

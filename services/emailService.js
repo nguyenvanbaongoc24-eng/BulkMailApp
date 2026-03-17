@@ -100,13 +100,20 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         }
 
         try {
+            console.log(`[EmailService] 📤 Đang gửi tới: ${targetEmail}...`);
             await transporter.sendMail(mailOptions);
             success++;
             recipient.status = certInfo ? 'Đã gửi (có CTS)' : 'Đã gửi';
+            console.log(`[EmailService] ✅ Gửi thành công tới: ${targetEmail}`);
         } catch (err) {
-            console.error(`Lỗi khi gửi đến ${recipient.Email || recipient.MST}:`, err.message);
+            console.error(`[EmailService] ❌ Lỗi SMTP khi gửi đến ${targetEmail}:`, {
+                message: err.message,
+                code: err.code,
+                command: err.command,
+                stack: err.stack
+            });
             errorCount++;
-            recipient.status = 'Thất bại';
+            recipient.status = `Thất bại: ${err.message}`;
         }
 
         // Clean up downloaded cert after sending

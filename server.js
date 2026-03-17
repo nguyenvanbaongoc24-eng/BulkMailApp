@@ -243,6 +243,7 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
     res.json({ message: 'Bắt đầu gửi email...' });
 
     // Background sending process
+    console.log(`[Server] 🚀 Bắt đầu tiến trình gửi ngầm cho campaign ID: ${campaign.id}`);
     emailService.sendBulkEmails(campaign, sender, async (updatedCampaign) => {
         // Persist update to Supabase
         await supabase.from('campaigns').update({

@@ -16,10 +16,13 @@ async function testSend() {
 
     console.log("Testing email send...");
     
-    // We will hook console.error to see what happens
-    await emailService.sendBulkEmails(campaign, sender, (updatedCampaign) => {
-        console.log("Update received:", updatedCampaign.status, "Success:", updatedCampaign.successCount, "Error:", updatedCampaign.errorCount);
-    });
+    try {
+        await emailService.sendBulkEmails(campaign, sender, (updatedCampaign) => {
+            console.log("Update received:", updatedCampaign.status, "Success:", updatedCampaign.successCount, "Error:", updatedCampaign.errorCount);
+        });
+    } catch (err) {
+        console.error("FATAL ERROR during sendBulkEmails:", err);
+    }
 
     console.log("Done.");
 }

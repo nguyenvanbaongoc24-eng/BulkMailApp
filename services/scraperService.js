@@ -168,7 +168,11 @@ async function getLatestCertificate(browser, mst) {
         }
 
     } catch (error) {
-        console.error(`[Scraper] Lỗi khi tra cứu MST ${mst}:`, error.message);
+        if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+            console.warn(`[Scraper] ⚠️ Bị chặn bởi phần mềm bảo mật/AdBlock trên máy chủ: ${error.message}`);
+        } else {
+            console.error(`[Scraper] ❌ Lỗi khi tra cứu MST ${mst}:`, error.message);
+        }
         return null;
     } finally {
         if (page) {
