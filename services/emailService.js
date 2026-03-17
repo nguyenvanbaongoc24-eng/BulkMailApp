@@ -139,9 +139,22 @@ async function processEmailTask(log) {
                 console.log(`[Worker] PDF missing for ${log.customer_id}. Triggering AUTO-SCRAPE...`);
                 let browser = null;
                 try {
-                    const lookupCustomer = customer || { taxCode: log.customer_id, Serial: '', TenCongTy: '', userId: campaign.userId };
+                    // Try to find serial from campaign recipients (Excel source)
+                    const recipient = (campaign.recipients || []).find(r => String(r.MST) === String(log.customer_id));
+                    const excelSerial = recipient ? (recipient.Serial || '') : '';
+
+                    const lookupCustomer = customer || { 
+                        taxCode: log.customer_id, 
+                        Serial: excelSerial, 
+                        TenCongTy: recipient ? recipient.TenCongTy : '', 
+                        userId: campaign.userId 
+                    };
+                    
+                    // Prioritize excelSerial if customer object doesn't have one
+                    const targetSerial = lookupCustomer.Serial || excelSerial;
+
                     browser = await scraperService.initBrowser();
-                    const scrapeResult = await scraperService.getLatestCertificate(browser, lookupCustomer.taxCode, lookupCustomer.Serial || '', lookupCustomer);
+                    const scrapeResult = await scraperService.getLatestCertificate(browser, lookupCustomer.taxCode, targetSerial, lookupCustomer);
 
                     if (scrapeResult && scrapeResult.status === 'Matched') {
                         console.log(`[Worker] Auto-scrape success for ${lookupCustomer.taxCode}. Uploading...`);

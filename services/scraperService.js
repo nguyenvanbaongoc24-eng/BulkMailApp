@@ -141,8 +141,6 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
                 const allElements = Array.from(document.querySelectorAll('td, span, div, p, b, li'));
                 const serialLabels = allElements.filter(el => el.innerText.includes('Serial'));
                 
-                // If we have several, we want to try to match the target.
-                // If no target, we just take the first one found.
                 for (let labelEl of serialLabels) {
                     const labelText = labelEl.innerText;
                     let val = null;
@@ -150,8 +148,8 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
                     if (match) val = match[1];
                     else if (labelEl.nextElementSibling) val = labelEl.nextElementSibling.innerText;
                     
-                    // IF we have a target, it MUST match. 
-                    // IF we don't have a target, we take the first label we find.
+                    // IF we have a target, it MUST match.
+                    // IF we don't have a target, we take the first label we find (latest).
                     if (!target || (val && norm(val) === target)) {
                         let current = labelEl;
                         let searchCount = 0;
@@ -162,17 +160,7 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
                                 current.setAttribute('id', tempId);
                                 return tempId;
                             }
-                            
-                            if (current.nextElementSibling) {
-                                current = current.nextElementSibling;
-                            } else {
-                                current = current.parentElement;
-                                if (current && current.nextElementSibling) {
-                                    current = current.nextElementSibling;
-                                } else {
-                                    break;
-                                }
-                            }
+                            current = current.nextElementSibling || current.parentElement;
                         }
                     }
                 }
@@ -180,7 +168,9 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
             }, excelSerial);
 
             if (!matchingIndex) {
-                const msg = `Không tìm thấy Serial khớp: ${excelSerial}`;
+                const msg = excelSerial 
+                    ? `Không tìm thấy chứng thư có Serial [${excelSerial}] cho MST ${mst} trên hệ thống CA.` 
+                    : `Không tìm thấy bất kỳ chứng thư nào cho MST ${mst} trên hệ thống CA.`;
                 console.error(`[Scraper] ✖ ${msg}`);
                 return { status: 'Not Matched', message: msg };
             }
