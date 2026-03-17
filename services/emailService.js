@@ -37,9 +37,9 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
     for (let i = 0; i < campaign.recipients.length; i++) {
         const recipient = campaign.recipients[i];
         
-        // Anti-spam random delay (skip for single email or the first email in a batch to improve speed)
+        // Anti-spam random delay (reduced for speed, but kept for reliability)
         if (campaign.recipients.length > 1 && i > 0) {
-            const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
+            const delay = Math.floor(Math.random() * (2000 - 1000 + 1)) + 1000;
             await new Promise(resolve => setTimeout(resolve, delay));
         }
 
@@ -121,12 +121,10 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         
         // Improve status message
         if (i === campaign.recipients.length - 1) {
-            if (success === 0 && errorCount > 0) {
-                campaign.status = 'Thất bại';
-            } else if (errorCount > 0) {
-                campaign.status = 'Hoàn thành (có lỗi)';
+            if (success > 0) {
+                campaign.status = errorCount > 0 ? 'Hoàn thành (có lỗi)' : 'Hoàn thành';
             } else {
-                campaign.status = 'Hoàn thành';
+                campaign.status = 'Thất bại';
             }
         } else {
             campaign.status = 'Đang gửi';

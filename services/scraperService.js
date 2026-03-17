@@ -18,8 +18,11 @@ async function initBrowser() {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--single-process'
-        ]
+            '--single-process',
+            '--ignore-certificate-errors',
+            '--ignore-certificate-errors-spki-list'
+        ],
+        ignoreHTTPSErrors: true
     };
 
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
