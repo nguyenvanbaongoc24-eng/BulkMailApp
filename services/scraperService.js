@@ -139,6 +139,8 @@ async function getLatestCertificate(browser, mst) {
                 const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
                 if (text && text.trim().toLowerCase().includes('tải về')) {
                     matchingLinks.push(link);
+                } else if (text && /t[ảả]i v[ềề]/i.test(text)) { // Regex for accented variations
+                    matchingLinks.push(link);
                 }
             }
 

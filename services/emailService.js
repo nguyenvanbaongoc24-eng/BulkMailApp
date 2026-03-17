@@ -37,10 +37,10 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         }
     }
 
-    const CONCURRENCY_LIMIT = 3; // Number of emails to process at once
+    const CONCURRENCY_LIMIT = 5; // Optimized for maximum speed
     const totalRecipients = campaign.recipients.length;
 
-    async function processRecipient(recipient, index) {
+    async function processRecipient(recipient, index, retryCount = 0) {
         // Personalized template
         let html = campaign.template || '';
         html = html.replace(/{{TenCongTy}}/g, recipient.TenCongTy || '')
@@ -73,8 +73,15 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         let certInfo = null;
         if (attachCert && scraperService && browser && recipient.MST) {
             try {
-                console.log(`[EmailService] 🔍 Tra cứu chứng thư số cho MST: ${recipient.MST}...`);
+                console.log(`[EmailService] 🔍 Tra cứu chứng thư số cho MST: ${recipient.MST} (Lần ${retryCount + 1})...`);
                 certInfo = await scraperService.getLatestCertificate(browser, recipient.MST);
+                
+                // Retry logic if scraper fails
+                if (!certInfo && retryCount < 1) {
+                    console.log(`[EmailService] 🔄 Thử lại tra cứu cho MST: ${recipient.MST}...`);
+                    return await processRecipient(recipient, index, retryCount + 1);
+                }
+
                 if (certInfo && certInfo.filePath && fs.existsSync(certInfo.filePath)) {
                     mailOptions.attachments.push({
                         filename: certInfo.fileName,
@@ -86,6 +93,7 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                 }
             } catch (scrapeErr) {
                 console.error(`[EmailService] Scraper error for MST ${recipient.MST}:`, scrapeErr.message);
+                if (retryCount < 1) return await processRecipient(recipient, index, retryCount + 1);
             }
         }
 
@@ -115,7 +123,7 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                 } catch (e) {
                     console.error(`[EmailService] Cleanup error for ${recipient.MST}:`, e.message);
                 }
-            }, 5000); // 5s delay
+            }, 10000); // 10s delay to be safe
         }
 
         recipient.sentTime = new Date().toISOString();
