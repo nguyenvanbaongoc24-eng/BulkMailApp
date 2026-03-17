@@ -4,6 +4,7 @@ const path = require('path');
 const dns = require('dns').promises;
 const axios = require('axios');
 const supabase = require('./supabaseClient');
+const scraperService = require('./scraperService');
 
 /**
  * Polling interval for the worker (e.g., every 10 seconds)
@@ -131,24 +132,68 @@ async function processEmailTask(log) {
             attachments: []
         };
 
-        // 4. Attach PDF if required and available
+        // 4. Attach PDF if required
         if (campaign.attachCert) {
+            // Case A: Missing pdf_url -> Trigger AUTO-SCRAPE
             if (!customer || !customer.pdf_url) {
-                const msg = `Lỗi: Chiến dịch yêu cầu đính kèm PDF nhưng khách hàng ${log.customer_id} chưa có file PDF. Hãy dùng nút 'Tra cứu từ CA' trong menu Khách hàng trước.`;
-                console.error(`[Worker] ${msg}`);
-                throw new Error(msg);
+                console.log(`[Worker] PDF missing for ${log.customer_id}. Triggering AUTO-SCRAPE...`);
+                let browser = null;
+                try {
+                    const lookupCustomer = customer || { taxCode: log.customer_id, Serial: '', TenCongTy: '', userId: campaign.userId };
+                    browser = await scraperService.initBrowser();
+                    const scrapeResult = await scraperService.getLatestCertificate(browser, lookupCustomer.taxCode, lookupCustomer.Serial || '', lookupCustomer);
+
+                    if (scrapeResult && scrapeResult.status === 'Matched') {
+                        console.log(`[Worker] Auto-scrape success for ${lookupCustomer.taxCode}. Uploading...`);
+                        
+                        // Upload to Supabase Storage
+                        const fileBuffer = fs.readFileSync(scrapeResult.filePath);
+                        const fileName = `${campaign.userId}/${lookupCustomer.taxCode}_${Date.now()}.pdf`;
+                        
+                        const { error: uploadError } = await supabase.storage
+                            .from('pdf-attachments')
+                            .upload(fileName, fileBuffer, { contentType: 'application/pdf', upsert: true });
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('pdf-attachments')
+                            .getPublicUrl(fileName);
+
+                        // Update local customer object and DB
+                        if (!customer) {
+                            // If customer didn't exist in DB, we should ideally have created it, 
+                            // but here we just ensure we have the URL to send the mail
+                        } else {
+                            await supabase.from('customers').update({ pdf_url: publicUrl }).eq('id', customer.id);
+                            customer.pdf_url = publicUrl;
+                        }
+                        
+                        // Cleanup local file
+                        try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
+                    } else {
+                        throw new Error(scrapeResult?.message || 'Không tìm thấy chứng thư trên CA system');
+                    }
+                } catch (scrapeErr) {
+                    const msg = `Lỗi bẻ lái: Tự động tra cứu thất bại cho ${log.customer_id}: ${scrapeErr.message}`;
+                    console.error(`[Worker] ${msg}`);
+                    throw new Error(msg);
+                } finally {
+                    if (browser) await browser.close();
+                }
             }
 
-            console.log(`[Worker] Attempting to attach PDF: ${customer.pdf_url}`);
+            // Case B: Has pdf_url (either pre-existing or just scraped) -> Download & Attach
+            console.log(`[Worker] Attempting to download PDF: ${customer.pdf_url}`);
             try {
-                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 15000 });
+                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
                 mailOptions.attachments.push({
                     filename: `${customer.taxCode}_Certification.pdf`,
                     content: Buffer.from(response.data)
                 });
                 console.log(`[Worker] PDF attached successfully for ${log.email}`);
             } catch (pdfErr) {
-                const msg = `Lỗi: Không thể tải file PDF từ link: ${customer.pdf_url}. Chi tiết: ${pdfErr.message}`;
+                const msg = `Lỗi đính kèm: Không tải được file từ link: ${customer.pdf_url}. ${pdfErr.message}`;
                 console.error(`[Worker] ${msg}`);
                 throw new Error(msg);
             }
