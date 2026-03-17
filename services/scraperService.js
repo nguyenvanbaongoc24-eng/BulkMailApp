@@ -18,7 +18,6 @@ async function initBrowser() {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--single-process',
             '--ignore-certificate-errors',
             '--ignore-certificate-errors-spki-list'
         ],

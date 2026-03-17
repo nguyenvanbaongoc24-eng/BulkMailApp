@@ -34,15 +34,10 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         }
     }
 
-    for (let i = 0; i < campaign.recipients.length; i++) {
-        const recipient = campaign.recipients[i];
-        
-        // Anti-spam random delay (reduced for speed, but kept for reliability)
-        if (campaign.recipients.length > 1 && i > 0) {
-            const delay = Math.floor(Math.random() * (2000 - 1000 + 1)) + 1000;
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
+    const CONCURRENCY_LIMIT = 3; // Number of emails to process at once
+    const totalRecipients = campaign.recipients.length;
 
+    async function processRecipient(recipient, index) {
         // Personalized template
         let html = campaign.template || '';
         html = html.replace(/{{TenCongTy}}/g, recipient.TenCongTy || '')
@@ -50,28 +45,20 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
                    .replace(/{{DiaChi}}/g, recipient.DiaChi || '')
                    .replace(/{{NgayHetHanChuKySo}}/g, recipient.NgayHetHanChuKySo || '');
         
-        // Add Unsubscribe link placeholder
         html += '<br><br><p style="color: gray; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px;">' +
                 'Email này được gửi tự động từ hệ thống Automation CA2. ' +
                 'Nếu bạn không muốn nhận email này, vui lòng <a href="#">hủy đăng ký tại đây</a>.</p>';
 
-        // Skip if no valid email address
         const targetEmail = recipient.Email && recipient.Email.trim() !== '' ? recipient.Email : null;
         if (!targetEmail) {
             console.warn(`[EmailService] Bỏ qua khách hàng ${recipient.TenCongTy || recipient.MST} vì không có địa chỉ email.`);
             errorCount++;
             recipient.status = 'Thiếu Email';
             recipient.sentTime = new Date().toISOString();
-            
-            // Update stats
-            campaign.sentCount = i + 1;
-            campaign.successCount = success;
-            campaign.errorCount = errorCount;
-            onUpdate(campaign);
-            continue; // Skip trying to send
+            updateProgress();
+            return;
         }
 
-        // Build mail options
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
             to: targetEmail,
@@ -108,44 +95,49 @@ async function sendBulkEmails(campaign, sender, onUpdate) {
         } catch (err) {
             console.error(`[EmailService] ❌ Lỗi SMTP khi gửi đến ${targetEmail}:`, {
                 message: err.message,
-                code: err.code,
-                command: err.command,
-                stack: err.stack
+                code: err.code
             });
             errorCount++;
             recipient.status = `Thất bại: ${err.message}`;
         }
 
-        // Clean up downloaded cert after sending
         if (certInfo && certInfo.filePath && fs.existsSync(certInfo.filePath)) {
             try { fs.unlinkSync(certInfo.filePath); } catch (e) { /* ignore */ }
         }
 
         recipient.sentTime = new Date().toISOString();
-        campaign.sentCount = i + 1;
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const processedCount = campaign.recipients.filter(r => r.status !== 'Chưa gửi').length;
+        campaign.sentCount = processedCount;
         campaign.successCount = success;
         campaign.errorCount = errorCount;
         
-        // Improve status message
-        if (i === campaign.recipients.length - 1) {
-            if (success > 0) {
-                campaign.status = errorCount > 0 ? 'Hoàn thành (có lỗi)' : 'Hoàn thành';
-            } else {
-                campaign.status = 'Thất bại';
-            }
+        if (processedCount === totalRecipients) {
+            campaign.status = success > 0 ? (errorCount > 0 ? 'Hoàn thành (có lỗi)' : 'Hoàn thành') : 'Thất bại';
         } else {
             campaign.status = 'Đang gửi';
         }
-        
-        // Persistence handled by callback
         onUpdate(campaign);
     }
 
-    if (browser) {
-        try { await browser.close(); } catch(e) { console.error('Error closing browser:', e); }
+    // Parallel execution with limit
+    for (let i = 0; i < totalRecipients; i += CONCURRENCY_LIMIT) {
+        const chunk = campaign.recipients.slice(i, i + CONCURRENCY_LIMIT);
+        await Promise.all(chunk.map((recipient, index) => processRecipient(recipient, i + index)));
+        
+        // Small delay between chunks to avoid SMTP server rate limits
+        if (i + CONCURRENCY_LIMIT < totalRecipients) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
     }
 
-    // Cleanup old certs
+    if (browser) {
+        try { await browser.close(); } catch(e) { console.error('[EmailService] Error closing browser:', e); }
+    }
+
     if (scraperService) {
         try { scraperService.cleanupCerts(); } catch(e) { /* ignore */ }
     }
