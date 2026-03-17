@@ -510,9 +510,14 @@ async function loadCampaigns(targetId = 'campaign-list') {
                 <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-widest">${c.sentCount}/${total} EMAILS</p>
             </td>
             <td class="px-8 py-5">
-                <div class="flex gap-2">
-                    <button class="text-white hover:text-white font-extrabold text-xs uppercase tracking-widest bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all">Báo cáo</button>
-                    <button onclick="deleteCampaign('${c.id}')" class="text-red-500 hover:text-red-400 font-extrabold text-xs uppercase tracking-widest bg-red-500/10 hover:bg-red-500/20 px-4 py-2 rounded-xl transition-all">Xóa</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.location.href='/api/reports/${c.id}'" class="text-white hover:text-white font-extrabold text-[9px] uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl transition-all">Báo cáo</button>
+                    <div class="flex items-center bg-white/5 rounded-xl p-1 gap-1 border border-white/5">
+                        <span class="text-[8px] font-black text-gray-500 uppercase px-1">Xuất:</span>
+                        <button onclick="exportCampaignData('${c.id}', 'json')" class="text-orange-500 hover:text-orange-400 font-black text-[9px] uppercase px-2 py-1 rounded-lg hover:bg-white/5 transition-all">JSON</button>
+                        <button onclick="exportCampaignData('${c.id}', 'excel')" class="text-green-500 hover:text-green-400 font-black text-[9px] uppercase px-2 py-1 rounded-lg hover:bg-white/5 transition-all">Excel</button>
+                    </div>
+                    <button onclick="deleteCampaign('${c.id}')" class="text-red-500 hover:text-red-400 font-extrabold text-[9px] uppercase tracking-widest bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-xl transition-all">Xóa</button>
                 </div>
             </td>
         `;
@@ -890,5 +895,64 @@ async function createCampaignFromCRM() {
         alert(`Đã chuẩn bị danh sách gửi cho ${currentRecipients.length} khách hàng!`);
     } catch (err) {
         alert('Lỗi khi tạo danh sách gửi: ' + err.message);
+    }
+}
+
+/** ---------------- EXPORT LOGIC ---------------- */
+
+async function exportCampaignData(campaignId, format) {
+    try {
+        const response = await authedFetch(`/api/campaigns`);
+        if (!response || !response.ok) return;
+        const campaigns = await response.json();
+        const campaign = campaigns.find(c => c.id === campaignId);
+        
+        if (!campaign || !campaign.recipients || campaign.recipients.length === 0) {
+            alert('Không có dữ liệu người nhận để xuất.');
+            return;
+        }
+
+        const dataToExport = campaign.recipients.map(r => ({
+            'MST': r.MST || '',
+            'Tên công ty': r.TenCongTy || '',
+            'Địa chỉ': r.DiaChi || '',
+            'Email': r.Email || '',
+            'Serial': r.Serial || '',
+            'Ngày hết hạn': r.NgayHetHanChuKySo || '',
+            'Trạng thái': r.status || ''
+        }));
+
+        const fileName = `Export_${campaign.name.replace(/\s+/g, '_')}_${new Date().getTime()}`;
+
+        if (format === 'json') {
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileName}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (format === 'excel') {
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách gửi");
+            
+            // Adjust column widths
+            const wscols = [
+                {wch: 15}, // MST
+                {wch: 40}, // TenCongTy
+                {wch: 50}, // DiaChi
+                {wch: 30}, // Email
+                {wch: 25}, // Serial
+                {wch: 15}, // NgayHetHan
+                {wch: 20}  // status
+            ];
+            worksheet['!cols'] = wscols;
+
+            XLSX.writeFile(workbook, `${fileName}.xlsx`);
+        }
+    } catch (error) {
+        console.error('Export Error:', error);
+        alert('Lỗi khi xuất dữ liệu: ' + error.message);
     }
 }
