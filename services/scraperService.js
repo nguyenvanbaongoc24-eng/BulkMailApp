@@ -216,10 +216,12 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         if (downloadedFile) {
             const originalPath = path.join(mstDownloadDir, downloadedFile);
+            const originalExt = path.extname(downloadedFile) || '.pdf'; // Fallback to .pdf if none
             const cleanTen = (recipientInfo.TenCongTy || 'Company').replace(/[\\/:*?"<>|]/g, '-').trim();
-            const newFileName = `${mst}_${cleanTen}.pdf`;
+            const newFileName = `${mst}_${cleanTen}${originalExt}`;
             const newPath = path.join(mstDownloadDir, newFileName);
             fs.renameSync(originalPath, newPath);
+            console.log(`[Scraper] [${mst}] Downloaded file: ${downloadedFile} -> renamed to: ${newFileName}`);
             return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
         }
 

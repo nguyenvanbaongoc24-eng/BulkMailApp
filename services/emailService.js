@@ -69,11 +69,12 @@ async function processEmailTask(log, browser) {
                 if (scrapeResult && scrapeResult.status === 'Matched') {
                     console.log(`[Worker] [${log.id}] Scraper found Match! Uploading file...`);
                     const fileBuffer = fs.readFileSync(scrapeResult.filePath);
-                    const fileName = `${campaign.userId}/${log.customer_id}_${Date.now()}.pdf`;
+                    const fileExt = path.extname(scrapeResult.filePath) || '.pdf';
+                    const fileName = `${campaign.userId}/${log.customer_id}_${Date.now()}${fileExt}`;
 
                     const { error: uploadError } = await supabase.storage
                         .from('pdf-attachments')
-                        .upload(fileName, fileBuffer, { contentType: 'application/pdf', upsert: true });
+                        .upload(fileName, fileBuffer, { upsert: true }); // Let Supabase detect content type
 
                     if (uploadError) throw new Error(`Lỗi upload PDF lên Storage: ${uploadError.message}`);
 
@@ -150,12 +151,13 @@ async function processEmailTask(log, browser) {
             if (customer?.pdf_url) {
                 console.log(`[Worker] [${log.id}] Final check: Attaching PDF from ${customer.pdf_url}`);
                 const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
-                if (response.data && response.data.length > 0) {
+                const buf = Buffer.from(response.data);
+                if (buf && buf.length > 0) {
+                    const urlExt = path.extname(new URL(customer.pdf_url).pathname) || '.pdf';
                     const cleanCompName = (customer.companyName || 'Doc').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
                     mailOptions.attachments.push({
-                        filename: `Cert_${log.customer_id}_${cleanCompName}.pdf`,
-                        content: Buffer.from(response.data),
-                        contentType: 'application/pdf'
+                        filename: `Cert_${log.customer_id}_${cleanCompName}${urlExt}`,
+                        content: buf
                     });
                 } else {
                     throw new Error('Tải PDF từ Storage thất bại (Empty Buffer).');
@@ -190,10 +192,11 @@ async function processEmailTask(log, browser) {
 
             if (customer?.pdf_url) {
                 const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
+                const buf = Buffer.from(response.data);
+                const urlExt = path.extname(new URL(customer.pdf_url).pathname) || '.pdf';
                 mailOptions.attachments.push({
-                    filename: `Cert_${log.customer_id}.pdf`,
-                    content: Buffer.from(response.data),
-                    contentType: 'application/pdf'
+                    filename: `Cert_${log.customer_id}${urlExt}`,
+                    content: buf
                 });
             } else if (campaign.attachCert) {
                 throw new Error('PDF required but missing.');
