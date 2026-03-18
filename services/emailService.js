@@ -7,182 +7,153 @@ const supabase = require('./supabaseClient');
 const scraperService = require('./scraperService');
 
 /**
- * Polling interval for the worker (e.g., every 10 seconds)
+ * Configuration & Intervals
  */
-const WORKER_INTERVAL = 10000;
-const RECOVERY_INTERVAL = 5 * 60 * 1000; // 5 minutes (Phase 6)
+const WORKER_INTERVAL = 10000;      // 10 seconds between batch checks
+const RECOVERY_INTERVAL = 15 * 60 * 1000; // 15 minutes for stale recovery
+const MIN_SEND_DELAY = 2000;         // 2s minimum delay between emails
+const MAX_SEND_DELAY = 5000;         // 5s maximum delay between emails
+
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
 
 /**
- * Resolves an SMTP hostname to its IPv4 address.
- */
-async function resolveToIPv4(hostname) {
-    try {
-        const net = require('net');
-        if (net.isIP(hostname)) return hostname;
-        const addresses = await dns.resolve4(hostname);
-        if (addresses && addresses.length > 0) return addresses[0];
-    } catch (err) {}
-    return hostname;
-}
-
-/**
- * Worker main loop
+ * Worker Entry Point
  */
 async function startWorker() {
     if (isWorkerRunning) return;
     isWorkerRunning = true;
 
     try {
-        const { data: tasks, error } = await supabase
-            .rpc('pick_email_tasks', { batch_size: 5 });
+        // 1. Pick a batch (Sequential processing)
+        const { data: tasks, error } = await supabase.rpc('pick_email_tasks', { batch_size: 5 });
 
         if (error) {
-            console.error('[Worker] RPC pick_email_tasks error:', error.message);
+            console.error('[Worker] Fatal: pick_email_tasks RPC failed:', error.message);
             isWorkerRunning = false;
             return;
         }
 
         if (!tasks || tasks.length === 0) {
             isWorkerRunning = false;
-            return;
+            return; 
         }
 
-        console.log(`[Worker] Picked ${tasks.length} tasks (Pending/Retrying).`);
+        console.log(`[Worker] Picked ${tasks.length} tasks. Starting sequential processing...`);
         
-        let browser = null;
+        // 2. Optimization: Single Browser per Batch
+        let sharedBrowser = null;
+        
         try {
             for (const log of tasks) {
-                // Only launch browser if at least one task needs scraping
-                if (!browser) {
-                    const campaign = (await supabase.from('campaigns').select('attachCert').eq('id', log.campaign_id).single()).data;
-                    if (campaign?.attachCert) {
-                        const { data: customer } = await supabase.from('customers').select('pdf_url').eq('taxCode', log.customer_id).single();
-                        if (!customer?.pdf_url) {
-                            console.log('[Worker] Launching shared browser for batch...');
-                            browser = await scraperService.initBrowser();
-                        }
-                    }
-                }
+                // Check if this specific task needs scraping
+                const needsScrape = await checkIfTaskNeedsScrape(log);
                 
-                await processEmailTask(log, browser);
-                const delay = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
+                if (needsScrape && !sharedBrowser) {
+                    console.log('[Worker] Launching shared browser for batch scraping...');
+                    sharedBrowser = await scraperService.initBrowser();
+                }
+
+                await processEmailTask(log, sharedBrowser);
+
+                // Sequential Delay to prevent rate limiting
+                const delay = Math.floor(Math.random() * (MAX_SEND_DELAY - MIN_SEND_DELAY + 1)) + MIN_SEND_DELAY;
                 await new Promise(r => setTimeout(r, delay));
             }
         } finally {
-            if (browser) {
+            if (sharedBrowser) {
                 console.log('[Worker] Closing shared browser.');
-                await browser.close().catch(() => {});
+                await sharedBrowser.close().catch(() => {});
             }
         }
     } catch (err) {
-        console.error('[Worker] Fatal Error:', err.message);
+        console.error('[Worker] Fatal error in loop:', err.message);
     } finally {
         isWorkerRunning = false;
     }
 }
 
 /**
- * 6. Background Worker: Auto-recovery for failed tasks (Phase 6)
+ * Check if a task requires the scraper
  */
-async function startRecoveryWorker() {
-    if (isRecoveryRunning) return;
-    isRecoveryRunning = true;
+async function checkIfTaskNeedsScrape(log) {
     try {
-        console.log('[Recovery] 🔄 Scanning for failed tasks to recover...');
-        const { data: recoveredCount, error } = await supabase.rpc('recover_failed_tasks');
-        if (error) throw error;
-        if (recoveredCount > 0) {
-            console.log(`[Recovery] ✅ Recovered ${recoveredCount} tasks for retry.`);
-        }
-    } catch (err) {
-        console.error('[Recovery] ❌ Failed:', err.message);
-    } finally {
-        isRecoveryRunning = false;
+        const { data: campaign } = await supabase.from('campaigns').select('attachCert').eq('id', log.campaign_id).single();
+        if (!campaign || !campaign.attachCert) return false;
+
+        const { data: customer } = await supabase.from('customers').select('pdf_url').eq('taxCode', log.customer_id).single();
+        return !customer?.pdf_url;
+    } catch (e) {
+        return false;
     }
 }
 
 /**
- * Process a single email task from email_logs
+ * Process a single email task with absolute verification
  */
 async function processEmailTask(log, browser) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    console.log(`[Worker] Processing ID: ${log.id} For: ${log.email}`);
-
+    console.log(`[Worker] [${log.id}] MST: ${log.customer_id} Email: ${log.email}`);
+    
     try {
-        // 1. Fetch Campaign and Sender
+        // 1. Retrieval
         const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', log.campaign_id).single();
         const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
-        
-        // Use trimmed customer_id for lookup
-        const lookupId = log.customer_id ? String(log.customer_id).trim() : '';
-        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', lookupId).single();
+        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', log.customer_id).single();
 
-        if (!campaign || !sender) throw new Error('Campaign or Sender not found');
+        if (!campaign || !sender) throw new Error('Campaign or Sender not found.');
 
-        // 2. Prepare Transporter
-        let transporter;
-        let isGoogleHttpApi = false;
-        let gmailClient = null;
+        // Backup recipient data from Excel field if DB customer is missing
+        const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode).trim() === String(log.customer_id).trim());
 
-        if (sender.smtpHost === 'oauth2.google') {
-            isGoogleHttpApi = true;
-            const { google } = require('googleapis');
-            const oauth2Client = new google.auth.OAuth2(
-                process.env.GOOGLE_CLIENT_ID, 
-                process.env.GOOGLE_CLIENT_SECRET,
-                process.env.NODE_ENV === 'production' 
-                    ? 'https://automation-ca2.onrender.com/api/auth/google/callback'
-                    : 'http://localhost:3000/api/auth/google/callback'
-            );
-            oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
-            
-            // 4. Verify OAuth2 Credentials (Mục 4)
-            try {
-                const { token } = await oauth2Client.getAccessToken();
-                if (!token) throw new Error('Refresh token is invalid or expired');
+        // 2. Auto-Scrape (If required)
+        if (campaign.attachCert && (!customer || !customer.pdf_url)) {
+            if (browser) {
+                console.log(`[Worker] [${log.id}] Scraping PDF for MST: ${log.customer_id}`);
+                const excelSerial = recipientInExcel ? (recipientInExcel.Serial || '') : '';
                 
-                // Fetch authorized email to verify (Mục 6)
-                const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
-                const userInfo = await oauth2.userinfo.get();
-                const authEmail = userInfo.data.email;
-                
-                console.log(`[Worker] [GmailAPI] OAuth2 Token valid. Authorized account: ${authEmail}`);
-                
-                if (authEmail !== sender.senderEmail) {
-                    console.warn(`[Worker] [GmailAPI] ⚠ Mismatch: Authorized as ${authEmail} but configured to send as ${sender.senderEmail}. Gmail may reject/change the From header.`);
+                const targetCustomer = customer || { 
+                    taxCode: log.customer_id, 
+                    Serial: excelSerial, 
+                    TenCongTy: recipientInExcel ? recipientInExcel.TenCongTy : '',
+                    userId: campaign.userId 
+                };
+
+                const scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, excelSerial, targetCustomer);
+
+                if (scrapeResult && scrapeResult.status === 'Matched') {
+                    console.log(`[Worker] [${log.id}] Scrape Success. Uploading...`);
+                    const fileBuffer = fs.readFileSync(scrapeResult.filePath);
+                    const fileName = `${campaign.userId}/${log.customer_id}_${Date.now()}.pdf`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('pdf-attachments')
+                        .upload(fileName, fileBuffer, { contentType: 'application/pdf', upsert: true });
+
+                    if (!uploadError) {
+                        const { data: { publicUrl } } = supabase.storage.from('pdf-attachments').getPublicUrl(fileName);
+                        if (customer) {
+                            await supabase.from('customers').update({ pdf_url: publicUrl }).eq('id', customer.id);
+                            customer.pdf_url = publicUrl;
+                        } else {
+                            customer = { pdf_url: publicUrl, taxCode: log.customer_id, companyName: recipientInExcel?.TenCongTy };
+                        }
+                    }
+                    try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
+                } else {
+                    console.warn(`[Worker] [${log.id}] Scraper note: ${scrapeResult?.message || 'Not found'}`);
                 }
-            } catch (authErr) {
-                console.error(`[Worker] [GmailAPI] ❌ Auth Failure for ${sender.senderEmail}:`, authErr.message);
-                throw new Error(`Xác thực Gmail thất bại cho ${sender.senderEmail}: ${authErr.message}`);
             }
-
-            gmailClient = google.gmail({ version: 'v1', auth: oauth2Client });
-            transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
-        } else {
-            const resolvedHost = await resolveToIPv4(sender.smtpHost);
-            transporter = nodemailer.createTransport({
-                host: resolvedHost,
-                port: parseInt(sender.smtpPort),
-                secure: sender.smtpPort == 465,
-                auth: { user: sender.smtpUser, pass: sender.smtpPassword },
-                tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2', servername: sender.smtpHost }
-            });
         }
 
-        // 3. Prepare Email Content & Handle Placeholder Replacements (Phase 9: Fallback to campaign data)
+        // 3. Content Preparation
         let html = campaign.template || '';
         let subject = campaign.subject || 'Thông báo từ Automation CA2';
 
-        // Get details from campaign recipients if database lookup fails
-        const recipientData = (campaign.recipients || []).find(r => String(r.MST || r.taxCode).trim() === lookupId);
-        
         const replacements = {
-            '{{TenCongTy}}': (customer?.companyName) || (recipientData?.TenCongTy) || '',
-            '{{MST}}': (customer?.taxCode) || (recipientData?.MST) || lookupId,
-            '{{DiaChi}}': (customer?.diaChi) || (recipientData?.DiaChi) || '',
-            '{{NgayHetHanChuKySo}}': (customer?.expirationDate) || (recipientData?.NgayHetHanChuKySo) || ''
+            '{{TenCongTy}}': customer?.companyName || recipientInExcel?.TenCongTy || '',
+            '{{MST}}': customer?.taxCode || recipientInExcel?.MST || log.customer_id || '',
+            '{{DiaChi}}': customer?.diaChi || recipientInExcel?.DiaChi || '',
+            '{{NgayHetHanChuKySo}}': customer?.expirationDate || recipientInExcel?.NgayHetHanChuKySo || ''
         };
 
         for (const [key, value] of Object.entries(replacements)) {
@@ -191,257 +162,153 @@ async function processEmailTask(log, browser) {
             subject = subject.replace(regex, value || '');
         }
 
-        // Phase 9: STOP LEAK - Final check for unreplaced placeholders
-        if (html.includes('{{TenCongTy}}') || html.includes('{{MST}}')) {
-            console.error(`[Worker] ❌ Placeholder leak detected for ${log.email}. Aborting send.`);
-            throw new Error(`Dữ liệu không đầy đủ: Còn sót tag {{TenCongTy}} hoặc {{MST}}`);
-        }
-        
-        // 1. Validation Cứng (Phase 6)
-        if (!log.email || !emailRegex.test(log.email)) {
-            throw new Error('Invalid email');
-        }
+        if (!html.trim() || !subject.trim()) throw new Error('Email subject or body is empty.');
 
-        const msgId = `<${Date.now()}.${Math.random().toString(36).substring(2)}@automation-ca2.digital>`;
+        // 4. Execution (MIME + Gmail API)
+        const { google } = require('googleapis');
+        const isOAuth2 = sender.smtpHost === 'oauth2.google';
+        let transporter;
+        let finalMessageId = '';
 
-        const mailOptions = {
-            from: `"${sender.senderName}" <${sender.senderEmail}>`,
-            to: log.email,
-            replyTo: sender.senderEmail,
-            messageId: msgId, // Part 7 - Custom Message-ID
-            subject: subject,
-            html: html,
-            attachments: []
-        };
+        if (isOAuth2) {
+            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+            oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
+            const { token } = await oauth2Client.getAccessToken();
+            if (!token) throw new Error('Gmail OAuth2 token invalid. Reconnection needed.');
+            
+            const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+            transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
 
-        // 2. Log Pre-send Details (Mục 2)
-        console.log(`[Worker] 📤 Preparing email to: ${log.email}`);
-        console.log(`[Worker] Subject: ${subject}`);
-        console.log(`[Worker] Content length: ${html.length} chars`);
-        console.log(`[Worker] Has attachment: ${campaign.attachCert ? 'Yes' : 'No'}`);
+            const mailOptions = {
+                from: `"${sender.senderName}" <${sender.senderEmail}>`,
+                to: log.email,
+                subject: subject,
+                html: html,
+                attachments: []
+            };
 
-        // 4. Attach PDF if required
-        if (campaign.attachCert) {
-            // Case A: Missing pdf_url -> Trigger AUTO-SCRAPE
-            if (!customer || !customer.pdf_url) {
-                console.log(`[Worker] PDF missing for ${log.customer_id}. Triggering AUTO-SCRAPE...`);
-                
-                // If browser was not provided by startWorker, launch one here (fallback)
-                let localBrowser = browser;
-                let isLocalBrowser = false;
-                
-                if (!localBrowser) {
-                    console.log('[Worker] Launching local fallback browser...');
-                    localBrowser = await scraperService.initBrowser();
-                    isLocalBrowser = true;
-                }
-
-                try {
-                    // Try to find serial from campaign recipients (Excel source)
-                    const recipient = (campaign.recipients || []).find(r => String(r.MST) === String(log.customer_id));
-                    const excelSerial = recipient ? (recipient.Serial || '') : '';
-
-                    const lookupCustomer = customer || { 
-                        taxCode: log.customer_id, 
-                        Serial: excelSerial, 
-                        TenCongTy: recipient ? recipient.TenCongTy : '', 
-                        userId: campaign.userId 
-                    };
-                    
-                    // Prioritize excelSerial if customer object doesn't have one
-                    const targetSerial = lookupCustomer.Serial || excelSerial;
-
-                    const scrapeResult = await scraperService.getLatestCertificate(localBrowser, lookupCustomer.taxCode, targetSerial, lookupCustomer);
-
-                    if (scrapeResult && scrapeResult.status === 'Matched') {
-                        console.log(`[Worker] Auto-scrape success for ${lookupCustomer.taxCode}. Uploading...`);
-                        
-                        // Upload to Supabase Storage
-                        const fileBuffer = fs.readFileSync(scrapeResult.filePath);
-                        const fileName = `${campaign.userId}/${lookupCustomer.taxCode}_${Date.now()}.pdf`;
-                        
-                        const { error: uploadError } = await supabase.storage
-                            .from('pdf-attachments')
-                            .upload(fileName, fileBuffer, { contentType: 'application/pdf', upsert: true });
-
-                        if (uploadError) throw uploadError;
-
-                        const { data: { publicUrl } } = supabase.storage
-                            .from('pdf-attachments')
-                            .getPublicUrl(fileName);
-
-                        // Update local customer object and DB
-                        if (!customer) {
-                            // Create a temporary object so the email can still be sent
-                            customer = { 
-                                taxCode: lookupCustomer.taxCode, 
-                                pdf_url: publicUrl 
-                            };
-                        } else {
-                            await supabase.from('customers').update({ pdf_url: publicUrl }).eq('id', customer.id);
-                            customer.pdf_url = publicUrl;
-                        }
-                        
-                        // Cleanup local file
-                        try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
-                    } else {
-                        throw new Error(scrapeResult?.message || 'Không tìm thấy chứng thư trên CA system');
-                    }
-                } catch (scrapeErr) {
-                    const msg = `Lỗi bẻ lái: Tự động tra cứu thất bại cho ${log.customer_id}: ${scrapeErr.message}`;
-                    console.error(`[Worker] ${msg}`);
-                    throw new Error(msg);
-                } finally {
-                    if (isLocalBrowser && localBrowser) await localBrowser.close().catch(() => {});
+            // Download PDF if available
+            if (customer?.pdf_url) {
+                console.log(`[Worker] [${log.id}] Fetching PDF: ${customer.pdf_url}`);
+                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 15000 });
+                if (response.data && response.data.length > 0) {
+                    const safeName = (customer.companyName || 'Document').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+                    mailOptions.attachments.push({
+                        filename: `Chung_thu_so_${log.customer_id}_${safeName}.pdf`,
+                        content: Buffer.from(response.data),
+                        contentType: 'application/pdf'
+                    });
                 }
             }
 
-            // Case B: Has pdf_url (either pre-existing or just scraped) -> Download & Attach
-            // 1. Pre-send PDF Validation (Mục 1)
-            if (!customer || !customer.pdf_url) {
-                const msg = `❌ BẮT BUỘC THIẾU: Không có PDF_URL cho ${log.customer_id}. Hệ thống ngừng gửi.`;
-                console.error(`[Worker] ${msg}`);
-                throw new Error(msg);
-            }
-
-            console.log(`[Worker] 📥 Attempting to download PDF: ${customer.pdf_url}`);
-            try {
-                const response = await axios.get(customer.pdf_url, { 
-                    responseType: 'arraybuffer', 
-                    timeout: 20000 
-                });
-                
-                if (!response.data || response.data.length === 0) {
-                    throw new Error('File download returned empty content');
-                }
-
-                // 7. Log file size (Mục 7)
-                console.log(`[Worker] PDF fetched. Size: ${response.data.length} bytes`);
-
-                // 5. Custom Filename (Mục 5)
-                const safeCompanyName = (customer.companyName || 'Document').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
-                const filename = `${customer.taxCode || 'Cert'}_${safeCompanyName}.pdf`;
-
-                mailOptions.attachments.push({
-                    filename: filename,
-                    content: Buffer.from(response.data),
-                    contentType: 'application/pdf',
-                    encoding: 'base64' // Explicitly Part 3
-                });
-                console.log(`[Worker] ✅ PDF attached: ${filename}`);
-            } catch (pdfErr) {
-                // Return clear reasons per Part 1 & 2
-                const reason = pdfErr.message.includes('PDF mismatch') ? pdfErr.message : 'Cannot download PDF';
-                throw new Error(reason);
-            }
-        }
-
-        // 2 & 8. Fail-safe PDF (Phase 6 & 9)
-        if (campaign.attachCert && mailOptions.attachments.length === 0) {
-            throw new Error('Missing PDF'); // Matched Part 1 specific reason
-        }
-
-        // 5. Send
-        if (isGoogleHttpApi) {
-            console.log(`[Worker] [GmailAPI] Encoding message for ${log.email}...`);
+            // Build MIME
             const info = await transporter.sendMail(mailOptions);
             const chunks = [];
             for await (const chunk of info.message) chunks.push(chunk);
             const messageBuffer = Buffer.concat(chunks);
-            const base64EncodedEmail = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            
-            console.log(`[Worker] [GmailAPI] Sending via users.messages.send...`);
-            const response = await gmailClient.users.messages.send({ 
+            const base64Raw = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+            // Call Gmail API
+            const gResponse = await gmail.users.messages.send({ 
                 userId: 'me', 
-                requestBody: { raw: base64EncodedEmail } 
+                requestBody: { raw: base64Raw } 
             });
 
-            // 1. & 11. Strict Delivery Check
-            if (!response.data || !response.data.id) {
-                console.error(`[Worker] [GmailAPI] ❌ Failed: No messageId in response`, response.data);
-                throw new Error('Gmail API response missing messageId');
+            if (!gResponse.data || !gResponse.data.id) throw new Error('Gmail API did not return a messageId.');
+            finalMessageId = gResponse.data.id;
+        } else {
+            // Standard SMTP
+            transporter = nodemailer.createTransport({
+                host: sender.smtpHost,
+                port: parseInt(sender.smtpPort),
+                secure: sender.smtpPort == 465,
+                auth: { user: sender.smtpUser, pass: sender.smtpPassword },
+                tls: { rejectUnauthorized: false }
+            });
+
+            const mailOptions = {
+                from: `"${sender.senderName}" <${sender.senderEmail}>`,
+                to: log.email,
+                subject: subject,
+                html: html,
+                attachments: []
+            };
+
+            if (customer?.pdf_url) {
+                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 15000 });
+                mailOptions.attachments.push({
+                    filename: `Cert_${log.customer_id}.pdf`,
+                    content: Buffer.from(response.data),
+                    contentType: 'application/pdf'
+                });
             }
 
-            console.log(`[Worker] [GmailAPI] ✅ Success. Response:`, {
-                messageId: response.data.id,
-                threadId: response.data.threadId
-            });
-        } else {
             const info = await transporter.sendMail(mailOptions);
-            if (!info.messageId) throw new Error('SMTP send failed: No messageId');
-            console.log(`[Worker] [SMTP] ✅ Success. messageId: ${info.messageId}`);
+            if (!info.messageId) throw new Error('SMTP failed: No messageId.');
+            finalMessageId = info.messageId;
         }
 
-        // 6. Update Success
+        // 5. Update DB
+        console.log(`[Worker] [${log.id}] ✅ SENT. MessageID: ${finalMessageId}`);
         await supabase.from('email_logs').update({
             status: 'sent',
             sent_time: new Date().toISOString(),
-            error_message: null,
-            retry_reason: null,
-            message_id: isGoogleHttpApi ? response.data.id : info.messageId // Part 4 - Log messageId
+            message_id: finalMessageId,
+            error_message: null
         }).eq('id', log.id);
 
-        // Update counts in campaign
-        // ONLY increment sentCount once. If it was already failed before, we don't want to double count sentCount?
-        // Actually, the simplest way is to have a specialized RPC or check the log status before incrementing.
-        // For now, let's just use the RPC but be mindful of the counts.
         await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
-
-        console.log(`[Worker] ✅ Sent successfully to ${log.email}`);
-
-        // 7. Check if Campaign is finished
         await checkCampaignCompletion(log.campaign_id);
 
     } catch (err) {
-        console.error(`[Worker] ❌ Failed to send to ${log.email}:`, err.message);
-        
+        console.error(`[Worker] [${log.id}] ❌ ERROR: ${err.message}`);
         const newRetryCount = (log.retry_count || 0) + 1;
-        const isTerminalFailure = newRetryCount >= 3;
+        const isTerminal = newRetryCount >= 3;
 
         await supabase.from('email_logs').update({
-            status: isTerminalFailure ? 'failed_permanent' : 'failed',
+            status: isTerminal ? 'failed_permanent' : 'failed',
             error_message: err.message,
             retry_count: newRetryCount,
             last_retry_time: new Date().toISOString()
         }).eq('id', log.id);
 
-        if (isTerminalFailure) {
-            await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
-        } else {
-            // Part 5: Delay between retries (added to worker picking logic too, but we wait here for logging)
-            const retryDelay = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
-            console.log(`[Worker] 🔁 Retry ${newRetryCount}/3 for ${log.email} in ${retryDelay}ms. Reason: ${err.message}`);
-        }
-
+        if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
     }
 }
 
-/**
- * Checks if all logs for a campaign are finished and updates the campaign status
- */
 async function checkCampaignCompletion(campaign_id) {
     try {
-        const { data: remaining, error } = await supabase
+        const { data: remaining } = await supabase
             .from('email_logs')
             .select('id')
             .eq('campaign_id', campaign_id)
             .in('status', ['pending', 'retrying', 'failed', 'processing'])
             .lt('retry_count', 3);
 
-        if (!error && remaining.length === 0) {
+        if (!remaining || remaining.length === 0) {
             const { data: campaign } = await supabase.from('campaigns').select('errorCount, recipients').eq('id', campaign_id).single();
-            const total = (campaign.recipients || []).length;
-            const finalStatus = campaign.errorCount > 0 ? `Hoàn thành (Lỗi ${campaign.errorCount}/${total})` : 'Hoàn thành';
-            await supabase.from('campaigns').update({ status: finalStatus }).eq('id', campaign_id);
-            console.log(`[Worker] 🏁 Campaign ${campaign_id} finished: ${finalStatus}`);
+            const total = (campaign?.recipients || []).length;
+            const final = campaign.errorCount > 0 ? `Hoàn thành (Lỗi ${campaign.errorCount}/${total})` : 'Hoàn thành';
+            await supabase.from('campaigns').update({ status: final }).eq('id', campaign_id);
+            console.log(`[Worker] 🏁 Campaign ${campaign_id} finish: ${final}`);
         }
-    } catch (e) {
-        console.error('[Worker] Completion check error:', e.message);
+    } catch (e) {}
+}
+
+async function startRecoveryWorker() {
+    if (isRecoveryRunning) return;
+    isRecoveryRunning = true;
+    try {
+        await supabase.rpc('recover_failed_tasks');
+    } catch (err) {
+        console.error('[Recovery] Loop Error:', err.message);
+    } finally {
+        isRecoveryRunning = false;
     }
 }
 
-// Start workers
+// Start Loops
 setInterval(startWorker, WORKER_INTERVAL);
 setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
 

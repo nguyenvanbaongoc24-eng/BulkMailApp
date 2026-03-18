@@ -11,6 +11,7 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
 }
 
 async function initBrowser() {
+    console.log('[Scraper] Initializing browser...');
     const launchOptions = {
         headless: 'new',
         args: [
@@ -18,138 +19,82 @@ async function initBrowser() {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--ignore-certificate-errors',
-            '--ignore-certificate-errors-spki-list',
-            '--disable-background-networking',
-            '--disable-default-apps',
-            '--disable-extensions',
-            '--disable-sync',
-            '--disable-translate',
-            '--hide-scrollbars',
-            '--metrics-recording-only',
-            '--mute-audio',
-            '--no-first-run',
-            '--safebrowsing-disable-auto-update',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-site-isolation-trials',
-            '--no-proxy-server',
-            '--disable-blink-features=AutomationControlled',
-            '--disable-infobars',
-            '--password-store=basic',
-            '--use-mock-keychain',
-            '--disable-features=CalculateNativeWinOcclusion'
+            '--ignore-certificate-errors'
         ],
         ignoreHTTPSErrors: true,
         acceptInsecureCerts: true,
         defaultViewport: null,
-        userDataDir: path.join(__dirname, '..', 'tmp_puppeteer'),
-        extraPrefsCP: {
-            'download.default_directory': DOWNLOAD_DIR,
-            'download.prompt_for_download': false,
-            'download.directory_upgrade': true,
-            'safebrowsing.enabled': true
-        }
+        userDataDir: path.join(__dirname, '..', 'tmp_puppeteer')
     };
 
+    // Auto-detect Chrome executable for Render
     let foundPath = null;
+    const searchRoots = [
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        path.join(require('os').homedir(), '.cache', 'puppeteer', 'chrome'),
+        '/opt/render/.cache/puppeteer/chrome',
+        '/home/render/.cache/puppeteer/chrome'
+    ];
 
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        if (require('fs').existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
-            foundPath = process.env.PUPPETEER_EXECUTABLE_PATH;
-        } else {
-            delete process.env.PUPPETEER_EXECUTABLE_PATH;
-        }
-    }
-
-    if (!foundPath) {
-        const homeDir = require('os').homedir();
-        const searchRoots = [
-            path.join(process.cwd(), '.cache', 'puppeteer', 'chrome'),
-            path.join(homeDir, '.cache', 'puppeteer', 'chrome'),
-            path.join(process.env.LOCALAPPDATA || '', 'puppeteer', 'chrome'),
-            '/opt/render/.cache/puppeteer/chrome',
-            '/home/render/.cache/puppeteer/chrome'
-        ];
-
-        for (const root of searchRoots) {
+    for (const root of searchRoots) {
+        if (root && fs.existsSync(root)) {
+            if (fs.statSync(root).isFile()) {
+                foundPath = root;
+                break;
+            }
+            // If it's a directory, look for binary
             try {
-                if (require('fs').existsSync(root)) {
-                    const versions = require('fs').readdirSync(root);
-                    for (const v of versions) {
-                        const possiblePaths = [
-                            path.join(root, v, 'chrome-linux64', 'chrome'),
-                            path.join(root, v, 'chrome-win64', 'chrome.exe'),
-                            path.join(root, v, 'chrome-win32', 'chrome.exe')
-                        ];
-                        for (const p of possiblePaths) {
-                            if (require('fs').existsSync(p)) {
-                                foundPath = p;
-                                break;
-                            }
-                        }
-                        if (foundPath) break;
-                    }
+                const items = fs.readdirSync(root);
+                for (const item of items) {
+                    const p = path.join(root, item, 'chrome-linux64', 'chrome');
+                    if (fs.existsSync(p)) { foundPath = p; break; }
                 }
-            } catch (e) {}
-            if (foundPath) break;
+            } catch(e) {}
         }
+        if (foundPath) break;
     }
 
-    if (foundPath) {
-        launchOptions.executablePath = foundPath;
-    }
+    if (foundPath) launchOptions.executablePath = foundPath;
 
     return await puppeteer.launch(launchOptions);
 }
 
-function normalizeSerial(s) {
-    if (!s) return '';
-    return s.toString().replace(/\s/g, '').toUpperCase();
-}
-
 /**
  * Scrape the latest digital certificate for a given MST (tax code).
- * 
- * @param {Object} browser - Puppeteer browser instance
- * @param {string} mst - Tax code to search
- * @param {string|string[]} excelSerials - Array or string of serials from Excel for validation
- * @param {Object} recipientInfo - Full recipient info for filename formatting
- * @returns {Object|null} { filePath, fileName, status, message } or null
+ * Returns { status: 'Matched'|'Not Found'|'Not Matched'|'Error', message, filePath, fileName, dirPath }
  */
 async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
     let page = null;
+    const mstDownloadDir = path.join(DOWNLOAD_DIR, `${mst}_${Date.now()}`);
     
     try {
-        const mstDownloadDir = path.join(DOWNLOAD_DIR, `${mst}_${Date.now()}`);
-        if (!fs.existsSync(mstDownloadDir)) {
-            fs.mkdirSync(mstDownloadDir, { recursive: true });
-        }
+        if (!fs.existsSync(mstDownloadDir)) fs.mkdirSync(mstDownloadDir, { recursive: true });
 
         page = await browser.newPage();
-        
         const client = await page.createCDPSession();
         await client.send('Page.setDownloadBehavior', {
             behavior: 'allow',
             downloadPath: mstDownloadDir
         });
 
-        await page.goto(SEARCH_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+        console.log(`[Scraper] [${mst}] Navigating to ${SEARCH_URL}...`);
+        await page.goto(SEARCH_URL, { waitUntil: 'networkidle2', timeout: 45000 });
 
-        // Phase 15: Use specific ASP.NET selectors discovered via visual debug
-        const mstInputSelector = 'input[name$="txtMasothue"], input[id$="txtMasothue"], input[name$="txtTaxCode"]';
-        const searchBtnSelector = 'input[name$="btnTim"], input[id$="btnTim"], input[name$="btnSearch"], input[type="submit"]';
+        const mstInputSelector = 'input[name$="txtMasothue"], input[id$="txtMasothue"]';
+        const searchBtnSelector = 'input[name$="btnTim"], input[id$="btnTim"], input[type="submit"]';
 
-        console.log(`[Scraper] 🔍 Filling MST: ${mst}...`);
-        await page.waitForSelector(mstInputSelector, { timeout: 15000 });
+        await page.waitForSelector(mstInputSelector, { timeout: 10000 });
         
+        console.log(`[Scraper] [${mst}] Entering tax code...`);
         await page.focus(mstInputSelector);
         await page.click(mstInputSelector, { clickCount: 3 });
         await page.keyboard.press('Backspace');
-        await page.type(mstInputSelector, mst, { delay: 50 });
+        await page.type(mstInputSelector, String(mst).trim(), { delay: 30 });
 
         const searchBtn = await page.$(searchBtnSelector);
-        if (!searchBtn) throw new Error('Không tìm thấy nút Tìm kiếm');
+        if (!searchBtn) throw new Error('Search button not found in DOM.');
 
+        // Intercept new tab results (ASP.NET common behavior)
         const tabPromise = new Promise(resolve => {
             const handler = async (target) => {
                 const newPage = await target.page().catch(() => null);
@@ -159,51 +104,36 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 }
             };
             browser.on('targetcreated', handler);
-            setTimeout(() => {
-                browser.off('targetcreated', handler);
-                resolve(null);
-            }, 8000);
+            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 6000);
         });
 
         await searchBtn.click();
-
         const newPage = await tabPromise;
-        let resultPage = page;
-        if (newPage) {
-            resultPage = newPage;
-            console.log('[Scraper] Bắt được kết quả ở Tab mới.');
-            await resultPage.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
-        } else {
-            console.log('[Scraper] Đang tìm kết quả trên trang hiện tại...');
-            await page.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
-        }
+        let resultPage = newPage || page;
 
-        await new Promise(r => setTimeout(r, 4000));
+        console.log(`[Scraper] [${mst}] Waiting for result evaluation...`);
+        await resultPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
+        await new Promise(r => setTimeout(r, 2000));
 
-        // Check if results exist
-        console.log('[Scraper] Checking for no results...');
+        // 1. Check for "No Records"
         const noResult = await resultPage.evaluate(() => {
             const text = document.body.innerText.toLowerCase();
             return text.includes('không tìm thấy') || text.includes('no records found') || text.includes('không có dữ liệu');
         });
 
         if (noResult) {
-            return { status: 'Not Found', message: `Không tìm thấy thông tin cho MST ${mst} trên hệ thống CA.` };
+            return { status: 'Not Found', message: 'MST không tồn tại trên hệ thống CA.' };
         }
 
-        const scrapeResult = await resultPage.evaluate((targetSerials) => {
-            console.log('[Scraper] Evaluating DOM for results...');
+        // 2. Evaluate Results & Matches
+        const matchData = await resultPage.evaluate((targetSerials) => {
             const norm = (s) => s ? s.toString().replace(/\s/g, '').toUpperCase() : '';
-            
             const targets = Array.isArray(targetSerials) 
                 ? targetSerials.map(norm).filter(s => s !== '')
                 : [norm(targetSerials)].filter(s => s !== '');
             
-            const hasTarget = targets.length > 0;
-            
-            // Phase 15: Advanced Result Extraction for ASP.NET Block Layout
-            const results = [];
             const tables = Array.from(document.querySelectorAll('table[id="tblresult"]'));
+            const results = [];
             
             tables.forEach(tbl => {
                 const cells = Array.from(tbl.querySelectorAll('td')).map(td => td.innerText.trim());
@@ -213,7 +143,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 if (serialIdx !== -1 && cells[serialIdx + 1]) {
                     serialText = norm(cells[serialIdx + 1]);
                 } else {
-                    const match = tbl.innerText.match(/(?:Serial|S[ốố]\s*ch[ứứ]ng\s*th[ưư]|S\/N)[:\s]*([A-F0-9\s-]{10,})/i);
+                    const match = tbl.innerText.match(/(?:Serial|S[ốố]|S\/N)[:\s]*([A-F0-9\s-]{10,})/i);
                     if (match) serialText = norm(match[1]);
                 }
 
@@ -231,50 +161,39 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
             if (results.length === 0) return null;
 
-            // 1. Finding by Target Serial
-            if (hasTarget) {
+            // Priority 1: Exact match by serial
+            if (targets.length > 0) {
                 const matched = results.find(r => targets.some(t => r.serial.includes(t) || t.includes(r.serial)));
                 if (matched) return { found: true, id: matched.linkId, serial: matched.serial };
             }
 
-            // 2. Fallback to Latest (preferring active ones first)
+            // Priority 2: Fallback to latest active (if no serial provided)
             const fallback = results.filter(r => r.isActive).pop() || results.pop();
             return { found: true, id: fallback.linkId, serial: fallback.serial || 'Latest' };
         }, excelSerials);
 
-        if (!scrapeResult || !scrapeResult.found) {
-            console.log('[Scraper] No matching certificate found or scrape failed.');
-            const searchList = Array.isArray(excelSerials) ? excelSerials.join(' / ') : (excelSerials || 'N/A');
-            const msg = `Không khớp Serial mục tiêu (${searchList}). Tra cứu thất bại hoặc trang web đổi giao diện.`;
-            console.error(`[Scraper] ✖ ${msg}`);
-            return { status: 'Not Matched', message: msg };
+        if (!matchData || !matchData.found) {
+            return { status: 'Not Matched', message: 'Không tìm thấy Serial khớp với yêu cầu.' };
         }
 
-        console.log(`[Scraper] ✔ Khớp Serial: ${scrapeResult.serial}. Đang tải...`);
-        const targetLink = await resultPage.$(`#${scrapeResult.id}`);
-        if (!targetLink) {
-            return { status: 'Error', message: 'Lỗi định vị link tải' };
-        }
+        // 3. Trigger Download
+        console.log(`[Scraper] [${mst}] Match found: ${matchData.serial}. Clicking download...`);
+        const targetLink = await resultPage.$(`#${matchData.id}`);
+        if (!targetLink) return { status: 'Error', message: 'Lỗi định vị link tải (DOM error).' };
 
         await targetLink.click();
+        await new Promise(r => setTimeout(r, 5000));
 
-        await new Promise(r => setTimeout(r, 4000));
-
+        // 4. Wait for file
         const beforeDownload = Date.now();
         let downloadedFile = null;
-        for (let i = 0; i < 30; i++) { 
+        for (let i = 0; i < 25; i++) { 
             await new Promise(r => setTimeout(r, 1000));
-            
             try {
-                if (!fs.existsSync(mstDownloadDir)) break;
                 const files = fs.readdirSync(mstDownloadDir);
-                const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'))
-                    .map(f => ({ name: f, stat: fs.statSync(path.join(mstDownloadDir, f)) }))
-                    .filter(f => f.stat.mtimeMs >= beforeDownload - 5000)
-                    .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs); 
-                    
-                if (validFiles.length > 0) {
-                    downloadedFile = validFiles[0].name;
+                const valid = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'));
+                if (valid.length > 0) {
+                    downloadedFile = valid[0];
                     break;
                 }
             } catch (err) {}
@@ -282,29 +201,21 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         if (downloadedFile) {
             const originalPath = path.join(mstDownloadDir, downloadedFile);
-            const cleanTen = (recipientInfo.TenCongTy || '').replace(/[\\/:*?"<>|]/g, '-').trim();
-            const cleanNgay = (recipientInfo.NgayHetHanChuKySo || '').replace(/\//g, '-');
-            const newFileName = `${mst}*${cleanTen}*${cleanNgay}.pdf`;
+            const cleanTen = (recipientInfo.TenCongTy || 'Company').replace(/[\\/:*?"<>|]/g, '-').trim();
+            const newFileName = `${mst}_${cleanTen}.pdf`;
             const newPath = path.join(mstDownloadDir, newFileName);
             
-            try {
-                fs.renameSync(originalPath, newPath);
-                return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
-            } catch (renameErr) {
-                return { filePath: originalPath, fileName: downloadedFile, dirPath: mstDownloadDir, status: 'Matched' };
-            }
+            fs.renameSync(originalPath, newPath);
+            return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
         }
 
-        try { fs.rmSync(mstDownloadDir, { recursive: true, force: true }); } catch(e) {}
-        return null;
+        return { status: 'Error', message: 'Tải file thất bại (Timeout).' };
 
     } catch (error) {
-        console.error(`[Scraper] ❌ Lỗi MST ${mst}:`, error.message);
-        return null;
+        console.error(`[Scraper] [${mst}] ❌ Error:`, error.message);
+        return { status: 'Error', message: error.message };
     } finally {
-        if (page) {
-            await page.close().catch(() => {});
-        }
+        if (page) await page.close().catch(() => {});
     }
 }
 
@@ -315,8 +226,8 @@ function cleanupCerts() {
             files.forEach(file => {
                 const filePath = path.join(DOWNLOAD_DIR, file);
                 const stat = fs.statSync(filePath);
-                if (Date.now() - stat.mtime.getTime() > 24 * 60 * 60 * 1000) {
-                    fs.unlinkSync(filePath);
+                if (Date.now() - stat.mtime.getTime() > 12 * 60 * 60 * 1000) {
+                    fs.rmSync(filePath, { recursive: true, force: true });
                 }
             });
         }
