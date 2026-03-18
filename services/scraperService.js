@@ -87,7 +87,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         await page.type(mstInputSelector, String(mst).trim(), { delay: 30 });
 
         const searchBtn = await page.$(searchBtnSelector);
-        if (!searchBtn) throw new Error('Search button not found in DOM.');
+        if (!searchBtn) throw new Error('Cổng CA: Nút Tìm kiếm không tồn tại.');
 
         const tabPromise = new Promise(resolve => {
             const handler = async (target) => {
@@ -98,16 +98,20 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 }
             };
             browser.on('targetcreated', handler);
-            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 6000);
+            // Wait up to 10s for new tab (Render can be slow)
+            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
         });
 
+        console.log(`[Scraper] [${mst}] Clicking Search...`);
         await searchBtn.click();
         const newPage = await tabPromise;
         let resultPage = newPage || page;
 
-        console.log(`[Scraper] [${mst}] Waiting for results...`);
-        await resultPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
-        await new Promise(r => setTimeout(r, 2000));
+        if (newPage) console.log(`[Scraper] [${mst}] New result tab detected.`);
+
+        console.log(`[Scraper] [${mst}] Waiting for results to load...`);
+        await resultPage.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
+        await new Promise(r => setTimeout(r, 4000)); // Solid wait for table to render
 
         const noResult = await resultPage.evaluate(() => {
             const text = document.body.innerText.toLowerCase();
@@ -115,7 +119,8 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         });
 
         if (noResult) {
-            return { status: 'Not Found', message: 'MST không tồn tại trên hệ thống CA.' };
+            console.warn(`[Scraper] [${mst}] Gateway returned "No records found".`);
+            return { status: 'Not Found', message: 'Hệ thống CA báo: Không tìm thấy chứng thư cho MST này.' };
         }
 
         const matchData = await resultPage.evaluate((targetSerials) => {
@@ -124,10 +129,11 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 ? targetSerials.map(norm).filter(s => s !== '')
                 : [norm(targetSerials)].filter(s => s !== '');
             
+            console.log("Analyzing Gateway blocks...");
             const tables = Array.from(document.querySelectorAll('table[id="tblresult"]'));
             const results = [];
             
-            tables.forEach(tbl => {
+            tables.forEach((tbl, idx) => {
                 const cells = Array.from(tbl.querySelectorAll('td')).map(td => td.innerText.trim());
                 let serialText = '';
                 
@@ -151,30 +157,32 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 }
             });
 
-            if (results.length === 0) return { found: false, count: 0 };
-
-            if (targets.length > 0) {
-                const matched = results.find(r => targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial)));
-                if (matched) {
-                    return { found: true, id: matched.linkId, serial: matched.serial, count: results.length };
-                }
-                return { found: false, count: results.length, reason: 'No serial match' };
-            }
-
-            const fallback = results.filter(r => r.isActive).pop() || results.pop();
-            return { found: true, id: fallback.linkId, serial: fallback.serial || 'Latest', count: results.length };
+            return { foundResults: results, targets: targets };
         }, excelSerials);
 
-        if (!matchData || !matchData.found) {
-            const reason = matchData?.reason || 'Không tìm thấy kết quả phù hợp';
-            const count = matchData?.count || 0;
+        if (!matchData || !matchData.foundResults || matchData.foundResults.length === 0) {
+            console.warn(`[Scraper] [${mst}] Tables found: 0. Portal might be in error state.`);
+            return { status: 'Error', message: 'Lỗi nạp bảng kết quả từ Cổng CA.' };
+        }
+
+        const foundSerials = matchData.foundResults.map(r => r.serial);
+        console.log(`[Scraper] [${mst}] Found ${foundSerials.length} certs: [${foundSerials.join(', ')}]`);
+        console.log(`[Scraper] [${mst}] Targets to match: [${matchData.targets.join(', ')}]`);
+
+        const matched = matchData.foundResults.find(r => 
+            matchData.targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial))
+        );
+
+        if (!matched && matchData.targets.length > 0) {
             return { 
                 status: 'Not Matched', 
-                message: `${reason} (Tìm thấy ${count} bản ghi nhưng không khớp Serial).` 
+                message: `Tìm thấy ${foundSerials.length} chứng thư nhưng không khớp Serial [${foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
             };
         }
 
-        console.log(`[Scraper] [${mst}] Match: ${matchData.serial}. Downloading...`);
+        const finalMatch = matched || matchData.foundResults.filter(r => r.isActive).pop() || matchData.foundResults.pop();
+
+        console.log(`[Scraper] [${mst}] Proceeding with Download for Serial: ${finalMatch.serial}...`);
         const targetLink = await resultPage.$(`#${matchData.id}`);
         if (!targetLink) return { status: 'Error', message: 'Lỗi định vị link tải.' };
 
