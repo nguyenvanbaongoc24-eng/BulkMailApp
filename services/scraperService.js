@@ -51,74 +51,52 @@ async function initBrowser() {
         }
     };
 
-    // Phase 8: Official .puppeteerrc.cjs support with failsafe fallbacks
     let foundPath = null;
 
-    // 1. Check and UNSET invalid environment variable
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         if (require('fs').existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
-            console.log(`[Scraper] 📍 Using Env Path: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
             foundPath = process.env.PUPPETEER_EXECUTABLE_PATH;
         } else {
-            console.warn(`[Scraper] ⚠ INVALID ENV PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}. Ignoring.`);
             delete process.env.PUPPETEER_EXECUTABLE_PATH;
         }
     }
 
-    // 2. Aggressive multi-root search including the NEW .cache folder from .puppeteerrc.cjs
     if (!foundPath) {
         const homeDir = require('os').homedir();
         const searchRoots = [
-            path.join(process.cwd(), '.cache', 'puppeteer', 'chrome'), // Configured in .puppeteerrc.cjs (Phase 8)
-            path.join(homeDir, '.cache', 'puppeteer', 'chrome'), // Default user home cache
+            path.join(process.cwd(), '.cache', 'puppeteer', 'chrome'),
+            path.join(homeDir, '.cache', 'puppeteer', 'chrome'),
+            path.join(process.env.LOCALAPPDATA || '', 'puppeteer', 'chrome'),
             '/opt/render/.cache/puppeteer/chrome',
-            '/home/render/.cache/puppeteer/chrome',
-            '/opt/render/project/src/.cache/puppeteer/chrome',
-            '/opt/render/project/.render/chrome'
+            '/home/render/.cache/puppeteer/chrome'
         ];
 
-        console.log(`[Scraper] 🔍 STARTING AGGRESSIVE CHROME SEARCH. Home: ${homeDir}, CWD: ${process.cwd()}`);
         for (const root of searchRoots) {
             try {
                 if (require('fs').existsSync(root)) {
-                    console.log(`[Scraper] Root exists: ${root}. Browsing versions...`);
                     const versions = require('fs').readdirSync(root);
                     for (const v of versions) {
-                        const p = path.join(root, v, 'chrome-linux64', 'chrome');
-                        if (require('fs').existsSync(p)) {
-                            console.log(`[Scraper] ✅ FOUND CHROME AT: ${p}`);
-                            foundPath = p;
-                            break;
+                        const possiblePaths = [
+                            path.join(root, v, 'chrome-linux64', 'chrome'),
+                            path.join(root, v, 'chrome-win64', 'chrome.exe'),
+                            path.join(root, v, 'chrome-win32', 'chrome.exe')
+                        ];
+                        for (const p of possiblePaths) {
+                            if (require('fs').existsSync(p)) {
+                                foundPath = p;
+                                break;
+                            }
                         }
+                        if (foundPath) break;
                     }
                 }
-            } catch (e) {
-                console.error(`[Scraper] Error searching root ${root}:`, e.message);
-            }
-            if (foundPath) break;
-        }
-    }
-
-    // 3. Last stand: try finding any system chromium/chrome
-    if (!foundPath) {
-        const binaries = ['google-chrome-stable', 'google-chrome', 'chromium-browser', 'chromium'];
-        for (const bin of binaries) {
-            try { 
-                const { execSync } = require('child_process');
-                const pathFromWhich = execSync(`which ${bin}`, { encoding: 'utf8' }).trim();
-                if (pathFromWhich && require('fs').existsSync(pathFromWhich)) {
-                    console.log(`[Scraper] Found system binary: ${pathFromWhich}`);
-                    foundPath = pathFromWhich;
-                    break;
-                }
             } catch (e) {}
+            if (foundPath) break;
         }
     }
 
     if (foundPath) {
         launchOptions.executablePath = foundPath;
-    } else {
-        console.error('[Scraper] ❌ CRITICAL: NO CHROME BROWSER FOUND ANYWHERE!');
     }
 
     return await puppeteer.launch(launchOptions);
@@ -134,11 +112,11 @@ function normalizeSerial(s) {
  * 
  * @param {Object} browser - Puppeteer browser instance
  * @param {string} mst - Tax code to search
- * @param {string} excelSerial - Serial from Excel for validation
+ * @param {string|string[]} excelSerials - Array or string of serials from Excel for validation
  * @param {Object} recipientInfo - Full recipient info for filename formatting
  * @returns {Object|null} { filePath, fileName, status, message } or null
  */
-async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
+async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
     let page = null;
     
     try {
@@ -155,182 +133,167 @@ async function getLatestCertificate(browser, mst, excelSerial, recipientInfo) {
             downloadPath: mstDownloadDir
         });
 
-        await page.goto(SEARCH_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(SEARCH_URL, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        const searchInput = await page.$('input[type="text"]');
-        if (!searchInput) {
-            console.error(`[Scraper] Không tìm thấy ô tìm kiếm trên trang.`);
-            return null;
+        // Phase 15: Use specific ASP.NET selectors discovered via visual debug
+        const mstInputSelector = 'input[name$="txtMasothue"], input[id$="txtMasothue"], input[name$="txtTaxCode"]';
+        const searchBtnSelector = 'input[name$="btnTim"], input[id$="btnTim"], input[name$="btnSearch"], input[type="submit"]';
+
+        console.log(`[Scraper] 🔍 Filling MST: ${mst}...`);
+        await page.waitForSelector(mstInputSelector, { timeout: 15000 });
+        
+        await page.focus(mstInputSelector);
+        await page.click(mstInputSelector, { clickCount: 3 });
+        await page.keyboard.press('Backspace');
+        await page.type(mstInputSelector, mst, { delay: 50 });
+
+        const searchBtn = await page.$(searchBtnSelector);
+        if (!searchBtn) throw new Error('Không tìm thấy nút Tìm kiếm');
+
+        const tabPromise = new Promise(resolve => {
+            const handler = async (target) => {
+                const newPage = await target.page().catch(() => null);
+                if (newPage) {
+                    browser.off('targetcreated', handler);
+                    resolve(newPage);
+                }
+            };
+            browser.on('targetcreated', handler);
+            setTimeout(() => {
+                browser.off('targetcreated', handler);
+                resolve(null);
+            }, 8000);
+        });
+
+        await searchBtn.click();
+
+        const newPage = await tabPromise;
+        let resultPage = page;
+        if (newPage) {
+            resultPage = newPage;
+            console.log('[Scraper] Bắt được kết quả ở Tab mới.');
+            await resultPage.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
+        } else {
+            console.log('[Scraper] Đang tìm kết quả trên trang hiện tại...');
+            await page.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
         }
 
-        await searchInput.click({ clickCount: 3 }); 
-        await searchInput.type(mst, { delay: 50 });
+        await new Promise(r => setTimeout(r, 4000));
 
-        const searchBtn = await page.$('input[type="submit"], button[type="submit"], .btn-search, #btnSearch');
-        if (searchBtn) {
-            const newPagePromise = new Promise(resolve => {
-                browser.once('targetcreated', async (target) => {
-                    const newPage = await target.page().catch(() => null);
-                    resolve(newPage);
-                });
-                setTimeout(() => resolve(null), 5000);
-            });
+        // Check if results exist
+        const noResult = await resultPage.evaluate(() => {
+            const text = document.body.innerText.toLowerCase();
+            return text.includes('không tìm thấy') || text.includes('no records found') || text.includes('không có dữ liệu');
+        });
 
-            await searchBtn.click();
+        if (noResult) {
+            return { status: 'Not Found', message: `Không tìm thấy thông tin cho MST ${mst} trên hệ thống CA.` };
+        }
 
-            const newPage = await newPagePromise;
-
-            let resultPage = page;
-            if (newPage) {
-                resultPage = newPage;
-                await resultPage.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
-            } else {
-                await page.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
-            }
-
-            await new Promise(r => setTimeout(r, 2000));
-
-            // Check if results exist
-            const noResult = await resultPage.evaluate(() => {
-                const text = document.body.innerText.toLowerCase();
-                return text.includes('không tìm thấy') || text.includes('no records found') || text.includes('không có dữ liệu');
-            });
-
-            if (noResult) {
-                return { status: 'Not Found', message: `Không tìm thấy thông tin cho MST ${mst} trên hệ thống CA.` };
-            }
-
-            const matchingIndex = await resultPage.evaluate((targetSerial) => {
-                const norm = (s) => s.toString().replace(/\s/g, '').toUpperCase();
-                const target = targetSerial ? norm(targetSerial) : null;
+        const scrapeResult = await resultPage.evaluate((targetSerials) => {
+            const norm = (s) => s ? s.toString().replace(/\s/g, '').toUpperCase() : '';
+            
+            const targets = Array.isArray(targetSerials) 
+                ? targetSerials.map(norm).filter(s => s !== '')
+                : [norm(targetSerials)].filter(s => s !== '');
+            
+            const hasTarget = targets.length > 0;
+            
+            // Phase 15: Advanced Result Extraction for ASP.NET Block Layout
+            const results = [];
+            const tables = Array.from(document.querySelectorAll('table[id="tblresult"]'));
+            
+            tables.forEach(tbl => {
+                const cells = Array.from(tbl.querySelectorAll('td')).map(td => td.innerText.trim());
+                let serialText = '';
                 
-                const allElements = Array.from(document.querySelectorAll('td, span, div, p, b, li'));
-                const serialLabels = allElements.filter(el => el.innerText.includes('Serial'));
-                
-                for (let labelEl of serialLabels) {
-                    const labelText = labelEl.innerText;
-                    let val = null;
-                    const match = labelText.match(/Serial[:\s]+([A-Z0-9]{10,})/i);
-                    if (match) val = match[1];
-                    else if (labelEl.nextElementSibling) val = labelEl.nextElementSibling.innerText;
-                    
-                    // IF we have a target, it MUST match.
-                    // IF we don't have a target, we take the first label we find (latest).
-                    if (!target || (val && norm(val) === target)) {
-                        let current = labelEl;
-                        let searchCount = 0;
-                        while (current && searchCount < 50) {
-                            searchCount++;
-                            if (current.tagName === 'A' && (current.innerText.toLowerCase().includes('tải về') || current.innerText.toLowerCase().includes('tải xuống'))) {
-                                const tempId = 'target_download_' + Date.now();
-                                current.setAttribute('id', tempId);
-                                return tempId;
-                            }
-                            current = current.nextElementSibling || current.parentElement;
-                        }
-                    }
+                const serialIdx = cells.findIndex(c => /Serial|S[ốố]\s*ch[ứứ]ng\s*th[ưư]/i.test(c));
+                if (serialIdx !== -1 && cells[serialIdx + 1]) {
+                    serialText = norm(cells[serialIdx + 1]);
+                } else {
+                    const match = tbl.innerText.match(/(?:Serial|S[ốố]\s*ch[ứứ]ng\s*th[ưư]|S\/N)[:\s]*([A-F0-9\s-]{10,})/i);
+                    if (match) serialText = norm(match[1]);
                 }
-                return null;
-            }, excelSerial);
 
-            if (!matchingIndex) {
-                const msg = `PDF mismatch or not found (Serial: ${excelSerial || 'N/A'})`;
-                console.error(`[Scraper] ✖ ${msg}`);
-                return { status: 'Not Matched', message: msg };
+                const link = tbl.querySelector('a');
+                if (link) {
+                    const id = 'dl_' + Math.random().toString(36).substr(2, 9);
+                    link.setAttribute('id', id);
+                    results.push({
+                        serial: serialText,
+                        linkId: id,
+                        isActive: tbl.innerText.includes('Hoạt động')
+                    });
+                }
+            });
+
+            if (results.length === 0) return null;
+
+            // 1. Finding by Target Serial
+            if (hasTarget) {
+                const matched = results.find(r => targets.some(t => r.serial.includes(t) || t.includes(r.serial)));
+                if (matched) return { found: true, id: matched.linkId, serial: matched.serial };
             }
 
-            console.log(`[Scraper] ✔ Khớp Serial. Đang tải...`);
-            const targetLink = await resultPage.$(`#${matchingIndex}`);
-            if (!targetLink) {
-                return { status: 'Error', message: 'Lỗi định vị link tải' };
-            }
+            // 2. Fallback to Latest (preferring active ones first)
+            const fallback = results.filter(r => r.isActive).pop() || results.pop();
+            return { found: true, id: fallback.linkId, serial: fallback.serial || 'Latest' };
+        }, excelSerials);
 
-            await targetLink.click();
+        if (!scrapeResult || !scrapeResult.found) {
+            const searchList = Array.isArray(excelSerials) ? excelSerials.join(' / ') : (excelSerials || 'N/A');
+            const msg = `Không khớp Serial mục tiêu (${searchList}). Tra cứu thất bại hoặc trang web đổi giao diện.`;
+            console.error(`[Scraper] ✖ ${msg}`);
+            return { status: 'Not Matched', message: msg };
+        }
 
+        console.log(`[Scraper] ✔ Khớp Serial: ${scrapeResult.serial}. Đang tải...`);
+        const targetLink = await resultPage.$(`#${scrapeResult.id}`);
+        if (!targetLink) {
+            return { status: 'Error', message: 'Lỗi định vị link tải' };
+        }
+
+        await targetLink.click();
+
+        await new Promise(r => setTimeout(r, 4000));
+
+        const beforeDownload = Date.now();
+        let downloadedFile = null;
+        for (let i = 0; i < 30; i++) { 
+            await new Promise(r => setTimeout(r, 1000));
+            
             try {
-                await resultPage.waitForFunction(
-                    () => {
-                        const links = Array.from(document.querySelectorAll('a'));
-                        return links.some(l => l.innerText.includes('Tải giấy chứng nhận điện tử') || l.innerText.includes('Tải file chứng thư'));
-                    },
-                    { timeout: 15000 }
-                ).catch(() => {});
-            } catch (e) {}
-
-            await new Promise(r => setTimeout(r, 2500));
-
-            const pdfLinks = await resultPage.$$('a');
-            let downloadBtn = null;
-            for (const link of pdfLinks) {
-                const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
-                if (!text) continue;
-                const normalizedText = text.trim().toLowerCase();
-                if (normalizedText.includes('tải giấy chứng nhận điện tử') || /t[ảả]i gi[ấấ]y ch[ứứ]ng nh[ậậ]n/i.test(normalizedText)) {
-                    downloadBtn = link;
+                if (!fs.existsSync(mstDownloadDir)) break;
+                const files = fs.readdirSync(mstDownloadDir);
+                const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'))
+                    .map(f => ({ name: f, stat: fs.statSync(path.join(mstDownloadDir, f)) }))
+                    .filter(f => f.stat.mtimeMs >= beforeDownload - 5000)
+                    .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs); 
+                    
+                if (validFiles.length > 0) {
+                    downloadedFile = validFiles[0].name;
                     break;
                 }
-            }
-
-            if (!downloadBtn) {
-                for (const link of pdfLinks) {
-                    const text = await resultPage.evaluate(el => el.innerText || el.textContent, link);
-                    if (text && text.trim().toLowerCase().includes('tải file chứng thư')) {
-                        downloadBtn = link;
-                        break;
-                    }
-                }
-            }
-
-            if (!downloadBtn) {
-                console.error(`[Scraper] ❌ Không tìm thấy nút tải chứng nhận.`);
-                return null;
-            }
-
-            const beforeDownload = Date.now();
-            await downloadBtn.click();
-            
-            let downloadedFile = null;
-            for (let i = 0; i < 30; i++) { 
-                await new Promise(r => setTimeout(r, 500));
-                
-                try {
-                    if (!fs.existsSync(mstDownloadDir)) break;
-                    const files = fs.readdirSync(mstDownloadDir);
-                    const validFiles = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.part') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'))
-                        .map(f => ({ name: f, stat: fs.statSync(path.join(mstDownloadDir, f)) }))
-                        .filter(f => f.stat.mtimeMs >= beforeDownload - 3000 || f.stat.ctimeMs >= beforeDownload - 3000)
-                        .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs); 
-                        
-                    if (validFiles.length > 0) {
-                        downloadedFile = validFiles[0].name;
-                        await new Promise(r => setTimeout(r, 1000));
-                        break;
-                    }
-                } catch (err) {}
-            }
-
-            if (downloadedFile) {
-                const originalPath = path.join(mstDownloadDir, downloadedFile);
-                const cleanTen = (recipientInfo.TenCongTy || '').replace(/[\\/:*?"<>|]/g, '-').trim();
-                const cleanNgay = (recipientInfo.NgayHetHanChuKySo || '').replace(/\//g, '-');
-                const newFileName = `${mst}*${cleanTen}*${cleanNgay}.pdf`;
-                const newPath = path.join(mstDownloadDir, newFileName);
-                
-                try {
-                    fs.renameSync(originalPath, newPath);
-                    return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
-                } catch (renameErr) {
-                    return { filePath: originalPath, fileName: downloadedFile, dirPath: mstDownloadDir, status: 'Matched' };
-                }
-            }
-
-            try { fs.rmSync(mstDownloadDir, { recursive: true, force: true }); } catch(e) {}
-            return null;
-
-        } else {
-            console.error(`[Scraper] Không tìm thấy nút tìm kiếm.`);
-            return null;
+            } catch (err) {}
         }
+
+        if (downloadedFile) {
+            const originalPath = path.join(mstDownloadDir, downloadedFile);
+            const cleanTen = (recipientInfo.TenCongTy || '').replace(/[\\/:*?"<>|]/g, '-').trim();
+            const cleanNgay = (recipientInfo.NgayHetHanChuKySo || '').replace(/\//g, '-');
+            const newFileName = `${mst}*${cleanTen}*${cleanNgay}.pdf`;
+            const newPath = path.join(mstDownloadDir, newFileName);
+            
+            try {
+                fs.renameSync(originalPath, newPath);
+                return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
+            } catch (renameErr) {
+                return { filePath: originalPath, fileName: downloadedFile, dirPath: mstDownloadDir, status: 'Matched' };
+            }
+        }
+
+        try { fs.rmSync(mstDownloadDir, { recursive: true, force: true }); } catch(e) {}
+        return null;
 
     } catch (error) {
         console.error(`[Scraper] ❌ Lỗi MST ${mst}:`, error.message);
