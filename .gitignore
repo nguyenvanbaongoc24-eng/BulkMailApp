@@ -4,3 +4,14 @@ data/*.json
 uploads/
 error.log
 tmp_puppeteer/
+*.log
+*.txt
+cavn_utf8.html
+cavn.html
+test-*.js
+force-*.js
+inspect-*.js
+debug-*.js
+verify-*.js
+.cache/
+.puppeteer/
