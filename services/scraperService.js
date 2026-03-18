@@ -66,56 +66,10 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         if (!fs.existsSync(mstDownloadDir)) fs.mkdirSync(mstDownloadDir, { recursive: true });
 
         page = await browser.newPage();
-        
-        // Setup Global Interception and Download Path for all newly created tabs as well
-        const setupInterception = async (p) => {
-            try {
-                const client = await p.createCDPSession();
-                await client.send('Page.setDownloadBehavior', {
-                    behavior: 'allow',
-                    downloadPath: mstDownloadDir
-                });
-            } catch (e) {}
-
-            await p.setRequestInterception(true);
-            p.on('request', (request) => {
-                const url = request.url().toLowerCase();
-                if (url.endsWith('.msi') || url.endsWith('.exe') || url.includes('ca2plugin.msi')) {
-                    console.log(`[Scraper] [${mst}] Global blocking installer: ${url}`);
-                    request.abort();
-                } else {
-                    request.continue();
-                }
-            });
-        };
-
-        await setupInterception(page);
-
-        // Persistent interceptor for ALL future tabs (results, downloads, etc)
-        const targetCreatedHandler = async (target) => {
-            if (target.type() === 'page') {
-                const newP = await target.page().catch(() => null);
-                if (newP) {
-                    console.log(`[Scraper] [${mst}] Persistent Intercept applied to new tab: ${target.url()}`);
-                    await setupInterception(newP).catch(() => {});
-                }
-            }
-        };
-        browser.on('targetcreated', targetCreatedHandler);
-
-        // We still need a promise to wait for the specific Search Result tab
-        const resultTabPromise = new Promise(resolve => {
-            const handler = async (target) => {
-                if (target.type() === 'page') {
-                    const newP = await target.page().catch(() => null);
-                    if (newP) {
-                        browser.off('targetcreated', handler);
-                        resolve(newP);
-                    }
-                }
-            };
-            browser.on('targetcreated', handler);
-            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
+        const client = await page.createCDPSession();
+        await client.send('Page.setDownloadBehavior', {
+            behavior: 'allow',
+            downloadPath: mstDownloadDir
         });
 
         console.log(`[Scraper] [${mst}] Navigating to ${SEARCH_URL}...`);
@@ -135,12 +89,35 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         const searchBtn = await page.$(searchBtnSelector);
         if (!searchBtn) throw new Error('Cổng CA: Nút Tìm kiếm không tồn tại.');
 
+        const tabPromise = new Promise(resolve => {
+            const handler = async (target) => {
+                const newPage = await target.page().catch(() => null);
+                if (newPage) {
+                    browser.off('targetcreated', handler);
+                    resolve(newPage);
+                }
+            };
+            browser.on('targetcreated', handler);
+            // Wait up to 10s for new tab (Render can be slow)
+            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
+        });
+
         console.log(`[Scraper] [${mst}] Clicking Search...`);
         await searchBtn.click();
         const newPage = await tabPromise;
         let resultPage = newPage || page;
 
-        if (newPage) console.log(`[Scraper] [${mst}] New result tab detected (Interception applied).`);
+        if (newPage) {
+            console.log(`[Scraper] [${mst}] New result tab detected.`);
+            // Set download behavior on new tab as well
+            try {
+                const newClient = await newPage.createCDPSession();
+                await newClient.send('Page.setDownloadBehavior', {
+                    behavior: 'allow',
+                    downloadPath: mstDownloadDir
+                });
+            } catch(e) {}
+        }
 
         console.log(`[Scraper] [${mst}] Waiting for results to load...`);
         await resultPage.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
@@ -153,7 +130,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         if (noResult) {
             console.warn(`[Scraper] [${mst}] Gateway returned "No records found".`);
-            return { status: 'Not Found', message: '[v18] Hệ thống CA báo: Không tìm thấy chứng thư cho MST này.' };
+            return { status: 'Not Found', message: 'Hệ thống CA báo: Không tìm thấy chứng thư cho MST này.' };
         }
 
         const matchData = await resultPage.evaluate((targetSerials) => {
@@ -169,30 +146,20 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 const cells = Array.from(tbl.querySelectorAll('td')).map(td => td.innerText.trim());
                 let serialText = '';
                 
-                const serialIdx = cells.findIndex(c => /Serial|S[ốố]\s*ch[ứứ]ng\s*th[ưư]/i.test(c));
+                const serialIdx = cells.findIndex(c => /Serial|Số\s*chứng\s*thư/i.test(c));
                 if (serialIdx !== -1 && cells[serialIdx + 1]) {
                     serialText = norm(cells[serialIdx + 1]);
                 } else {
-                    const match = tbl.innerText.match(/(?:Serial|S[ốố]|S\/N)[:\s]*([A-F0-9\s-]{10,})/i);
+                    const match = tbl.innerText.match(/(?:Serial|Số|S\/N)[:\s]*([A-F0-9\s-]{10,})/i);
                     if (match) serialText = norm(match[1]);
                 }
 
-                // Find all links in the table and pick the most relevant one
-                const links = Array.from(tbl.querySelectorAll('a'));
-                console.log(`Table ${idx} links:`, links.map(a => a.innerText.trim()));
-                
-                const bestLink = links.find(a => {
-                    const txt = a.innerText.toLowerCase();
-                    return (txt.includes('giấy chứng nhận') || txt.includes('gcn') || txt.includes('pdf')) &&
-                           !txt.includes('plugin') && !txt.includes('token') && !txt.includes('driver');
-                }) || links.find(a => a.innerText.toLowerCase().includes('tải')) || links[0];
-
-                if (bestLink) {
+                const link = tbl.querySelector('a');
+                if (link) {
                     results.push({
                         serial: serialText,
                         index: idx,
-                        isActive: tbl.innerText.includes('Hoạt động'),
-                        linkText: bestLink.innerText.trim()
+                        isActive: tbl.innerText.includes('Hoạt động')
                     });
                 }
             });
@@ -219,15 +186,9 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 return { found: false, count: results.length, foundSerials: foundSerials, targets: targets };
             }
 
-            // Perform Click immediately on the BEST link in the target table
+            // Perform Click immediately to avoid ID/selector issues
             const targetTable = tables[targetIdx];
-            const targetLinks = Array.from(targetTable.querySelectorAll('a'));
-            const downloadLink = targetLinks.find(a => {
-                const txt = a.innerText.toLowerCase();
-                return (txt.includes('giấy chứng nhận') || txt.includes('gcn') || txt.includes('pdf')) &&
-                       !txt.includes('plugin') && !txt.includes('token') && !txt.includes('driver');
-            }) || targetLinks.find(a => a.innerText.toLowerCase().includes('tải')) || targetLinks[0];
-
+            const downloadLink = targetTable.querySelector('a');
             if (downloadLink) {
                 downloadLink.click();
                 return { found: true, serial: finalSerial, count: results.length };
@@ -240,10 +201,10 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             if (matchData.foundSerials) {
                  return { 
                     status: 'Not Matched', 
-                    message: `[v18] Tìm thấy ${matchData.foundSerials.length} chứng thư nhưng không khớp Serial [${matchData.foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
+                    message: `Tìm thấy ${matchData.foundSerials.length} chứng thư nhưng không khớp Serial [${matchData.foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
                 };
             }
-            return { status: 'Error', message: `[v18] ${matchData?.reason || 'Lỗi nạp bảng kết quả từ Cổng CA.'}` };
+            return { status: 'Error', message: `${matchData?.reason || 'Lỗi nạp bảng kết quả từ Cổng CA.'}` };
         }
 
         console.log(`[Scraper] [${mst}] Match & Click successful for Serial: ${matchData.serial}. Waiting for download...`);
@@ -251,14 +212,16 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         const beforeDownload = Date.now();
         let downloadedFile = null;
-        for (let i = 0; i < 25; i++) { 
+        for (let i = 0; i < 30; i++) { 
             await new Promise(r => setTimeout(r, 1000));
             try {
                 const files = fs.readdirSync(mstDownloadDir);
                 const valid = files.filter(f => {
                     const low = f.toLowerCase();
+                    // Skip temp files AND installer files
                     return !low.endsWith('.crdownload') && !low.endsWith('.tmp') && 
-                           !low.endsWith('.msi') && !low.endsWith('.exe') && !low.endsWith('.bat') && !low.endsWith('.cmd');
+                           !low.endsWith('.msi') && !low.endsWith('.exe') && 
+                           !low.endsWith('.bat') && !low.endsWith('.cmd');
                 });
                 if (valid.length > 0) {
                     downloadedFile = valid[0];
@@ -270,11 +233,6 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         if (downloadedFile) {
             const originalPath = path.join(mstDownloadDir, downloadedFile);
             const originalExt = path.extname(downloadedFile).toLowerCase() || '.pdf';
-            
-            if (['.msi', '.exe', '.bat', '.cmd'].includes(originalExt)) {
-                return { status: 'Error', message: `Phát hiện file cài đặt (${originalExt}) thay vì chứng thư. Bỏ qua để an toàn.` };
-            }
-
             const cleanTen = (recipientInfo.TenCongTy || 'Company').replace(/[\\/:*?"<>|]/g, '-').trim();
             const newFileName = `${mst}_${cleanTen}${originalExt}`;
             const newPath = path.join(mstDownloadDir, newFileName);
