@@ -144,12 +144,20 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                     if (match) serialText = norm(match[1]);
                 }
 
-                const link = tbl.querySelector('a');
-                if (link) {
+                // Find all links in the table and pick the most relevant one
+                const links = Array.from(tbl.querySelectorAll('a'));
+                const bestLink = links.find(a => {
+                    const txt = a.innerText.toLowerCase();
+                    return (txt.includes('giấy chứng nhận') || txt.includes('gcn') || txt.includes('pdf')) &&
+                           !txt.includes('plugin') && !txt.includes('token') && !txt.includes('driver');
+                }) || links.find(a => a.innerText.toLowerCase().includes('tải')) || links[0];
+
+                if (bestLink) {
                     results.push({
                         serial: serialText,
                         index: idx,
-                        isActive: tbl.innerText.includes('Hoạt động')
+                        isActive: tbl.innerText.includes('Hoạt động'),
+                        linkText: bestLink.innerText.trim()
                     });
                 }
             });
@@ -176,9 +184,15 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 return { found: false, count: results.length, foundSerials: foundSerials, targets: targets };
             }
 
-            // Perform Click immediately to avoid ID/selector issues
+            // Perform Click immediately on the BEST link in the target table
             const targetTable = tables[targetIdx];
-            const downloadLink = targetTable.querySelector('a');
+            const targetLinks = Array.from(targetTable.querySelectorAll('a'));
+            const downloadLink = targetLinks.find(a => {
+                const txt = a.innerText.toLowerCase();
+                return (txt.includes('giấy chứng nhận') || txt.includes('gcn') || txt.includes('pdf')) &&
+                       !txt.includes('plugin') && !txt.includes('token') && !txt.includes('driver');
+            }) || targetLinks.find(a => a.innerText.toLowerCase().includes('tải')) || targetLinks[0];
+
             if (downloadLink) {
                 downloadLink.click();
                 return { found: true, serial: finalSerial, count: results.length };
@@ -216,7 +230,12 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         if (downloadedFile) {
             const originalPath = path.join(mstDownloadDir, downloadedFile);
-            const originalExt = path.extname(downloadedFile) || '.pdf'; // Fallback to .pdf if none
+            const originalExt = path.extname(downloadedFile).toLowerCase() || '.pdf';
+            
+            if (['.msi', '.exe', '.bat', '.cmd'].includes(originalExt)) {
+                return { status: 'Error', message: `Phát hiện file cài đặt (${originalExt}) thay vì chứng thư. Bỏ qua để an toàn.` };
+            }
+
             const cleanTen = (recipientInfo.TenCongTy || 'Company').replace(/[\\/:*?"<>|]/g, '-').trim();
             const newFileName = `${mst}_${cleanTen}${originalExt}`;
             const newPath = path.join(mstDownloadDir, newFileName);
