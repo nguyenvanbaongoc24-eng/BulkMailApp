@@ -124,12 +124,11 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         }
 
         const matchData = await resultPage.evaluate((targetSerials) => {
-            const norm = (s) => s ? s.toString().replace(/\s/g, '').toUpperCase() : '';
+            const norm = (s) => s ? s.toString().replace(/[^a-zA-Z0-9]/g, '').toUpperCase() : '';
             const targets = Array.isArray(targetSerials) 
                 ? targetSerials.map(norm).filter(s => s !== '')
                 : [norm(targetSerials)].filter(s => s !== '');
             
-            console.log("Analyzing Gateway blocks...");
             const tables = Array.from(document.querySelectorAll('table[id="tblresult"]'));
             const results = [];
             
@@ -147,47 +146,59 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
                 const link = tbl.querySelector('a');
                 if (link) {
-                    const id = 'dl_' + Math.random().toString(36).substr(2, 9);
-                    link.setAttribute('id', id);
                     results.push({
                         serial: serialText,
-                        linkId: id,
+                        index: idx,
                         isActive: tbl.innerText.includes('Hoạt động')
                     });
                 }
             });
 
-            return { foundResults: results, targets: targets };
+            if (results.length === 0) return { found: false, count: 0, foundSerials: [] };
+
+            const foundSerials = results.map(r => r.serial);
+            let targetIdx = -1;
+            let finalSerial = '';
+
+            const matched = results.find(r => 
+                targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial))
+            );
+
+            const finalMatch = matched || results.filter(r => r.isActive).pop() || results.pop();
+            
+            if (finalMatch) {
+                targetIdx = finalMatch.index;
+                finalSerial = finalMatch.serial;
+            }
+
+            const isMatched = !!matched;
+            if (!isMatched && targets.length > 0) {
+                return { found: false, count: results.length, foundSerials: foundSerials, targets: targets };
+            }
+
+            // Perform Click immediately to avoid ID/selector issues
+            const targetTable = tables[targetIdx];
+            const downloadLink = targetTable.querySelector('a');
+            if (downloadLink) {
+                downloadLink.click();
+                return { found: true, serial: finalSerial, count: results.length };
+            }
+
+            return { found: false, count: results.length, reason: 'Link not found in table' };
         }, excelSerials);
 
-        if (!matchData || !matchData.foundResults || matchData.foundResults.length === 0) {
-            console.warn(`[Scraper] [${mst}] Tables found: 0. Portal might be in error state.`);
-            return { status: 'Error', message: 'Lỗi nạp bảng kết quả từ Cổng CA.' };
+        if (!matchData || !matchData.found) {
+            if (matchData.foundSerials) {
+                 return { 
+                    status: 'Not Matched', 
+                    message: `Tìm thấy ${matchData.foundSerials.length} chứng thư nhưng không khớp Serial [${matchData.foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
+                };
+            }
+            return { status: 'Error', message: matchData?.reason || 'Lỗi nạp bảng kết quả từ Cổng CA.' };
         }
 
-        const foundSerials = matchData.foundResults.map(r => r.serial);
-        console.log(`[Scraper] [${mst}] Found ${foundSerials.length} certs: [${foundSerials.join(', ')}]`);
-        console.log(`[Scraper] [${mst}] Targets to match: [${matchData.targets.join(', ')}]`);
-
-        const matched = matchData.foundResults.find(r => 
-            matchData.targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial))
-        );
-
-        if (!matched && matchData.targets.length > 0) {
-            return { 
-                status: 'Not Matched', 
-                message: `Tìm thấy ${foundSerials.length} chứng thư nhưng không khớp Serial [${foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
-            };
-        }
-
-        const finalMatch = matched || matchData.foundResults.filter(r => r.isActive).pop() || matchData.foundResults.pop();
-
-        console.log(`[Scraper] [${mst}] Proceeding with Download for Serial: ${finalMatch.serial}...`);
-        const targetLink = await resultPage.$(`#${matchData.id}`);
-        if (!targetLink) return { status: 'Error', message: 'Lỗi định vị link tải.' };
-
-        await targetLink.click();
-        await new Promise(r => setTimeout(r, 5000));
+        console.log(`[Scraper] [${mst}] Match & Click successful for Serial: ${matchData.serial}. Waiting for download...`);
+        await new Promise(r => setTimeout(r, 8000)); // Wait for download to start
 
         const beforeDownload = Date.now();
         let downloadedFile = null;
