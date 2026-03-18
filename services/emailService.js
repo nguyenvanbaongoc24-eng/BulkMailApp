@@ -59,11 +59,14 @@ async function processEmailTask(log, browser) {
                 pdfAttachedStatus = '✅ Có PDF (Sẵn có)';
             } else {
                 console.log(`[Worker] [${log.id}] No PDF found. Triggering scraper...`);
-                // Use Serial from Excel column B or C (mapped in excelService)
+                // Use Serial from Excel column B or C, or from DB if already captured
                 const excelSerial = recipientInExcel?.Serial || '';
+                const dbSerial = customer?.Serial || '';
+                const targetSerial = excelSerial || dbSerial;
+                
                 const targetCustomer = customer || { taxCode: log.customer_id, companyName: recipientInExcel?.TenCongTy };
                 
-                scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, excelSerial, targetCustomer);
+                scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, targetSerial, targetCustomer);
 
                 if (scrapeResult && scrapeResult.status === 'Matched') {
                     console.log(`[Worker] [${log.id}] Scraper found match: ${scrapeResult.fileName}. Uploading...`);
