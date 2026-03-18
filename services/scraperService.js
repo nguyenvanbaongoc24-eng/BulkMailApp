@@ -120,7 +120,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         if (noResult) {
             console.warn(`[Scraper] [${mst}] Gateway returned "No records found".`);
-            return { status: 'Not Found', message: 'Hệ thống CA báo: Không tìm thấy chứng thư cho MST này.' };
+            return { status: 'Not Found', message: '[v18] Hệ thống CA báo: Không tìm thấy chứng thư cho MST này.' };
         }
 
         const matchData = await resultPage.evaluate((targetSerials) => {
@@ -191,10 +191,10 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             if (matchData.foundSerials) {
                  return { 
                     status: 'Not Matched', 
-                    message: `Tìm thấy ${matchData.foundSerials.length} chứng thư nhưng không khớp Serial [${matchData.foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
+                    message: `[v18] Tìm thấy ${matchData.foundSerials.length} chứng thư nhưng không khớp Serial [${matchData.foundSerials.join('|')}] vs [${matchData.targets.join('|')}].` 
                 };
             }
-            return { status: 'Error', message: matchData?.reason || 'Lỗi nạp bảng kết quả từ Cổng CA.' };
+            return { status: 'Error', message: `[v18] ${matchData?.reason || 'Lỗi nạp bảng kết quả từ Cổng CA.'}` };
         }
 
         console.log(`[Scraper] [${mst}] Match & Click successful for Serial: ${matchData.serial}. Waiting for download...`);
