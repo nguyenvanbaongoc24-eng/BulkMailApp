@@ -67,16 +67,35 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         page = await browser.newPage();
         
-        // Block .msi and .exe requests to prevent installer popups
-        await page.setRequestInterception(true);
-        page.on('request', (request) => {
-            const url = request.url().toLowerCase();
-            if (url.endsWith('.msi') || url.endsWith('.exe') || url.includes('ca2plugin.msi')) {
-                console.log(`[Scraper] [${mst}] Blocking installer request: ${url}`);
-                request.abort();
-            } else {
-                request.continue();
-            }
+        // Setup Global Interception for all newly created tabs as well
+        const setupInterception = async (p) => {
+            await p.setRequestInterception(true);
+            p.on('request', (request) => {
+                const url = request.url().toLowerCase();
+                if (url.endsWith('.msi') || url.endsWith('.exe') || url.includes('ca2plugin.msi')) {
+                    console.log(`[Scraper] [${mst}] Global blocking installer: ${url}`);
+                    request.abort();
+                } else {
+                    request.continue();
+                }
+            });
+        };
+
+        await setupInterception(page);
+
+        const tabPromise = new Promise(resolve => {
+            const handler = async (target) => {
+                if (target.type() === 'page') {
+                    const newPage = await target.page().catch(() => null);
+                    if (newPage) {
+                        await setupInterception(newPage).catch(() => {});
+                        browser.off('targetcreated', handler);
+                        resolve(newPage);
+                    }
+                }
+            };
+            browser.on('targetcreated', handler);
+            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
         });
 
         const client = await page.createCDPSession();
@@ -102,25 +121,12 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         const searchBtn = await page.$(searchBtnSelector);
         if (!searchBtn) throw new Error('Cổng CA: Nút Tìm kiếm không tồn tại.');
 
-        const tabPromise = new Promise(resolve => {
-            const handler = async (target) => {
-                const newPage = await target.page().catch(() => null);
-                if (newPage) {
-                    browser.off('targetcreated', handler);
-                    resolve(newPage);
-                }
-            };
-            browser.on('targetcreated', handler);
-            // Wait up to 10s for new tab (Render can be slow)
-            setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
-        });
-
         console.log(`[Scraper] [${mst}] Clicking Search...`);
         await searchBtn.click();
         const newPage = await tabPromise;
         let resultPage = newPage || page;
 
-        if (newPage) console.log(`[Scraper] [${mst}] New result tab detected.`);
+        if (newPage) console.log(`[Scraper] [${mst}] New result tab detected (Interception applied).`);
 
         console.log(`[Scraper] [${mst}] Waiting for results to load...`);
         await resultPage.waitForNetworkIdle({ timeout: 15000 }).catch(() => {});
@@ -159,6 +165,8 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
                 // Find all links in the table and pick the most relevant one
                 const links = Array.from(tbl.querySelectorAll('a'));
+                console.log(`Table ${idx} links:`, links.map(a => a.innerText.trim()));
+                
                 const bestLink = links.find(a => {
                     const txt = a.innerText.toLowerCase();
                     return (txt.includes('giấy chứng nhận') || txt.includes('gcn') || txt.includes('pdf')) &&
