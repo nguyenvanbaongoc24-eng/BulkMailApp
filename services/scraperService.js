@@ -67,8 +67,16 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         page = await browser.newPage();
         
-        // Setup Global Interception for all newly created tabs as well
+        // Setup Global Interception and Download Path for all newly created tabs as well
         const setupInterception = async (p) => {
+            try {
+                const client = await p.createCDPSession();
+                await client.send('Page.setDownloadBehavior', {
+                    behavior: 'allow',
+                    downloadPath: mstDownloadDir
+                });
+            } catch (e) {}
+
             await p.setRequestInterception(true);
             p.on('request', (request) => {
                 const url = request.url().toLowerCase();
@@ -98,11 +106,6 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
         });
 
-        const client = await page.createCDPSession();
-        await client.send('Page.setDownloadBehavior', {
-            behavior: 'allow',
-            downloadPath: mstDownloadDir
-        });
 
         console.log(`[Scraper] [${mst}] Navigating to ${SEARCH_URL}...`);
         await page.goto(SEARCH_URL, { waitUntil: 'networkidle2', timeout: 45000 });
