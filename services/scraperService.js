@@ -241,7 +241,11 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             await new Promise(r => setTimeout(r, 1000));
             try {
                 const files = fs.readdirSync(mstDownloadDir);
-                const valid = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.tmp'));
+                const valid = files.filter(f => {
+                    const low = f.toLowerCase();
+                    return !low.endsWith('.crdownload') && !low.endsWith('.tmp') && 
+                           !low.endsWith('.msi') && !low.endsWith('.exe') && !low.endsWith('.bat') && !low.endsWith('.cmd');
+                });
                 if (valid.length > 0) {
                     downloadedFile = valid[0];
                     break;

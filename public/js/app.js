@@ -564,7 +564,8 @@ async function loadCampaigns(targetId = 'campaign-list') {
 
     campaigns.reverse().forEach(c => {
         const total = c.recipients ? c.recipients.length : 0;
-        const progress = total > 0 ? Math.round((c.sentCount / total) * 100) : 0;
+        const processed = (c.sentCount || 0) + (c.errorCount || 0);
+        const progress = total > 0 ? Math.round((processed / total) * 100) : 0;
         const row = document.createElement('tr');
         row.className = 'hover:bg-white/2 transition-all duration-200';
         row.innerHTML = `
@@ -584,7 +585,7 @@ async function loadCampaigns(targetId = 'campaign-list') {
                     </div>
                     <span class="text-xs font-bold text-gray-400 font-mono">${progress}%</span>
                 </div>
-                <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-widest">${c.sentCount}/${total} EMAILS</p>
+                <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-widest">${processed}/${total} EMAILS</p>
             </td>
             <td class="px-8 py-5">
                 <div class="flex items-center gap-2">
