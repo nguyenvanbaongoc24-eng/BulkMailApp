@@ -91,21 +91,32 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
 
         await setupInterception(page);
 
-        const tabPromise = new Promise(resolve => {
+        // Persistent interceptor for ALL future tabs (results, downloads, etc)
+        const targetCreatedHandler = async (target) => {
+            if (target.type() === 'page') {
+                const newP = await target.page().catch(() => null);
+                if (newP) {
+                    console.log(`[Scraper] [${mst}] Persistent Intercept applied to new tab: ${target.url()}`);
+                    await setupInterception(newP).catch(() => {});
+                }
+            }
+        };
+        browser.on('targetcreated', targetCreatedHandler);
+
+        // We still need a promise to wait for the specific Search Result tab
+        const resultTabPromise = new Promise(resolve => {
             const handler = async (target) => {
                 if (target.type() === 'page') {
-                    const newPage = await target.page().catch(() => null);
-                    if (newPage) {
-                        await setupInterception(newPage).catch(() => {});
+                    const newP = await target.page().catch(() => null);
+                    if (newP) {
                         browser.off('targetcreated', handler);
-                        resolve(newPage);
+                        resolve(newP);
                     }
                 }
             };
             browser.on('targetcreated', handler);
             setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 10000);
         });
-
 
         console.log(`[Scraper] [${mst}] Navigating to ${SEARCH_URL}...`);
         await page.goto(SEARCH_URL, { waitUntil: 'networkidle2', timeout: 45000 });
