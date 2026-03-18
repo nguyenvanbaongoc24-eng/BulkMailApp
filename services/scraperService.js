@@ -66,6 +66,19 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         if (!fs.existsSync(mstDownloadDir)) fs.mkdirSync(mstDownloadDir, { recursive: true });
 
         page = await browser.newPage();
+        
+        // Block .msi and .exe requests to prevent installer popups
+        await page.setRequestInterception(true);
+        page.on('request', (request) => {
+            const url = request.url().toLowerCase();
+            if (url.endsWith('.msi') || url.endsWith('.exe') || url.includes('ca2plugin.msi')) {
+                console.log(`[Scraper] [${mst}] Blocking installer request: ${url}`);
+                request.abort();
+            } else {
+                request.continue();
+            }
+        });
+
         const client = await page.createCDPSession();
         await client.send('Page.setDownloadBehavior', {
             behavior: 'allow',
