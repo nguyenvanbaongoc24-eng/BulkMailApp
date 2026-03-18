@@ -181,6 +181,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         await new Promise(r => setTimeout(r, 4000));
 
         // Check if results exist
+        console.log('[Scraper] Checking for no results...');
         const noResult = await resultPage.evaluate(() => {
             const text = document.body.innerText.toLowerCase();
             return text.includes('không tìm thấy') || text.includes('no records found') || text.includes('không có dữ liệu');
@@ -191,6 +192,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         }
 
         const scrapeResult = await resultPage.evaluate((targetSerials) => {
+            console.log('[Scraper] Evaluating DOM for results...');
             const norm = (s) => s ? s.toString().replace(/\s/g, '').toUpperCase() : '';
             
             const targets = Array.isArray(targetSerials) 
@@ -241,6 +243,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         }, excelSerials);
 
         if (!scrapeResult || !scrapeResult.found) {
+            console.log('[Scraper] No matching certificate found or scrape failed.');
             const searchList = Array.isArray(excelSerials) ? excelSerials.join(' / ') : (excelSerials || 'N/A');
             const msg = `Không khớp Serial mục tiêu (${searchList}). Tra cứu thất bại hoặc trang web đổi giao diện.`;
             console.error(`[Scraper] ✖ ${msg}`);

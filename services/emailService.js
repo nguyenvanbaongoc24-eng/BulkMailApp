@@ -50,11 +50,31 @@ async function startWorker() {
         }
 
         console.log(`[Worker] Picked ${tasks.length} tasks (Pending/Retrying).`);
-
-        for (const log of tasks) {
-            await processEmailTask(log);
-            const delay = Math.floor(Math.random() * (5000 - 2000 + 1)) + 2000;
-            await new Promise(r => setTimeout(r, delay));
+        
+        let browser = null;
+        try {
+            for (const log of tasks) {
+                // Only launch browser if at least one task needs scraping
+                if (!browser) {
+                    const campaign = (await supabase.from('campaigns').select('attachCert').eq('id', log.campaign_id).single()).data;
+                    if (campaign?.attachCert) {
+                        const { data: customer } = await supabase.from('customers').select('pdf_url').eq('taxCode', log.customer_id).single();
+                        if (!customer?.pdf_url) {
+                            console.log('[Worker] Launching shared browser for batch...');
+                            browser = await scraperService.initBrowser();
+                        }
+                    }
+                }
+                
+                await processEmailTask(log, browser);
+                const delay = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
+                await new Promise(r => setTimeout(r, delay));
+            }
+        } finally {
+            if (browser) {
+                console.log('[Worker] Closing shared browser.');
+                await browser.close().catch(() => {});
+            }
         }
     } catch (err) {
         console.error('[Worker] Fatal Error:', err.message);
@@ -86,7 +106,7 @@ async function startRecoveryWorker() {
 /**
  * Process a single email task from email_logs
  */
-async function processEmailTask(log) {
+async function processEmailTask(log, browser) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     console.log(`[Worker] Processing ID: ${log.id} For: ${log.email}`);
 
@@ -97,7 +117,7 @@ async function processEmailTask(log) {
         
         // Use trimmed customer_id for lookup
         const lookupId = log.customer_id ? String(log.customer_id).trim() : '';
-        const { data: customer } = await supabase.from('customers').select('*').eq('taxCode', lookupId).single();
+        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', lookupId).single();
 
         if (!campaign || !sender) throw new Error('Campaign or Sender not found');
 
@@ -205,7 +225,17 @@ async function processEmailTask(log) {
             // Case A: Missing pdf_url -> Trigger AUTO-SCRAPE
             if (!customer || !customer.pdf_url) {
                 console.log(`[Worker] PDF missing for ${log.customer_id}. Triggering AUTO-SCRAPE...`);
-                let browser = null;
+                
+                // If browser was not provided by startWorker, launch one here (fallback)
+                let localBrowser = browser;
+                let isLocalBrowser = false;
+                
+                if (!localBrowser) {
+                    console.log('[Worker] Launching local fallback browser...');
+                    localBrowser = await scraperService.initBrowser();
+                    isLocalBrowser = true;
+                }
+
                 try {
                     // Try to find serial from campaign recipients (Excel source)
                     const recipient = (campaign.recipients || []).find(r => String(r.MST) === String(log.customer_id));
@@ -221,8 +251,7 @@ async function processEmailTask(log) {
                     // Prioritize excelSerial if customer object doesn't have one
                     const targetSerial = lookupCustomer.Serial || excelSerial;
 
-                    browser = await scraperService.initBrowser();
-                    const scrapeResult = await scraperService.getLatestCertificate(browser, lookupCustomer.taxCode, targetSerial, lookupCustomer);
+                    const scrapeResult = await scraperService.getLatestCertificate(localBrowser, lookupCustomer.taxCode, targetSerial, lookupCustomer);
 
                     if (scrapeResult && scrapeResult.status === 'Matched') {
                         console.log(`[Worker] Auto-scrape success for ${lookupCustomer.taxCode}. Uploading...`);
@@ -263,7 +292,7 @@ async function processEmailTask(log) {
                     console.error(`[Worker] ${msg}`);
                     throw new Error(msg);
                 } finally {
-                    if (browser) await browser.close();
+                    if (isLocalBrowser && localBrowser) await localBrowser.close().catch(() => {});
                 }
             }
 
