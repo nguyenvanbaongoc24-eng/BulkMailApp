@@ -322,7 +322,10 @@ app.post('/api/gsheets', async (req, res) => {
         const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
         const data = rawData.map(row => {
-            const serial = row[2]; // Column C
+            const serialB = row[1] ? String(row[1]).trim() : '';
+            const serialC = row[2] ? String(row[2]).trim() : '';
+            const serial = serialB || serialC; // Use B if available, else C
+
             const mst = row[4];
             const tenCongTy = row[3];
             const diaChi = row[6];
@@ -332,7 +335,7 @@ app.post('/api/gsheets', async (req, res) => {
             if (!mst) return null;
 
             return {
-                Serial: serial ? serial.toString().trim() : '',
+                Serial: serial,
                 MST: mst.toString().trim(),
                 TenCongTy: tenCongTy ? tenCongTy.toString().trim() : '',
                 DiaChi: diaChi ? diaChi.toString().trim() : '',

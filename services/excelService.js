@@ -29,7 +29,11 @@ function parseExcel(filePath) {
     // Column K -> Index 10 (NgayHetHanChuKySo)
     
     return rawData.map(row => {
-        const serial = row[2]; // Column C
+        // Support both Column B (Index 1) and Column C (Index 2) as Serials
+        const serialB = row[1] ? String(row[1]).trim() : '';
+        const serialC = row[2] ? String(row[2]).trim() : '';
+        const serial = serialB || serialC; // Use B if available, else C
+
         const mst = row[4];
         const tenCongTy = row[3];
         const diaChi = row[6];
@@ -40,7 +44,7 @@ function parseExcel(filePath) {
         if (!mst || mst.toString().trim() === '') return null;
 
         return {
-            Serial: serial ? serial.toString().trim() : '',
+            Serial: serial,
             MST: mst.toString().trim(),
             TenCongTy: tenCongTy ? tenCongTy.toString().trim() : '',
             DiaChi: diaChi ? diaChi.toString().trim() : '',
