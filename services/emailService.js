@@ -131,11 +131,26 @@ async function processEmailTask(log, browser) {
 
                     if (!uploadError) {
                         const { data: { publicUrl } } = supabase.storage.from('pdf-attachments').getPublicUrl(fileName);
-                        if (customer) {
-                            await supabase.from('customers').update({ pdf_url: publicUrl }).eq('id', customer.id);
-                            customer.pdf_url = publicUrl;
+                        
+                        // PERSISTENCE: Ensure customer record exists and has the PDF_URL
+                        const customerUpdate = { 
+                            taxCode: log.customer_id, 
+                            pdf_url: publicUrl,
+                            companyName: recipientInExcel?.TenCongTy || customer?.companyName,
+                            userId: campaign.userId
+                        };
+
+                        const { data: updatedCustomer, error: upsertError } = await supabase
+                            .from('customers')
+                            .upsert(customerUpdate, { onConflict: 'taxCode' })
+                            .select()
+                            .single();
+
+                        if (!upsertError) {
+                            customer = updatedCustomer;
                         } else {
-                            customer = { pdf_url: publicUrl, taxCode: log.customer_id, companyName: recipientInExcel?.TenCongTy };
+                            // Fallback to local local if database update fails for some reason
+                            customer = { ...customer, ...customerUpdate };
                         }
                     }
                     try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}

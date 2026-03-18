@@ -42,7 +42,6 @@ async function initBrowser() {
                 foundPath = root;
                 break;
             }
-            // If it's a directory, look for binary
             try {
                 const items = fs.readdirSync(root);
                 for (const item of items) {
@@ -59,10 +58,6 @@ async function initBrowser() {
     return await puppeteer.launch(launchOptions);
 }
 
-/**
- * Scrape the latest digital certificate for a given MST (tax code).
- * Returns { status: 'Matched'|'Not Found'|'Not Matched'|'Error', message, filePath, fileName, dirPath }
- */
 async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
     let page = null;
     const mstDownloadDir = path.join(DOWNLOAD_DIR, `${mst}_${Date.now()}`);
@@ -94,7 +89,6 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         const searchBtn = await page.$(searchBtnSelector);
         if (!searchBtn) throw new Error('Search button not found in DOM.');
 
-        // Intercept new tab results (ASP.NET common behavior)
         const tabPromise = new Promise(resolve => {
             const handler = async (target) => {
                 const newPage = await target.page().catch(() => null);
@@ -111,11 +105,10 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
         const newPage = await tabPromise;
         let resultPage = newPage || page;
 
-        console.log(`[Scraper] [${mst}] Waiting for result evaluation...`);
+        console.log(`[Scraper] [${mst}] Waiting for results...`);
         await resultPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
         await new Promise(r => setTimeout(r, 2000));
 
-        // 1. Check for "No Records"
         const noResult = await resultPage.evaluate(() => {
             const text = document.body.innerText.toLowerCase();
             return text.includes('không tìm thấy') || text.includes('no records found') || text.includes('không có dữ liệu');
@@ -125,7 +118,6 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             return { status: 'Not Found', message: 'MST không tồn tại trên hệ thống CA.' };
         }
 
-        // 2. Evaluate Results & Matches
         const matchData = await resultPage.evaluate((targetSerials) => {
             const norm = (s) => s ? s.toString().replace(/\s/g, '').toUpperCase() : '';
             const targets = Array.isArray(targetSerials) 
@@ -159,39 +151,43 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 }
             });
 
-            if (results.length === 0) return null;
+            if (results.length === 0) return { found: false, count: 0 };
 
-            // Priority 1: Exact match by serial
             if (targets.length > 0) {
-                const matched = results.find(r => targets.some(t => r.serial.includes(t) || t.includes(r.serial)));
-                if (matched) return { found: true, id: matched.linkId, serial: matched.serial };
+                const matched = results.find(r => targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial)));
+                if (matched) {
+                    return { found: true, id: matched.linkId, serial: matched.serial, count: results.length };
+                }
+                return { found: false, count: results.length, reason: 'No serial match' };
             }
 
-            // Priority 2: Fallback to latest active (if no serial provided)
             const fallback = results.filter(r => r.isActive).pop() || results.pop();
-            return { found: true, id: fallback.linkId, serial: fallback.serial || 'Latest' };
+            return { found: true, id: fallback.linkId, serial: fallback.serial || 'Latest', count: results.length };
         }, excelSerials);
 
         if (!matchData || !matchData.found) {
-            return { status: 'Not Matched', message: 'Không tìm thấy Serial khớp với yêu cầu.' };
+            const reason = matchData?.reason || 'Không tìm thấy kết quả phù hợp';
+            const count = matchData?.count || 0;
+            return { 
+                status: 'Not Matched', 
+                message: `${reason} (Tìm thấy ${count} bản ghi nhưng không khớp Serial).` 
+            };
         }
 
-        // 3. Trigger Download
-        console.log(`[Scraper] [${mst}] Match found: ${matchData.serial}. Clicking download...`);
+        console.log(`[Scraper] [${mst}] Match: ${matchData.serial}. Downloading...`);
         const targetLink = await resultPage.$(`#${matchData.id}`);
-        if (!targetLink) return { status: 'Error', message: 'Lỗi định vị link tải (DOM error).' };
+        if (!targetLink) return { status: 'Error', message: 'Lỗi định vị link tải.' };
 
         await targetLink.click();
         await new Promise(r => setTimeout(r, 5000));
 
-        // 4. Wait for file
         const beforeDownload = Date.now();
         let downloadedFile = null;
         for (let i = 0; i < 25; i++) { 
             await new Promise(r => setTimeout(r, 1000));
             try {
                 const files = fs.readdirSync(mstDownloadDir);
-                const valid = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.tmp') && !f.startsWith('.com.google.Chrome'));
+                const valid = files.filter(f => !f.endsWith('.crdownload') && !f.endsWith('.tmp'));
                 if (valid.length > 0) {
                     downloadedFile = valid[0];
                     break;
@@ -204,15 +200,14 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             const cleanTen = (recipientInfo.TenCongTy || 'Company').replace(/[\\/:*?"<>|]/g, '-').trim();
             const newFileName = `${mst}_${cleanTen}.pdf`;
             const newPath = path.join(mstDownloadDir, newFileName);
-            
             fs.renameSync(originalPath, newPath);
             return { filePath: newPath, fileName: newFileName, dirPath: mstDownloadDir, status: 'Matched' };
         }
 
-        return { status: 'Error', message: 'Tải file thất bại (Timeout).' };
+        return { status: 'Error', message: 'Tải file thất bại.' };
 
     } catch (error) {
-        console.error(`[Scraper] [${mst}] ❌ Error:`, error.message);
+        console.error(`[Scraper] [${mst}] Error:`, error.message);
         return { status: 'Error', message: error.message };
     } finally {
         if (page) await page.close().catch(() => {});
