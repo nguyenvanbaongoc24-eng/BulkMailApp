@@ -1405,7 +1405,7 @@ app.post('/api/automation/cleanup', (req, res) => {
     }
 });
 
-app.get('/api/download-tool', authenticate, (req, res) => {
+app.get('/api/download-tool', (req, res) => {
     const filePath = path.join(__dirname, 'public', 'CA2_Automation_Tool.zip');
     res.download(filePath, 'CA2_Automation_Tool.zip');
 });

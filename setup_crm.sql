@@ -1,5 +1,6 @@
 -- SQL for CA2 CRM customers table
-CREATE TABLE IF NOT EXISTS public.customers (
+DROP TABLE IF EXISTS public.customers;
+CREATE TABLE public.customers (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     mst TEXT NOT NULL,
