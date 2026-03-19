@@ -10,19 +10,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editor = document.getElementById('input-template');
     if (editor) {
         editor.addEventListener('paste', function(e) {
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const pastedHtml = clipboardData.getData('text/html');
+            
+            // Image handling (existing)
+            const items = clipboardData.items;
             for (let index in items) {
                 const item = items[index];
                 if (item.kind === 'file' && item.type.includes('image')) {
-                    e.preventDefault(); // Prevent double paste
+                    e.preventDefault();
                     const blob = item.getAsFile();
                     const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const img = `<img src="${event.target.result}" style="max-width: 100%; border-radius: 12px; margin: 10px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">`;
+                    reader.onload = (event) => {
+                        const img = `<img src="${event.target.result}" style="max-width: 100%; border-radius: 12px; margin: 10px 0;">`;
                         document.execCommand('insertHTML', false, img);
                     };
                     reader.readAsDataURL(blob);
+                    return;
                 }
+            }
+
+            // Text/HTML Sanitization
+            if (pastedHtml) {
+                e.preventDefault();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(pastedHtml, 'text/html');
+                
+                // Remove all background colors and force a clean color if nested
+                const allElements = doc.querySelectorAll('*');
+                allElements.forEach(el => {
+                    el.style.backgroundColor = '';
+                    el.style.background = '';
+                    if (el.style.color === 'black' || el.style.color === '#000000') {
+                        el.style.color = ''; // Let it inherit white from editor
+                    }
+                });
+                
+                document.execCommand('insertHTML', false, doc.body.innerHTML);
             }
         });
     }
@@ -948,10 +972,10 @@ async function saveCampaign(event) {
     const editor = document.getElementById('input-template');
     let template = editor.innerHTML; 
 
-    // Wrap in default dark theme if it doesn't look like it's already wrapped
+    // Wrap in professional white theme (Gmail-like)
     if (!template.includes('id="ca2-email-wrapper"')) {
         template = `
-            <div id="ca2-email-wrapper" style="background-color: #050510; color: #ffffff; padding: 40px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; line-height: 1.6; border-radius: 16px;">
+            <div id="ca2-email-wrapper" style="background-color: #ffffff; color: #1f2937; padding: 40px; font-family: 'Inter', Helvetica, Arial, sans-serif; line-height: 1.6; border: 1px solid #f3f4f6; border-radius: 8px; max-width: 800px; margin: 0 auto;">
                 ${template}
             </div>
         `;
