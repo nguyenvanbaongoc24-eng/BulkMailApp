@@ -669,33 +669,175 @@ function handleFileUpload(event) {
     reader.onload = (e) => {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        currentRecipientsData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+        
+        // Clean: trim all keys and values, skip completely empty rows
+        currentRecipientsData = sheetData.filter(row => {
+            return Object.values(row).some(v => String(v).trim() !== '');
+        }).map(row => {
+            const cleaned = {};
+            Object.keys(row).forEach(k => {
+                cleaned[k.trim()] = String(row[k]).trim();
+            });
+            return cleaned;
+        });
+
         document.getElementById('upload-status').innerText = `Đã tải ${currentRecipientsData.length} dòng.`;
+        renderPreviewTable();
     };
     reader.readAsArrayBuffer(file);
 }
 
-async function saveCampaign() {
+function renderPreviewTable() {
+    const tbody = document.getElementById('preview-table-body');
+    if (!tbody || !currentRecipientsData || currentRecipientsData.length === 0) return;
+
+    // Get all column keys from the data
+    const keys = Object.keys(currentRecipientsData[0]);
+
+    // Update the table header dynamically
+    const thead = tbody.closest('table')?.querySelector('thead tr');
+    if (thead) {
+        thead.innerHTML = keys.map(k => `<th class="px-4 py-3 font-bold text-gray-400 uppercase text-[10px] tracking-widest">${k}</th>`).join('');
+    }
+
+    tbody.innerHTML = currentRecipientsData.map(row => `
+        <tr class="hover:bg-white/5">
+            ${keys.map(k => `<td class="px-4 py-2 text-gray-300 text-xs font-medium whitespace-nowrap">${row[k] || '-'}</td>`).join('')}
+        </tr>
+    `).join('');
+}
+
+// --- Rich Text Editor Functions ---
+function formatDoc(cmd, value = null) {
+    document.getElementById('input-template').focus();
+    document.execCommand(cmd, false, value);
+}
+
+function insertVariable(variable) {
+    const editor = document.getElementById('input-template');
+    editor.focus();
+    
+    const sel = window.getSelection();
+    if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        // Check if selection is inside the editor
+        if (editor.contains(range.commonAncestorContainer)) {
+            // If text is selected, wrap it with the variable
+            if (!sel.isCollapsed) {
+                range.deleteContents();
+            }
+            const node = document.createTextNode(variable);
+            range.insertNode(node);
+            // Move cursor after inserted text
+            range.setStartAfter(node);
+            range.setEndAfter(node);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } else {
+            // If cursor is not in editor, append at end
+            editor.innerHTML += variable;
+        }
+    } else {
+        editor.innerHTML += variable;
+    }
+}
+
+function addCustomLink() {
+    const url = prompt('Nhập URL liên kết:', 'https://');
+    if (url) {
+        formatDoc('createLink', url);
+    }
+}
+
+function handleEditorImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('input-template').focus();
+        document.execCommand('insertImage', false, e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveCampaign(event) {
     const name = document.getElementById('input-name').value;
     const subject = document.getElementById('input-subject').value;
     const senderId = document.getElementById('select-sender').value;
     const content = document.getElementById('input-template').innerHTML;
+    const attachCert = document.getElementById('toggle-attach-cert')?.checked || false;
+
+    if (!name) return alert('Vui lòng nhập tên chiến dịch');
+    if (!subject) return alert('Vui lòng nhập tiêu đề email');
+    if (!senderId) return alert('Vui lòng chọn tài khoản gửi');
+    if (!currentRecipientsData || currentRecipientsData.length === 0) return alert('Vui lòng tải file dữ liệu');
 
     try {
         const res = await authedFetch('/api/campaigns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, subject, senderId, content, recipients: currentRecipientsData })
+            body: JSON.stringify({ 
+                name, subject, 
+                senderAccountId: senderId, 
+                template: content, 
+                recipients: currentRecipientsData,
+                attachCert
+            })
         });
         if (res.ok) {
             alert('Tạo chiến dịch thành công!');
             closeCreateModal();
             showPage('campaigns');
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + (err.error || 'Không rõ'));
         }
-    } catch (e) { alert('Lỗi hệ thống'); }
+    } catch (e) { alert('Lỗi kết nối server'); }
+}
+
+// --- Template Save/Load ---
+async function saveTemplate() {
+    const name = prompt('Đặt tên cho mẫu email:', 'Mẫu mới');
+    if (!name) return;
+    const content = document.getElementById('input-template').innerHTML;
+    try {
+        await authedFetch('/api/templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, content })
+        });
+        alert('Đã lưu mẫu!');
+        loadTemplates();
+    } catch (e) { console.error(e); }
+}
+
+async function loadTemplates() {
+    try {
+        const res = await authedFetch('/api/templates');
+        const data = await res.json();
+        const select = document.getElementById('select-template');
+        if (select && Array.isArray(data)) {
+            select.innerHTML = '<option value="">-- Mẫu đã lưu --</option>' +
+                data.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        }
+    } catch (e) {}
+}
+
+async function applyTemplate() {
+    const id = document.getElementById('select-template').value;
+    if (!id) return;
+    try {
+        const res = await authedFetch(`/api/templates/${id}`);
+        const data = await res.json();
+        if (data && data.content) {
+            document.getElementById('input-template').innerHTML = data.content;
+        }
+    } catch (e) {}
 }
 
 function handleLogout() {
     localStorage.removeItem('sb-token');
     window.location.reload();
 }
+
