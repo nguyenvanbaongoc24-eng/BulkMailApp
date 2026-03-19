@@ -10,7 +10,7 @@ require('dotenv').config();
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
 const scraperService = require('./services/scraperService');
-const { adminClient: supabase, getClient } = require('./services/supabaseClient');
+const { adminClient: supabase, anonClient, getClient } = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
 // Removed PUPPETEER_CACHE_DIR override to allow .puppeteerrc.cjs to manage cache location (Phase 8)
@@ -55,8 +55,11 @@ const authenticate = async (req, res, next) => {
 
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return res.status(401).json({ error: 'Invalid session' });
+    const { data: { user }, error } = await anonClient.auth.getUser(token);
+    if (error || !user) {
+        console.error('[Auth] getUser failed:', error?.message || 'No user found');
+        return res.status(401).json({ error: 'Invalid session' });
+    }
 
     req.user = user;
     req.token = token;

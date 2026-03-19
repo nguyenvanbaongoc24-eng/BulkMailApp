@@ -26,4 +26,7 @@ const getClient = (token) => {
     });
 };
 
-module.exports = { adminClient, getClient };
+// Public Client (Anon Key) - Subject to RLS
+const anonClient = createClient(supabaseUrl, supabaseKey);
+
+module.exports = { adminClient, anonClient, getClient };
