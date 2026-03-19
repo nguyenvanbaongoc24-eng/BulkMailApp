@@ -29,8 +29,16 @@
       "!src/**/*"
     ],
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CA2 Automation Pro",
+      "artifactName": "CA2_Automation_Setup_${version}.${ext}"
     }
   },
   "keywords": [],

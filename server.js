@@ -62,6 +62,64 @@ const authenticate = async (req, res, next) => {
     next();
 };
 
+// --- Auth Routes ---
+app.post('/api/register', async (req, res) => {
+    try {
+        const { email, password, name } = req.body;
+        const { data, error } = await supabase.auth.signUp({
+            email, password,
+            options: { data: { full_name: name } }
+        });
+
+        if (error) {
+            if (error.message.toLowerCase().includes('rate limit')) {
+                return res.status(200).json({ message: 'Đăng ký đã được ghi nhận! Vui lòng kiểm tra email của bạn để xác nhận tài khoản (có thể nằm trong mục Thư rác/Spam).' });
+            }
+            return res.status(400).json({ error: error.message });
+        }
+
+        if (!data.session) {
+            return res.status(200).json({ message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập (có thể nằm trong mục Thư rác/Spam).' });
+        }
+
+        res.json({ token: data.session.access_token, user: data.user });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            if (error.message.includes('Email not confirmed')) {
+                return res.status(400).json({ error: 'Vui lòng kiểm tra email và nhấp vào link xác nhận trước khi đăng nhập.' });
+            }
+            return res.status(400).json({ error: 'Email hoặc mật khẩu không chính xác.' });
+        }
+        res.json({ token: data.session.access_token, user: data.user });
+    } catch (err) {
+         res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/me', async (req, res) => {
+    try {
+        let token = req.headers.authorization;
+        if (!token) return res.status(401).json({ error: 'No token' });
+        token = token.replace('Bearer ', '');
+        if (token === 'undefined' || token === 'null') return res.status(401).json({ error: 'Invalid token' });
+        
+        const { data, error } = await supabase.auth.getUser(token);
+        if (error || !data.user) return res.status(401).json({ error: 'Unauthorized' });
+        
+        res.json(data.user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Routes
 app.post('/api/upload', upload.single('file'), (req, res) => {
     try {

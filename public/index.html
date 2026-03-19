@@ -435,11 +435,20 @@
                 <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
                     <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
                         <div class="flex items-center gap-4">
-                            <select id="crm-filter-service" onchange="loadCA2CRM()" class="text-xs font-black py-2 px-4 border-0 bg-white/10 rounded-xl cursor-pointer">
+                            <select id="crm-filter-service" onchange="loadCA2CRMData()" class="text-xs font-black py-2 px-4 border-0 bg-white/10 rounded-xl cursor-pointer">
                                 <option value="all">Tất cả dịch vụ</option>
                                 <option value="CKS">Chữ ký số (CKS)</option>
                                 <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
                             </select>
+                            <select id="ca2-crm-sort-order" onchange="renderCA2CRM()" class="text-xs font-black py-2 px-4 border-0 bg-white/10 rounded-xl cursor-pointer">
+                                <option value="newest">Mới nhất</option>
+                                <option value="soonest">Hạn gần nhất</option>
+                                <option value="latest">Hạn xa nhất</option>
+                            </select>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"><i class="fas fa-search"></i></span>
+                                <input type="text" id="ca2-crm-search" onkeyup="renderCA2CRM()" placeholder="Tìm MST hoặc Tên..." class="pl-10 pr-4 py-2 bg-white/5 border-white/10 rounded-xl text-xs w-64 outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-bold">
+                            </div>
                         </div>
                         <button onclick="createCampaignFromCA2CRM()" class="bg-blue-600/20 text-blue-400 px-6 py-2.5 rounded-xl font-bold border border-blue-600/20 hover:bg-blue-600/30 transition-all text-xs">
                             💌 Gửi mail hàng loạt
