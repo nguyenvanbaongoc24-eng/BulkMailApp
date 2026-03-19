@@ -319,48 +319,114 @@ app.delete('/api/templates/:id', authenticate, async (req, res) => {
     res.json({ success: true, message: 'Mẫu đã được xóa.' });
 });
 
-// Google Sheets Integration
-app.post('/api/gsheets', async (req, res) => {
+// CA2 CRM Internal Tool API
+/**
+ * Helper to calculate expiration date based on start date and duration string
+ */
+function calculateExpirationDate(startDate, duration) {
+    if (!startDate || !duration) return null;
+    const date = new Date(startDate);
+    const match = duration.match(/(\d+)/);
+    if (!match) return null;
+    
+    const count = parseInt(match[1]);
+    if (duration.toLowerCase().includes('năm') || duration.toLowerCase().includes('y')) {
+        date.setFullYear(date.getFullYear() + count);
+    } else if (duration.toLowerCase().includes('tháng') || duration.toLowerCase().includes('m')) {
+        date.setMonth(date.getMonth() + count);
+    }
+    return date.toISOString().split('T')[0];
+}
+
+app.get('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        const { url } = req.body;
-        let exportUrl = url.replace(/\/edit.*$/, '/export?format=csv');
-        if (!exportUrl.includes('/export?format=csv')) {
-            exportUrl = exportUrl.replace(/\/$/, '') + '/export?format=csv';
+        const { data, error } = await supabase
+            .from('customers')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Enhance data with calculated fields
+        const enhancedData = data.map(c => {
+            const now = new Date();
+            const exp = c.NgayHetHanChuKySo ? new Date(c.NgayHetHanChuKySo) : null;
+            let daysLeft = null;
+            let status = 'active';
+
+            if (exp) {
+                daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+                if (daysLeft < 0) status = 'expired';
+                else if (daysLeft <= 30) status = 'expiring_soon';
+            }
+
+            return { ...c, daysLeft, status };
+        });
+
+        res.json({ data: enhancedData });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/ca2-crm', authenticate, async (req, res) => {
+    try {
+        const { MST, TenCongTy, Email, phone, service_type, start_date, duration } = req.body;
+        
+        // Auto-calculate expiration if not provided
+        const expirationDate = calculateExpirationDate(start_date, duration);
+
+        const { data, error } = await supabase.from('customers').upsert({
+            MST, 
+            TenCongTy, 
+            Email, 
+            phone, 
+            service_type, 
+            start_date, 
+            duration,
+            NgayHetHanChuKySo: expirationDate,
+            user_id: req.user.id
+        }).select();
+
+        if (error) throw error;
+        res.json({ success: true, data: data[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        if (updates.start_date || updates.duration) {
+            // Need to fetch current values if one is missing to recalculate
+            const { data: current } = await supabase.from('customers').select('*').eq('id', id).single();
+            const sDate = updates.start_date || current.start_date;
+            const dur = updates.duration || current.duration;
+            updates.NgayHetHanChuKySo = calculateExpirationDate(sDate, dur);
         }
 
-        const response = await axios.get(exportUrl, { responseType: 'arraybuffer' });
-        const workbook = XLSX.read(response.data, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const { data, error } = await supabase.from('customers')
+            .update(updates)
+            .eq('id', id)
+            .select();
 
-        const data = rawData.map(row => {
-            const serialB = row[1] ? String(row[1]).trim() : '';
-            const serialC = row[2] ? String(row[2]).trim() : '';
-            const serial = serialB || serialC; // Use B if available, else C
+        if (error) throw error;
+        res.json({ success: true, data: data[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-            const mst = row[4];
-            const tenCongTy = row[3];
-            const diaChi = row[6];
-            const ngayHetHan = row[10];
-            const email = row[8];
-
-            if (!mst) return null;
-
-            return {
-                Serial: serial,
-                MST: mst.toString().trim(),
-                TenCongTy: tenCongTy ? tenCongTy.toString().trim() : '',
-                DiaChi: diaChi ? diaChi.toString().trim() : '',
-                Email: email ? email.toString().trim() : '',
-                NgayHetHanChuKySo: excelService.formatDate(ngayHetHan)
-            };
-        }).filter(row => row !== null);
-
-        res.json({ data });
-    } catch (error) {
-        console.error('Error fetching Google Sheet:', error.message);
-        res.status(500).json({ error: 'Không thể đọc dữ liệu từ Google Sheet. Vui lòng kiểm tra quyền truy cập (Công khai).' });
+app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
+    try {
+        const { error } = await supabase.from('customers').delete().eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

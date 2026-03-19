@@ -100,6 +100,7 @@ function showApp(user) {
     // Initial Data Load
     loadStats();
     loadCampaigns();
+    loadCA2CRM();
 }
 
 let authMode = 'login'; // 'login' or 'register'
