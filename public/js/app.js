@@ -488,6 +488,18 @@ async function loadRecentCampaigns() {
     try {
         const res = await authedFetch('/api/campaigns');
         const campaigns = await res.json();
+        
+        // Check if we need to continue polling
+        const hasActive = campaigns.some(c => c.status === 'Đang gửi' || c.status === 'Đang hàng đợi');
+        if (hasActive && !window.campaignInterval) {
+            console.log('Active campaigns found, starting poll...');
+            window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
+        } else if (!hasActive && window.campaignInterval) {
+            console.log('No active campaigns, stopping poll.');
+            clearInterval(window.campaignInterval);
+            window.campaignInterval = null;
+        }
+
         const html = campaigns.map(c => `
             <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
                 <td class="px-8 py-6">
@@ -497,10 +509,10 @@ async function loadRecentCampaigns() {
                 <td class="px-8 py-6">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-lg ${
                         c.status === 'Hoàn thành' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
-                        c.status === 'Đang gửi' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse' :
+                        c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse' :
                         'bg-orange-500/20 text-orange-400 border border-orange-500/30'
                     }">
-                        ${c.status}
+                        ${c.status === 'Đang hàng đợi' ? 'Đang gửi...' : c.status}
                     </span>
                 </td>
                 <td class="px-8 py-6">
@@ -533,12 +545,8 @@ async function startCampaign(id) {
         const res = await authedFetch(`/api/campaigns/${id}/send`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-            alert('Chiến dịch đã bắt đầu chạy ngầm!');
-            loadRecentCampaigns();
-            // Optional: Start polling for status updates
-            if (!window.campaignInterval) {
-                window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
-            }
+            alert('Chiến dịch đã bắt đầu gửi!');
+            loadRecentCampaigns(); 
         } else {
             alert('Lỗi: ' + (data.error || 'Không rõ'));
         }

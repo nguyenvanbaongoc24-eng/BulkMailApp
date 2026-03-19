@@ -59,20 +59,21 @@ async function processEmailTask(log, browser) {
         const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', log.campaign_id).single();
         if (!campaign) throw new Error('Campaign not found.');
 
-        const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode) === String(log.customer_id));
-        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', log.customer_id).maybeSingle();
+        const cleanMST = String(log.customer_id || '').trim();
+        const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode || '').trim() === cleanMST);
+        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', cleanMST).maybeSingle();
 
         // FALLBACK: If not in customers, or customers has no PDF, check 'certificates' table (Local Tool's output)
         if (!customer || !customer.pdf_url) {
-            console.log(`[Worker] [${log.id}] PDF missing from CRM/Customers. Checking 'certificates' table...`);
-            const { data: cert } = await supabase.from('certificates').select('pdf_url, company_name, serial').eq('mst', log.customer_id).maybeSingle();
+            console.log(`[Worker] [${log.id}] PDF missing from CRM/Customers. Checking 'certificates' table for MST: ${cleanMST}...`);
+            const { data: cert } = await supabase.from('certificates').select('pdf_url, company_name, serial').eq('mst', cleanMST).maybeSingle();
             if (cert && cert.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found PDF in certificates table: ${cert.pdf_url}`);
                 customer = { 
                     ...customer, 
                     pdf_url: cert.pdf_url, 
-                    companyName: cert.company_name || recipientInExcel?.TenCongTy,
-                    Serial: cert.serial
+                    companyName: cert.company_name || recipientInExcel?.TenCongTy || customer?.companyName,
+                    Serial: cert.serial || recipientInExcel?.Serial || customer?.Serial
                 };
             }
         }
@@ -161,30 +162,55 @@ async function processEmailTask(log, browser) {
         };
 
         // Advanced Replacement with HTML Entity Handling & Case Insensitivity
-        const decodeEntities = (str) => str.replace(/&[#a-z0-9]+;/gi, match => {
-            const map = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
-            return map[match.toLowerCase()] || match;
-        });
+        const decodeEntities = (str) => {
+            if (!str) return '';
+            return str.replace(/&[#a-z0-9]+;/gi, match => {
+                const map = { 
+                    '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
+                    '&ecirc;': 'ê', '&ocirc;': 'ô', '&agrave;': 'à', '&aacute;': 'á', '&iacute;': 'í', 
+                    '&ograve;': 'ò', '&oacute;': 'ó', '&ugrave;': 'ù', '&uacute;': 'ú', '&yacute;': 'ý', '&đ;': 'đ'
+                };
+                return map[match.toLowerCase()] || match;
+            });
+        };
 
-        for (const [tag, value] of Object.entries(replacements)) {
-            // Support multiple tag variants (with/without accents, spaces, underscores)
+        // NEW: Decode entities AND Normalize to NFC first so placeholders match accurately
+        html = decodeEntities(html).normalize('NFC');
+        subject = decodeEntities(subject).normalize('NFC');
+
+        console.log(`[Worker] [${log.id}] Processing replacements for campaign: ${campaign.name}`);
+        console.log(`[Worker] [${log.id}] Replacement data:`, JSON.stringify(replacements, null, 2));
+
+        for (let [tag, value] of Object.entries(replacements)) {
+            const finalValue = (value === null || value === undefined) ? '' : String(value);
+            tag = tag.normalize('NFC');
+            
+            // Support multiple tag variants
             const variants = [tag];
-            if (tag === '#TênCôngTy') variants.push('#TenCongTy', '#TEN_CONG_TY', '#TÊN_CÔNG_TY');
-            if (tag === '#NgàyHếtHạn') variants.push('#NgayHetHan', '#NGAY_HET_HAN', '#NGÀY_HẾT_HẠN');
-            if (tag === '#ĐịaChỉ') variants.push('#DiaChi', '#DIA_CHI', '#ĐỊA_CHỈ');
+            if (tag === '#TênCôngTy') variants.push('#TenCongTy', '#TEN_CONG_TY', '#TÊN_CÔNG_TY', '#Tencongty');
+            if (tag === '#NgàyHếtHạn') variants.push('#NgayHetHan', '#NGAY_HET_HAN', '#NGÀY_HẾT_HẠN', '#Ngayhethan');
+            if (tag === '#ĐịaChỉ') variants.push('#DiaChi', '#DIA_CHI', '#ĐỊA_CHỈ', '#Diachi');
+            if (tag === '#MST') variants.push('#mst');
 
-            for (const variant of variants) {
+            for (let variant of variants) {
+                variant = variant.normalize('NFC');
                 const escapedVariant = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(escapedVariant, 'gi');
                 
-                html = html.replace(regex, value);
-                subject = subject.replace(regex, value);
+                // Track if replacement actually happened
+                const countBefore = (html.match(regex) || []).length;
+                html = html.replace(regex, finalValue);
+                subject = subject.replace(regex, finalValue);
                 
-                // Also handle common double-curly bracket legacy tags
+                if (countBefore > 0) {
+                    console.log(`[Worker] [${log.id}] Successfully replaced ${countBefore} instances of variant: ${variant}`);
+                }
+                
+                // Double-curly brackets legacy support
                 const legacyTag = `{{${variant.substring(1)}}}`;
                 const legacyRegex = new RegExp(legacyTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                html = html.replace(legacyRegex, value);
-                subject = subject.replace(legacyRegex, value);
+                html = html.replace(legacyRegex, finalValue);
+                subject = subject.replace(legacyRegex, finalValue);
             }
         }
 
@@ -211,7 +237,8 @@ async function processEmailTask(log, browser) {
                 attachments: []
             };
 
-            if (customer?.pdf_url) {
+            // Fix: Check both campaign.attach_cert and campaign.attachCert
+            if (customer?.pdf_url && (campaign.attach_cert || campaign.attachCert)) {
                 console.log(`[Worker] [${log.id}] Final check: Attaching PDF from ${customer.pdf_url}`);
                 const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
                 const buf = Buffer.from(response.data);
@@ -225,8 +252,6 @@ async function processEmailTask(log, browser) {
                 } else {
                     throw new Error('Tải PDF từ Storage thất bại (Empty Buffer).');
                 }
-            } else if (campaign.attachCert) {
-                console.log(`[Worker] [${log.id}] Campaign requested PDF, but no PDF URL is available. Sending without attachment.`);
             }
 
             const info = await transporter.sendMail(mailOptions);

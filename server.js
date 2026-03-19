@@ -1569,6 +1569,61 @@ app.post('/api/automation/cleanup', (req, res) => {
     }
 });
 
+// --- Templates API ---
+app.get('/api/templates', authenticate, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('user_id', req.user.id)
+            .order('name', { ascending: true });
+        if (error) throw error;
+        res.json(data);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/templates/:id', authenticate, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('id', req.params.id)
+            .eq('user_id', req.user.id)
+            .single();
+        if (error) throw error;
+        res.json(data);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/templates', authenticate, async (req, res) => {
+    try {
+        const { name, content } = req.body;
+        const { data, error } = await supabase
+            .from('templates')
+            .upsert({ 
+                name, 
+                content, 
+                user_id: req.user.id,
+                updated_at: new Date().toISOString() 
+            })
+            .select();
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/templates/:id', authenticate, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('templates')
+            .delete()
+            .eq('id', req.params.id)
+            .eq('user_id', req.user.id);
+        if (error) throw error;
+        res.json({ message: 'Deleted' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.get('/api/download-tool', (req, res) => {
     const filePath = path.join(__dirname, 'public', 'CA2_Automation_Tool.zip');
     res.download(filePath, 'CA2_Automation_Tool.zip');
