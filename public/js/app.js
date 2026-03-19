@@ -695,17 +695,28 @@ function handleFileUpload(event) {
                 return;
             }
 
-            // Smart Header Detection
+            // Strict Smart Header Detection
             let headerRowIndex = -1;
             const headerKeywords = ['MST', 'TAX', 'MÃ SỐ THUẾ', 'CÔNG TY', 'TÊN', 'NAME', 'EMAIL', 'ĐỊA CHỈ', 'ADDRESS', 'HẾT HẠN', 'EXPIRATION', 'SERIAL'];
             
-            for (let i = 0; i < Math.min(rawRows.length, 5); i++) {
+            for (let i = 0; i < Math.min(rawRows.length, 3); i++) {
                 const row = rawRows[i];
-                const hasKeywords = row.some(cell => {
+                let matches = 0;
+                let isDataRow = false;
+
+                row.forEach(cell => {
                     const val = String(cell).toUpperCase().trim();
-                    return headerKeywords.some(kw => val.includes(kw));
+                    // If any cell looks like data (Email or MST), this entire row is DATA, not a header
+                    if (val.includes('@') || /^\d{10}(\d{3})?$/.test(val)) {
+                        isDataRow = true;
+                    }
+                    if (headerKeywords.includes(val)) {
+                        matches++;
+                    }
                 });
-                if (hasKeywords) {
+
+                // A header row must have at least 2 keyword matches and NO data indicators
+                if (matches >= 2 && !isDataRow) {
                     headerRowIndex = i;
                     break;
                 }
