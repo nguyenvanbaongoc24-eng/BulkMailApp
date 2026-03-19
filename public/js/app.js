@@ -485,7 +485,7 @@ async function loadSenders() {
 function openCreateModal() { document.getElementById('modal-create').classList.remove('hidden'); }
 function closeCreateModal() { document.getElementById('modal-create').classList.add('hidden'); }
 function closeCA2CRMModal() { document.getElementById('modal-ca2-crm').classList.add('hidden'); }
-function downloadLocalTool() { window.location.href = '/api/download-tool'; }
+function downloadLocalTool() { window.open('https://drive.google.com/file/d/13BSmd3pcckibLL93-DX_YZ-mrbyGfsvI/view?usp=drive_link', '_blank'); }
 
 // Campaign File Upload
 function handleFileUpload(event) {
