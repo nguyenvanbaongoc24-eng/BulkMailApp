@@ -271,7 +271,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
             smtpPort: 465,
             smtpUser: email,
             smtpPassword: tokens.refresh_token,
-            createdAt: new Date().toISOString()
+            created_at: new Date().toISOString()
         };
 
         const { error } = await supabase.from('senders').insert([newSender]);
@@ -304,8 +304,8 @@ app.get('/api/senders', authenticate, async (req, res) => {
     const { data, error } = await getClient(req.token)
         .from('senders')
         .select('*')
-        .eq('userId', req.user.id)
-        .order('createdAt', { ascending: false });
+        .eq('user_id', req.user.id)
+        .order('created_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
@@ -313,14 +313,14 @@ app.get('/api/senders', authenticate, async (req, res) => {
 app.post('/api/senders', authenticate, async (req, res) => {
     const newSender = {
         id: Date.now().toString(),
-        userId: req.user.id,
+        user_id: req.user.id,
         senderName: req.body.senderName,
         senderEmail: req.body.senderEmail,
         smtpHost: req.body.smtpHost,
         smtpPort: req.body.smtpPort,
         smtpUser: req.body.smtpUser,
         smtpPassword: req.body.smtpPassword,
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
     };
     const { data, error } = await getClient(req.token).from('senders').insert([newSender]).select();
     if (error) return res.status(500).json({ error: error.message });
@@ -343,7 +343,7 @@ app.put('/api/senders/:id', authenticate, async (req, res) => {
         .from('senders')
         .update(updates)
         .eq('id', id)
-        .eq('userId', req.user.id)
+        .eq('user_id', req.user.id)
         .select();
     
     if (error) return res.status(500).json({ error: error.message });
@@ -368,8 +368,8 @@ app.get('/api/templates', authenticate, async (req, res) => {
     const { data, error } = await supabase
         .from('templates')
         .select('*')
-        .eq('userId', req.user.id)
-        .order('createdAt', { ascending: false });
+        .eq('user_id', req.user.id)
+        .order('created_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
@@ -377,10 +377,10 @@ app.get('/api/templates', authenticate, async (req, res) => {
 app.post('/api/templates', authenticate, async (req, res) => {
     const newTemplate = {
         id: Date.now().toString(),
-        userId: req.user.id,
+        user_id: req.user.id,
         name: req.body.name,
         content: req.body.content,
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
     };
     const { data, error } = await supabase.from('templates').insert([newTemplate]).select();
     if (error) return res.status(500).json({ error: error.message });
@@ -393,7 +393,7 @@ app.delete('/api/templates/:id', authenticate, async (req, res) => {
         .from('templates')
         .delete()
         .eq('id', id)
-        .eq('userId', req.user.id);
+        .eq('user_id', req.user.id);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true, message: 'Mẫu đã được xóa.' });
 });
@@ -597,6 +597,7 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
         const logs = recipients.map(r => ({
             customer_id: r.MST ? String(r.MST).trim() : '',
             campaign_id: campaignId,
+            user_id: req.user.id, // Added for isolation
             email: r.Email ? String(r.Email).trim() : '',
             status: 'pending',
             retry_count: 0,
@@ -1095,6 +1096,22 @@ app.get('/api/crm/stats', authenticate, async (req, res) => {
 });
 
 // Detailed Campaign Report Route (Phase 8 Implementation)
+app.get('/api/email-logs', authenticate, async (req, res) => {
+    try {
+        // Fetch logs with campaign name join if possible, or just logs
+        const { data, error } = await supabase
+            .from('email_logs')
+            .select('*, campaigns(name)')
+            .order('created_at', { ascending: false })
+            .limit(500); // Limit to last 500 for performance
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/reports/:id', authenticate, async (req, res) => {
     try {
         const { id } = req.params;

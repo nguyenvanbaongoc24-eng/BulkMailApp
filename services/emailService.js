@@ -77,29 +77,33 @@ async function processEmailTask(log, browser) {
             }
         }
 
-        // 1. PDF Handling (STRICT MODE)
-        if (campaign.attachCert) {
+        // 1. PDF Handling (STRICT MODE) - Fix: campaign.attachCert -> campaign.attach_cert
+        if (campaign.attach_cert) {
             if (customer && customer.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found existing PDF URL: ${customer.pdf_url}`);
                 pdfAttachedStatus = '✅ Có PDF (Sẵn có)';
             } else {
                 console.log(`[Worker] [${log.id}] PDF missing from CRM. Triggering Scraper...`);
-                const excelSerial = recipientInExcel?.Serial || '';
-                const dbSerial = customer?.Serial || '';
+                // Flexible Serial/MST lookup
+                const excelSerial = recipientInExcel?.Serial || recipientInExcel?.serial || recipientInExcel?.['SỐ SERIAL'] || '';
+                const dbSerial = customer?.Serial || customer?.serial || '';
                 const targetSerial = excelSerial || dbSerial;
                 
-                const targetCustomer = customer || { taxCode: log.customer_id, companyName: recipientInExcel?.TenCongTy };
+                const targetCustomer = customer || { 
+                    taxCode: log.customer_id, 
+                    companyName: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || recipientInExcel?.['Name'] 
+                };
                 const scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, targetSerial, targetCustomer);
 
                 if (scrapeResult && scrapeResult.status === 'Matched') {
                     console.log(`[Worker] [${log.id}] Scraper found Match! Uploading file...`);
                     const fileBuffer = fs.readFileSync(scrapeResult.filePath);
                     const fileExt = path.extname(scrapeResult.filePath) || '.pdf';
-                    const fileName = `${campaign.userId}/${log.customer_id}_${Date.now()}${fileExt}`;
+                    const fileName = `${campaign.user_id}/${log.customer_id}_${Date.now()}${fileExt}`;
 
                     const { error: uploadError } = await supabase.storage
                         .from('pdf-attachments')
-                        .upload(fileName, fileBuffer, { upsert: true }); // Let Supabase detect content type
+                        .upload(fileName, fileBuffer, { upsert: true });
 
                     if (uploadError) throw new Error(`Lỗi upload PDF lên Storage: ${uploadError.message}`);
 
@@ -108,8 +112,8 @@ async function processEmailTask(log, browser) {
                     const customerUpdate = { 
                         taxCode: log.customer_id, 
                         pdf_url: publicUrl,
-                        companyName: recipientInExcel?.TenCongTy || customer?.companyName,
-                        userId: campaign.userId
+                        companyName: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer?.companyName,
+                        user_id: campaign.user_id
                     };
 
                     const { data: updatedCustomer, error: upsertError } = await supabase
@@ -134,21 +138,36 @@ async function processEmailTask(log, browser) {
             pdfAttachedStatus = 'Gửi không đính kèm (Tắt trong cài đặt)';
         }
 
-        // 2. Content Preparation
+        // 2. Content Preparation - Robust Variable Replacement
         let html = campaign.template || '';
-        // Remove any legacy border styles if they come from old templates
-        html = html.replace(/border: 1px solid black/g, 'border: none').replace(/border="1"/g, 'border="0"');
-        
         let subject = campaign.subject || 'Thông báo từ Automation CA2';
-        const replacements = {
-            '{{TenCongTy}}': customer?.companyName || recipientInExcel?.TenCongTy || '',
-            '{{MST}}': customer?.taxCode || recipientInExcel?.MST || log.customer_id || '',
-            '{{DiaChi}}': customer?.diaChi || recipientInExcel?.DiaChi || '',
-            '{{NgayHetHanChuKySo}}': customer?.expirationDate || recipientInExcel?.NgayHetHanChuKySo || ''
+        
+        // Helper to find value from recipient object regardless of case/accents
+        const findVal = (obj, keys) => {
+            if (!obj) return '';
+            const entries = Object.entries(obj);
+            for (const key of keys) {
+                const found = entries.find(([k]) => k.toLowerCase().trim() === key.toLowerCase().trim());
+                if (found && found[1]) return String(found[1]).trim();
+            }
+            return '';
         };
-        for (const [key, value] of Object.entries(replacements)) {
-            const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-            html = html.replace(regex, value || '');
+
+        const replacements = {
+            '#TênCôngTy': findVal(recipientInExcel, ['TenCongTy', 'Tên Công Ty', 'Name', 'companyName']) || customer?.companyName || '',
+            '#MST': findVal(recipientInExcel, ['MST', 'taxCode', 'Mã số thuế']) || customer?.taxCode || log.customer_id || '',
+            '#ĐịaChỉ': findVal(recipientInExcel, ['DiaChi', 'Địa chỉ', 'Address']) || customer?.diaChi || '',
+            '#NgàyHếtHạn': findVal(recipientInExcel, ['NgayHetHanChuKySo', 'Ngày hết hạn', 'Expiration']) || customer?.expirationDate || ''
+        };
+
+        // Support both {{TAG}} and #TAG syntax
+        for (const [tag, value] of Object.entries(replacements)) {
+            const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const legacyTag = `{{${tag.substring(1)}}}`; 
+            
+            const regex = new RegExp(`${escapedTag}|${legacyTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+            html = html.replace(regex, value);
+            subject = subject.replace(regex, value);
         }
 
         // 3. Sender Verification

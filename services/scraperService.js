@@ -207,18 +207,16 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                     targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial))
                 );
 
-                const finalMatch = matched || results.filter(r => r.isActive).pop() || results.pop();
-                
-                if (finalMatch) {
-                    const targetTable = tables[finalMatch.index];
+                if (matched) {
+                    const targetTable = tables[matched.index];
                     const downloadLink = targetTable.querySelector('a');
                     if (downloadLink) {
                         downloadLink.click();
-                        return { found: true, serial: finalMatch.serial };
+                        return { found: true, serial: matched.serial };
                     }
                 }
 
-                return { found: false, count: results.length, reason: 'Link not found in table' };
+                return { found: false, count: results.length, reason: results.length > 0 ? 'Không tìm thấy Serial khớp trong danh sách' : 'Không có dữ liệu chứng thư' };
             }, excelSerials);
 
             if (!matchData || !matchData.found) {

@@ -980,16 +980,127 @@ async function loadTemplates() {
     } catch (e) {}
 }
 
+async function deleteTemplate() {
+    const select = document.getElementById('select-template');
+    const id = select.value;
+    if (!id) return alert('Vui lòng chọn một mẫu để xóa');
+    
+    if (!confirm('Bạn có chắc chắn muốn xóa mẫu email này?')) return;
+    
+    try {
+        const res = await authedFetch(`/api/templates/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            alert('Đã xóa mẫu thành công!');
+            document.getElementById('input-template').innerHTML = '';
+            loadTemplates();
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + (err.error || 'Không rõ'));
+        }
+    } catch (e) { alert('Lỗi kết nối server'); }
+}
+
 async function applyTemplate() {
     const id = document.getElementById('select-template').value;
     if (!id) return;
     try {
         const res = await authedFetch(`/api/templates/${id}`);
+        // Note: GET /api/templates/:id usually returns an object if implemented, 
+        // but often the SELECT * from /api/templates already has content.
+        // Let's check how templates are stored.
         const data = await res.json();
         if (data && data.content) {
             document.getElementById('input-template').innerHTML = data.content;
         }
     } catch (e) {}
+}
+
+// --- Reports & Logs ---
+async function loadEmailLogs() {
+    const tbody = document.getElementById('email-logs-list');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500 font-bold animate-pulse italic">Đang tải nhật ký...</td></tr>';
+    
+    try {
+        const res = await authedFetch('/api/email-logs');
+        const data = await res.json();
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500 font-bold italic">Chưa có nhật ký gửi mail nào.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(log => {
+            const date = new Date(log.created_at).toLocaleString('vi-VN');
+            const statusClass = getStatusBadgeClass(log.status);
+
+            return `
+                <tr class="hover:bg-white/2 transition-all group">
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-400 font-mono text-[10px]">${date}</td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs font-black text-white">${log.email}</div>
+                        <div class="text-[10px] text-gray-500">MST: ${log.customer_id}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 uppercase">
+                            ${log.campaigns?.name || 'N/A'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${statusClass}">
+                            ${log.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 max-w-xs">
+                        <div class="text-[10px] text-red-400/70 italic line-clamp-1 group-hover:line-clamp-none transition-all" title="${log.error_message || ''}">
+                            ${log.error_message || '-'}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <a href="/api/reports/${log.campaign_id}?access_token=${localStorage.getItem('sb-token')}" target="_blank" class="text-[10px] font-bold text-orange-500 hover:underline">Chi tiết</a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-red-500 font-bold">Lỗi tải dữ liệu nhật ký!</td></tr>';
+    }
+}
+
+function getStatusBadgeClass(status) {
+    if (status === 'sent') return 'bg-green-500/10 text-green-500 border border-green-500/20';
+    if (status === 'pending') return 'bg-blue-500/10 text-blue-500 border border-blue-500/20';
+    if (status.includes('failed')) return 'bg-red-500/10 text-red-500 border border-red-500/20';
+    return 'bg-gray-500/10 text-gray-500 border border-gray-500/20';
+}
+
+function exportEmailLogs() {
+    const table = document.getElementById('view-reports').querySelector('table');
+    if (!table) return;
+    
+    const rows = Array.from(table.querySelectorAll('tr'));
+    let csv = '\uFEFFTime,Email,MST,Campaign,Status,Error\n';
+    
+    rows.slice(1).forEach(row => {
+        const cols = row.querySelectorAll('td');
+        if (cols.length < 5) return;
+        
+        const time = cols[0].innerText;
+        const email = cols[1].querySelector('div').innerText;
+        const mst = cols[1].querySelectorAll('div')[1].innerText.replace('MST: ', '');
+        const campaign = cols[2].innerText.trim();
+        const status = cols[3].innerText.trim();
+        const error = cols[4].innerText.trim().replace(/,/g, ';');
+        
+        csv += `"${time}","${email}","${mst}","${campaign}","${status}","${error}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Email_Logs_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
 }
 
 function handleLogout() {
