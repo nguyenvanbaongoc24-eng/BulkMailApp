@@ -2,13 +2,28 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-// Use SERVICE_ROLE_KEY if available for backend worker to bypass RLS
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+const supabaseKey = process.env.SUPABASE_KEY;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase credentials in .env');
-}
+// Admin Client (Service Role) - Bypasses RLS
+const adminClient = createClient(supabaseUrl, serviceKey || supabaseKey);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+/**
+ * Creates an authenticated Supabase client for a specific user request.
+ * If serviceKey is available, it returns the admin client for convenience.
+ * Otherwise, it creates a client that passes the user's JWT so RLS works.
+ */
+const getClient = (token) => {
+    if (serviceKey) return adminClient;
+    if (!token) return adminClient; // Fallback if no token (might fail RLS but better than nothing)
+    
+    return createClient(supabaseUrl, supabaseKey, {
+        global: {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }
+    });
+};
 
-module.exports = supabase;
+module.exports = { adminClient, getClient };

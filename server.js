@@ -10,7 +10,7 @@ require('dotenv').config();
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
 const scraperService = require('./services/scraperService');
-const supabase = require('./services/supabaseClient');
+const { adminClient: supabase, getClient } = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
 // Removed PUPPETEER_CACHE_DIR override to allow .puppeteerrc.cjs to manage cache location (Phase 8)
@@ -59,6 +59,7 @@ const authenticate = async (req, res, next) => {
     if (error || !user) return res.status(401).json({ error: 'Invalid session' });
 
     req.user = user;
+    req.token = token;
     next();
 };
 
@@ -300,7 +301,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
 // Sender Routes
 app.get('/api/senders', authenticate, async (req, res) => {
-    const { data, error } = await supabase
+    const { data, error } = await getClient(req.token)
         .from('senders')
         .select('*')
         .eq('userId', req.user.id)
@@ -321,7 +322,7 @@ app.post('/api/senders', authenticate, async (req, res) => {
         smtpPassword: req.body.smtpPassword,
         createdAt: new Date().toISOString()
     };
-    const { data, error } = await supabase.from('senders').insert([newSender]).select();
+    const { data, error } = await getClient(req.token).from('senders').insert([newSender]).select();
     if (error) return res.status(500).json({ error: error.message });
     res.json(data[0]);
 });
@@ -338,7 +339,7 @@ app.put('/api/senders/:id', authenticate, async (req, res) => {
     if (req.body.smtpPassword !== undefined) {
         updates.smtpPassword = req.body.smtpPassword;
     }
-    const { data, error } = await supabase
+    const { data, error } = await getClient(req.token)
         .from('senders')
         .update(updates)
         .eq('id', id)
@@ -352,7 +353,7 @@ app.put('/api/senders/:id', authenticate, async (req, res) => {
 
 app.delete('/api/senders/:id', authenticate, async (req, res) => {
     const { id } = req.params;
-    const { error } = await supabase
+    const { error } = await getClient(req.token)
         .from('senders')
         .delete()
         .eq('id', id)
@@ -438,7 +439,7 @@ function calculateExpirationDate(startDate, duration) {
 
 app.get('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await getClient(req.token)
             .from('customers')
             .select('*')
             .eq('user_id', req.user.id)
@@ -477,7 +478,7 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
         // Auto-calculate expiration if not provided
         const expirationDate = calculateExpirationDate(start_date, duration);
 
-        const { data, error } = await supabase.from('customers').upsert({
+        const { data, error } = await getClient(req.token).from('customers').upsert({
             mst, 
             company_name, 
             email, 
@@ -503,13 +504,13 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
 
         if (updates.start_date || updates.duration) {
             // Need to fetch current values if one is missing to recalculate
-            const { data: current } = await supabase.from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
+            const { data: current } = await getClient(req.token).from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
             const sDate = updates.start_date || current.start_date;
             const dur = updates.duration || current.duration;
             updates.expired_date = calculateExpirationDate(sDate, dur);
         }
 
-        const { data, error } = await supabase.from('customers')
+        const { data, error } = await getClient(req.token).from('customers')
             .update(updates)
             .eq('id', id)
             .eq('user_id', req.user.id)
@@ -550,7 +551,7 @@ app.post('/api/ca2-crm/bulk', authenticate, async (req, res) => {
 
 app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
     try {
-        const { error } = await supabase.from('customers').delete().eq('id', req.params.id).eq('user_id', req.user.id);
+        const { error } = await getClient(req.token).from('customers').delete().eq('id', req.params.id).eq('user_id', req.user.id);
         if (error) throw error;
         res.json({ success: true });
     } catch (err) {
@@ -559,7 +560,7 @@ app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
 });
 
 app.get('/api/campaigns', authenticate, async (req, res) => {
-    const { data, error } = await supabase
+    const { data, error } = await getClient(req.token)
         .from('campaigns')
         .select('*')
         .eq('user_id', req.user.id)
@@ -589,11 +590,11 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
     };
 
     try {
-        const { data, error } = await supabase.from('campaigns').insert([newCampaign]).select();
+        const { data, error } = await getClient(req.token).from('campaigns').insert([newCampaign]).select();
         if (error) throw error;
 
         // Create initial logs in email_logs table for the worker
-        const logs = (req.body.recipients || []).map(r => ({
+        const logs = recipients.map(r => ({
             customer_id: r.MST ? String(r.MST).trim() : '',
             campaign_id: campaignId,
             email: r.Email ? String(r.Email).trim() : '',
@@ -603,7 +604,7 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
         }));
 
         if (logs.length > 0) {
-            const { error: logsError } = await supabase.from('email_logs').insert(logs);
+            const { error: logsError } = await getClient(req.token).from('email_logs').insert(logs);
             if (logsError) console.error('Error creating email_logs:', logsError);
         }
 
@@ -616,10 +617,10 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
 app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
     const campaignId = req.params.id;
     try {
-        const { data: campaign, error: cErr } = await supabase.from('campaigns').select('*').eq('id', campaignId).eq('user_id', req.user.id).single();
+        const { data: campaign, error: cErr } = await getClient(req.token).from('campaigns').select('*').eq('id', campaignId).eq('user_id', req.user.id).single();
         if (cErr || !campaign) throw new Error('Không tìm thấy chiến dịch');
 
-        const { data: sender, error: sErr } = await supabase.from('senders').select('*').eq('id', campaign.sender_account_id).single();
+        const { data: sender, error: sErr } = await getClient(req.token).from('senders').select('*').eq('id', campaign.sender_account_id).single();
         if (sErr || !sender) throw new Error('Không tìm thấy tài khoản gửi mail');
 
         // Initial update
