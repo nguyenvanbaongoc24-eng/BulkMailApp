@@ -18,6 +18,7 @@ verify-*.js
 dist/
 release/
 *.zip
+!public/CA2_Automation_Tool.zip
 *.rar
 tmp/
 *.exe
