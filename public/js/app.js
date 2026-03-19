@@ -1462,7 +1462,7 @@ async function saveCA2CRM() {
         duration: document.getElementById('ca2-crm-duration').value
     };
 
-    if(!body.MST || !body.TenCongTy) { alert('Vui lòng nhập MST và Tên công ty'); return; }
+    if(!body.mst || !body.company_name) { alert('Vui lòng nhập MST và Tên công ty'); return; }
 
     try {
         const url = id ? `/api/ca2-crm/${id}` : '/api/ca2-crm';
