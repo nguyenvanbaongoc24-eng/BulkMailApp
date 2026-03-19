@@ -1366,8 +1366,8 @@ async function loadCA2CRM() {
         if (filterType !== 'all') filtered = filtered.filter(c => c.service_type === filterType);
         if (search) {
             filtered = filtered.filter(c => 
-                (c.MST && c.MST.includes(search)) || 
-                (c.TenCongTy && c.TenCongTy.toLowerCase().includes(search))
+                (c.mst && c.mst.includes(search)) || 
+                (c.company_name && c.company_name.toLowerCase().includes(search))
             );
         }
 
@@ -1380,9 +1380,9 @@ async function loadCA2CRM() {
         tableBody.innerHTML = filtered.map(c => `
             <tr class="hover:bg-white/2 transition-colors group">
                 <td class="px-8 py-5">
-                    <div class="font-bold text-white">${c.TenCongTy || 'N/A'}</div>
-                    <div class="text-[10px] text-gray-500 font-black tracking-widest mt-0.5">${c.MST || 'CHƯA CÓ MST'}</div>
-                    <div class="text-[10px] text-gray-400 italic">${c.Email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
+                    <div class="font-bold text-white">${c.company_name || 'N/A'}</div>
+                    <div class="text-[10px] text-gray-500 font-black tracking-widest mt-0.5">${c.mst || 'CHƯA CÓ MST'}</div>
+                    <div class="text-[10px] text-gray-400 italic">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
                 </td>
                 <td class="px-8 py-5 text-center">
                     <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${c.service_type === 'CKS' ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 'border-blue-500/20 text-blue-400 bg-blue-400/5'}">
@@ -1391,7 +1391,7 @@ async function loadCA2CRM() {
                 </td>
                 <td class="px-8 py-5 font-bold text-gray-400">${c.start_date || '-'}</td>
                 <td class="px-8 py-5 font-black text-white">${c.duration || '-'}</td>
-                <td class="px-6 py-4 font-bold text-gray-400">${c.NgayHetHanChuKySo || '-'}</td>
+                <td class="px-6 py-4 font-bold text-gray-400">${c.expired_date || '-'}</td>
                 <td class="px-6 py-4">
                     <div class="flex flex-col items-start">
                         <span class="font-black ${c.status === 'expired' ? 'text-purple-500' : (c.daysLeft <= 30 ? 'text-red-500' : (c.daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'))}">

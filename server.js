@@ -370,7 +370,7 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
         // Enhance data with calculated fields
         const enhancedData = data.map(c => {
             const now = new Date();
-            const exp = c.NgayHetHanChuKySo ? new Date(c.NgayHetHanChuKySo) : null;
+            const exp = c.expired_date ? new Date(c.expired_date) : null;
             let daysLeft = null;
             let status = 'active';
 
@@ -393,20 +393,20 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
 
 app.post('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        const { MST, TenCongTy, email, phone, service_type, start_date, duration } = req.body;
+        const { mst, company_name, email, phone, service_type, start_date, duration } = req.body;
         
         // Auto-calculate expiration if not provided
         const expirationDate = calculateExpirationDate(start_date, duration);
 
         const { data, error } = await supabase.from('customers').upsert({
-            MST, 
-            TenCongTy, 
+            mst, 
+            company_name, 
             email, 
             phone, 
             service_type, 
             start_date, 
             duration,
-            NgayHetHanChuKySo: expirationDate,
+            expired_date: expirationDate,
             user_id: req.user.id
         }).select();
 
@@ -427,7 +427,7 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
             const { data: current } = await supabase.from('customers').select('*').eq('id', id).single();
             const sDate = updates.start_date || current.start_date;
             const dur = updates.duration || current.duration;
-            updates.NgayHetHanChuKySo = calculateExpirationDate(sDate, dur);
+            updates.expired_date = calculateExpirationDate(sDate, dur);
         }
 
         const { data, error } = await supabase.from('customers')
