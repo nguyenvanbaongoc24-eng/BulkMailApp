@@ -66,6 +66,26 @@ const authenticate = async (req, res, next) => {
 app.post('/api/register', async (req, res) => {
     try {
         const { email, password, name } = req.body;
+        
+        // Fast-path: Auto-confirm & bypass limits if Service Role Key is available
+        if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+                email,
+                password,
+                email_confirm: true,
+                user_metadata: { full_name: name }
+            });
+
+            if (adminError) return res.status(400).json({ error: adminError.message });
+            
+            // Auto login
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+            if (loginError) return res.status(400).json({ error: loginError.message });
+            
+            return res.json({ token: loginData.session.access_token, user: loginData.user });
+        }
+
+        // Standard Supabase Sign Up (subject to Rate Limits & strict email confirmations)
         const { data, error } = await supabase.auth.signUp({
             email, password,
             options: { data: { full_name: name } }
@@ -73,13 +93,13 @@ app.post('/api/register', async (req, res) => {
 
         if (error) {
             if (error.message.toLowerCase().includes('rate limit')) {
-                return res.status(200).json({ message: 'Đăng ký đã được ghi nhận! Vui lòng kiểm tra email của bạn để xác nhận tài khoản (có thể nằm trong mục Thư rác/Spam).' });
+                return res.status(400).json({ error: 'Hệ thống Supabase đang giới hạn số lượng email gửi ra (Rate Limit - 3 email/giờ cho gói Free). Vui lòng thử lại sau, hoặc yêu cầu admin tắt tính năng Confirm Email.' });
             }
             return res.status(400).json({ error: error.message });
         }
 
         if (!data.session) {
-            return res.status(200).json({ message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập (có thể nằm trong mục Thư rác/Spam).' });
+            return res.status(200).json({ message: 'Đăng ký thành công! Vui lòng kiểm tra hộp thư (hoặc Thư rác/Spam) để xác nhận trước khi đăng nhập.' });
         }
 
         res.json({ token: data.session.access_token, user: data.user });
