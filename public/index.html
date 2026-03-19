@@ -728,6 +728,71 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="js/app.js"></script>
+    <!-- Modal: Add/Edit CA2 CRM -->
+    <div id="modal-ca2-crm" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 hidden flex items-center justify-center p-6">
+        <div class="bg-[#050510] border border-white/10 w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div class="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+                <div>
+                    <h3 id="ca2-crm-modal-title" class="text-2xl font-black text-white">Thêm khách hàng CA2 CRM</h3>
+                    <p class="text-gray-500 text-sm mt-1">Thông tin chi tiết dịch vụ khách hàng</p>
+                </div>
+                <button onclick="closeCA2CRMModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-10 space-y-6">
+                <input type="hidden" id="ca2-crm-id">
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Mã số thuế</label>
+                        <input type="text" id="ca2-crm-mst" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all" placeholder="MST công ty">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Dịch vụ</label>
+                        <select id="ca2-crm-service" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all">
+                            <option value="CKS">Chữ ký số (CKS)</option>
+                            <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Tên khách hàng / Công ty</label>
+                    <input type="text" id="ca2-crm-name" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all" placeholder="Tên đơn vị">
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email</label>
+                        <input type="email" id="ca2-crm-email" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all" placeholder="email@congty.com">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Điện thoại</label>
+                        <input type="text" id="ca2-crm-phone" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all" placeholder="09xxxxxxx">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Ngày cấp / Ngày bắt đầu</label>
+                        <input type="date" id="ca2-crm-start" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Gói thời hạn</label>
+                        <select id="ca2-crm-duration" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all">
+                            <option value="1 năm">1 Năm</option>
+                            <option value="2 năm">2 Năm</option>
+                            <option value="3 năm">3 Năm</option>
+                            <option value="4 năm">4 Năm</option>
+                            <option value="1Y">1Y (KM)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-4 rounded-2xl font-bold bg-white/5 text-gray-400 hover:bg-white/10 transition-all">Hủy bỏ</button>
+                    <button onclick="saveCA2CRM()" class="flex-1 px-8 py-4 rounded-2xl font-bold bg-orange-gradient text-white shadow-lg shadow-orange-500/20 hover:scale-[1.02] transition-all">Lưu thông tin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
 
