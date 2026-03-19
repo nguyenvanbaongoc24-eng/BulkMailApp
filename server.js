@@ -325,17 +325,37 @@ app.delete('/api/templates/:id', authenticate, async (req, res) => {
  */
 function calculateExpirationDate(startDate, duration) {
     if (!startDate || !duration) return null;
-    const date = new Date(startDate);
-    const match = duration.match(/(\d+)/);
-    if (!match) return null;
-    
-    const count = parseInt(match[1]);
-    if (duration.toLowerCase().includes('năm') || duration.toLowerCase().includes('y')) {
-        date.setFullYear(date.getFullYear() + count);
-    } else if (duration.toLowerCase().includes('tháng') || duration.toLowerCase().includes('m')) {
-        date.setMonth(date.getMonth() + count);
+    try {
+        const start = new Date(startDate);
+        let daysToAdd = 0;
+        
+        // Exact formula from user:
+        // Gia hạn 1 năm: +365 + 90
+        // Gia hạn 2 năm: +365*2 + 180
+        // Gia hạn 3 năm: +365*3 + 270
+        // Cấp mới X năm: +365*X
+        
+        if (duration.includes('Gia hạn')) {
+            if (duration.includes('1 năm')) daysToAdd = 365 + 90;
+            else if (duration.includes('2 năm')) daysToAdd = (365 * 2) + 180;
+            else if (duration.includes('3 năm')) daysToAdd = (365 * 3) + 270;
+        } else if (duration.includes('Cấp mới')) {
+            if (duration.includes('1 năm')) daysToAdd = 365;
+            else if (duration.includes('2 năm')) daysToAdd = 365 * 2;
+            else if (duration.includes('3 năm')) daysToAdd = 365 * 3;
+        } else {
+            // Fallback for old simple "1 năm" etc.
+            const years = parseInt(duration);
+            if (!isNaN(years)) daysToAdd = years * 365;
+        }
+
+        if (daysToAdd === 0) return null;
+        
+        const date = new Date(start.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+        return date.toISOString().split('T')[0];
+    } catch (e) {
+        return null;
     }
-    return date.toISOString().split('T')[0];
 }
 
 app.get('/api/ca2-crm', authenticate, async (req, res) => {
@@ -356,8 +376,10 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
 
             if (exp) {
                 daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-                if (daysLeft < 0) status = 'expired';
-                else if (daysLeft <= 30) status = 'expiring_soon';
+                if (daysLeft < 0) status = 'expired'; // Purple
+                else if (daysLeft <= 30) status = 'critical'; // Red
+                else if (daysLeft <= 60) status = 'warning'; // Orange
+                else status = 'active'; // Green
             }
 
             return { ...c, daysLeft, status };

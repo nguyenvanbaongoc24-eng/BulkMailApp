@@ -3,6 +3,19 @@ let allSenders = [];
 let supabaseClient = null;
 let currentSession = null;
 
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const main = document.querySelector('main');
+    if (sidebar.classList.contains('w-64')) {
+        sidebar.classList.remove('w-64');
+        sidebar.classList.add('w-0');
+        main.classList.remove('lg:ml-0'); // Transition logic
+    } else {
+        sidebar.classList.remove('w-0');
+        sidebar.classList.add('w-64');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await initAuth();
     
@@ -1378,14 +1391,14 @@ async function loadCA2CRM() {
                 </td>
                 <td class="px-8 py-5 font-bold text-gray-400">${c.start_date || '-'}</td>
                 <td class="px-8 py-5 font-black text-white">${c.duration || '-'}</td>
-                <td class="px-8 py-5 font-bold text-gray-400">${c.NgayHetHanChuKySo || '-'}</td>
-                <td class="px-8 py-5">
+                <td class="px-6 py-4 font-bold text-gray-400">${c.NgayHetHanChuKySo || '-'}</td>
+                <td class="px-6 py-4">
                     <div class="flex flex-col items-start">
-                        <span class="font-black ${c.status === 'expired' ? 'text-red-500' : (c.status === 'expiring_soon' ? 'text-orange-500' : 'text-green-500')}">
+                        <span class="font-black ${c.status === 'expired' ? 'text-purple-500' : (c.daysLeft <= 30 ? 'text-red-500' : (c.daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'))}">
                             ${c.status === 'expired' ? 'Hết hạn' : (c.daysLeft + ' ngày')}
                         </span>
                         <div class="w-16 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
-                            <div class="h-full ${c.status === 'expired' ? 'bg-red-500' : (c.status === 'expiring_soon' ? 'bg-orange-500' : 'bg-green-500')}" 
+                            <div class="h-full ${c.status === 'expired' ? 'bg-purple-600' : (c.daysLeft <= 30 ? 'bg-red-500' : (c.daysLeft <= 60 ? 'bg-orange-500' : 'bg-green-500'))}" 
                                  style="width: ${c.status === 'active' ? '100%' : (c.status === 'expired' ? '0%' : '30%')}"></div>
                         </div>
                     </div>
