@@ -317,6 +317,20 @@ async function saveCA2CRM() {
     } catch (e) { alert('Lỗi kết nối server'); }
 }
 
+function openAddCRMModal() {
+    document.getElementById('ca2-crm-modal-title').innerText = 'Thêm khách hàng CA2 CRM';
+    document.getElementById('ca2-crm-id').value = '';
+    document.getElementById('ca2-crm-mst').value = '';
+    document.getElementById('ca2-crm-name').value = '';
+    document.getElementById('ca2-crm-email').value = '';
+    document.getElementById('ca2-crm-phone').value = '';
+    document.getElementById('ca2-crm-service').value = 'CKS';
+    document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
+    document.getElementById('ca2-crm-duration').value = '1 năm';
+    
+    document.getElementById('modal-ca2-crm').classList.remove('hidden');
+}
+
 function editCRM(id) {
     const c = currentCRMData.find(x => x.id === id);
     if (!c) return;
