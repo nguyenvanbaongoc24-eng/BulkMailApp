@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA2 Automation Pro - Desktop</title>
+    <script src="js/libs/tailwind.min.js"></script>
+    <script src="js/libs/react.min.js"></script>
+    <script src="js/libs/react-dom.min.js"></script>
+    <script src="js/libs/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #0c0c0c; color: white; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .premium-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .premium-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4); filter: brightness(1.1); }
+        .premium-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+        .loader { width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .table-container::-webkit-scrollbar { width: 6px; }
+        .table-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-8 h-screen overflow-hidden flex flex-col bg-[#050505]">
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [data, setData] = useState([]);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [progress, setProgress] = useState(0);
+            const [statusText, setStatusText] = useState('System Standby');
+            const [stats, setStats] = useState({ total: 0, success: 0, error: 0 });
+
+            useEffect(() => {
+                const successful = data.filter(r => r.status === '✅ Ready' || r.status === '☁️ Synced').length;
+                const errors = data.filter(r => r.status?.includes('❌')).length;
+                setStats({ total: data.length, success: successful, error: errors });
+            }, [data]);
+
+            const chooseFile = async () => {
+                try {
+                    setStatusText('Opening file picker...');
+                    const path = await window.electronAPI.selectFile();
+                    if (!path) {
+                        setStatusText('Selection canceled.');
+                        return;
+                    }
+
+                    setStatusText('Reading Excel data...');
+                    const res = await window.electronAPI.parseExcel(path);
+                    if (res.success) {
+                        setData(res.data.map(r => ({ ...r, status: '⏳ Pending' })));
+                        setStatusText(`Imported ${res.data.length} records.`);
+                    } else {
+                        throw new Error(res.error);
+                    }
+                } catch (err) {
+                    alert('CRITICAL ERROR:\n' + err.message);
+                    setStatusText('Error occurred.');
+                }
+            };
+
+            const runAuto = async (retryOnly = false) => {
+                if (isProcessing) return;
+                setIsProcessing(true);
+                setProgress(0);
+
+                const targets = retryOnly ? data.filter(r => r.status.includes('❌')) : data;
+                let done = 0;
+
+                for (let i = 0; i < data.length; i++) {
+                    const r = data[i];
+                    if (retryOnly && !r.status.includes('❌')) continue;
+
+                    setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '🔍 Scraping...' } : item));
+                    setStatusText(`Processing: ${r.MST}`);
+
+                    try {
+                        const res = await window.electronAPI.fetchSinglePdf({ MST: r.MST, Serial: r.Serial, companyName: r.Ten });
+                        if (res.success && res.result.status === 'Matched') {
+                            setData(prev => prev.map((item, idx) => idx === i ? { 
+                                ...item, 
+                                status: '✅ Ready', 
+                                filePath: res.result.filePath, 
+                                fileName: res.result.fileName 
+                            } : item));
+                        } else {
+                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${res.error || res.result?.message || 'Failed'}` } : item));
+                        }
+                    } catch (err) {
+                        setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${err.message}` } : item));
+                    }
+
+                    done++;
+                    setProgress(Math.round((done / targets.length) * 100));
+                    await new Promise(res => setTimeout(res, 1200));
+                }
+
+                setIsProcessing(false);
+                setStatusText('Automation Cycle Complete');
+            };
+
+            const syncCloud = async () => {
+                const candidates = data.filter(r => r.status === '✅ Ready');
+                if (candidates.length === 0) return alert('No local PDFs ready for sync.');
+
+                setIsProcessing(true);
+                setStatusText('Syncing to Supabase...');
+                
+                for (let i = 0; i < data.length; i++) {
+                    const r = data[i];
+                    if (r.status === '✅ Ready') {
+                        const res = await window.electronAPI.uploadToSupabase({
+                            filePath: r.filePath, fileName: r.fileName, mst: r.MST, companyName: r.Ten, serial: r.Serial
+                        });
+                        if (res.success) {
+                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '☁️ Synced', uploaded: true } : item));
+                        } else {
+                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ Sync Fail: ${res.error}` } : item));
+                        }
+                    }
+                }
+
+                setIsProcessing(false);
+                setStatusText('Supabase Sync Finished');
+            };
+
+            return (
+                <div className="flex flex-col h-full space-y-6">
+                    {/* Top Bar */}
+                    <div className="flex items-center justify-between glass p-6 rounded-[2rem]">
+                        <div className="flex flex-col">
+                            <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">CA2 AUTOMATION PRO</h1>
+                            <p className="text-[10px] text-gray-500 font-bold tracking-[0.2em] uppercase">Enterprise Desktop Suite</p>
+                        </div>
+                        <div className="flex gap-10">
+                            {[ {l: 'Total', v: stats.total, c: 'white'}, {l: 'Ready', v: stats.success, c: '#10b981'}, {l: 'Issue', v: stats.error, c: '#ef4444'} ].map((s,i) => (
+                                <div key={i} className="text-right">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{s.l}</p>
+                                    <p className="text-3xl font-black" style={{color: s.c}}>{s.v}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Progress Card */}
+                    <div className="glass p-6 rounded-[2rem]">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-3">
+                                {isProcessing && <div className="loader"></div>}
+                                <span className={isProcessing ? "text-sm font-bold text-blue-400" : "text-sm font-bold text-gray-400"}>{statusText}</span>
+                            </div>
+                            <span className="text-xl font-black italic">{progress}%</span>
+                        </div>
+                        <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)] transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-1 glass rounded-[2rem] overflow-hidden flex flex-col min-h-0">
+                        <div className="grid grid-cols-12 px-6 py-4 border-b border-white/5 bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-gray-500">
+                            <div className="col-span-2">Tax Code</div>
+                            <div className="col-span-5">Company Identity</div>
+                            <div className="col-span-2">Serial</div>
+                            <div className="col-span-3">App State</div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto table-container overflow-x-hidden p-2">
+                            {data.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center space-y-4 opacity-30">
+                                    <div className="text-4xl">📂</div>
+                                    <p className="font-bold italic">No data loaded. Please select an Excel file.</p>
+                                </div>
+                            ) : (
+                                data.map((r, i) => (
+                                    <div key={i} className="grid grid-cols-12 px-4 py-3 border-b border-white/5 hover:bg-white/[0.03] transition-colors items-center rounded-xl">
+                                        <div className="col-span-2 font-mono text-xs text-gray-400">{r.MST}</div>
+                                        <div className="col-span-5 font-bold text-sm truncate pr-8">{r.Ten}</div>
+                                        <div className="col-span-2 font-mono text-[10px] text-blue-400">{r.Serial}</div>
+                                        <div className={`col-span-3 text-xs font-black rounded-lg py-1 px-3 w-fit ${r.status.includes('✅') || r.status.includes('☁️') ? 'bg-green-500/10 text-green-500' : r.status.includes('❌') ? 'bg-red-500/10 text-red-500' : 'bg-white/5 text-gray-400'}`}>
+                                            {r.status}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="flex justify-center gap-4 pt-2 pb-4">
+                        <button onClick={chooseFile} className="premium-btn px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white">
+                            📁 Select Excel
+                        </button>
+                        <button 
+                            onClick={() => runAuto()} 
+                            disabled={isProcessing || data.length === 0}
+                            className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isProcessing || data.length === 0 ? 'bg-white/5 text-gray-600' : 'bg-blue-600 text-white shadow-lg'}`}
+                        >
+                            🚀 Start Automation
+                        </button>
+                        <button 
+                            onClick={syncCloud} 
+                            disabled={isProcessing || stats.success === 0}
+                            className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isProcessing || stats.success === 0 ? 'bg-white/5 text-gray-600' : 'border border-green-500/30 text-green-500 hover:bg-green-500/10'}`}
+                        >
+                            ☁️ Cloud Sync
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

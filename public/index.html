@@ -152,6 +152,14 @@
             <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
             </a>
+            <div class="pt-4 border-t border-white/5 space-y-2">
+                <a href="/automation.html" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
+                    <span class="mr-3 text-lg group-hover:scale-110 transition-transform">⚡</span> <span class="font-bold">Công cụ Local</span>
+                </a>
+                <button onclick="downloadLocalTool()" class="w-full flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">⬇️</span> <span class="font-semibold text-xs">Tải Tool trực tiếp</span>
+                </button>
+            </div>
         </nav>
         <div class="p-6 border-t border-white/5 space-y-3">
             <div class="bg-glass p-4 rounded-2xl flex items-center gap-3">
@@ -210,7 +218,7 @@
                     </div>
                     <div class="bg-glass p-8 rounded-[32px] card-glow">
                         <div class="flex items-baseline justify-between">
-                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tỷ lệ lỗi lỗi</p>
+                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tỷ lệ lỗi</p>
                             <span class="text-red-500">⚠️</span>
                         </div>
                         <h3 id="stat-error" class="text-5xl font-extrabold text-red-500 mt-4 tracking-tighter">0%</h3>
@@ -360,7 +368,7 @@
                 <div class="bg-glass rounded-[32px] p-8 border border-white/5">
                     <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
                         <span class="bg-orange-gradient p-2 rounded-lg text-white">🔑</span>
-                        Thâm tài khoản gửi mail mới
+                        Thêm tài khoản gửi mail mới
                     </h3>
                     
                     <div class="text-center p-10 border-2 border-dashed border-white/10 rounded-3xl bg-white/5 relative overflow-hidden group">
@@ -429,6 +437,7 @@
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chiến dịch</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chi tiết lỗi</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody id="email-logs-list" class="divide-y divide-white/5">
@@ -475,7 +484,7 @@
                                 <div class="flex items-center gap-3">
                                     <span class="text-lg">🔐</span>
                                     <div>
-                                        <p class="text-sm font-bold text-white">Đính kèm chứng thư số</p>
+                                        <p class="text-sm font-bold text-white">Đính kèm giấy chứng nhận</p>
                                         <p class="text-[10px] text-gray-500">Tự động tra cứu & đính kèm CTS mới nhất</p>
                                     </div>
                                 </div>
@@ -573,11 +582,12 @@
                                  data-placeholder="Chào {{TenCongTy}}, ...">
                             </div>
                             
-                            <div class="flex flex-wrap gap-2 pt-2">
+                            <div class="flex flex-wrap gap-2 pt-2 items-center">
                                 <button onclick="insertVariable('{{TenCongTy}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#TênCôngTy</button>
                                 <button onclick="insertVariable('{{MST}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#MST</button>
                                 <button onclick="insertVariable('{{DiaChi}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#ĐịaChỉ</button>
                                 <button onclick="insertVariable('{{NgayHetHanChuKySo}}')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-white/5 text-gray-400 rounded-md hover:text-white hover:bg-white/10 transition-all">#NgàyHếtHạn</button>
+                                <span class="text-[10px] text-gray-500 italic ml-2">Lưu ý: Bôi đen tên công ty trong mẫu và click vào #TÊNCÔNGTY, #MST,... để hệ thống tự gửi theo dữ liệu trong file bạn upload lên.</span>
                             </div>
                         </div>
 

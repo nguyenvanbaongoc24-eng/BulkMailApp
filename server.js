@@ -255,9 +255,11 @@ app.put('/api/senders/:id', authenticate, async (req, res) => {
         senderEmail: req.body.senderEmail,
         smtpHost: req.body.smtpHost,
         smtpPort: req.body.smtpPort,
-        smtpUser: req.body.smtpUser,
-        smtpPassword: req.body.smtpPassword
+        smtpUser: req.body.smtpUser
     };
+    if (req.body.smtpPassword !== undefined) {
+        updates.smtpPassword = req.body.smtpPassword;
+    }
     const { data, error } = await supabase
         .from('senders')
         .update(updates)
@@ -304,6 +306,17 @@ app.post('/api/templates', authenticate, async (req, res) => {
     const { data, error } = await supabase.from('templates').insert([newTemplate]).select();
     if (error) return res.status(500).json({ error: error.message });
     res.json(data[0]);
+});
+
+app.delete('/api/templates/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { error } = await supabase
+        .from('templates')
+        .delete()
+        .eq('id', id)
+        .eq('userId', req.user.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true, message: 'Mẫu đã được xóa.' });
 });
 
 // Google Sheets Integration
@@ -453,6 +466,36 @@ app.get('/api/email-logs', authenticate, async (req, res) => {
 
         if (error) throw error;
         res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/email-logs/:id/retry', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase
+            .from('email_logs')
+            .update({ status: 'pending', retry_count: 0, error_message: 'Thử lại từ giao diện...' })
+            .eq('id', id);
+        
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/email-logs/:id', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase
+            .from('email_logs')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -1073,8 +1116,184 @@ app.post('/api/campaigns/:id/retry-all', authenticate, async (req, res) => {
     }
 });
 
+
+// --- LOCAL AUTOMATION ENDPOINTS ---
+
+app.delete('/api/campaigns/:id', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Delete logs first then campaign
+        await supabase.from('email_logs').delete().eq('campaign_id', id);
+        const { error } = await supabase.from('campaigns').delete().eq('id', id).eq('userId', req.user.id);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/campaigns/bulk-delete', authenticate, async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'IDs array required' });
+        
+        await supabase.from('email_logs').delete().in('campaign_id', ids);
+        const { error } = await supabase.from('campaigns').delete().in('id', ids).eq('userId', req.user.id);
+        if (error) throw error;
+        res.json({ success: true, count: ids.length });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+app.post('/api/automation/fetch-single', async (req, res) => {
+    const { MST, Serial, TenCongTy, companyName } = req.body;
+    if (!MST) return res.status(400).json({ success: false, error: 'Thiếu MST' });
+    
+    console.log(`[Automation] Request fetch for MST: ${MST}`);
+    
+    let browser = null;
+    let timeoutHandle = null;
+
+    try {
+        // Global safety timeout for the entire request
+        const requestTimeout = new Promise((_, reject) => {
+            timeoutHandle = setTimeout(() => reject(new Error('Request Timeout (90s) - Quá thời gian xử lý')), 90000);
+        });
+
+        const task = (async () => {
+            browser = await scraperService.initBrowser();
+            const customerInfo = { 
+                taxCode: MST, 
+                companyName: TenCongTy || companyName || 'Company' 
+            };
+            return await scraperService.getLatestCertificate(browser, MST, Serial, customerInfo);
+        })();
+
+        const result = await Promise.race([task, requestTimeout]);
+        clearTimeout(timeoutHandle);
+
+        if (result && result.status === 'Matched') {
+            res.json({ 
+                success: true, 
+                filePath: result.filePath, 
+                fileName: result.fileName 
+            });
+        } else {
+            res.status(result?.status === 'Not Found' ? 404 : 500).json({ 
+                success: false, 
+                error: result?.message || 'Lỗi không xác định khi tải PDF' 
+            });
+        }
+    } catch (err) {
+        console.error(`[Automation] Error fetching ${MST}:`, err.message);
+        res.status(500).json({ success: false, error: err.message });
+    } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        if (browser) {
+            try { await browser.close(); } catch(e) {}
+        }
+    }
+});
+
+app.post('/api/automation/sync', async (req, res) => {
+    const { files } = req.body; // Array of { MST, Serial, filePath, fileName, companyName }
+    console.log(`[Automation] Syncing ${files?.length} files to Supabase...`);
+
+    if (!files || !Array.isArray(files)) {
+        return res.status(400).json({ success: false, error: 'Invalid files array' });
+    }
+
+    const results = [];
+    try {
+        for (const file of files) {
+            try {
+                if (!fs.existsSync(file.filePath)) {
+                    results.push({ MST: file.MST, status: 'Error', message: 'Local file missing' });
+                    continue;
+                }
+
+                const fileBuffer = fs.readFileSync(file.filePath);
+                const fileNameInBucket = `${file.MST}_${Date.now()}.pdf`;
+
+                // 1. Upload to Storage (New 'pdfs' bucket)
+                const { error: uploadError } = await supabase.storage
+                    .from('pdfs')
+                    .upload(fileNameInBucket, fileBuffer, { upsert: true, contentType: 'application/pdf' });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage.from('pdfs').getPublicUrl(fileNameInBucket);
+
+                // 2. Upsert Certificate Record (New 'certificates' table)
+                const { error: upsertError } = await supabase
+                    .from('certificates')
+                    .upsert({
+                        mst: file.MST,
+                        company_name: file.TenCongTy || file.companyName,
+                        pdf_url: publicUrl,
+                        serial: file.Serial,
+                        // user_id: req.user?.id // Uncomment if using session
+                    }, { onConflict: 'mst' });
+
+                if (upsertError) throw upsertError;
+
+                results.push({ MST: file.MST, status: 'Synced', url: publicUrl });
+                // Cleanup local file
+                // try { fs.unlinkSync(file.filePath); } catch(e) {}
+            } catch (err) {
+                console.error(`[Automation] Sync error for ${file.MST}:`, err.message);
+                results.push({ MST: file.MST, status: 'Error', message: err.message });
+            }
+        }
+        res.json({ success: true, results });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/automation/download-tool', async (req, res) => {
+    try {
+        const zipFile = path.join(__dirname, 'public', 'CA2_Automation_Tool.zip');
+        // Simple PowerShell command to create a zip of the root folder (Windows environment)
+        // Adjust exclusions if needed
+        const cmd = `powershell -Command "Compress-Archive -Path '${__dirname}\\*' -DestinationPath '${zipFile}' -Force -Exclude ('node_modules','dist','.git','.env','uploads','public\\*.zip')"`;
+        
+        console.log('[Download] Creating zip file...');
+        require('child_process').exec(cmd, (err) => {
+            if (err) {
+                console.error('[Download] Zip Error:', err.message);
+                return res.status(500).send('Lỗi tạo file nén: ' + err.message);
+            }
+            res.download(zipFile, 'CA2_Automation_Tool.zip');
+        });
+    } catch (err) {
+        res.status(500).send('Lỗi xử lý tải về.');
+    }
+});
+
+app.post('/api/automation/cleanup', (req, res) => {
+    try {
+        const certDir = path.join(__dirname, 'uploads', 'certs');
+        if (fs.existsSync(certDir)) {
+            const files = fs.readdirSync(certDir);
+            for (const file of files) {
+                const fullPath = path.join(certDir, file);
+                if (fs.statSync(fullPath).isDirectory()) {
+                    fs.rmSync(fullPath, { recursive: true, force: true });
+                } else {
+                    fs.unlinkSync(fullPath);
+                }
+            }
+        }
+        res.json({ success: true, message: 'Đã dọn dẹp bộ nhớ tạm local thành công.' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Lỗi dọn dẹp: ' + err.message });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+    console.log(`Automation Tool: http://localhost:${port}/automation.html`);
     // Start the background worker
     emailService.startWorker();
 });

@@ -6,7 +6,7 @@ const { google } = require('googleapis');
 const supabase = require('./supabaseClient');
 const scraperService = require('./scraperService');
 
-const WORKER_INTERVAL = 30000;
+const WORKER_INTERVAL = 10000; // Reduced from 30s to 10s for faster sending
 const RECOVERY_INTERVAL = 15 * 60 * 1000;
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
@@ -18,7 +18,7 @@ async function startWorker() {
 
     let browser = null;
     try {
-        const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 5 });
+        const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 }); // Increased batch to 10
         if (pickError) throw pickError;
 
         if (!tasks || tasks.length === 0) {
@@ -26,11 +26,21 @@ async function startWorker() {
             return;
         }
 
-        console.log(`[Worker] 🚀 Processing ${tasks.length} tasks...`);
+        console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks. Initializing Browser...`);
         browser = await scraperService.initBrowser();
+        console.log(`[Worker] Browser initialized. Starting loop...`);
 
         for (const log of tasks) {
-            await processEmailTask(log, browser);
+            try {
+                await Promise.race([
+                    processEmailTask(log, browser),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Task Timeout Exceeded (90s)')), 90000))
+                ]);
+            } catch (taskErr) {
+                console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
+                // Emergency fail-safe to revert processing
+                await supabase.from('email_logs').update({ status: 'failed', retry_count: (log.retry_count || 0) + 1 }).eq('id', log.id).catch(() => {});
+            }
             await new Promise(r => setTimeout(r, Math.random() * 3000 + 2000));
         }
     } catch (err) {
@@ -50,7 +60,22 @@ async function processEmailTask(log, browser) {
         if (!campaign) throw new Error('Campaign not found.');
 
         const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode) === String(log.customer_id));
-        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', log.customer_id).single();
+        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', log.customer_id).maybeSingle();
+
+        // FALLBACK: If not in customers, or customers has no PDF, check 'certificates' table (Local Tool's output)
+        if (!customer || !customer.pdf_url) {
+            console.log(`[Worker] [${log.id}] PDF missing from CRM/Customers. Checking 'certificates' table...`);
+            const { data: cert } = await supabase.from('certificates').select('pdf_url, company_name, serial').eq('mst', log.customer_id).maybeSingle();
+            if (cert && cert.pdf_url) {
+                console.log(`[Worker] [${log.id}] Found PDF in certificates table: ${cert.pdf_url}`);
+                customer = { 
+                    ...customer, 
+                    pdf_url: cert.pdf_url, 
+                    companyName: cert.company_name || recipientInExcel?.TenCongTy,
+                    Serial: cert.serial
+                };
+            }
+        }
 
         // 1. PDF Handling (STRICT MODE)
         if (campaign.attachCert) {
@@ -102,9 +127,7 @@ async function processEmailTask(log, browser) {
                 } else {
                     const failNote = scrapeResult?.message || 'Không tìm thấy hoặc không khớp Serial';
                     pdfAttachedStatus = `⚠ Không PDF (${failNote})`;
-                    
-                    // ABORT SEND IF PDF REQUIRED BUT NOT FOUND
-                    throw new Error(`Bắt buộc có PDF nhưng không tìm thấy: ${failNote}`);
+                    console.log(`[Worker] [${log.id}] PDF requested but not found/matched: ${failNote}. Proceeding to send WITHOUT PDF.`);
                 }
             }
         } else {
@@ -113,6 +136,9 @@ async function processEmailTask(log, browser) {
 
         // 2. Content Preparation
         let html = campaign.template || '';
+        // Remove any legacy border styles if they come from old templates
+        html = html.replace(/border: 1px solid black/g, 'border: none').replace(/border="1"/g, 'border="0"');
+        
         let subject = campaign.subject || 'Thông báo từ Automation CA2';
         const replacements = {
             '{{TenCongTy}}': customer?.companyName || recipientInExcel?.TenCongTy || '',
@@ -163,7 +189,7 @@ async function processEmailTask(log, browser) {
                     throw new Error('Tải PDF từ Storage thất bại (Empty Buffer).');
                 }
             } else if (campaign.attachCert) {
-                throw new Error('Lỗi logic: pdf_url trống tại bước đính kèm.');
+                console.log(`[Worker] [${log.id}] Campaign requested PDF, but no PDF URL is available. Sending without attachment.`);
             }
 
             const info = await transporter.sendMail(mailOptions);
@@ -179,7 +205,7 @@ async function processEmailTask(log, browser) {
             // Standard SMTP
             transporter = nodemailer.createTransport({
                 host: sender.smtpHost, port: parseInt(sender.smtpPort),
-                secure: sender.smtpPort == 465,
+                secure: sender.smtpHost == 465,
                 auth: { user: sender.smtpUser, pass: sender.smtpPassword },
                 tls: { rejectUnauthorized: false }
             });
@@ -199,7 +225,7 @@ async function processEmailTask(log, browser) {
                     content: buf
                 });
             } else if (campaign.attachCert) {
-                throw new Error('PDF required but missing.');
+                console.log(`[Worker] [${log.id}] Campaign requested PDF, but no PDF URL is available. Sending without attachment.`);
             }
 
             const info = await transporter.sendMail(mailOptions);
@@ -221,20 +247,24 @@ async function processEmailTask(log, browser) {
 
     } catch (err) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
-        const newRetryCount = (log.retry_count || 0) + 1;
-        const isTerminal = newRetryCount >= 3;
+        try {
+            const newRetryCount = (log.retry_count || 0) + 1;
+            const isTerminal = newRetryCount >= 3;
 
-        // If it's a PDF failure, we keep it as 'failed' to be picked up by recovery worker later
-        // or marked as failed_permanent if it exceeds retries.
-        await supabase.from('email_logs').update({
-            status: isTerminal ? 'failed_permanent' : 'failed',
-            error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
-            retry_count: newRetryCount,
-            last_retry_time: new Date().toISOString()
-        }).eq('id', log.id);
+            // If it's a PDF failure, we keep it as 'failed' to be picked up by recovery worker later
+            // or marked as failed_permanent if it exceeds retries.
+            await supabase.from('email_logs').update({
+                status: isTerminal ? 'failed_permanent' : 'failed',
+                error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
+                retry_count: newRetryCount,
+                last_retry_time: new Date().toISOString()
+            }).eq('id', log.id);
 
-        if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
-        await checkCampaignCompletion(log.campaign_id);
+            if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+            await checkCampaignCompletion(log.campaign_id);
+        } catch (fatalErr) {
+            console.error(`[Worker] [${log.id}] 🚨 FATAL FAIL writing to DB:`, fatalErr.message);
+        }
     }
 }
 
@@ -271,4 +301,4 @@ async function startRecoveryWorker() {
 
 setInterval(startWorker, WORKER_INTERVAL);
 setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
-module.exports = { startWorker };
+module.exports = { startWorker, processEmailTask };

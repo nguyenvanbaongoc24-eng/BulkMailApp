@@ -2,11 +2,36 @@
   "name": "bulkmailapp",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
     "start": "node server.js",
+    "electron": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "npx puppeteer browsers install chrome"
+  },
+  "build": {
+    "appId": "com.ca2.automation.pro",
+    "productName": "CA2AutomationPro",
+    "compression": "maximum",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "services/**/*.js",
+      "public/**/*",
+      "uploads/.gitkeep",
+      ".env",
+      "!node_modules/puppeteer/.local-chromium/**/*",
+      "!dist/**/*",
+      "!src/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "public/favicon.ico"
+    }
   },
   "keywords": [],
   "author": "",
@@ -23,5 +48,9 @@
     "nodemailer": "^8.0.2",
     "puppeteer": "^24.39.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1"
   }
 }

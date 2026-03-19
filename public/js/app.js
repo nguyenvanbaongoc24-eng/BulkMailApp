@@ -163,6 +163,16 @@ async function handleLogout() {
     await supabaseClient.auth.signOut();
 }
 
+async function downloadLocalTool() {
+    alert('⏳ Đang chuẩn bị file tải về... (Hệ thống sẽ nén bộ cài đặt tool local cho bạn)');
+    const link = document.createElement('a');
+    link.href = '/api/automation/download-tool'; // We will create this endpoint or guide them
+    link.download = 'CA2_Automation_Tool.zip';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 /**
  * Helper for authenticated API calls
  */
@@ -182,7 +192,8 @@ function showPage(page) {
         page === 'dashboard' ? 'Bảng điều khiển' : 
         page === 'campaigns' ? 'Chiến dịch email' : 
         page === 'senders' ? 'Cấu hình tài khoản gửi mail' : 
-        page === 'crm' ? 'Quản lý khách hàng (CRM)' : 'Cài đặt hệ thống';
+        page === 'crm' ? 'Quản lý khách hàng (CRM)' : 
+        page === 'reports' ? 'Báo cáo gửi mail' : 'Cài đặt hệ thống';
     
     // Switch views
     ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings', 'view-crm', 'view-reports'].forEach(id => {
@@ -253,8 +264,8 @@ async function loadSenders() {
             <td class="px-8 py-4 text-gray-400">${s.senderEmail}</td>
             <td class="px-8 py-4 text-gray-400 font-mono text-xs">${s.smtpHost}</td>
             <td class="px-8 py-4 text-right flex items-center justify-end gap-2">
-                <button onclick="testSenderConnection('${s.id}')" class="text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 transition-all">Kiểm tra</button>
-                <button onclick="testSendToSelf('${s.id}')" class="text-[10px] font-black text-purple-400 hover:text-purple-300 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20 transition-all">Gửi thử</button>
+                <button onclick="testSenderConnection('${s.id}', this)" class="text-[10px] font-black text-blue-400 hover:text-blue-300 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 transition-all">Kiểm tra</button>
+                <button onclick="testSendToSelf('${s.id}', this)" class="text-[10px] font-black text-purple-400 hover:text-purple-300 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20 transition-all">Gửi thử</button>
                 <button onclick="openEditSenderModal('${s.id}')" class="text-[10px] font-black text-orange-400 hover:text-orange-300 bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20 transition-all">Sửa</button>
                 <button onclick="deleteSender('${s.id}')" class="text-[10px] font-black text-red-400 hover:text-red-300 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition-all">Xóa</button>
             </td>
@@ -389,12 +400,13 @@ async function deleteSender(id) {
 
 /** ---------------- DEBUG TOOLS ---------------- */
 
-async function testSenderConnection(id) {
+async function testSenderConnection(id, btnElement = null) {
     try {
-        const btn = event.target;
-        const originalText = btn.innerText;
-        btn.innerText = '⏳...';
-        btn.disabled = true;
+        const btn = btnElement || document.querySelector(`button[onclick="testSenderConnection('${id}', this)"]`);
+        if (btn) {
+            btn.innerText = '⏳...';
+            btn.disabled = true;
+        }
 
         const response = await authedFetch(`/api/senders/${id}/test-connection`);
         const result = await response.json();
@@ -422,17 +434,18 @@ async function testSenderConnection(id) {
     }
 }
 
-async function testSendToSelf(senderId) {
+async function testSendToSelf(senderId, btnElement = null) {
     const testEmail = prompt('Nhập địa chỉ email nhận test (Inbox hoặc Spam):', currentSession.user.email);
     if (!testEmail) return;
 
     const testPdfUrl = prompt('Nhập link PDF test (tùy chọn - để trống nếu không cần):', '');
 
     try {
-        const btn = event.target;
-        const originalText = btn.innerText;
-        btn.innerText = '⏳...';
-        btn.disabled = true;
+        const btn = btnElement || document.querySelector(`button[onclick="testSendToSelf('${senderId}', this)"]`);
+        if (btn) {
+            btn.innerText = '⏳...';
+            btn.disabled = true;
+        }
 
         const response = await authedFetch('/api/test-send-email', {
             method: 'POST',
@@ -562,7 +575,7 @@ async function loadCampaigns(targetId = 'campaign-list') {
     if (!list) return;
     list.innerHTML = '';
 
-    campaigns.reverse().forEach(c => {
+    campaigns.forEach(c => {
         const total = c.recipients ? c.recipients.length : 0;
         const processed = (c.sentCount || 0) + (c.errorCount || 0);
         const progress = total > 0 ? Math.round((processed / total) * 100) : 0;
@@ -570,10 +583,13 @@ async function loadCampaigns(targetId = 'campaign-list') {
         row.className = 'hover:bg-white/2 transition-all duration-200';
         row.innerHTML = `
             <td class="px-8 py-5">
+                <input type="checkbox" class="campaign-checkbox rounded bg-white/5 border-white/10" value="${c.id}" onchange="updateBulkDeleteUI()">
+            </td>
+            <td class="px-8 py-5">
                 <p class="font-bold text-white">${c.name}</p>
                 <p class="text-[10px] text-gray-500 font-mono mt-1">ID: ${c.id.slice(0,8)}</p>
             </td>
-            <td class="px-8 py-5">
+            <td class="px-8 py-5 text-center">
                 <span class="px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-lg ${getStatusBadgeClass(c.status)}">
                     ${c.status}
                 </span>
@@ -588,7 +604,7 @@ async function loadCampaigns(targetId = 'campaign-list') {
                 <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-widest">${processed}/${total} EMAILS</p>
             </td>
             <td class="px-8 py-5">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 justify-end">
                     <button onclick="window.location.href='/api/reports/${c.id}?access_token=' + currentSession.access_token" class="text-white hover:text-white font-extrabold text-[9px] uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl transition-all">Báo cáo</button>
                     <div class="flex items-center bg-white/5 rounded-xl p-1 gap-1 border border-white/5">
                         <span class="text-[8px] font-black text-gray-500 uppercase px-1">Xuất:</span>
@@ -611,7 +627,8 @@ async function deleteCampaign(id) {
         if (!response) return;
         const result = await response.json();
         if (response.ok) {
-            loadCampaigns();
+            loadCampaigns('campaign-list');
+            loadCampaigns('campaign-list-all');
             loadStats();
         } else {
             alert(result.error || 'Lỗi khi xóa chiến dịch.');
@@ -680,6 +697,26 @@ async function loadTemplates() {
             opt.textContent = t.name;
             select.appendChild(opt);
         });
+
+        // Add a delete template button next to the select if not there
+        const container = select.parentElement;
+        if (!document.getElementById('btn-delete-template')) {
+            const delBtn = document.createElement('button');
+            delBtn.id = 'btn-delete-template';
+            delBtn.innerText = '🗑️';
+            delBtn.className = 'ml-1 p-1 hover:bg-red-500/10 rounded transition-all';
+            delBtn.onclick = async () => {
+                const id = select.value;
+                if (!id) return alert('Vui lòng chọn mẫu cần xóa.');
+                if (!confirm('Xóa mẫu này?')) return;
+                const res = await authedFetch(`/api/templates/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('Đã xóa mẫu.');
+                    loadTemplates();
+                }
+            };
+            container.appendChild(delBtn);
+        }
     } catch (error) {
         console.error('Lỗi khi tải danh sách mẫu:', error);
     }
@@ -752,10 +789,51 @@ function handleEditorImage(event) {
 // Refresh every 10 seconds (aligned with worker)
 setInterval(() => {
     const activePage = document.querySelector('a.sidebar-item-active')?.id;
-    if (activePage === 'nav-dashboard') loadCampaigns();
+    if (activePage === 'nav-dashboard') loadCampaigns('campaign-list');
+    if (activePage === 'nav-campaigns') loadCampaigns('campaign-list-all');
     if (activePage === 'nav-reports') loadEmailLogs();
+    if (activePage === 'nav-crm') loadCRMStats();
     loadStats();
 }, 10000);
+
+// Missing function for PDF uploading directly from CRM
+async function uploadCustomerPDF(event) {
+    const file = event.target.files[0];
+    if (!file || !activeCRMId) return;
+
+    if (file.type !== 'application/pdf') {
+        alert('Vui lòng chọn file PDF.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+    formData.append('id', activeCRMId);
+
+    const pdfStatus = document.getElementById('crm-pdf-status');
+    const originalText = pdfStatus.innerText;
+    
+    try {
+        pdfStatus.innerText = '⏳ Đang tải file lên...';
+        const response = await authedFetch('/api/customers/upload-pdf', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            alert('Tải PDF lên thành công!');
+            openCRMUpdateModal(activeCRMId);
+            loadCRM();
+        } else {
+            alert('Lỗi: ' + (result.error || 'Upload thất bại.'));
+            pdfStatus.innerText = originalText;
+        }
+    } catch (err) {
+        alert('Lỗi hệ thống khi upload: ' + err.message);
+        pdfStatus.innerText = originalText;
+    }
+}
 
 async function loadEmailLogs() {
     try {
@@ -769,15 +847,43 @@ async function loadEmailLogs() {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-white/5 transition-all text-xs';
             let statusClass = 'text-gray-400';
-            if (log.status === 'sent') statusClass = 'text-green-500 font-bold';
-            if (log.status === 'failed') statusClass = 'text-red-500 font-bold';
+            let detailHtml = `<td class="px-6 py-4 text-[10px] text-gray-400 italic max-w-[200px] truncate" title="${log.error_message || ''}">${log.error_message || ''}</td>`;
+            
+            if (log.status === 'sent') {
+                statusClass = 'text-green-500 font-bold';
+                // error_message holds PDF status on success
+                const isPdf = log.error_message && log.error_message.includes('Có PDF');
+                const isNoPdf = log.error_message && log.error_message.includes('Không PDF');
+                
+                let badgeClass = 'bg-white/5 text-gray-400';
+                if (isPdf) badgeClass = 'bg-green-500/10 text-green-500';
+                else if (isNoPdf) badgeClass = 'bg-yellow-500/10 text-yellow-500';
+                
+                detailHtml = `<td class="px-6 py-4"><span class="px-2 py-1 text-[9px] rounded font-bold ${badgeClass}" title="${log.error_message}">${log.error_message}</span></td>`;
+            } else if (log.status === 'failed' || log.status === 'failed_permanent') {
+                statusClass = 'text-red-500 font-bold';
+                detailHtml = `<td class="px-6 py-4 text-[10px] text-red-500 bg-red-500/5 font-medium max-w-[200px] truncate" title="${log.error_message || ''}">Lỗi: ${log.error_message || ''}</td>`;
+            }
+
+            let actionsHtml = `<td class="px-6 py-4 text-center">---</td>`;
+            if (log.status.includes('failed')) {
+                actionsHtml = `
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2 justify-center">
+                            <button onclick="retryEmail('${log.id}', this)" class="text-[9px] font-black text-blue-400 hover:text-blue-300 bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20">Thử lại</button>
+                            <button onclick="deleteEmailLog('${log.id}', this)" class="text-[9px] font-black text-red-400 hover:text-red-300 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20">Xóa</button>
+                        </div>
+                    </td>
+                `;
+            }
 
             tr.innerHTML = `
                 <td class="px-6 py-4 text-gray-400">${new Date(log.created_at).toLocaleString('vi-VN')}</td>
                 <td class="px-6 py-4 font-bold text-white">${log.email}</td>
-                <td class="px-6 py-4 text-gray-400">${log.campaign_id}</td>
-                <td class="px-6 py-4 ${statusClass}">${log.status === 'sent' ? '✅ Thành công' : (log.status === 'failed' ? '❌ Thất bại' : '⏳ Đang chờ')}</td>
-                <td class="px-6 py-4 text-[10px] text-red-400 italic max-w-[200px] truncate" title="${log.error_message || ''}">${log.error_message || ''}</td>
+                <td class="px-6 py-4 text-gray-400">${log.campaign_id.slice(0,8)}</td>
+                <td class="px-6 py-4 ${statusClass}">${log.status === 'sent' ? '✅ Thành công' : (log.status.includes('failed') ? '❌ Thất bại' : '⏳ Đang chờ')}</td>
+                ${detailHtml}
+                ${actionsHtml}
             `;
             listEl.appendChild(tr);
         });
@@ -812,6 +918,23 @@ async function exportEmailLogs() {
     } catch (error) {
         alert('Lỗi khi xuất báo cáo: ' + error.message);
     }
+}
+
+async function retryEmail(logId, btn) {
+    btn.innerText = '⏳';
+    try {
+        const res = await authedFetch(`/api/email-logs/${logId}/retry`, { method: 'POST' });
+        if (res.ok) loadEmailLogs();
+        else alert('Không thể thử lại.');
+    } catch(e) { alert('Lỗi: ' + e.message); }
+}
+
+async function deleteEmailLog(logId, btn) {
+    if(!confirm('Xóa báo cáo lỗi này?')) return;
+    try {
+        const res = await authedFetch(`/api/email-logs/${logId}`, { method: 'DELETE' });
+        if (res.ok) loadEmailLogs();
+    } catch(e) { alert('Lỗi xóa báo cáo.'); }
 }
 
 async function saveCampaign(event) {
