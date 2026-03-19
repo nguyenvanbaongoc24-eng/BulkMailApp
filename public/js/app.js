@@ -1434,9 +1434,9 @@ async function editCRM(id) {
 
         document.getElementById('ca2-crm-modal-title').innerText = 'Cập nhật khách hàng';
         document.getElementById('ca2-crm-id').value = c.id;
-        document.getElementById('ca2-crm-mst').value = c.MST;
-        document.getElementById('ca2-crm-name').value = c.TenCongTy;
-        document.getElementById('ca2-crm-email').value = c.Email;
+        document.getElementById('ca2-crm-mst').value = c.mst;
+        document.getElementById('ca2-crm-name').value = c.company_name;
+        document.getElementById('ca2-crm-email').value = c.email;
         document.getElementById('ca2-crm-phone').value = c.phone || '';
         document.getElementById('ca2-crm-service').value = c.service_type || 'CKS';
         document.getElementById('ca2-crm-start').value = c.start_date || '';
@@ -1453,8 +1453,8 @@ function closeCA2CRMModal() {
 async function saveCA2CRM() {
     const id = document.getElementById('ca2-crm-id').value;
     const body = {
-        MST: document.getElementById('ca2-crm-mst').value,
-        TenCongTy: document.getElementById('ca2-crm-name').value,
+        mst: document.getElementById('ca2-crm-mst').value,
+        company_name: document.getElementById('ca2-crm-name').value,
         email: document.getElementById('ca2-crm-email').value,
         phone: document.getElementById('ca2-crm-phone').value,
         service_type: document.getElementById('ca2-crm-service').value,
