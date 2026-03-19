@@ -1405,6 +1405,11 @@ app.post('/api/automation/cleanup', (req, res) => {
     }
 });
 
+app.get('/api/download-tool', authenticate, (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'CA2_Automation_Tool.zip');
+    res.download(filePath, 'CA2_Automation_Tool.zip');
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
     console.log(`Automation Tool: http://localhost:${port}/automation.html`);

@@ -1575,3 +1575,7 @@ async function handleCRMImportAction(mode) {
         alert('Lỗi kết nối server khi nhập dữ liệu.');
     }
 }
+
+function downloadLocalTool() {
+    window.location.href = '/api/download-tool';
+}
