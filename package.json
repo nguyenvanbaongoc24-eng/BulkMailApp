@@ -9,7 +9,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "node -e \"if(!process.env.RENDER) { console.log('Non-Render env, installing chrome...'); require('child_process').execSync('npx puppeteer browsers install chrome', {stdio: 'inherit'}); } else { console.log('Render env detected, skipping chrome install'); }\""
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "build": {
     "appId": "com.ca2.automation.pro",
