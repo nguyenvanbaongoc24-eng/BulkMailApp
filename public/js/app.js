@@ -218,6 +218,7 @@ function showPage(page) {
         page === 'campaigns' ? 'Chiến dịch email' : 
         page === 'senders' ? 'Cấu hình tài khoản gửi mail' : 
         page === 'crm' ? 'Quản lý khách hàng (CRM)' : 
+        page === 'ca2-crm' ? 'Hệ thống Quản lý CA2 CRM' : 
         page === 'reports' ? 'Báo cáo gửi mail' : 'Cài đặt hệ thống';
     
     // Switch views
