@@ -1455,7 +1455,7 @@ async function saveCA2CRM() {
     const body = {
         MST: document.getElementById('ca2-crm-mst').value,
         TenCongTy: document.getElementById('ca2-crm-name').value,
-        Email: document.getElementById('ca2-crm-email').value,
+        email: document.getElementById('ca2-crm-email').value,
         phone: document.getElementById('ca2-crm-phone').value,
         service_type: document.getElementById('ca2-crm-service').value,
         start_date: document.getElementById('ca2-crm-start').value,

@@ -393,7 +393,7 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
 
 app.post('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        const { MST, TenCongTy, Email, phone, service_type, start_date, duration } = req.body;
+        const { MST, TenCongTy, email, phone, service_type, start_date, duration } = req.body;
         
         // Auto-calculate expiration if not provided
         const expirationDate = calculateExpirationDate(start_date, duration);
@@ -401,7 +401,7 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
         const { data, error } = await supabase.from('customers').upsert({
             MST, 
             TenCongTy, 
-            Email, 
+            email, 
             phone, 
             service_type, 
             start_date, 
