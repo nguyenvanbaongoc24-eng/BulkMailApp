@@ -77,8 +77,8 @@ async function processEmailTask(log, browser) {
             }
         }
 
-        // 1. PDF Handling (STRICT MODE) - Fix: campaign.attachCert -> campaign.attach_cert
-        if (campaign.attach_cert) {
+        // 1. PDF Handling (STRICT MODE) - Final fix for field name consistency
+        if (campaign.attach_cert || campaign.attachCert) {
             if (customer && customer.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found existing PDF URL: ${customer.pdf_url}`);
                 pdfAttachedStatus = '✅ Có PDF (Sẵn có)';
@@ -154,20 +154,38 @@ async function processEmailTask(log, browser) {
         };
 
         const replacements = {
-            '#TênCôngTy': findVal(recipientInExcel, ['TenCongTy', 'Tên Công Ty', 'Name', 'companyName']) || customer?.companyName || '',
+            '#TênCôngTy': findVal(recipientInExcel, ['TenCongTy', 'Tên Công Ty', 'Name', 'companyName']) || customer?.companyName || 'Quý Doanh Nghiệp',
             '#MST': findVal(recipientInExcel, ['MST', 'taxCode', 'Mã số thuế']) || customer?.taxCode || log.customer_id || '',
             '#ĐịaChỉ': findVal(recipientInExcel, ['DiaChi', 'Địa chỉ', 'Address']) || customer?.diaChi || '',
-            '#NgàyHếtHạn': findVal(recipientInExcel, ['NgayHetHanChuKySo', 'Ngày hết hạn', 'Expiration']) || customer?.expirationDate || ''
+            '#NgàyHếtHạn': findVal(recipientInExcel, ['NgayHetHanChuKySo', 'Ngày hết hạn', 'Expiration', 'expired_date']) || customer?.expirationDate || ''
         };
 
-        // Support both {{TAG}} and #TAG syntax
+        // Advanced Replacement with HTML Entity Handling & Case Insensitivity
+        const decodeEntities = (str) => str.replace(/&[#a-z0-9]+;/gi, match => {
+            const map = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
+            return map[match.toLowerCase()] || match;
+        });
+
         for (const [tag, value] of Object.entries(replacements)) {
-            const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const legacyTag = `{{${tag.substring(1)}}}`; 
-            
-            const regex = new RegExp(`${escapedTag}|${legacyTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
-            html = html.replace(regex, value);
-            subject = subject.replace(regex, value);
+            // Support multiple tag variants (with/without accents, spaces, underscores)
+            const variants = [tag];
+            if (tag === '#TênCôngTy') variants.push('#TenCongTy', '#TEN_CONG_TY', '#TÊN_CÔNG_TY');
+            if (tag === '#NgàyHếtHạn') variants.push('#NgayHetHan', '#NGAY_HET_HAN', '#NGÀY_HẾT_HẠN');
+            if (tag === '#ĐịaChỉ') variants.push('#DiaChi', '#DIA_CHI', '#ĐỊA_CHỈ');
+
+            for (const variant of variants) {
+                const escapedVariant = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(escapedVariant, 'gi');
+                
+                html = html.replace(regex, value);
+                subject = subject.replace(regex, value);
+                
+                // Also handle common double-curly bracket legacy tags
+                const legacyTag = `{{${variant.substring(1)}}}`;
+                const legacyRegex = new RegExp(legacyTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                html = html.replace(legacyRegex, value);
+                subject = subject.replace(legacyRegex, value);
+            }
         }
 
         // 3. Sender Verification
