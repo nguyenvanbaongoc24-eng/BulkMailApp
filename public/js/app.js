@@ -12,6 +12,34 @@ let pendingCRMData = [];
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
+
+    // Editor Paste Cleanup - Handle dark/light theme conflicts
+    const editor = document.getElementById('input-template');
+    if (editor) {
+        editor.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const html = e.clipboardData.getData('text/html');
+            const text = e.clipboardData.getData('text/plain');
+
+            if (html) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Remove all color and background styles that clash with dark theme
+                const allElements = tempDiv.querySelectorAll('*');
+                allElements.forEach(el => {
+                    el.style.backgroundColor = '';
+                    el.style.color = '';
+                    // Also clean up common background/text classes from other frameworks
+                    el.className = el.className.replace(/\bbg-\S+/g, '').replace(/\btext-\S+/g, '');
+                });
+                
+                document.execCommand('insertHTML', false, tempDiv.innerHTML);
+            } else {
+                document.execCommand('insertText', false, text);
+            }
+        });
+    }
 });
 
 // --- Authentication Logic ---
