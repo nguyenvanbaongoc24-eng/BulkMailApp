@@ -450,9 +450,14 @@
                                 <input type="text" id="ca2-crm-search" onkeyup="renderCA2CRM()" placeholder="Tìm MST hoặc Tên..." class="pl-10 pr-4 py-2 bg-white/5 border-white/10 rounded-xl text-xs w-64 outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-bold">
                             </div>
                         </div>
-                        <button onclick="createCampaignFromCA2CRM()" class="bg-blue-600/20 text-blue-400 px-6 py-2.5 rounded-xl font-bold border border-blue-600/20 hover:bg-blue-600/30 transition-all text-xs">
-                            💌 Gửi mail hàng loạt
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportCA2CRMToExcel()" class="bg-green-600/20 text-green-400 px-6 py-2.5 rounded-xl font-bold border border-green-600/20 hover:bg-green-600/30 transition-all text-xs">
+                                📊 Xuất Excel
+                            </button>
+                            <button onclick="createCampaignFromCA2CRM()" class="bg-blue-600/20 text-blue-400 px-6 py-2.5 rounded-xl font-bold border border-blue-600/20 hover:bg-blue-600/30 transition-all text-xs">
+                                💌 Gửi mail hàng loạt
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">

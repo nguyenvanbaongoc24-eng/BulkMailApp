@@ -150,6 +150,7 @@ function showPage(pageId) {
     if (pageId === 'senders') loadSenders();
     if (pageId === 'reports') loadEmailLogs();
     if (pageId === 'campaigns') loadRecentCampaigns();
+    if (pageId === 'crm') loadCRM();
 }
 
 function toggleSidebar() {
@@ -206,15 +207,24 @@ function renderCA2CRM() {
     const expiringEl = document.getElementById('ca2-crm-expiring');
     const expiredEl = document.getElementById('ca2-crm-expired');
     
+    let activeCnt = 0, expiringCnt = 0, expiredCnt = 0;
+    currentCRMData.forEach(c => {
+        const days = calculateRemainingDays(c.expired_date);
+        if (days < 0) expiredCnt++;
+        else if (days <= 60) expiringCnt++;
+        else activeCnt++;
+    });
+
     if (totalEl) totalEl.innerText = currentCRMData.length;
-    if (activeEl) activeEl.innerText = currentCRMData.filter(c => c.status === 'active').length;
-    if (expiringEl) expiringEl.innerText = currentCRMData.filter(c => c.status === 'expiring_soon').length;
-    if (expiredEl) expiredEl.innerText = currentCRMData.filter(c => c.status === 'expired').length;
+    if (activeEl) activeEl.innerText = activeCnt;
+    if (expiringEl) expiringEl.innerText = expiringCnt;
+    if (expiredEl) expiredEl.innerText = expiredCnt;
 
     tableBody.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
-        const statusClass = c.status === 'expired' ? 'text-purple-500' : (daysLeft <= 30 ? 'text-red-500' : (daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'));
-        const barClass = c.status === 'expired' ? 'bg-purple-600' : (daysLeft <= 30 ? 'bg-red-500' : (daysLeft <= 60 ? 'bg-orange-500' : 'bg-green-500'));
+        const isExpired = daysLeft < 0;
+        const statusClass = isExpired ? 'text-purple-500' : (daysLeft <= 30 ? 'text-red-500' : (daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'));
+        const barClass = isExpired ? 'bg-purple-600' : (daysLeft <= 30 ? 'bg-red-500' : (daysLeft <= 60 ? 'bg-orange-500' : 'bg-green-500'));
 
         return `
             <tr class="hover:bg-white/2 transition-colors group">
@@ -234,16 +244,16 @@ function renderCA2CRM() {
                 <td class="px-6 py-4">
                     <div class="flex flex-col items-start">
                         <span class="font-black ${statusClass}">
-                            ${c.status === 'expired' ? 'Hết hạn' : (daysLeft + ' ngày')}
+                            ${isExpired ? 'Hết hạn' : (daysLeft + ' ngày')}
                         </span>
                         <div class="w-16 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
                             <div class="h-full ${barClass}" 
-                                 style="width: ${c.status === 'active' ? '100%' : (c.status === 'expired' ? '0%' : '30%')}"></div>
+                                 style="width: ${isExpired ? '0%' : (daysLeft > 60 ? '100%' : (daysLeft / 60 * 100) + '%')}"></div>
                         </div>
                     </div>
                 </td>
                 <td class="px-8 py-5 text-right">
-                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <div class="flex justify-end gap-2 transition-all">
                         <button onclick="editCRM('${c.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
                         <button onclick="deleteCRM('${c.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
                     </div>
@@ -479,6 +489,170 @@ async function loadSenders() {
                 senders.map(s => `<option value="${s.id}">${s.senderName}</option>`).join('');
         }
     } catch (e) {}
+}
+
+// --- UTILITIES AND OLD CRM LOGIC ---
+function exportCA2CRMToExcel() {
+    if (!currentCRMData || currentCRMData.length === 0) {
+        alert('Không có dữ liệu để xuất');
+        return;
+    }
+    const wsData = currentCRMData.map(c => ({
+        'MST': c.mst,
+        'Tên công ty': c.company_name,
+        'Email': c.email,
+        'Số điện thoại': c.phone,
+        'Dịch vụ': c.service_type,
+        'Ngày cấp': formatDate(c.start_date),
+        'Thời hạn': c.duration,
+        'Ngày hết hạn': formatDate(c.expired_date),
+        'Ghi chú': c.status_note || ''
+    }));
+    
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, "CA2_CRM_Data");
+    XLSX.writeFile(wb, "CA2_CRM_Data.xlsx");
+}
+
+let oldCRMData = [];
+let currentFilterStatus = 'all';
+
+async function loadCRM() {
+    try {
+        const res = await authedFetch('/api/customers');
+        const { data } = await res.json();
+        oldCRMData = data || [];
+        const statusDropdown = document.getElementById('crm-filter-status');
+        if(statusDropdown) currentFilterStatus = statusDropdown.value;
+        renderCRM();
+    } catch (e) { console.error('Load Old CRM Error:', e); }
+}
+
+function filterCRM(status) {
+    currentFilterStatus = status;
+    const statusDropdown = document.getElementById('crm-filter-status');
+    if(statusDropdown && statusDropdown.querySelector(`option[value="${status}"]`)) {
+        statusDropdown.value = status;
+    } else if (statusDropdown) {
+        statusDropdown.value = 'all';
+    }
+    renderCRM();
+}
+
+function renderCRM() {
+    const list = document.getElementById('crm-list');
+    if (!list) return;
+
+    let filtered = [...oldCRMData];
+    if (currentFilterStatus === 'expired') {
+        filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) < 0);
+    } else if (currentFilterStatus === '30') {
+        filtered = filtered.filter(c => {
+            const days = calculateRemainingDays(c.expired_date);
+            return days >= 0 && days <= 30;
+        });
+    } else if (currentFilterStatus === '60') {
+        filtered = filtered.filter(c => {
+            const days = calculateRemainingDays(c.expired_date);
+            return days > 30 && days <= 60;
+        });
+    } else if (currentFilterStatus !== 'all') {
+        filtered = filtered.filter(c => c.status_note === currentFilterStatus);
+    }
+
+    filtered.sort((a,b) => new Date(a.expired_date) - new Date(b.expired_date));
+
+    let total = oldCRMData.length;
+    let expired = 0, thirty = 0, sixty = 0;
+    
+    oldCRMData.forEach(c => {
+        const days = calculateRemainingDays(c.expired_date);
+        if (days < 0) expired++;
+        else if (days >= 0 && days <= 30) thirty++;
+        else if (days > 30 && days <= 60) sixty++;
+    });
+
+    const elTotal = document.getElementById('crm-stat-total');
+    const elExpired = document.getElementById('crm-stat-expired');
+    const el30 = document.getElementById('crm-stat-30');
+    const el60 = document.getElementById('crm-stat-60');
+
+    if(elTotal) elTotal.innerText = total;
+    if(elExpired) elExpired.innerText = expired;
+    if(el30) el30.innerText = thirty;
+    if(el60) el60.innerText = sixty;
+
+    list.innerHTML = filtered.map(c => `
+        <tr class="hover:bg-white/2 transition-colors">
+            <td class="px-6 py-4">
+                <div class="font-bold text-white">${c.company_name || 'N/A'}</div>
+                <div class="text-xs text-gray-500">${c.mst || ''}</div>
+                <div class="text-[10px] text-gray-400 italic">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
+            </td>
+            <td class="px-6 py-4 font-bold ${calculateRemainingDays(c.expired_date) < 0 ? 'text-red-500' : 'text-gray-400'}">${formatDate(c.expired_date)}</td>
+            <td class="px-6 py-4">
+                <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-gray-300">${c.status_note || 'Chưa liên hệ'}</span>
+            </td>
+            <td class="px-6 py-4 text-xs text-gray-400">${c.notes || '-'}</td>
+            <td class="px-6 py-4">
+                <div class="flex justify-start gap-2">
+                    <button onclick="editCRM('${c.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa (CA2 CRM)"><i class="fas fa-edit text-xs"></i></button>
+                    <button onclick="deleteCRM('${c.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa (CA2 CRM)"><i class="fas fa-trash text-xs"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('') || `<tr><td colspan="5" class="py-10 text-center text-gray-500 italic">Không có khách hàng</td></tr>`;
+}
+
+async function createCampaignFromCRM() {
+    let recipients = oldCRMData.filter(c => c.email);
+    if (currentFilterStatus === 'expired') {
+        recipients = recipients.filter(c => calculateRemainingDays(c.expired_date) < 0);
+    } else if (currentFilterStatus === '30') {
+        recipients = recipients.filter(c => {
+            const days = calculateRemainingDays(c.expired_date);
+            return days >= 0 && days <= 30;
+        });
+    } else if (currentFilterStatus === '60') {
+        recipients = recipients.filter(c => {
+            const days = calculateRemainingDays(c.expired_date);
+            return days > 30 && days <= 60;
+        });
+    } else if (currentFilterStatus !== 'all') {
+        recipients = recipients.filter(c => c.status_note === currentFilterStatus);
+    }
+
+    if (recipients.length === 0) return alert('Không có khách hàng hợp lệ!');
+    
+    document.getElementById('page-title').innerText = 'Tạo chiến dịch (CRM Mở Rộng)';
+    ['dashboard','campaigns','senders','reports','ca2-crm','crm'].forEach(id => {
+        document.getElementById(`view-${id}`)?.classList.add('hidden');
+    });
+    
+    document.getElementById('modal-create').classList.remove('hidden');
+    document.getElementById('camp-name').value = `Chiến dịch gửi Mail (${recipients.length} KH) - ${formatDate(new Date())}`;
+    
+    const ws = XLSX.utils.json_to_sheet(recipients.map(c => ({
+        'MST': c.mst,
+        'TenCongTy': c.company_name,
+        'Email': c.email,
+        'DienThoai': c.phone,
+        'ThoiHan': c.expired_date,
+        'LoaiDichVu': c.service_type || 'CKS'
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {type: "application/octet-stream"});
+    const file = new File([blob], "campaign_list.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const fileInput = document.getElementById('camp-file');
+    fileInput.files = dt.files;
+    
+    if (typeof handleFileUpload === 'function') handleFileUpload({ target: fileInput });
 }
 
 // --- Utils & Modals ---
