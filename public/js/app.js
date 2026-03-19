@@ -972,10 +972,10 @@ async function saveCampaign(event) {
     const editor = document.getElementById('input-template');
     let template = editor.innerHTML; 
 
-    // Wrap in professional white theme (Gmail-like)
-    if (!template.includes('id="ca2-email-wrapper"')) {
+    // Wrap in standard professional format (Gmail-like)
+    if (!template.includes('ca2-email-standard-wrapper')) {
         template = `
-            <div id="ca2-email-wrapper" style="background-color: #ffffff; color: #1f2937; padding: 40px; font-family: 'Inter', Helvetica, Arial, sans-serif; line-height: 1.6; border: 1px solid #f3f4f6; border-radius: 8px; max-width: 800px; margin: 0 auto;">
+            <div class="ca2-email-standard-wrapper" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #fff; margin: 0; padding: 0;">
                 ${template}
             </div>
         `;
