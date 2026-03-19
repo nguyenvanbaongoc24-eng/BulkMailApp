@@ -221,7 +221,7 @@ function showPage(page) {
         page === 'reports' ? 'Báo cáo gửi mail' : 'Cài đặt hệ thống';
     
     // Switch views
-    ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings', 'view-crm', 'view-reports'].forEach(id => {
+    ['view-dashboard', 'view-campaigns', 'view-senders', 'view-settings', 'view-crm', 'view-reports', 'view-ca2-crm'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -240,6 +240,9 @@ function showPage(page) {
         document.getElementById('view-crm').classList.remove('hidden');
         loadCRM();
         loadCRMStats();
+    } else if (page === 'ca2-crm') {
+        document.getElementById('view-ca2-crm').classList.remove('hidden');
+        loadCA2CRM();
     } else if (page === 'settings') {
         document.getElementById('view-settings').classList.remove('hidden');
     } else if (page === 'reports') {
@@ -1330,4 +1333,165 @@ async function exportCampaignData(campaignId, format) {
         console.error('Export Error:', error);
         alert('Lỗi khi xuất dữ liệu: ' + error.message);
     }
+}
+
+/** ---------------- CA2 CRM LOGIC ---------------- */
+
+async function loadCA2CRM() {
+    const tableBody = document.getElementById('ca2-crm-table-body');
+    if (!tableBody) return;
+    
+    const filterType = document.getElementById('crm-filter-service').value;
+    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
+
+    try {
+        const res = await authedFetch('/api/ca2-crm');
+        const { data } = await res.json();
+        
+        let filtered = data || [];
+        if (filterType !== 'all') filtered = filtered.filter(c => c.service_type === filterType);
+        if (search) {
+            filtered = filtered.filter(c => 
+                (c.MST && c.MST.includes(search)) || 
+                (c.TenCongTy && c.TenCongTy.toLowerCase().includes(search))
+            );
+        }
+
+        // Stats
+        document.getElementById('ca2-crm-total').innerText = data.length;
+        document.getElementById('ca2-crm-active').innerText = data.filter(c => c.status === 'active').length;
+        document.getElementById('ca2-crm-expiring').innerText = data.filter(c => c.status === 'expiring_soon').length;
+        document.getElementById('ca2-crm-expired').innerText = data.filter(c => c.status === 'expired').length;
+
+        tableBody.innerHTML = filtered.map(c => `
+            <tr class="hover:bg-white/2 transition-colors group">
+                <td class="px-8 py-5">
+                    <div class="font-bold text-white">${c.TenCongTy || 'N/A'}</div>
+                    <div class="text-[10px] text-gray-500 font-black tracking-widest mt-0.5">${c.MST || 'CHƯA CÓ MST'}</div>
+                    <div class="text-[10px] text-gray-400 italic">${c.Email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
+                </td>
+                <td class="px-8 py-5 text-center">
+                    <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${c.service_type === 'CKS' ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 'border-blue-500/20 text-blue-400 bg-blue-400/5'}">
+                        ${c.service_type || 'CKS'}
+                    </span>
+                </td>
+                <td class="px-8 py-5 font-bold text-gray-400">${c.start_date || '-'}</td>
+                <td class="px-8 py-5 font-black text-white">${c.duration || '-'}</td>
+                <td class="px-8 py-5 font-bold text-gray-400">${c.NgayHetHanChuKySo || '-'}</td>
+                <td class="px-8 py-5">
+                    <div class="flex flex-col items-start">
+                        <span class="font-black ${c.status === 'expired' ? 'text-red-500' : (c.status === 'expiring_soon' ? 'text-orange-500' : 'text-green-500')}">
+                            ${c.status === 'expired' ? 'Hết hạn' : (c.daysLeft + ' ngày')}
+                        </span>
+                        <div class="w-16 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
+                            <div class="h-full ${c.status === 'expired' ? 'bg-red-500' : (c.status === 'expiring_soon' ? 'bg-orange-500' : 'bg-green-500')}" 
+                                 style="width: ${c.status === 'active' ? '100%' : (c.status === 'expired' ? '0%' : '30%')}"></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-8 py-5 text-right">
+                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onclick="editCRM('${c.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="deleteCRM('${c.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('') || `<tr><td colspan="7" class="px-8 py-10 text-center text-gray-500 italic">Không có dữ liệu khách hàng</td></tr>`;
+    } catch (e) { console.error(e); }
+}
+
+function openAddCRMModal() {
+    document.getElementById('ca2-crm-modal-title').innerText = 'Thêm khách hàng CA2 CRM';
+    document.getElementById('ca2-crm-id').value = '';
+    document.getElementById('ca2-crm-mst').value = '';
+    document.getElementById('ca2-crm-name').value = '';
+    document.getElementById('ca2-crm-email').value = '';
+    document.getElementById('ca2-crm-phone').value = '';
+    document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
+    document.getElementById('modal-ca2-crm').classList.remove('hidden');
+}
+
+async function editCRM(id) {
+    try {
+        const res = await authedFetch('/api/ca2-crm');
+        const { data } = await res.json();
+        const c = data.find(x => x.id === id);
+        if (!c) return;
+
+        document.getElementById('ca2-crm-modal-title').innerText = 'Cập nhật khách hàng';
+        document.getElementById('ca2-crm-id').value = c.id;
+        document.getElementById('ca2-crm-mst').value = c.MST;
+        document.getElementById('ca2-crm-name').value = c.TenCongTy;
+        document.getElementById('ca2-crm-email').value = c.Email;
+        document.getElementById('ca2-crm-phone').value = c.phone || '';
+        document.getElementById('ca2-crm-service').value = c.service_type || 'CKS';
+        document.getElementById('ca2-crm-start').value = c.start_date || '';
+        document.getElementById('ca2-crm-duration').value = c.duration || '1 năm';
+        
+        document.getElementById('modal-ca2-crm').classList.remove('hidden');
+    } catch (e) { alert('Lỗi tải thông tin'); }
+}
+
+function closeCA2CRMModal() {
+    document.getElementById('modal-ca2-crm').classList.add('hidden');
+}
+
+async function saveCA2CRM() {
+    const id = document.getElementById('ca2-crm-id').value;
+    const body = {
+        MST: document.getElementById('ca2-crm-mst').value,
+        TenCongTy: document.getElementById('ca2-crm-name').value,
+        Email: document.getElementById('ca2-crm-email').value,
+        phone: document.getElementById('ca2-crm-phone').value,
+        service_type: document.getElementById('ca2-crm-service').value,
+        start_date: document.getElementById('ca2-crm-start').value,
+        duration: document.getElementById('ca2-crm-duration').value
+    };
+
+    if(!body.MST || !body.TenCongTy) { alert('Vui lòng nhập MST và Tên công ty'); return; }
+
+    try {
+        const url = id ? `/api/ca2-crm/${id}` : '/api/ca2-crm';
+        const method = id ? 'PATCH' : 'POST';
+        const res = await authedFetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            closeCA2CRMModal();
+            loadCA2CRM();
+        } else {
+            const err = await res.json();
+            alert('Lỗi lưu: ' + (err.error || 'Unknown error'));
+        }
+    } catch (e) { alert('Lỗi kết nối server'); }
+}
+
+async function deleteCRM(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) return;
+    try {
+        const res = await authedFetch(`/api/ca2-crm/${id}`, { method: 'DELETE' });
+        if (res.ok) loadCA2CRM();
+    } catch (e) { alert('Lỗi xóa khách hàng'); }
+}
+
+async function createCampaignFromCA2CRM() {
+    const res = await authedFetch('/api/ca2-crm');
+    const { data } = await res.json();
+    if (!data || data.length === 0) { alert('Không có khách hàng nào để tạo chiến dịch.'); return; }
+    
+    currentRecipients = data.map(c => ({
+        MST: c.MST,
+        TenCongTy: c.TenCongTy,
+        Email: c.Email,
+        NgayHetHanChuKySo: c.NgayHetHanChuKySo
+    })).filter(r => r.Email);
+
+    if (currentRecipients.length === 0) { alert('Không tìm thấy email hợp lệ trong danh sách.'); return; }
+    
+    openCreateModal();
+    updatePreviewTable();
+    alert(`Đã nạp ${currentRecipients.length} khách hàng vào chiến dịch mới.`);
 }
