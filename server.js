@@ -420,6 +420,32 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
     }
 });
 
+app.post('/api/ca2-crm/bulk', authenticate, async (req, res) => {
+    try {
+        const { mode, data } = req.body;
+        
+        if (mode === 'overwrite') {
+            // Delete all customers for this user (or all if shared, but here we use user_id)
+            await supabase.from('customers').delete().eq('user_id', req.user.id);
+        }
+
+        // Process each row to calculate expiration
+        const processedData = data.map(item => ({
+            ...item,
+            NgayHetHanChuKySo: calculateExpirationDate(item.start_date, item.duration),
+            user_id: req.user.id
+        }));
+
+        // Batch insert/upsert
+        const { error } = await supabase.from('customers').upsert(processedData);
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
     try {
         const { error } = await supabase.from('customers').delete().eq('id', req.params.id);

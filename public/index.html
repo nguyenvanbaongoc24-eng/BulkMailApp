@@ -137,6 +137,9 @@
             </h1>
         </div>
         <nav class="flex-1 px-4 space-y-4 mt-4">
+            <a href="javascript:void(0)" onclick="showPage('ca2-crm'); return false;" id="nav-ca2-crm" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
+                <span class="mr-3 text-lg group-hover:scale-110 transition-transform">👥</span> <span class="font-bold">CA2 CRM</span>
+            </a>
             <a href="javascript:void(0)" onclick="showPage('dashboard'); return false;" id="nav-dashboard" class="sidebar-item-active flex items-center px-4 py-3 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📊</span> <span class="font-semibold">Bảng điều khiển</span>
             </a>
@@ -151,9 +154,6 @@
             </a>
             <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
-            </a>
-            <a href="javascript:void(0)" onclick="showPage('ca2-crm'); return false;" id="nav-ca2-crm" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">👥</span> <span class="font-semibold">CA2 CRM</span>
             </a>
             <div class="pt-4 border-t border-white/5 space-y-2">
                 <a href="/automation.html" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
@@ -377,9 +377,14 @@
                         <p class="text-gray-400 mt-2 font-medium italic">Quản lý & Đo lường gia hạn khách hàng chuyên nghiệp</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button onclick="openAddCRMModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg shadow-orange-900/40 hover:scale-105 transition-all">
+                        <button onclick="document.getElementById('crm-import-file').click()" class="bg-white/5 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-3 border border-white/10 hover:bg-white/10 transition-all">
+                            <i class="fas fa-file-import text-orange-500"></i>
+                            Nhập dữ liệu
+                        </button>
+                        <input type="file" id="crm-import-file" class="hidden" accept=".xlsx" onchange="openCRMImportModal(event)">
+                        <button onclick="openAddCRMModal()" class="bg-orange-gradient text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg shadow-orange-900/40 hover:scale-105 transition-all">
                             <i class="fas fa-plus"></i>
-                            Thêm khách hàng mới
+                            Thêm mới
                         </button>
                     </div>
                 </div>
@@ -420,16 +425,16 @@
                         <table class="w-full text-left">
                             <thead class="bg-white/2 border-b border-white/5">
                                 <tr>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Khách hàng / MST</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Dịch vụ</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày cấp</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời hạn</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hết hạn</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Còn lại</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Hành động</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Khách hàng / MST</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Dịch vụ</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày cấp</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời hạn</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hết hạn</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Còn lại</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody id="ca2-crm-table-body" class="divide-y divide-white/5 text-sm">
+                            <tbody id="ca2-crm-table-body" class="divide-y divide-white/5 text-[11px]">
                                 <!-- Data injected via JS -->
                             </tbody>
                         </table>
@@ -928,6 +933,45 @@
                     <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-4 rounded-2xl font-bold bg-white/5 text-gray-400 hover:bg-white/10 transition-all">Hủy bỏ</button>
                     <button onclick="saveCA2CRM()" class="flex-1 px-8 py-4 rounded-2xl font-bold bg-orange-gradient text-white shadow-lg shadow-orange-900/40 hover:scale-[1.02] transition-all">Lưu thông tin</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: CRM Import Options -->
+    <div id="modal-crm-import" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[60] hidden flex items-center justify-center p-6">
+        <div class="bg-[#050510] border border-white/10 w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div class="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+                <div>
+                    <h3 class="text-xl font-black text-white">Lựa chọn Nhập dữ liệu</h3>
+                    <p class="text-gray-500 text-xs mt-1">Dữ liệu từ file Excel vừa tải lên</p>
+                </div>
+                <button onclick="closeCRMImportModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-10 space-y-6">
+                <div class="space-y-4">
+                    <button onclick="handleCRMImportAction('append')" class="w-full p-6 rounded-3xl bg-white/5 border border-white/10 text-left hover:bg-white/10 hover:border-orange-500/50 transition-all group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-green-500/20 rounded-2xl flex items-center justify-center text-green-500 text-xl font-bold">➕</div>
+                            <div>
+                                <h4 class="font-bold text-white group-hover:text-orange-500 transition-colors">Nhập thêm dòng mới</h4>
+                                <p class="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Giữ lại dữ liệu hiện có</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onclick="handleCRMImportAction('overwrite')" class="w-full p-6 rounded-3xl bg-white/5 border border-white/10 text-left hover:bg-red-500/5 hover:border-red-500/50 transition-all group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 text-xl font-bold">🧹</div>
+                            <div>
+                                <h4 class="font-bold text-white group-hover:text-red-500 transition-colors">Ghi đè toàn bộ</h4>
+                                <p class="text-[10px] text-gray-500 mt-1 uppercase font-black tracking-widest">Xóa toàn bộ dữ liệu cũ & thay thế</p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+                <p class="text-center text-[10px] text-gray-600 font-bold italic">Vui lòng cân nhắc trước khi chọn ghi đè dữ liệu!</p>
             </div>
         </div>
     </div>

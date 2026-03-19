@@ -1496,3 +1496,69 @@ async function createCampaignFromCA2CRM() {
     updatePreviewTable();
     alert(`Đã nạp ${currentRecipients.length} khách hàng vào chiến dịch mới.`);
 }
+
+let pendingCRMData = [];
+
+function openCRMImportModal(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        // Map Excel headers to CRM fields
+        pendingCRMData = rows.map(row => ({
+            MST: row['MST'] || row['Mã số thuế'] || '',
+            TenCongTy: row['Công ty'] || row['Tên công ty'] || row['Tên đơn vị'] || '',
+            Email: row['Email'] || '',
+            phone: row['Điện thoại'] || row['SĐT'] || '',
+            service_type: row['Dịch vụ'] || 'CKS',
+            start_date: row['Ngày cấp'] || row['Ngày bắt đầu'] || '',
+            duration: row['Gói'] || row['Thời hạn'] || '1 năm'
+        })).filter(r => r.MST && r.TenCongTy);
+
+        if (pendingCRMData.length === 0) {
+            alert('Không tìm thấy dữ liệu hợp lệ trong file Excel. Vui lòng kiểm tra cột MST và Tên công ty.');
+            return;
+        }
+
+        document.getElementById('modal-crm-import').classList.remove('hidden');
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset file input
+    event.target.value = '';
+}
+
+function closeCRMImportModal() {
+    document.getElementById('modal-crm-import').classList.add('hidden');
+    pendingCRMData = [];
+}
+
+async function handleCRMImportAction(mode) {
+    if (mode === 'overwrite' && !confirm('CẢNH BÁO: Toàn bộ dữ liệu CRM hiện tại sẽ bị XÓA và thay thế bằng dữ liệu mới. Bạn có chắc chắn?')) {
+        return;
+    }
+
+    try {
+        const res = await authedFetch('/api/ca2-crm/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, data: pendingCRMData })
+        });
+
+        if (res.ok) {
+            alert(`Đã nhập thành công ${pendingCRMData.length} khách hàng.`);
+            closeCRMImportModal();
+            loadCA2CRM();
+        } else {
+            const err = await res.json();
+            alert('Lỗi nhập liệu: ' + (err.error || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Lỗi kết nối server khi nhập dữ liệu.');
+    }
+}
