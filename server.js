@@ -441,6 +441,7 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
         const { data, error } = await supabase
             .from('customers')
             .select('*')
+            .eq('user_id', req.user.id)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -502,7 +503,7 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
 
         if (updates.start_date || updates.duration) {
             // Need to fetch current values if one is missing to recalculate
-            const { data: current } = await supabase.from('customers').select('*').eq('id', id).single();
+            const { data: current } = await supabase.from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
             const sDate = updates.start_date || current.start_date;
             const dur = updates.duration || current.duration;
             updates.expired_date = calculateExpirationDate(sDate, dur);
@@ -511,6 +512,7 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
         const { data, error } = await supabase.from('customers')
             .update(updates)
             .eq('id', id)
+            .eq('user_id', req.user.id)
             .select();
 
         if (error) throw error;
@@ -548,7 +550,7 @@ app.post('/api/ca2-crm/bulk', authenticate, async (req, res) => {
 
 app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
     try {
-        const { error } = await supabase.from('customers').delete().eq('id', req.params.id);
+        const { error } = await supabase.from('customers').delete().eq('id', req.params.id).eq('user_id', req.user.id);
         if (error) throw error;
         res.json({ success: true });
     } catch (err) {
@@ -722,7 +724,7 @@ app.get('/api/stats', authenticate, async (req, res) => {
 
 // CRM Routes
 app.get('/api/customers', authenticate, async (req, res) => {
-    let query = supabase.from('customers').select('*').eq('userId', req.user.id);
+    let query = supabase.from('customers').select('*').eq('user_id', req.user.id);
     
     const { filter } = req.query;
     const now = new Date().toISOString().split('T')[0];
@@ -771,7 +773,7 @@ app.post('/api/customers/import', authenticate, async (req, res) => {
             .from('customers')
             .select('id, pdf_url')
             .in('id', ids)
-            .eq('userId', req.user.id);
+            .eq('user_id', req.user.id);
 
         // 3. Map existing pdf_url back to the new objects
         if (existingCustomers && existingCustomers.length > 0) {
@@ -797,7 +799,7 @@ app.patch('/api/customers/:id', authenticate, async (req, res) => {
         .from('customers')
         .update({ status, notes })
         .eq('id', req.params.id)
-        .eq('userId', req.user.id)
+        .eq('user_id', req.user.id)
         .select();
 
     if (error) return res.status(500).json({ error: error.message });
@@ -809,7 +811,7 @@ app.get('/api/customers/:id', authenticate, async (req, res) => {
         .from('customers')
         .select('*')
         .eq('id', req.params.id)
-        .eq('userId', req.user.id)
+        .eq('user_id', req.user.id)
         .single();
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);

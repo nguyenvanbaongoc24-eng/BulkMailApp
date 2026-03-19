@@ -14,17 +14,34 @@ CREATE TABLE public.customers (
     pdf_url TEXT,
     notes TEXT,
     status TEXT DEFAULT 'active',
+    status_note TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
-    -- Allow multiple records per MST if they are different services or for different users
-    -- If you want strictly one MST per system, use UNIQUE(mst)
     CONSTRAINT customers_mst_user_key UNIQUE (mst, user_id) 
 );
 
 -- Enable RLS
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 
--- Policies (Simplified for development to avoid RLS issues)
-CREATE POLICY "Enable all for all users" 
-ON public.customers FOR ALL 
-USING (true) 
-WITH CHECK (true);
+-- Per-user isolation: each user can only access their own data
+CREATE POLICY "Users can view own customers" 
+ON public.customers FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own customers" 
+ON public.customers FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own customers" 
+ON public.customers FOR UPDATE 
+USING (auth.uid() = user_id) 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own customers" 
+ON public.customers FOR DELETE 
+USING (auth.uid() = user_id);
+
+-- Service role bypass: allow backend with service_role key to manage all data
+CREATE POLICY "Service role full access"
+ON public.customers FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
