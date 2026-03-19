@@ -549,7 +549,6 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-white/2 border-b border-white/5">
-                                <tr>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời gian</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Email</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Chiến dịch</th>
@@ -572,7 +571,7 @@
     <!-- Modal Create Campaign -->
     <div id="modal-create" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-50 overflow-y-auto">
         <div class="min-h-screen flex items-center justify-center p-8">
-            <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-6xl p-10 shadow-2xl relative overflow-hidden">
+            <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-7xl p-10 shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-orange-600/10 blur-[100px] -z-10 rounded-full"></div>
                 
                 <div class="flex justify-between items-center mb-10">
@@ -591,6 +590,12 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tiêu đề email gửi đi</label>
                                 <input id="input-subject" type="text" placeholder="Nhập tiêu đề mail của khách hàng" class="w-full px-5 py-4 rounded-2xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tài khoản gửi mail (Sender)</label>
+                                <select id="select-sender" class="w-full px-5 py-4 rounded-2xl outline-none cursor-pointer font-bold bg-white/5 border border-white/10 text-white">
+                                    <option value="">-- Chọn tài khoản gửi --</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Sử dụng mẫu email (Template)</label>
