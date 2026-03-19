@@ -562,28 +562,30 @@ app.get('/api/campaigns', authenticate, async (req, res) => {
     const { data, error } = await supabase
         .from('campaigns')
         .select('*')
-        .eq('userId', req.user.id)
-        .order('createdAt', { ascending: false });
+        .eq('user_id', req.user.id)
+        .order('created_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
 });
 
 app.post('/api/campaigns', authenticate, async (req, res) => {
     const campaignId = Date.now().toString();
+    const recipients = req.body.recipients || [];
     const newCampaign = {
         id: campaignId,
-        userId: req.user.id,
+        user_id: req.user.id,
         name: req.body.name,
         subject: req.body.subject,
-        senderAccountId: req.body.senderAccountId,
+        sender_account_id: req.body.senderAccountId,
         template: req.body.template,
-        recipients: (req.body.recipients || []).map(r => ({ ...r, status: 'Chờ xử lý', sentTime: null })),
-        attachCert: req.body.attachCert || false,
+        recipients: recipients.map(r => ({ ...r, status: 'Chờ xử lý', sentTime: null })),
+        attach_cert: req.body.attachCert || false,
         status: 'Chờ gửi',
-        sentCount: 0,
-        successCount: 0,
-        errorCount: 0,
-        createdAt: new Date().toISOString()
+        sent_count: 0,
+        success_count: 0,
+        error_count: 0,
+        total_recipients: recipients.length,
+        created_at: new Date().toISOString()
     };
 
     try {
@@ -612,30 +614,91 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
 });
 
 app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
-    // Fetch campaign from Supabase with userId check
-    const { data: campaign, error: campaignError } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', req.params.id)
-        .eq('userId', req.user.id)
-        .single();
-    
-    if (campaignError || !campaign) return res.status(404).json({ error: 'Campaign not found or unauthorized' });
-    
-    // Fetch sender account details with userId check
-    const { data: sender, error: senderError } = await supabase
-        .from('senders')
-        .select('*')
-        .eq('id', campaign.senderAccountId)
-        .eq('userId', req.user.id)
-        .single();
-    
-    if (senderError || !sender) return res.status(400).json({ error: 'Không tìm thấy cấu hình người gửi hợp lệ.' });
+    const campaignId = req.params.id;
+    try {
+        const { data: campaign, error: cErr } = await supabase.from('campaigns').select('*').eq('id', campaignId).eq('user_id', req.user.id).single();
+        if (cErr || !campaign) throw new Error('Không tìm thấy chiến dịch');
 
-    // Update status to "Đang gửi"
-    await supabase.from('campaigns').update({ status: 'Đang gửi' }).eq('id', campaign.id);
+        const { data: sender, error: sErr } = await supabase.from('senders').select('*').eq('id', campaign.sender_account_id).single();
+        if (sErr || !sender) throw new Error('Không tìm thấy tài khoản gửi mail');
 
-    res.json({ message: 'Chiến dịch đã được đưa vào hàng đợi gửi ngầm.' });
+        // Initial update
+        await supabase.from('campaigns').update({ status: 'Đang gửi', sent_count: 0, success_count: 0, error_count: 0 }).eq('id', campaign.id);
+
+        res.json({ success: true, message: 'Chiến dịch đang chạy ngầm...' });
+
+        // Background Processing
+        (async () => {
+            const { google } = require('googleapis');
+            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+            oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
+            
+            try {
+                await oauth2Client.getAccessToken();
+                const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+                const nodemailer = require('nodemailer');
+                const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
+
+                let success = 0;
+                let failure = 0;
+
+                for (const r of (campaign.recipients || [])) {
+                    try {
+                        let html = campaign.template;
+                        Object.keys(r).forEach(key => {
+                            html = html.replace(new RegExp(`{{${key}}}`, 'g'), r[key] || '');
+                        });
+
+                        const mailOptions = {
+                            from: `"${sender.senderName}" <${sender.senderEmail}>`,
+                            to: r.Email || r.email || r.EMAIL,
+                            subject: campaign.subject,
+                            html: html
+                        };
+
+                        const info = await transporter.sendMail(mailOptions);
+                        const chunks = [];
+                        for await (const chunk of info.message) chunks.push(chunk);
+                        const raw = Buffer.concat(chunks).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                        
+                        await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+                        success++;
+                        
+                        // Log success
+                        await supabase.from('email_logs').insert([{
+                            campaign_id: campaignId,
+                            email: r.Email || r.email || r.EMAIL,
+                            status: 'sent',
+                            created_at: new Date().toISOString()
+                        }]);
+                    } catch (err) {
+                        console.error('Send error:', err);
+                        failure++;
+                        // Log failure
+                        await supabase.from('email_logs').insert([{
+                            campaign_id: campaignId,
+                            email: r.Email || r.email || r.EMAIL,
+                            status: 'failed',
+                            error_message: err.message,
+                            created_at: new Date().toISOString()
+                        }]);
+                    }
+                    // Progressive update
+                    await supabase.from('campaigns').update({ 
+                        sent_count: success + failure, 
+                        success_count: success, 
+                        error_count: failure 
+                    }).eq('id', campaignId);
+                }
+                await supabase.from('campaigns').update({ status: 'Hoàn thành' }).eq('id', campaignId);
+            } catch (authErr) {
+                console.error('Gmail Auth Error:', authErr);
+                await supabase.from('campaigns').update({ status: 'Lỗi xác thực Gmail' }).eq('id', campaignId);
+            }
+        })();
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Email Logs Route

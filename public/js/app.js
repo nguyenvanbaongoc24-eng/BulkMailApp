@@ -461,22 +461,62 @@ async function loadRecentCampaigns() {
         const res = await authedFetch('/api/campaigns');
         const campaigns = await res.json();
         const html = campaigns.map(c => `
-            <tr class="hover:bg-white/2">
-                <td class="px-8 py-5 font-bold text-white">${c.name}</td>
-                <td class="px-8 py-5">
-                    <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${c.status === 'completed' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}">
+            <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                <td class="px-8 py-6">
+                    <div class="font-bold text-white text-lg">${c.name}</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString()}</div>
+                </td>
+                <td class="px-8 py-6">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-lg ${
+                        c.status === 'Hoàn thành' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
+                        c.status === 'Đang gửi' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse' :
+                        'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                    }">
                         ${c.status}
                     </span>
                 </td>
-                <td class="px-8 py-5 font-black text-white">${c.sent_count}/${c.total_recipients}</td>
-                <td class="px-8 py-5 text-right font-black">
-                     <button onclick="startCampaign('${c.id}')" class="text-green-500 hover:text-green-400">▶ CHẠY</button>
+                <td class="px-8 py-6">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[100px]">
+                            <div class="h-full bg-orange-gradient" style="width: ${(c.sent_count / c.total_recipients * 100) || 0}%"></div>
+                        </div>
+                        <span class="font-black text-white text-sm">${c.sent_count || 0}/${c.total_recipients || 0}</span>
+                    </div>
+                </td>
+                <td class="px-8 py-6 text-right">
+                     ${c.status === 'Hoàn thành' ? 
+                        `<span class="text-green-500 font-bold"><i class="fas fa-check-circle mr-1"></i> Xong</span>` :
+                        `<button onclick="startCampaign('${c.id}')" class="bg-orange-gradient text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-orange-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 float-right">
+                            <i class="fas fa-play"></i> CHẠY
+                        </button>`
+                     }
                 </td>
             </tr>
         `).join('');
         if (list) list.innerHTML = html;
         if (listAll) listAll.innerHTML = html;
-    } catch (e) {}
+    } catch (e) {
+        console.error('Error loading campaigns:', e);
+    }
+}
+
+async function startCampaign(id) {
+    try {
+        const res = await authedFetch(`/api/campaigns/${id}/send`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('Chiến dịch đã bắt đầu chạy ngầm!');
+            loadRecentCampaigns();
+            // Optional: Start polling for status updates
+            if (!window.campaignInterval) {
+                window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
+            }
+        } else {
+            alert('Lỗi: ' + (data.error || 'Không rõ'));
+        }
+    } catch (e) {
+        alert('Lỗi kết nối server');
+    }
 }
 
 // --- Senders ---
@@ -670,7 +710,11 @@ async function createCampaignFromCRM() {
 }
 
 // --- Utils & Modals ---
-function openCreateModal() { document.getElementById('modal-create').classList.remove('hidden'); }
+function openCreateModal() { 
+    document.getElementById('modal-create').classList.remove('hidden'); 
+    loadSenders(); 
+    loadTemplates();
+}
 function closeCreateModal() { document.getElementById('modal-create').classList.add('hidden'); }
 function closeCA2CRMModal() { document.getElementById('modal-ca2-crm').classList.add('hidden'); }
 function downloadLocalTool() { window.open('https://drive.google.com/file/d/13BSmd3pcckibLL93-DX_YZ-mrbyGfsvI/view?usp=drive_link', '_blank'); }
