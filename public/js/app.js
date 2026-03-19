@@ -666,24 +666,111 @@ function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
+    const statusEl = document.getElementById('upload-status');
+    
     reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
-        
-        // Clean: trim all keys and values, skip completely empty rows
-        currentRecipientsData = sheetData.filter(row => {
-            return Object.values(row).some(v => String(v).trim() !== '');
-        }).map(row => {
-            const cleaned = {};
-            Object.keys(row).forEach(k => {
-                cleaned[k.trim()] = String(row[k]).trim();
-            });
-            return cleaned;
-        });
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            
+            if (!rawRows || rawRows.length === 0) {
+                statusEl.innerText = 'File rỗng!';
+                statusEl.className = 'text-sm font-bold text-red-500 text-center';
+                return;
+            }
 
-        document.getElementById('upload-status').innerText = `Đã tải ${currentRecipientsData.length} dòng.`;
-        renderPreviewTable();
+            // Smart Header Detection
+            let headerRowIndex = -1;
+            const headerKeywords = ['MST', 'TAX', 'MÃ SỐ THUẾ', 'CÔNG TY', 'TÊN', 'NAME', 'EMAIL', 'ĐỊA CHỈ', 'ADDRESS', 'HẾT HẠN', 'EXPIRATION', 'SERIAL'];
+            
+            for (let i = 0; i < Math.min(rawRows.length, 5); i++) {
+                const row = rawRows[i];
+                const hasKeywords = row.some(cell => {
+                    const val = String(cell).toUpperCase().trim();
+                    return headerKeywords.some(kw => val.includes(kw));
+                });
+                if (hasKeywords) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+
+            let dataRows = [];
+            let headers = [];
+
+            if (headerRowIndex !== -1) {
+                // We found a header row
+                headers = rawRows[headerRowIndex].map(h => String(h).trim() || 'NoHeader');
+                dataRows = rawRows.slice(headerRowIndex + 1);
+            } else {
+                // No header row found, first row IS data
+                // Use column letters as default headers: A, B, C, ...
+                const maxCols = Math.max(...rawRows.map(r => r.length));
+                headers = Array.from({ length: maxCols }, (_, i) => String.fromCharCode(65 + i));
+                dataRows = rawRows;
+            }
+
+            // Map data to objects
+            currentRecipientsData = dataRows.filter(row => {
+                return row.some(cell => String(cell).trim() !== '');
+            }).map(row => {
+                const obj = {};
+                headers.forEach((h, i) => {
+                    obj[h] = String(row[i] || '').trim();
+                });
+                
+                // Smart Mapping aliases for placeholders
+                // If we don't have explicit headers, try to guess
+                if (headerRowIndex === -1) {
+                    row.forEach((cell, i) => {
+                        const val = String(cell).trim();
+                        if (val.includes('@')) obj['Email'] = val;
+                        else if (/^\d{10}(\d{3})?$/.test(val)) obj['MST'] = val;
+                        else if (val.length > 20 && !val.includes(' ')) {} // Potential serial
+                        else if (val.length > 15 && val.includes(' ')) obj['TenCongTy'] = val;
+                    });
+                } else {
+                    // Map common headers to internal keys
+                    Object.keys(obj).forEach(k => {
+                        const uk = k.toUpperCase();
+                        if (uk.includes('MST') || uk.includes('TAX')) obj['MST'] = obj[k];
+                        if (uk.includes('CÔNG TY') || uk.includes('TÊN') || uk.includes('NAME')) obj['TenCongTy'] = obj[k];
+                        if (uk.includes('EMAIL')) obj['Email'] = obj[k];
+                        if (uk.includes('HẾT HẠN') || uk.includes('EXPIRATION')) obj['NgayHetHanChuKySo'] = obj[k];
+                        if (uk.includes('ĐỊA CHỈ') || uk.includes('ADDRESS')) obj['DiaChi'] = obj[k];
+                    });
+                }
+                return obj;
+            });
+
+            // Validate data quality
+            const totalRows = currentRecipientsData.length;
+            const rowsWithEmail = currentRecipientsData.filter(r => r.Email && r.Email.includes('@')).length;
+            const rowsWithMST = currentRecipientsData.filter(r => r.MST).length;
+
+            if (totalRows > 0) {
+                if (rowsWithEmail === totalRows) {
+                    statusEl.innerText = `✅ Đã nạp thành công ${totalRows} dòng (Dữ liệu chuẩn).`;
+                    statusEl.className = 'text-sm font-bold text-emerald-400 text-center';
+                } else if (rowsWithEmail > 0) {
+                    statusEl.innerText = `⚠️ Đã nạp ${totalRows} dòng, nhưng chỉ ${rowsWithEmail} dòng có Email hợp lệ.`;
+                    statusEl.className = 'text-sm font-bold text-orange-400 text-center';
+                } else {
+                    statusEl.innerText = `❌ Đã nạp ${totalRows} dòng, nhưng KHÔNG tìm thấy Email nào!`;
+                    statusEl.className = 'text-sm font-bold text-red-400 text-center';
+                }
+            } else {
+                statusEl.innerText = 'Không tìm thấy dòng dữ liệu nào!';
+                statusEl.className = 'text-sm font-bold text-orange-400 text-center';
+            }
+            renderPreviewTable();
+        } catch (err) {
+            console.error(err);
+            statusEl.innerText = 'Lỗi xử lý file!';
+            statusEl.className = 'text-sm font-bold text-red-500 text-center';
+        }
     };
     reader.readAsArrayBuffer(file);
 }
