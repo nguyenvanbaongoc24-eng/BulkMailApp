@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+﻿const nodemailer = require('nodemailer');
 const dns = require('dns');
 const axios = require('axios');
 const fs = require('fs');
@@ -260,78 +260,73 @@ async function processEmailTask(log) {
 async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     let lastErr = null;
     
-    // PHẦN 1: CẤU HÌNH SMTP GMAIL
-    // Nếu có process.env thì ghi đè sử dụng cấu hình tập trung an toàn
-    const user = process.env.EMAIL_USER || process.env.SMTP_USER || senderData.smtpUser;
-    const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS || senderData.smtpPassword;
+    // ==============================================================
+    // GIẢI PHÁP DỨT ĐIỂM: KHÔNG DÙNG SMTP NỮA!
+    // Render Free Tier CHẶN TOÀN BỘ cổng SMTP (587, 465).
+    // Chuyển sang Gmail REST API qua HTTPS (port 443) - KHÔNG BAO GIỜ BỊ CHẶN.
+    // ==============================================================
     
-    const host = process.env.SMTP_HOST || "smtp.gmail.com";
-    let portRaw = parseInt(process.env.SMTP_PORT) || 587;
-    let secure = portRaw === 465;
+    const user = process.env.EMAIL_USER || process.env.SMTP_USER || senderData.smtpUser;
+    const refreshToken = senderData.smtpPassword; // OAuth2 refresh_token được lưu trong cột smtpPassword
 
-    // FORCE: Gmail on 465 is much more stable on Render/Cloud than 587
-    if (host.includes("gmail.com")) {
-        console.log("[SMTP] Detect Gmail: Forcing Port 465 SSL for stability on Render.");
-        portRaw = 465;
-        secure = true;
-    }
+    console.log(`[Gmail API] Sử dụng Gmail REST API (HTTPS) thay vì SMTP. Tài khoản: ${user}`);
 
-    // PHƯƠNG ÁN CUỐI CÙNG: Giải quyết triệt để lỗi ENETUNREACH IPv6 trên Render
-    // Chúng ta sẽ tự giải quyết IP (DNS) sang IPv4 trước khi tạo kết nối.
-    let targetIp = host;
+    // Bước 1: Lấy Access Token từ Refresh Token qua Google OAuth2
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+    );
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+    let accessToken;
     try {
-        console.log(`[DNS Check] Đang phân giải IPv4 cho host: ${host}...`);
-        const addresses = await new Promise((resolve, reject) => {
-            dns.resolve4(host, (err, addr) => {
-                if (err) reject(err);
-                else resolve(addr);
-            });
-        });
-        if (addresses && addresses.length > 0) {
-            targetIp = addresses[0];
-            console.log(`[DNS Check] ✅ Thành công: ${host} -> ${targetIp}`);
-        }
-    } catch (dnsErr) {
-        console.warn(`[DNS Check] ⚠ Cảnh báo: Không thể giải quyết IPv4 thủ công (${dnsErr.message}). Sẽ dùng host mặc định.`);
+        const tokenRes = await oauth2Client.getAccessToken();
+        accessToken = tokenRes.token;
+        if (!accessToken) throw new Error('Không lấy được access token từ refresh token.');
+        console.log(`[Gmail API] ✅ Access Token lấy thành công.`);
+    } catch (tokenErr) {
+        throw new Error(`OAuth2 Token Error: ${tokenErr.message}. Hãy kết nối lại Gmail OAuth.`);
     }
 
-    const transporter = nodemailer.createTransport({
-        host: targetIp, // Dùng IP trực tiếp để ÉP BUỘC không dùng IPv6
-        port: portRaw,
-        secure: secure,
-        auth: { user, pass },
-        tls: {
-            // QUAN TRỌNG: Phải có servername để chứng chỉ SSL vẫn khớp với tên miền gốc
-            servername: host,
-            rejectUnauthorized: true
-        },
-        connectionTimeout: 20000, // 20s
-        socketTimeout: 40000,     // 40s
-        greetingTimeout: 20000,   // 20s
-    });
+    // Bước 2: Dùng Nodemailer ở chế độ "stream" để biên soạn email thành chuỗi RFC2822
+    // (Không mở kết nối SMTP nào cả!)
+    const compiler = nodemailer.createTransport({ streamTransport: true, newline: 'unix' });
+    const compiled = await compiler.sendMail(options);
+    const rawMessage = compiled.message.toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 
-    // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
-    try {
-        console.log(`[SMTP Check] Đang thử kết nối ${targetIp}:${portRaw} (SSL: ${secure}, SNI: ${host})...`);
-        await transporter.verify();
-        console.log(`[SMTP Check] Kết nối SMTP THÀNH CÔNG cho tài khoản: ${user}`);
-    } catch (verifyErr) {
-        // Log rõ: auth fail / connection timeout
-        console.error(`[SMTP Check] ❌ Lỗi kết nối gửi thư (Auth fail / Connection timeout): ${verifyErr.message}`);
-        throw new Error(`SMTP Connection Error: ${verifyErr.message}`);
-    }
+    console.log(`[Gmail API] Email đã được biên soạn (RFC2822). Kích thước: ${compiled.message.length} bytes`);
 
-    // PHẦN 8: RETRY
+    // Bước 3: Gửi qua Gmail REST API (HTTPS - port 443) với Retry
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const info = await transporter.sendMail(options);
-            console.log(`[SMTP Send] ✅ Send result THÀNH CÔNG: MessageId ${info.messageId}`);
-            return info.messageId;
+            console.log(`[Gmail API] [Attempt ${attempt}] Đang gửi qua HTTPS...`);
+            
+            const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+            const result = await gmail.users.messages.send({
+                userId: 'me',
+                requestBody: { raw: rawMessage }
+            });
+
+            if (result.data && result.data.id) {
+                console.log(`[Gmail API] ✅ GỬI THÀNH CÔNG! MessageId: ${result.data.id}`);
+                return result.data.id;
+            }
+
+            throw new Error('Gmail API trả về response không hợp lệ: ' + JSON.stringify(result.data));
         } catch (err) {
             lastErr = err;
-            console.error(`[SMTP Send] ❌ [Attempt ${attempt}] Send FAIL: ${err.message}`);
+            const errMsg = err.response?.data?.error?.message || err.errors?.[0]?.message || err.message;
+            console.error(`[Gmail API] ❌ [Attempt ${attempt}] FAIL: ${errMsg}`);
+
+            // Nếu lỗi 401/403 (Auth) thì không cần retry
+            if (err.code === 401 || err.code === 403) {
+                throw new Error(`Gmail Auth Error (${err.code}): ${errMsg}. Hãy kết nối lại tài khoản Gmail.`);
+            }
+
             if (attempt < maxRetries) {
-                // Delay 2-5s giữa mỗi lần retry nếu thất bại
                 const delay = Math.floor(Math.random() * 3000) + 2000;
                 await new Promise(r => setTimeout(r, delay));
             }
@@ -339,6 +334,7 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     }
     throw lastErr;
 }
+
 
 async function checkCampaignCompletion(campaign_id) {
     try {
@@ -367,73 +363,45 @@ async function startRecoveryWorker() {
 async function testEmailFlow(targetEmail) {
     console.log(`[E2E TEST] Bắt đầu verify toàn bộ flow gửi cho: ${targetEmail}`);
     
-    // 1. Mock Data
+    // 0. Lấy sender đầu tiên từ DB (cần có refresh_token OAuth2)
+    const { data: senders, error: sErr } = await supabase.from('senders').select('*').limit(1);
+    if (sErr || !senders || senders.length === 0) {
+        throw new Error('Không tìm thấy tài khoản gửi nào trong DB. Hãy kết nối Gmail OAuth trước tại giao diện web.');
+    }
+    const sender = senders[0];
+    console.log(`[E2E TEST] Sử dụng sender: ${sender.senderEmail || sender.smtpUser}`);
+
     const customer = {
-        company_name: 'CÔNG TY TNHH E2E TEST (VERIFIED)',
+        company_name: 'CÔNG TY TNHH E2E TEST',
         mst: '0123456789',
         address: 'Hà Nội, Việt Nam',
-        expired_date: '2030-12-31',
-        // Dùng 1 public PDF URL cố định để test nếu hệ thống chưa có
-        pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+        expired_date: '2030-12-31'
     };
 
-    const template = `<h2>Xin chào #TênCôngTy,</h2>
-<p>Kính gửi quý khách có MST: <b>#MST</b></p>
-<p>Địa chỉ đăng ký: #ĐịaChỉ</p>
-<p>Dịch vụ sẽ hết hạn vào ngày: <b>#NgàyHếtHạn</b>.</p>
-<p>Đây là email test E2E để xác minh toàn bộ Flow: Email + Replace Tag + Attach PDF đều hoạt động 100%.</p>`;
-
-    const subjectTemplate = `[Test E2E] Thông báo gia hạn cho #TênCôngTy - MST: #MST`;
-
-    console.log(`[E2E TEST] 1. Template trước parse:`, template.substring(0, 50) + "...");
-
-    // 2. Parse Template
-    const renderedContent = renderTemplate(template, customer);
-    const subject = renderTemplate(subjectTemplate, customer);
-
-    console.log(`[E2E TEST] 2. NỘI DUNG FINAL (đã replace tag):`);
-    console.log(`[E2E TEST] Tiêu đề: ${subject}`);
-    console.log(`[E2E TEST] Nội dung: ${renderedContent.substring(0, 50)}...`);
-
-    // 3. Attachments
-    console.log(`[E2E TEST] 3. Chuẩn bị file đính kèm ảo...`);
-    const dummyPDFBuffer = Buffer.from('%PDF-1.4\\n1 0 obj\\n<<\\n/Type /Catalog\\n/Pages 2 0 R\\n>>\\nendobj\\n2 0 obj\\n<<\\n/Type /Pages\\n/Kids [3 0 R]\\n/Count 1\\n>>\\nendobj\\n3 0 obj\\n<<\\n/Type /Page\\n/Parent 2 0 R\\n/MediaBox [0 0 612 792]\\n/Resources <<\\n/Font <<\\n/F1 4 0 R\\n>>\\n>>\\n/Contents 5 0 R\\n>>\\nendobj\\n4 0 obj\\n<<\\n/Type /Font\\n/Subtype /Type1\\n/BaseFont /Helvetica\\n>>\\nendobj\\n5 0 obj\\n<< /Length 44 >>\\nstream\\nBT\\n/F1 24 Tf\\n100 700 Td\\n(Hello, this is a verified PDF attachment!) Tj\\nET\\nendstream\\nendobj\\nxref\\n0 6\\n0000000000 65535 f \\n0000000009 00000 n \\n0000000056 00000 n \\n0000000111 00000 n \\n0000000212 00000 n \\n0000000296 00000 n \\ntrailer\\n<<\\n/Size 6\\n/Root 1 0 R\\n>>\\nstartxref\\n389\\n%%EOF');
-    const attachments = [{
-        filename: `${customer.mst}_Verified_Cert.pdf`,
-        content: dummyPDFBuffer
-    }];
-
-    // 4. Send Email
-    const user = process.env.EMAIL_USER || process.env.SMTP_USER;
-    const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
-
-    if (!user || !pass) {
-        throw new Error("Không tìm thấy cấu hình SMTP_USER hoặc SMTP_PASS trong .env");
-    }
+    const renderedContent = renderTemplate(`<h2>Xin chào #TênCôngTy,</h2><p>MST: <b>#MST</b></p><p>Địa chỉ: #ĐịaChỉ</p><p>Hết hạn: <b>#NgàyHếtHạn</b></p><p>Email test E2E qua Gmail API HTTPS.</p>`, customer);
+    const subject = renderTemplate(`[E2E] Thông báo cho #TênCôngTy - MST: #MST`, customer);
 
     const mailOptions = {
-        from: user,
+        from: sender.senderEmail || sender.smtpUser,
         to: targetEmail,
         subject: subject,
         html: renderedContent,
-        attachments: attachments
+        attachments: [{ filename: `${customer.mst}_Cert.pdf`, content: Buffer.from('%PDF-1.0 Test') }]
     };
 
-    // Override senderData cho hàm sendEmailWithRetry (nó dùng chung)
-    const mockSender = { smtpUser: user, smtpPassword: pass };
+    console.log(`[E2E TEST] Gửi qua Gmail REST API (HTTPS)...`);
+    const messageId = await sendEmailWithRetry(mailOptions, sender, 1);
 
-    console.log(`[E2E TEST] 4. Gửi email qua SMTP...`);
-    const messageId = await sendEmailWithRetry(mailOptions, mockSender, 1);
-
-    console.log(`[E2E TEST] ✅ SUCCESS! Email đã được gửi thành công. MessageID: ${messageId}`);
     return {
         success: true,
+        method: 'Gmail REST API (HTTPS)',
         messageId: messageId,
         subject_replaced: subject,
-        attachment_url: customer.pdf_url
+        sender_used: sender.senderEmail || sender.smtpUser
     };
 }
 
 setInterval(startWorker, WORKER_INTERVAL);
 setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
 module.exports = { startWorker, processEmailTask, testEmailFlow };
+
