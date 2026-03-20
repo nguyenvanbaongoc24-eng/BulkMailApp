@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: bulk-mail-app
+    env: node
+    buildCommand: chmod +x render-build.sh && ./render-build.sh
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+      - key: RENDER
+        value: true
+      - fromGroup: bulk-mail-secrets # Suggested secret group
+    # Optimized for Puppeteer
+    disk:
+      name: puppeteer-cache
+      mountPath: /opt/render/project/src/puppeteer_cache
+      sizeGB: 1

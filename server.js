@@ -597,15 +597,23 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
         if (error) throw error;
 
         // Create initial logs in email_logs table for the worker
-        const logs = recipients.map(r => ({
-            customer_id: r.MST ? String(r.MST).trim() : '',
-            campaign_id: campaignId,
-            user_id: req.user.id, // Added for isolation
-            email: r.Email ? String(r.Email).trim() : '',
-            status: 'pending',
-            retry_count: 0,
-            created_at: new Date().toISOString()
-        }));
+        const logs = recipients.map(r => {
+            // Helper to get value case-insensitively
+            const getVal = (obj, keys) => {
+                const foundKey = Object.keys(obj).find(k => keys.includes(k.toLowerCase()));
+                return foundKey ? String(obj[foundKey]).trim() : '';
+            };
+
+            return {
+                customer_id: getVal(r, ['mst', 'taxcode', 'mã số thuế']),
+                campaign_id: campaignId,
+                user_id: req.user.id,
+                email: getVal(r, ['email']),
+                status: 'pending',
+                retry_count: 0,
+                created_at: new Date().toISOString()
+            };
+        });
 
         if (logs.length > 0) {
             const { error: logsError } = await getClient(req.token).from('email_logs').insert(logs);
@@ -624,83 +632,16 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
         const { data: campaign, error: cErr } = await getClient(req.token).from('campaigns').select('*').eq('id', campaignId).eq('user_id', req.user.id).single();
         if (cErr || !campaign) throw new Error('Không tìm thấy chiến dịch');
 
-        const { data: sender, error: sErr } = await getClient(req.token).from('senders').select('*').eq('id', campaign.sender_account_id).single();
-        if (sErr || !sender) throw new Error('Không tìm thấy tài khoản gửi mail');
+        // Update campaign status to "Đang gửi" and reset counters
+        // This triggers the emailService.js worker which picks up "pending" logs
+        await supabase.from('campaigns').update({ 
+            status: 'Đang gửi', 
+            sent_count: 0, 
+            success_count: 0, 
+            error_count: 0 
+        }).eq('id', campaign.id);
 
-        // Initial update
-        await supabase.from('campaigns').update({ status: 'Đang gửi', sent_count: 0, success_count: 0, error_count: 0 }).eq('id', campaign.id);
-
-        res.json({ success: true, message: 'Chiến dịch đang chạy ngầm...' });
-
-        // Background Processing
-        (async () => {
-            const { google } = require('googleapis');
-            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-            oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
-            
-            try {
-                await oauth2Client.getAccessToken();
-                const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-                const nodemailer = require('nodemailer');
-                const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
-
-                let success = 0;
-                let failure = 0;
-
-                for (const r of (campaign.recipients || [])) {
-                    try {
-                        let html = campaign.template;
-                        Object.keys(r).forEach(key => {
-                            html = html.replace(new RegExp(`{{${key}}}`, 'g'), r[key] || '');
-                        });
-
-                        const mailOptions = {
-                            from: `"${sender.senderName}" <${sender.senderEmail}>`,
-                            to: r.Email || r.email || r.EMAIL,
-                            subject: campaign.subject,
-                            html: html
-                        };
-
-                        const info = await transporter.sendMail(mailOptions);
-                        const chunks = [];
-                        for await (const chunk of info.message) chunks.push(chunk);
-                        const raw = Buffer.concat(chunks).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-                        
-                        await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
-                        success++;
-                        
-                        // Log success
-                        await supabase.from('email_logs').insert([{
-                            campaign_id: campaignId,
-                            email: r.Email || r.email || r.EMAIL,
-                            status: 'sent',
-                            created_at: new Date().toISOString()
-                        }]);
-                    } catch (err) {
-                        console.error('Send error:', err);
-                        failure++;
-                        // Log failure
-                        await supabase.from('email_logs').insert([{
-                            campaign_id: campaignId,
-                            email: r.Email || r.email || r.EMAIL,
-                            status: 'failed',
-                            error_message: err.message,
-                            created_at: new Date().toISOString()
-                        }]);
-                    }
-                    // Progressive update
-                    await supabase.from('campaigns').update({ 
-                        sent_count: success + failure, 
-                        success_count: success, 
-                        error_count: failure 
-                    }).eq('id', campaignId);
-                }
-                await supabase.from('campaigns').update({ status: 'Hoàn thành' }).eq('id', campaignId);
-            } catch (authErr) {
-                console.error('Gmail Auth Error:', authErr);
-                await supabase.from('campaigns').update({ status: 'Lỗi xác thực Gmail' }).eq('id', campaignId);
-            }
-        })();
+        res.json({ success: true, message: 'Chiến dịch đã bắt đầu. Vui lòng theo dõi tiến độ trên giao diện.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -709,20 +650,10 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
 // Email Logs Route
 app.get('/api/email-logs', authenticate, async (req, res) => {
     try {
-        // First get user's campaign IDs
-        const { data: campaigns } = await supabase
-            .from('campaigns')
-            .select('id')
-            .eq('userId', req.user.id);
-        
-        const campaignIds = campaigns.map(c => c.id);
-
-        if (campaignIds.length === 0) return res.json([]);
-
         const { data, error } = await supabase
             .from('email_logs')
-            .select('*')
-            .in('campaign_id', campaignIds)
+            .select('*, campaigns(name)')
+            .eq('user_id', req.user.id)
             .order('created_at', { ascending: false })
             .limit(100);
 
@@ -776,14 +707,14 @@ app.delete('/api/campaigns/:id', authenticate, async (req, res) => {
 app.get('/api/stats', authenticate, async (req, res) => {
     const { data: campaigns, error } = await supabase
         .from('campaigns')
-        .select('sentCount, successCount, errorCount')
-        .eq('userId', req.user.id);
+        .select('sent_count, success_count, error_count')
+        .eq('user_id', req.user.id);
     if (error) return res.status(500).json({ error: error.message });
 
     const stats = campaigns.reduce((acc, c) => {
-        acc.totalSent += c.sentCount || 0;
-        acc.totalSuccess += c.successCount || 0;
-        acc.totalError += c.errorCount || 0;
+        acc.totalSent += c.sent_count || 0;
+        acc.totalSuccess += c.success_count || 0;
+        acc.totalError += c.error_count || 0;
         return acc;
     }, { totalSent: 0, totalSuccess: 0, totalError: 0 });
     
@@ -823,7 +754,7 @@ app.post('/api/customers/import', authenticate, async (req, res) => {
 
     const customers = data.map(c => ({
         id: (c.MST ? String(c.MST).trim() : Date.now().toString() + Math.random().toString(36).substr(2, 5)).toString(),
-        userId: req.user.id,
+        user_id: req.user.id,
         taxCode: c.MST ? String(c.MST).trim() : '',
         companyName: c.TenCongTy ? String(c.TenCongTy).trim() : '',
         email: c.Email ? String(c.Email).trim() : '',
@@ -895,20 +826,20 @@ app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
             .from('customers')
             .select('*')
             .eq('id', id)
-            .eq('userId', req.user.id)
+            .eq('user_id', req.user.id)
             .single();
         
         if (fetchError || !customer) return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
-        if (!customer.taxCode) return res.status(400).json({ error: 'Khách hàng không có MST' });
+        if (!customer.mst) return res.status(400).json({ error: 'Khách hàng không có MST' });
 
-        console.log(`[Scraper] Starting manual scrape for MST: ${customer.taxCode}`);
+        console.log(`[Scraper] Starting manual scrape for MST: ${customer.mst}`);
         
         // 2. Init Browser
         const { initBrowser, getLatestCertificate } = require('./services/scraperService');
         browser = await initBrowser();
         
         // 3. Scrape
-        const result = await getLatestCertificate(browser, customer.taxCode, customer.Serial || '', customer);
+        const result = await getLatestCertificate(browser, customer.mst, customer.serial || '', customer);
         
         if (result && result.status === 'Matched') {
             console.log(`[Scraper] Scrape success for ${customer.taxCode}. Uploading to Supabase...`);
@@ -916,7 +847,7 @@ app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
             // 4. Upload to Supabase Storage
             const fileBuffer = fs.readFileSync(result.filePath);
             const path = require('path');
-            const fileName = `${req.user.id}/${customer.taxCode}_${Date.now()}.pdf`;
+            const fileName = `${req.user.id}/${customer.mst}_${Date.now()}.pdf`;
             
             const { error: uploadError } = await supabase.storage
                 .from('pdf-attachments')
@@ -957,7 +888,7 @@ app.get('/api/senders/:id/test-connection', authenticate, async (req, res) => {
             .from('senders')
             .select('*')
             .eq('id', id)
-            .eq('userId', req.user.id)
+            .eq('user_id', req.user.id)
             .single();
         
         if (error || !sender) return res.status(404).json({ error: 'Sender not found' });
@@ -996,7 +927,7 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
             .from('senders')
             .select('*')
             .eq('id', senderId)
-            .eq('userId', req.user.id)
+            .eq('user_id', req.user.id)
             .single();
         
         if (senderError || !sender) return res.status(404).json({ error: 'Sender not found' });
@@ -1076,7 +1007,7 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
 app.get('/api/crm/stats', authenticate, async (req, res) => {
     const { data: customers, error } = await supabase
         .from('customers')
-        .select('expirationDate')
+        .select('expired_date')
         .eq('userId', req.user.id);
     
     if (error) return res.status(500).json({ error: error.message });
@@ -1085,8 +1016,8 @@ app.get('/api/crm/stats', authenticate, async (req, res) => {
     const stats = { expired: 0, within30: 0, within60: 0, within90: 0, total: customers.length };
 
     customers.forEach(c => {
-        if (!c.expirationDate) return;
-        const exp = new Date(c.expirationDate);
+        if (!c.expired_date) return;
+        const exp = new Date(c.expired_date);
         const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) stats.expired++;
@@ -1124,7 +1055,7 @@ app.get('/api/reports/:id', authenticate, async (req, res) => {
             .from('campaigns')
             .select('*')
             .eq('id', id)
-            .eq('userId', req.user.id)
+            .eq('user_id', req.user.id)
             .single();
         
         if (campaignError || !campaign) {
@@ -1402,7 +1333,7 @@ app.delete('/api/campaigns/:id', authenticate, async (req, res) => {
         const { id } = req.params;
         // Delete logs first then campaign
         await supabase.from('email_logs').delete().eq('campaign_id', id);
-        const { error } = await supabase.from('campaigns').delete().eq('id', id).eq('userId', req.user.id);
+        const { error } = await supabase.from('campaigns').delete().eq('id', id).eq('user_id', req.user.id);
         if (error) throw error;
         res.json({ success: true });
     } catch (error) {
@@ -1416,7 +1347,7 @@ app.post('/api/campaigns/bulk-delete', authenticate, async (req, res) => {
         if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'IDs array required' });
         
         await supabase.from('email_logs').delete().in('campaign_id', ids);
-        const { error } = await supabase.from('campaigns').delete().in('id', ids).eq('userId', req.user.id);
+        const { error } = await supabase.from('campaigns').delete().in('id', ids).eq('user_id', req.user.id);
         if (error) throw error;
         res.json({ success: true, count: ids.length });
     } catch (error) {

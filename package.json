@@ -9,7 +9,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "if [ \"$RENDER\" = \"true\" ]; then chmod +x render-build.sh && ./render-build.sh; fi"
   },
   "build": {
     "appId": "com.ca2.automation.pro",

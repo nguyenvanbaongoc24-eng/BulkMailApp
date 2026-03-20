@@ -163,12 +163,10 @@ function showPage(pageId) {
     
     const titleMap = {
         'dashboard': 'Bảng điều khiển',
-        'crm': 'Quản lý khách hàng',
         'ca2-crm': 'CA2 CRM',
         'campaigns': 'Chiến dịch Email',
         'senders': 'Tài khoản Gmail',
-        'reports': 'Báo cáo chi tiết',
-        'settings': 'Cài đặt'
+        'reports': 'Báo cáo chi tiết'
     };
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
@@ -178,7 +176,6 @@ function showPage(pageId) {
     if (pageId === 'senders') loadSenders();
     if (pageId === 'reports') loadEmailLogs();
     if (pageId === 'campaigns') loadRecentCampaigns();
-    if (pageId === 'crm') loadCRM();
 }
 
 function toggleSidebar() {
@@ -605,145 +602,6 @@ function exportCA2CRMToExcel() {
     XLSX.writeFile(wb, "CA2_CRM_Data.xlsx");
 }
 
-let oldCRMData = [];
-let currentFilterStatus = 'all';
-
-async function loadCRM() {
-    try {
-        const res = await authedFetch('/api/customers');
-        const { data } = await res.json();
-        oldCRMData = data || [];
-        const statusDropdown = document.getElementById('crm-filter-status');
-        if(statusDropdown) currentFilterStatus = statusDropdown.value;
-        renderCRM();
-    } catch (e) { console.error('Load Old CRM Error:', e); }
-}
-
-function filterCRM(status) {
-    currentFilterStatus = status;
-    const statusDropdown = document.getElementById('crm-filter-status');
-    if(statusDropdown && statusDropdown.querySelector(`option[value="${status}"]`)) {
-        statusDropdown.value = status;
-    } else if (statusDropdown) {
-        statusDropdown.value = 'all';
-    }
-    renderCRM();
-}
-
-function renderCRM() {
-    const list = document.getElementById('crm-list');
-    if (!list) return;
-
-    let filtered = [...oldCRMData];
-    if (currentFilterStatus === 'expired') {
-        filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) < 0);
-    } else if (currentFilterStatus === '30') {
-        filtered = filtered.filter(c => {
-            const days = calculateRemainingDays(c.expired_date);
-            return days >= 0 && days <= 30;
-        });
-    } else if (currentFilterStatus === '60') {
-        filtered = filtered.filter(c => {
-            const days = calculateRemainingDays(c.expired_date);
-            return days > 30 && days <= 60;
-        });
-    } else if (currentFilterStatus !== 'all') {
-        filtered = filtered.filter(c => c.status_note === currentFilterStatus);
-    }
-
-    filtered.sort((a,b) => new Date(a.expired_date) - new Date(b.expired_date));
-
-    let total = oldCRMData.length;
-    let expired = 0, thirty = 0, sixty = 0;
-    
-    oldCRMData.forEach(c => {
-        const days = calculateRemainingDays(c.expired_date);
-        if (days < 0) expired++;
-        else if (days >= 0 && days <= 30) thirty++;
-        else if (days > 30 && days <= 60) sixty++;
-    });
-
-    const elTotal = document.getElementById('crm-stat-total');
-    const elExpired = document.getElementById('crm-stat-expired');
-    const el30 = document.getElementById('crm-stat-30');
-    const el60 = document.getElementById('crm-stat-60');
-
-    if(elTotal) elTotal.innerText = total;
-    if(elExpired) elExpired.innerText = expired;
-    if(el30) el30.innerText = thirty;
-    if(el60) el60.innerText = sixty;
-
-    list.innerHTML = filtered.map(c => `
-        <tr class="hover:bg-white/2 transition-colors">
-            <td class="px-6 py-4">
-                <div class="font-bold text-white">${c.company_name || 'N/A'}</div>
-                <div class="text-xs text-gray-500">${c.mst || ''}</div>
-                <div class="text-[10px] text-gray-400 italic">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
-            </td>
-            <td class="px-6 py-4 font-bold ${calculateRemainingDays(c.expired_date) < 0 ? 'text-red-500' : 'text-gray-400'}">${formatDate(c.expired_date)}</td>
-            <td class="px-6 py-4">
-                <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-gray-300">${c.status_note || 'Chưa liên hệ'}</span>
-            </td>
-            <td class="px-6 py-4 text-xs text-gray-400">${c.notes || '-'}</td>
-            <td class="px-6 py-4">
-                <div class="flex justify-start gap-2">
-                    <button onclick="editCRM('${c.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa (CA2 CRM)"><i class="fas fa-edit text-xs"></i></button>
-                    <button onclick="deleteCRM('${c.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa (CA2 CRM)"><i class="fas fa-trash text-xs"></i></button>
-                </div>
-            </td>
-        </tr>
-    `).join('') || `<tr><td colspan="5" class="py-10 text-center text-gray-500 italic">Không có khách hàng</td></tr>`;
-}
-
-async function createCampaignFromCRM() {
-    let recipients = oldCRMData.filter(c => c.email);
-    if (currentFilterStatus === 'expired') {
-        recipients = recipients.filter(c => calculateRemainingDays(c.expired_date) < 0);
-    } else if (currentFilterStatus === '30') {
-        recipients = recipients.filter(c => {
-            const days = calculateRemainingDays(c.expired_date);
-            return days >= 0 && days <= 30;
-        });
-    } else if (currentFilterStatus === '60') {
-        recipients = recipients.filter(c => {
-            const days = calculateRemainingDays(c.expired_date);
-            return days > 30 && days <= 60;
-        });
-    } else if (currentFilterStatus !== 'all') {
-        recipients = recipients.filter(c => c.status_note === currentFilterStatus);
-    }
-
-    if (recipients.length === 0) return alert('Không có khách hàng hợp lệ!');
-    
-    document.getElementById('page-title').innerText = 'Tạo chiến dịch (CRM Mở Rộng)';
-    ['dashboard','campaigns','senders','reports','ca2-crm','crm'].forEach(id => {
-        document.getElementById(`view-${id}`)?.classList.add('hidden');
-    });
-    
-    document.getElementById('modal-create').classList.remove('hidden');
-    document.getElementById('camp-name').value = `Chiến dịch gửi Mail (${recipients.length} KH) - ${formatDate(new Date())}`;
-    
-    const ws = XLSX.utils.json_to_sheet(recipients.map(c => ({
-        'MST': c.mst,
-        'TenCongTy': c.company_name,
-        'Email': c.email,
-        'DienThoai': c.phone,
-        'ThoiHan': c.expired_date,
-        'LoaiDichVu': c.service_type || 'CKS'
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], {type: "application/octet-stream"});
-    const file = new File([blob], "campaign_list.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    const fileInput = document.getElementById('camp-file');
-    fileInput.files = dt.files;
-    
-    if (typeof handleFileUpload === 'function') handleFileUpload({ target: fileInput });
-}
 
 // --- Utils & Modals ---
 function openCreateModal() { 
@@ -777,20 +635,24 @@ function handleFileUpload(event) {
 
             // Strict Smart Header Detection
             let headerRowIndex = -1;
-            const headerKeywords = ['MST', 'TAX', 'MÃ SỐ THUẾ', 'CÔNG TY', 'TÊN', 'NAME', 'EMAIL', 'ĐỊA CHỈ', 'ADDRESS', 'HẾT HẠN', 'EXPIRATION', 'SERIAL'];
+            const headerKeywords = [
+                'MST', 'TAX', 'MÃ SỐ THUẾ', 'CÔNG TY', 'TÊN', 'NAME', 'EMAIL', 'ĐỊA CHỈ', 'ADDRESS', 
+                'HẾT HẠN', 'EXPIRATION', 'SERIAL', 'HẠN', 'DỊCH VỤ', 'GÓI', 'THỜI GIAN', 'NGÀY CẤP'
+            ];
             
-            for (let i = 0; i < Math.min(rawRows.length, 3); i++) {
+            for (let i = 0; i < Math.min(rawRows.length, 5); i++) { // Check up to 5 rows
                 const row = rawRows[i];
                 let matches = 0;
                 let isDataRow = false;
 
                 row.forEach(cell => {
+                    if (!cell) return;
                     const val = String(cell).toUpperCase().trim();
                     // If any cell looks like data (Email or MST), this entire row is DATA, not a header
-                    if (val.includes('@') || /^\d{10}(\d{3})?$/.test(val)) {
+                    if (val.includes('@') || /^\d{10}(\d{3})?$/.test(val.replace(/[^0-0]/g,''))) {
                         isDataRow = true;
                     }
-                    if (headerKeywords.includes(val)) {
+                    if (headerKeywords.some(k => val.includes(k))) {
                         matches++;
                     }
                 });
@@ -806,12 +668,9 @@ function handleFileUpload(event) {
             let headers = [];
 
             if (headerRowIndex !== -1) {
-                // We found a header row
                 headers = rawRows[headerRowIndex].map(h => String(h).trim() || 'NoHeader');
                 dataRows = rawRows.slice(headerRowIndex + 1);
             } else {
-                // No header row found, first row IS data
-                // Use column letters as default headers: A, B, C, ...
                 const maxCols = Math.max(...rawRows.map(r => r.length));
                 headers = Array.from({ length: maxCols }, (_, i) => String.fromCharCode(65 + i));
                 dataRows = rawRows;
@@ -819,32 +678,52 @@ function handleFileUpload(event) {
 
             // Map data to objects
             currentRecipientsData = dataRows.filter(row => {
-                return row.some(cell => String(cell).trim() !== '');
+                return row.some(cell => String(cell || '').trim() !== '');
             }).map(row => {
                 const obj = {};
                 headers.forEach((h, i) => {
                     obj[h] = String(row[i] || '').trim();
                 });
                 
-                // Smart Mapping aliases for placeholders
-                // If we don't have explicit headers, try to guess
+                // Helper to check if string looks like a date/timestamp
+                const isDate = (val) => {
+                    return /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(val) || 
+                           /\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(val) ||
+                           /^\d{13,14}$/.test(val) || // Timestamp
+                           (val.includes(':') && /\d{4}/.test(val)); // Excel type date string
+                };
+
+                // Smart Mapping
                 if (headerRowIndex === -1) {
                     row.forEach((cell, i) => {
-                        const val = String(cell).trim();
-                        if (val.includes('@')) obj['Email'] = val;
-                        else if (/^\d{10}(\d{3})?$/.test(val)) obj['MST'] = val;
-                        else if (val.length > 20 && !val.includes(' ')) {} // Potential serial
-                        else if (val.length > 15 && val.includes(' ')) obj['TenCongTy'] = val;
+                        const val = String(cell || '').trim();
+                        if (!val) return;
+
+                        if (val.includes('@')) {
+                            obj['Email'] = val;
+                        } else if (/^\d{10}(\d{3})?$/.test(val.replace(/[^0-9]/g,''))) {
+                            obj['MST'] = val;
+                        } else if (isDate(val)) {
+                            obj['NgayHetHanChuKySo'] = val;
+                        } else if (val.length > 20 && !val.includes(' ')) {
+                            obj['Serial'] = val;
+                        } else if (val.length > 5 && val.includes(' ') && !isDate(val)) {
+                            // Only map to TenCongTy if it's NOT a date-like string
+                            obj['TenCongTy'] = val;
+                        }
                     });
                 } else {
-                    // Map common headers to internal keys
                     Object.keys(obj).forEach(k => {
                         const uk = k.toUpperCase();
-                        if (uk.includes('MST') || uk.includes('TAX')) obj['MST'] = obj[k];
-                        if (uk.includes('CÔNG TY') || uk.includes('TÊN') || uk.includes('NAME')) obj['TenCongTy'] = obj[k];
-                        if (uk.includes('EMAIL')) obj['Email'] = obj[k];
-                        if (uk.includes('HẾT HẠN') || uk.includes('EXPIRATION')) obj['NgayHetHanChuKySo'] = obj[k];
-                        if (uk.includes('ĐỊA CHỈ') || uk.includes('ADDRESS')) obj['DiaChi'] = obj[k];
+                        const val = obj[k];
+                        if (uk.includes('MST') || uk.includes('TAX')) obj['MST'] = val;
+                        if (uk.includes('CÔNG TY') || uk.includes('TÊN') || uk.includes('NAME')) {
+                            // Safety: Don't map a date column to company name even if header is ambiguous
+                            if (!isDate(val)) obj['TenCongTy'] = val;
+                        }
+                        if (uk.includes('EMAIL')) obj['Email'] = val;
+                        if (uk.includes('HẾT HẠN') || uk.includes('EXPIRATION') || uk.includes('HẠN')) obj['NgayHetHanChuKySo'] = val;
+                        if (uk.includes('ĐỊA CHỈ') || uk.includes('ADDRESS')) obj['DiaChi'] = val;
                     });
                 }
                 return obj;

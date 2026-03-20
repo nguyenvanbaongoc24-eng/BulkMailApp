@@ -147,9 +147,6 @@
             <a href="javascript:void(0)" onclick="showPage('dashboard'); return false;" id="nav-dashboard" class="sidebar-item-active flex items-center px-4 py-3 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📊</span> <span class="font-semibold">Bảng điều khiển</span>
             </a>
-            <a href="javascript:void(0)" onclick="showPage('crm'); return false;" id="nav-crm" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">💼</span> <span class="font-semibold">Khách hàng</span>
-            </a>
             <a href="javascript:void(0)" onclick="showPage('campaigns'); return false;" id="nav-campaigns" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📧</span> <span class="font-semibold">Chiến dịch email</span>
             </a>
@@ -317,63 +314,6 @@
                 </div>
             </div>
 
-            <!-- CRM View -->
-            <div id="view-crm" class="hidden space-y-10 animate-in fade-in duration-500">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="bg-glass p-6 rounded-[32px] border border-red-500/20 card-glow cursor-pointer" onclick="filterCRM('expired')">
-                        <p class="text-[10px] text-red-500 font-black uppercase tracking-widest mb-2">Đã hết hạn</p>
-                        <h3 id="crm-stat-expired" class="text-3xl font-black text-white">0</h3>
-                    </div>
-                    <div class="bg-glass p-6 rounded-[32px] border border-orange-500/20 card-glow cursor-pointer" onclick="filterCRM('30')">
-                        <p class="text-[10px] text-orange-500 font-black uppercase tracking-widest mb-2">Hết hạn < 30 ngày</p>
-                        <h3 id="crm-stat-30" class="text-3xl font-black text-white">0</h3>
-                    </div>
-                    <div class="bg-glass p-6 rounded-[32px] border border-yellow-500/20 card-glow cursor-pointer" onclick="filterCRM('60')">
-                        <p class="text-[10px] text-yellow-500 font-black uppercase tracking-widest mb-2">Hết hạn < 60 ngày</p>
-                        <h3 id="crm-stat-60" class="text-3xl font-black text-white">0</h3>
-                    </div>
-                    <div class="bg-glass p-6 rounded-[32px] border border-blue-500/20 card-glow cursor-pointer" onclick="filterCRM('all')">
-                        <p class="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-2">Tổng khách hàng</p>
-                        <h3 id="crm-stat-total" class="text-3xl font-black text-white">0</h3>
-                    </div>
-                </div>
-
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
-                    <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                            <h3 class="text-lg font-bold text-white uppercase tracking-tight">Quản lý gia hạn</h3>
-                            <select id="crm-filter-status" onchange="loadCRM()" class="text-xs font-black py-1 px-3 border-0 bg-white/10 rounded-lg cursor-pointer">
-                                <option value="all">Tất cả trạng thái</option>
-                                <option value="Chưa liên hệ">Chưa liên hệ</option>
-                                <option value="Đã gọi">Đã gọi</option>
-                                <option value="Đã gửi email">Đã gửi email</option>
-                                <option value="Đang tư vấn">Đang tư vấn</option>
-                                <option value="Đã gia hạn">Đã gia hạn</option>
-                                <option value="Không quan tâm">Không quan tâm</option>
-                            </select>
-                        </div>
-                        <button onclick="createCampaignFromCRM()" class="bg-orange-gradient px-4 py-2 text-xs text-white rounded-xl hover:scale-105 transition-all font-bold shadow-lg shadow-orange-900/30">
-                            🚀 Tạo danh sách gửi email
-                        </button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-white/2 border-b border-white/5">
-                                <tr>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Công ty / MST</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày hết hạn</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ghi chú</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody id="crm-list" class="divide-y divide-white/5">
-                                <!-- Data injected via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
 
             <!-- CA2 CRM View (Internal Tool) -->
             <div id="view-ca2-crm" class="hidden space-y-10 animate-in fade-in duration-500">
@@ -527,14 +467,6 @@
                 </div>
             </div>
 
-            <!-- Settings View -->
-            <div id="view-settings" class="hidden space-y-10 animate-in fade-in duration-500">
-                <div class="bg-glass p-20 rounded-[48px] text-center border border-white/5">
-                    <div class="text-6xl mb-6">⚙️</div>
-                    <h3 class="text-3xl font-bold text-white mb-4">Cài đặt hệ thống</h3>
-                    <p class="text-gray-400 max-w-md mx-auto">Tính năng này đang được nâng cấp để hỗ trợ nhiều tùy chọn automation hơn. Vui lòng quay lại sau!</p>
-                </div>
-            </div>
 
             <!-- Reports View -->
             <div id="view-reports" class="hidden space-y-10 animate-in fade-in duration-500">
@@ -815,55 +747,6 @@
         </div>
     </div>
 
-    <!-- Modal Update CRM -->
-    <div id="modal-crm-update" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-50 overflow-y-auto">
-        <div class="min-h-screen flex items-center justify-center p-8">
-            <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-2xl p-10 shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-[200px] h-[200px] bg-orange-600/10 blur-[80px] -z-10 rounded-full"></div>
-                <div class="flex justify-between items-center mb-8">
-                    <h3 class="text-2xl font-black text-white tracking-tighter">Cập nhật <span class="text-orange-gradient">thông tin khách hàng</span></h3>
-                    <button onclick="closeCRMUpdateModal()" class="text-gray-500 hover:text-white transition-all text-4xl">&times;</button>
-                </div>
-                <div class="space-y-6">
-                    <input type="hidden" id="crm-update-id">
-                    <input type="hidden" id="crm-update-taxcode">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Trạng thái liên hệ</label>
-                        <select id="crm-update-status" class="w-full px-5 py-4 rounded-2xl outline-none">
-                            <option value="Chưa liên hệ">Chưa liên hệ</option>
-                            <option value="Đã gọi">Đã gọi</option>
-                            <option value="Đã gửi email">Đã gửi email</option>
-                            <option value="Đang tư vấn">Đang tư vấn</option>
-                            <option value="Đã gia hạn">Đã gia hạn</option>
-                            <option value="Không quan tâm">Không quan tâm</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Ghi chú chi tiết</label>
-                        <textarea id="crm-update-notes" rows="4" placeholder="Nhập ghi chú sau khi liên hệ..." class="w-full px-5 py-4 rounded-2xl outline-none resize-none"></textarea>
-                    </div>
-                    
-                    <!-- PDF Upload Section -->
-                    <div class="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4">
-                        <div class="flex justify-between items-center">
-                            <p class="text-xs font-bold text-white uppercase tracking-widest">Tệp đính kèm (PDF)</p>
-                            <span id="crm-pdf-status" class="text-[10px] font-bold text-gray-500 px-2 py-0.5 bg-white/5 rounded">Chưa có file</span>
-                        </div>
-                        <div class="flex gap-3">
-                            <input type="file" id="crm-pdf-file" accept=".pdf" class="hidden" onchange="uploadCustomerPDF()">
-                            <button onclick="document.getElementById('crm-pdf-file').click()" class="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all">📂 Tải lên PDF</button>
-                            <button onclick="scrapeCustomerPDF()" class="flex-1 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded-xl text-xs font-bold transition-all border border-emerald-500/20">🔍 Tra cứu từ CA</button>
-                            <a id="crm-pdf-view" href="#" target="_blank" class="hidden px-4 py-3 bg-blue-500/10 text-blue-500 rounded-xl text-xs font-bold hover:bg-blue-500/20">👁 Xem</a>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 pt-4">
-                        <button onclick="saveCRMUpdate()" class="flex-1 bg-orange-gradient py-4 text-white rounded-2xl hover:scale-[1.02] active:scale-95 transition-all font-black text-lg uppercase shadow-xl shadow-orange-900/30">Lưu thay đổi</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     </div> <!-- End of app-container -->
 

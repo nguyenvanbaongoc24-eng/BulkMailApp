@@ -3,13 +3,72 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
-const supabase = require('./supabaseClient');
+const { adminClient: supabase } = require('./supabaseClient');
 const scraperService = require('./scraperService');
 
-const WORKER_INTERVAL = 10000; // Reduced from 30s to 10s for faster sending
+const WORKER_INTERVAL = 10000; // 10s
 const RECOVERY_INTERVAL = 15 * 60 * 1000;
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
+
+// Helper to format date for Vietnamese display (DD/MM/YYYY)
+const formatDateVN = (dateVal) => {
+    if (!dateVal) return "";
+    let date = dateVal;
+    if (!(date instanceof Date)) {
+        date = new Date(dateVal);
+    }
+    if (isNaN(date.getTime())) return dateVal;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+};
+
+// Standardized tag replacement function
+const replaceTags = (template, data) => {
+    if (!template) return "";
+    
+    const replacements = {
+        '#TênCôngTy': data.company_name || "",
+        '#MST': data.mst || "",
+        '#ĐịaChỉ': data.address || "",
+        '#NgàyHếtHạn': formatDateVN(data.expired_date) || ""
+    };
+
+    let result = template;
+    for (const [tag, value] of Object.entries(replacements)) {
+        // Handle variants (case-insensitive and without accents/extensions)
+        let variants = [tag];
+        if (tag === '#TênCôngTy') variants.push('#TenCongTy', '#TEN_CONG_TY', '#TÊN_CÔNG_TY', '#Tencongty');
+        if (tag === '#NgàyHếtHạn') variants.push('#NgayHetHan', '#NGAY_HET_HAN', '#NGÀY_HẾT_HẠN', '#Ngayhethan', '#NgayHetHanChuKySo');
+        if (tag === '#ĐịaChỉ') variants.push('#DiaChi', '#DIA_CHI', '#ĐỊA_CHỈ', '#Diachi');
+
+        for (const variant of variants) {
+            const regex = new RegExp(variant.normalize('NFC').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            result = result.replace(regex, value);
+        }
+    }
+    return result;
+};
+
+// Helper to extract relative path and bucket from Supabase URL
+const getStorageInfo = (url) => {
+    if (!url) return null;
+    // Handle full URLs
+    if (url.includes('/storage/v1/object/public/')) {
+        const parts = url.split('/storage/v1/object/public/')[1].split('/');
+        const bucket = parts.shift();
+        const path = parts.join('/');
+        return { bucket, path };
+    }
+    // Fallback/Legacy: guess bucket based on URL content
+    if (url.includes('pdf-attachments')) return { bucket: 'pdf-attachments', path: url.split('pdf-attachments/')[1] || url };
+    if (url.includes('pdfs/')) return { bucket: 'pdfs', path: url.split('pdfs/')[1] || url };
+    
+    return null;
+};
 
 async function startWorker() {
     if (isWorkerRunning) return;
@@ -18,7 +77,7 @@ async function startWorker() {
 
     let browser = null;
     try {
-        const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 }); // Increased batch to 10
+        const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 });
         if (pickError) throw pickError;
 
         if (!tasks || tasks.length === 0) {
@@ -28,7 +87,6 @@ async function startWorker() {
 
         console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks. Initializing Browser...`);
         browser = await scraperService.initBrowser();
-        console.log(`[Worker] Browser initialized. Starting loop...`);
 
         for (const log of tasks) {
             try {
@@ -38,7 +96,6 @@ async function startWorker() {
                 ]);
             } catch (taskErr) {
                 console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
-                // Emergency fail-safe to revert processing
                 await supabase.from('email_logs').update({ status: 'failed', retry_count: (log.retry_count || 0) + 1 }).eq('id', log.id).catch(() => {});
             }
             await new Promise(r => setTimeout(r, Math.random() * 3000 + 2000));
@@ -61,290 +118,202 @@ async function processEmailTask(log, browser) {
 
         const cleanMST = String(log.customer_id || '').trim();
         const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode || '').trim() === cleanMST);
-        let { data: customer } = await supabase.from('customers').select('*').eq('taxCode', cleanMST).maybeSingle();
+        let { data: customer } = await supabase.from('customers').select('*').eq('mst', cleanMST).maybeSingle();
 
-        // FALLBACK: If not in customers, or customers has no PDF, check 'certificates' table (Local Tool's output)
+        // FALLBACK: certificates table (Local Tool's output)
         if (!customer || !customer.pdf_url) {
-            console.log(`[Worker] [${log.id}] PDF missing from CRM/Customers. Checking 'certificates' table for MST: ${cleanMST}...`);
             const { data: cert } = await supabase.from('certificates').select('pdf_url, company_name, serial').eq('mst', cleanMST).maybeSingle();
             if (cert && cert.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found PDF in certificates table: ${cert.pdf_url}`);
                 customer = { 
                     ...customer, 
                     pdf_url: cert.pdf_url, 
-                    companyName: cert.company_name || recipientInExcel?.TenCongTy || customer?.companyName,
-                    Serial: cert.serial || recipientInExcel?.Serial || customer?.Serial
+                    company_name: cert.company_name || recipientInExcel?.TenCongTy || customer?.company_name,
+                    serial: cert.serial || recipientInExcel?.Serial || customer?.serial
                 };
             }
         }
 
-        // 1. PDF Handling (STRICT MODE) - Final fix for field name consistency
-        if (campaign.attach_cert || campaign.attachCert) {
+        // 1. PDF Handling (STRICT MODE)
+        const shouldAttach = campaign.attach_cert === true || campaign.attach_cert === 'true' || campaign.attachCert === true || campaign.attachCert === 'true';
+        if (shouldAttach) {
             if (customer && customer.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found existing PDF URL: ${customer.pdf_url}`);
                 pdfAttachedStatus = '✅ Có PDF (Sẵn có)';
             } else {
                 console.log(`[Worker] [${log.id}] PDF missing from CRM. Triggering Scraper...`);
-                // Flexible Serial/MST lookup
-                const excelSerial = recipientInExcel?.Serial || recipientInExcel?.serial || recipientInExcel?.['SỐ SERIAL'] || '';
-                const dbSerial = customer?.Serial || customer?.serial || '';
-                const targetSerial = excelSerial || dbSerial;
+                // Use Serial from Excel or CRM
+                const targetSerial = recipientInExcel?.Serial || customer?.serial || '';
                 
                 const targetCustomer = customer || { 
-                    taxCode: log.customer_id, 
-                    companyName: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || recipientInExcel?.['Name'] 
+                    mst: log.customer_id, 
+                    company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || 'Quý Doanh Nghiệp'
                 };
+                
+                // Only trigger scraper if we have a serial, or it's mandatory
                 const scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, targetSerial, targetCustomer);
 
                 if (scrapeResult && scrapeResult.status === 'Matched') {
                     console.log(`[Worker] [${log.id}] Scraper found Match! Uploading file...`);
                     const fileBuffer = fs.readFileSync(scrapeResult.filePath);
-                    const fileExt = path.extname(scrapeResult.filePath) || '.pdf';
-                    const fileName = `${campaign.user_id}/${log.customer_id}_${Date.now()}${fileExt}`;
+                    const fileName = `${campaign.user_id}/${log.customer_id}_${Date.now()}.pdf`;
 
                     const { error: uploadError } = await supabase.storage
                         .from('pdf-attachments')
                         .upload(fileName, fileBuffer, { upsert: true });
 
-                    if (uploadError) throw new Error(`Lỗi upload PDF lên Storage: ${uploadError.message}`);
+                    if (uploadError) throw new Error(`Lỗi upload PDF: ${uploadError.message}`);
 
                     const { data: { publicUrl } } = supabase.storage.from('pdf-attachments').getPublicUrl(fileName);
                     
                     const customerUpdate = { 
-                        taxCode: log.customer_id, 
+                        mst: log.customer_id, 
                         pdf_url: publicUrl,
-                        companyName: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer?.companyName,
+                        company_name: targetCustomer.company_name,
                         user_id: campaign.user_id
                     };
 
-                    const { data: updatedCustomer, error: upsertError } = await supabase
-                        .from('customers')
-                        .upsert(customerUpdate, { onConflict: 'taxCode' })
-                        .select()
-                        .single();
-
-                    if (upsertError) console.warn(`[Worker] Warning: Could not update customer record, but continuing with PDF.`, upsertError.message);
-                    
+                    const { data: updatedCustomer } = await supabase.from('customers').upsert(customerUpdate, { onConflict: 'mst,user_id' }).select().single();
                     customer = updatedCustomer || { ...customer, ...customerUpdate };
                     pdfAttachedStatus = '✅ Có PDF (Mới tải)';
-                    
                     try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
                 } else {
-                    const failNote = scrapeResult?.message || 'Không tìm thấy hoặc không khớp Serial';
-                    pdfAttachedStatus = `⚠ Không PDF (${failNote})`;
-                    console.log(`[Worker] [${log.id}] PDF requested but not found/matched: ${failNote}. Proceeding to send WITHOUT PDF.`);
+                    pdfAttachedStatus = `⚠ Không PDF cho MST ${log.customer_id} (${scrapeResult?.message || 'Không tìm thấy trên hệ thống'})`;
+                    console.warn(`[Worker] [${log.id}] ${pdfAttachedStatus}`);
                 }
             }
         } else {
-            pdfAttachedStatus = 'Gửi không đính kèm (Tắt trong cài đặt)';
+            pdfAttachedStatus = 'Gửi không đính kèm';
         }
 
-        // 2. Content Preparation - Robust Variable Replacement
-        let html = campaign.template || '';
-        let subject = campaign.subject || 'Thông báo từ Automation CA2';
-        
-        // Helper to find value from recipient object regardless of case/accents
+        // 2. Content Preparation
         const findVal = (obj, keys) => {
             if (!obj) return '';
             const entries = Object.entries(obj);
             for (const key of keys) {
                 const found = entries.find(([k]) => k.toLowerCase().trim() === key.toLowerCase().trim());
-                if (found && found[1]) return String(found[1]).trim();
+                if (found && found[1]) return String(found[1]);
             }
             return '';
         };
 
-        const replacements = {
-            '#TênCôngTy': findVal(recipientInExcel, ['TenCongTy', 'Tên Công Ty', 'Name', 'companyName']) || customer?.companyName || 'Quý Doanh Nghiệp',
-            '#MST': findVal(recipientInExcel, ['MST', 'taxCode', 'Mã số thuế']) || customer?.taxCode || log.customer_id || '',
-            '#ĐịaChỉ': findVal(recipientInExcel, ['DiaChi', 'Địa chỉ', 'Address']) || customer?.diaChi || '',
-            '#NgàyHếtHạn': findVal(recipientInExcel, ['NgayHetHanChuKySo', 'Ngày hết hạn', 'Expiration', 'expired_date']) || customer?.expirationDate || ''
+        const dataForTags = {
+            company_name: findVal(recipientInExcel, ['company_name', 'TenCongTy', 'Tên Công Ty', 'Name', 'companyName']) || customer?.company_name || 'Quý Doanh Nghiệp',
+            mst: findVal(recipientInExcel, ['mst', 'MST', 'taxCode', 'Mã số thuế']) || customer?.mst || log.customer_id || '',
+            address: findVal(recipientInExcel, ['dia_chi', 'DiaChi', 'Địa chỉ', 'Address']) || customer?.dia_chi || '',
+            expired_date: findVal(recipientInExcel, ['NgayHetHanChuKySo', 'expired_date', 'Ngày hết hạn', 'Expiration', 'Hết hạn']) || customer?.expired_date || ''
         };
 
-        // Advanced Replacement with HTML Entity Handling & Case Insensitivity
         const decodeEntities = (str) => {
             if (!str) return '';
             return str.replace(/&[#a-z0-9]+;/gi, match => {
                 const map = { 
                     '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
                     '&ecirc;': 'ê', '&ocirc;': 'ô', '&agrave;': 'à', '&aacute;': 'á', '&iacute;': 'í', 
-                    '&ograve;': 'ò', '&oacute;': 'ó', '&ugrave;': 'ù', '&uacute;': 'ú', '&yacute;': 'ý', '&đ;': 'đ'
+                    '&ograve;': 'ò', '&oacute;': 'ó', '&ugrave;': 'ù', '&uacute;': 'ú', '&yacute;': 'ý', '&đ;': 'đ',
+                    '&Agrave;': 'À', '&Aacute;': 'Á', '&Iacute;': 'Í', '&Ograve;': 'Ò', '&Oacute;': 'Ó', '&Ugrave;': 'Ù', '&Uacute;': 'Ú'
                 };
                 return map[match.toLowerCase()] || match;
-            });
+            }).normalize('NFC');
         };
 
-        // NEW: Decode entities AND Normalize to NFC first so placeholders match accurately
-        html = decodeEntities(html).normalize('NFC');
-        subject = decodeEntities(subject).normalize('NFC');
+        let html = decodeEntities(campaign.template || '');
+        let subject = decodeEntities(campaign.subject || 'Thông báo từ Automation CA2');
 
-        console.log(`[Worker] [${log.id}] Processing replacements for campaign: ${campaign.name}`);
-        console.log(`[Worker] [${log.id}] Replacement data:`, JSON.stringify(replacements, null, 2));
+        html = replaceTags(html, dataForTags);
+        subject = replaceTags(subject, dataForTags);
 
-        for (let [tag, value] of Object.entries(replacements)) {
-            const finalValue = (value === null || value === undefined) ? '' : String(value);
-            tag = tag.normalize('NFC');
-            
-            // Support multiple tag variants
-            const variants = [tag];
-            if (tag === '#TênCôngTy') variants.push('#TenCongTy', '#TEN_CONG_TY', '#TÊN_CÔNG_TY', '#Tencongty');
-            if (tag === '#NgàyHếtHạn') variants.push('#NgayHetHan', '#NGAY_HET_HAN', '#NGÀY_HẾT_HẠN', '#Ngayhethan');
-            if (tag === '#ĐịaChỉ') variants.push('#DiaChi', '#DIA_CHI', '#ĐỊA_CHỈ', '#Diachi');
-            if (tag === '#MST') variants.push('#mst');
-
-            for (let variant of variants) {
-                variant = variant.normalize('NFC');
-                const escapedVariant = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(escapedVariant, 'gi');
-                
-                // Track if replacement actually happened
-                const countBefore = (html.match(regex) || []).length;
-                html = html.replace(regex, finalValue);
-                subject = subject.replace(regex, finalValue);
-                
-                if (countBefore > 0) {
-                    console.log(`[Worker] [${log.id}] Successfully replaced ${countBefore} instances of variant: ${variant}`);
-                }
-                
-                // Double-curly brackets legacy support
-                const legacyTag = `{{${variant.substring(1)}}}`;
-                const legacyRegex = new RegExp(legacyTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                html = html.replace(legacyRegex, finalValue);
-                subject = subject.replace(legacyRegex, finalValue);
-            }
-        }
-
-        // 3. Sender Verification
+        // 3. Sender
         const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
         if (!sender) throw new Error('Tài khoản người gửi không tồn tại.');
 
         let finalMessageId = null;
         let transporter;
 
-        // 4. Send Execution (MIME Multipart/Mixed)
+        const mailOptions = {
+            from: `"${sender.senderName}" <${sender.senderEmail}>`,
+            to: log.email, subject: subject, html: html,
+            attachments: []
+        };
+
+        // Authenticated PDF attachment
+        if (customer?.pdf_url && shouldAttach) {
+            try {
+                const storageInfo = getStorageInfo(customer.pdf_url);
+                if (storageInfo) {
+                    const { data, error } = await supabase.storage.from(storageInfo.bucket).download(storageInfo.path);
+                    if (error) throw error;
+                    mailOptions.attachments.push({ filename: `Cert_${cleanMST}.pdf`, content: Buffer.from(await data.arrayBuffer()) });
+                    console.log(`[Worker] [${log.id}] Attached PDF via authenticated download.`);
+                } else {
+                    const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer' });
+                    mailOptions.attachments.push({ filename: `Cert_${cleanMST}.pdf`, content: Buffer.from(response.data) });
+                    console.log(`[Worker] [${log.id}] Attached PDF via public URL.`);
+                }
+            } catch (err) {
+                console.error(`[Worker] [${log.id}] PDF attachment failed:`, err.message);
+                pdfAttachedStatus += ` (Lỗi đính kèm: ${err.message})`;
+            }
+        }
+
         if (sender.smtpHost === 'oauth2.google') {
             const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
             oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
-            const { token } = await oauth2Client.getAccessToken();
-            if (!token) throw new Error('Không thể làm mới quyền Gmail API.');
-            
             const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
             transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
-
-            const mailOptions = {
-                from: `"${sender.senderName}" <${sender.senderEmail}>`,
-                to: log.email, subject: subject, html: html,
-                attachments: []
-            };
-
-            // Fix: Check both campaign.attach_cert and campaign.attachCert
-            if (customer?.pdf_url && (campaign.attach_cert || campaign.attachCert)) {
-                console.log(`[Worker] [${log.id}] Final check: Attaching PDF from ${customer.pdf_url}`);
-                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
-                const buf = Buffer.from(response.data);
-                if (buf && buf.length > 0) {
-                    const urlExt = path.extname(new URL(customer.pdf_url).pathname) || '.pdf';
-                    const cleanCompName = (customer.companyName || 'Doc').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
-                    mailOptions.attachments.push({
-                        filename: `Cert_${log.customer_id}_${cleanCompName}${urlExt}`,
-                        content: buf
-                    });
-                } else {
-                    throw new Error('Tải PDF từ Storage thất bại (Empty Buffer).');
-                }
-            }
-
             const info = await transporter.sendMail(mailOptions);
             const chunks = [];
             for await (const chunk of info.message) chunks.push(chunk);
-            const messageBuffer = Buffer.concat(chunks);
-            const base64Raw = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
+            const base64Raw = Buffer.concat(chunks).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
             const gResponse = await gmail.users.messages.send({ userId: 'me', requestBody: { raw: base64Raw } });
-            if (!gResponse.data || !gResponse.data.id) throw new Error('Gmail API không trả về messageId.');
             finalMessageId = gResponse.data.id;
         } else {
-            // Standard SMTP
             transporter = nodemailer.createTransport({
                 host: sender.smtpHost, port: parseInt(sender.smtpPort),
-                secure: sender.smtpHost == 465,
+                secure: sender.smtpPort == 465,
                 auth: { user: sender.smtpUser, pass: sender.smtpPassword },
                 tls: { rejectUnauthorized: false }
             });
-
-            const mailOptions = {
-                from: `"${sender.senderName}" <${sender.senderEmail}>`,
-                to: log.email, subject: subject, html: html,
-                attachments: []
-            };
-
-            if (customer?.pdf_url) {
-                const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer', timeout: 20000 });
-                const buf = Buffer.from(response.data);
-                const urlExt = path.extname(new URL(customer.pdf_url).pathname) || '.pdf';
-                mailOptions.attachments.push({
-                    filename: `Cert_${log.customer_id}${urlExt}`,
-                    content: buf
-                });
-            } else if (campaign.attachCert) {
-                console.log(`[Worker] [${log.id}] Campaign requested PDF, but no PDF URL is available. Sending without attachment.`);
-            }
-
             const info = await transporter.sendMail(mailOptions);
-            if (!info.messageId) throw new Error('SMTP sending failed.');
             finalMessageId = info.messageId;
         }
 
-        // 5. Success Commit
-        console.log(`[Worker] [${log.id}] ✅ SENT successfully. ID: ${finalMessageId}`);
         await supabase.from('email_logs').update({
-            status: 'sent',
-            sent_time: new Date().toISOString(),
-            message_id: finalMessageId,
-            error_message: pdfAttachedStatus
+            status: 'sent', 
+            sent_time: new Date().toISOString(), 
+            message_id: finalMessageId, 
+            error_message: `Hoàn thành | PDF: ${pdfAttachedStatus}`
         }).eq('id', log.id);
+
+        console.log(`[Worker] [${log.id}] ✅ Email sent successfully to ${log.email}`);
 
         await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
 
     } catch (err) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
-        try {
-            const newRetryCount = (log.retry_count || 0) + 1;
-            const isTerminal = newRetryCount >= 3;
+        const newRetryCount = (log.retry_count || 0) + 1;
+        const isTerminal = newRetryCount >= 3;
+        await supabase.from('email_logs').update({
+            status: isTerminal ? 'failed_permanent' : 'failed',
+            error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
+            retry_count: newRetryCount,
+            last_retry_time: new Date().toISOString()
+        }).eq('id', log.id).catch(() => {});
 
-            // If it's a PDF failure, we keep it as 'failed' to be picked up by recovery worker later
-            // or marked as failed_permanent if it exceeds retries.
-            await supabase.from('email_logs').update({
-                status: isTerminal ? 'failed_permanent' : 'failed',
-                error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
-                retry_count: newRetryCount,
-                last_retry_time: new Date().toISOString()
-            }).eq('id', log.id);
-
-            if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
-            await checkCampaignCompletion(log.campaign_id);
-        } catch (fatalErr) {
-            console.error(`[Worker] [${log.id}] 🚨 FATAL FAIL writing to DB:`, fatalErr.message);
-        }
+        if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+        await checkCampaignCompletion(log.campaign_id);
     }
 }
 
 async function checkCampaignCompletion(campaign_id) {
     try {
-        const { data: remaining } = await supabase
-            .from('email_logs')
-            .select('id')
-            .eq('campaign_id', campaign_id)
-            .in('status', ['pending', 'retrying', 'failed', 'processing'])
-            .lt('retry_count', 3);
-
+        const { data: remaining } = await supabase.from('email_logs').select('id').eq('campaign_id', campaign_id).in('status', ['pending', 'retrying', 'failed', 'processing']).lt('retry_count', 3);
         if (!remaining || remaining.length === 0) {
-            const { data: campaign } = await supabase.from('campaigns').select('errorCount, recipients').eq('id', campaign_id).single();
+            const { data: campaign } = await supabase.from('campaigns').select('error_count, recipients').eq('id', campaign_id).single();
             const total = (campaign?.recipients || []).length;
-            const final = (campaign?.errorCount || 0) > 0 ? `Hoàn thành (Lỗi ${campaign.errorCount}/${total})` : 'Hoàn thành';
+            const final = (campaign?.error_count || 0) > 0 ? `Hoàn thành (Lỗi ${campaign.error_count}/${total})` : 'Hoàn thành';
             await supabase.from('campaigns').update({ status: final }).eq('id', campaign_id);
-            console.log(`[Worker] 🏁 Campaign ${campaign_id} finish: ${final}`);
         }
     } catch (e) {}
 }
@@ -352,13 +321,7 @@ async function checkCampaignCompletion(campaign_id) {
 async function startRecoveryWorker() {
     if (isRecoveryRunning) return;
     isRecoveryRunning = true;
-    try {
-        await supabase.rpc('recover_failed_tasks');
-    } catch (err) {
-        console.error('[Recovery] Loop Error:', err.message);
-    } finally {
-        isRecoveryRunning = false;
-    }
+    try { await supabase.rpc('recover_failed_tasks'); } catch (err) {} finally { isRecoveryRunning = false; }
 }
 
 setInterval(startWorker, WORKER_INTERVAL);

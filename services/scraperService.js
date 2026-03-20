@@ -272,7 +272,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             if (downloadedFile) {
                 const originalPath = path.join(mstDownloadDir, downloadedFile);
                 const originalExt = path.extname(downloadedFile).toLowerCase() || '.pdf';
-                const cleanTen = sanitizeString(recipientInfo.companyName);
+                const cleanTen = sanitizeString(recipientInfo.company_name);
                 const newFileName = `${mst}_${cleanTen}${originalExt}`;
                 const newPath = path.join(mstDownloadDir, newFileName);
                 fs.renameSync(originalPath, newPath);
