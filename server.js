@@ -135,9 +135,12 @@ app.get('/api/debug-worker', async (req, res) => {
         
         const { data: recentLogs } = await supabase.from('email_logs').select('id, status, error_message, created_at').order('created_at', { ascending: false }).limit(5);
         
+        const heartbeat = emailService.getHeartbeat();
+        
         res.json({
             serviceKey_present: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-            worker_last_run: emailService.getHeartbeat(),
+            worker_last_run: heartbeat.time,
+            current_task_id: heartbeat.task,
             campaigns_total: campCount || 0,
             email_logs_total: logCount || 0,
             status_breakdown: statusCounts,
