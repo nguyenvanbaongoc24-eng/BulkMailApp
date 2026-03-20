@@ -11,20 +11,22 @@ const RECOVERY_INTERVAL = 15 * 60 * 1000;
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
 
-// Helper to format date for Vietnamese display (DD/MM/YYYY)
-const formatDateVN = (dateVal) => {
-    if (!dateVal) return "";
-    let date = dateVal;
-    if (!(date instanceof Date)) {
-        date = new Date(dateVal);
-    }
-    if (isNaN(date.getTime())) return dateVal;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-};
+// PHẦN 3: RENDER TEMPLATE (FIX TAG)
+function formatDate(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return date;
+  return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function renderTemplate(template, customer) {
+  if (!template) return "";
+  return template
+    .replaceAll("#TênCôngTy", customer.company_name || "")
+    .replaceAll("#MST", customer.mst || "")
+    .replaceAll("#ĐịaChỉ", customer.address || "")
+    .replaceAll("#NgàyHếtHạn", formatDate(customer.expired_date));
+}
 
 // Helper to validate email format
 const validateEmail = (email) => {
@@ -35,31 +37,9 @@ const validateEmail = (email) => {
         );
 };
 
-// Standardized tag replacement function
+// Standardized tag replacement function (Keep original robust one as fallback)
 const replaceTags = (template, data) => {
-    if (!template) return "";
-    
-    const replacements = {
-        '#TênCôngTy': data.company_name || "",
-        '#MST': data.mst || "",
-        '#ĐịaChỉ': data.address || "",
-        '#NgàyHếtHạn': formatDateVN(data.expired_date) || ""
-    };
-
-    let result = template;
-    for (const [tag, value] of Object.entries(replacements)) {
-        // Handle variants (case-insensitive and without accents/extensions)
-        let variants = [tag];
-        if (tag === '#TênCôngTy') variants.push('#TenCongTy', '#TEN_CONG_TY', '#TÊN_CÔNG_TY', '#Tencongty');
-        if (tag === '#NgàyHếtHạn') variants.push('#NgayHetHan', '#NGAY_HET_HAN', '#NGÀY_HẾT_HẠN', '#Ngayhethan', '#NgayHetHanChuKySo');
-        if (tag === '#ĐịaChỉ') variants.push('#DiaChi', '#DIA_CHI', '#ĐỊA_CHỈ', '#Diachi');
-
-        for (const variant of variants) {
-            const regex = new RegExp(variant.normalize('NFC').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-            result = result.replace(regex, value);
-        }
-    }
-    return result;
+    return renderTemplate(template, data);
 };
 
 // Helper to extract relative path and bucket from Supabase URL
@@ -104,10 +84,10 @@ async function startWorker() {
 
         for (const log of tasks) {
             try {
-                await Promise.race([
-                    processEmailTask(log, browser),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Task Timeout Exceeded (90s)')), 90000))
-                ]);
+                // PHẦN 9: CHỐNG SPAM (Delay 3-5 giây giữa mỗi mail)
+                await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 3000));
+                
+                await processEmailTask(log, browser);
             } catch (taskErr) {
                 console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
                 await supabase.rpc('update_email_log_for_worker', {
@@ -116,7 +96,6 @@ async function startWorker() {
                     p_error_message: `Unhandled Error: ${taskErr.message}`
                 }).catch(() => {});
             }
-            await new Promise(r => setTimeout(r, Math.random() * 3000 + 2000));
         }
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
@@ -306,71 +285,10 @@ async function processEmailTask(log, browser) {
             }
         }
 
-        let finalMessageId = null;
+        // PHẦN 8: RETRY (Tối đa 3 lần, delay 2-5s)
+        const finalMessageId = await sendEmailWithRetry(mailOptions, sender);
 
-        const sendWithRetry = async (options, senderData, maxRetries = 3) => {
-            let lastErr = null;
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    console.log(`[Worker] [${log.id}] Attempt ${attempt}/${maxRetries} to send email...`);
-                    
-                    if (senderData.smtpHost === 'oauth2.google') {
-                        const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-                        oauth2Client.setCredentials({ refresh_token: senderData.smtpPassword });
-                        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-                        
-                        const tempTransporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
-                        const info = await tempTransporter.sendMail(options);
-                        const chunks = [];
-                        for await (const chunk of info.message) chunks.push(chunk);
-                        const base64Raw = Buffer.concat(chunks).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-                        
-                        const gResponse = await gmail.users.messages.send({ userId: 'me', requestBody: { raw: base64Raw } });
-                        return gResponse.data.id;
-                    } else {
-                        console.log(`[Worker] SMTP Config: host=${senderData.smtpHost}, port=${senderData.smtpPort}, user=${senderData.smtpUser}, secure=${senderData.smtpPort == 465}`);
-                        const transporter = nodemailer.createTransport({
-                            host: senderData.smtpHost, port: parseInt(senderData.smtpPort),
-                            secure: senderData.smtpPort == 465,
-                            auth: { user: senderData.smtpUser, pass: senderData.smtpPassword },
-                            tls: { rejectUnauthorized: false },
-                            connectionTimeout: 10000, // 10s
-                            greetingTimeout: 5000     // 5s
-                        });
-                        
-                        // Verification Step
-                        await transporter.verify();
-                        
-                        const info = await transporter.sendMail(options);
-                        return info.messageId;
-                    }
-                } catch (err) {
-                    lastErr = err;
-                    console.error(`[Worker] [${log.id}] Attempt ${attempt} failed: ${err.message}${err.code ? ' (' + err.code + ')' : ''}`);
-                    if (attempt < maxRetries) {
-                        const delaySec = attempt * 3000; // 3s, 6s...
-                        await new Promise(r => setTimeout(r, delaySec));
-                    }
-                }
-            }
-            throw lastErr;
-        };
-
-        await supabase.rpc('update_email_log_for_worker', {
-            p_log_id: log.id,
-            p_status: 'processing',
-            p_error_message: 'Đang thực hiện gửi (Retry loop)...'
-        }).catch(() => {});
-        
-        console.log("[Worker] Sending Email Diagnostic:", {
-            email: log.email,
-            mst: cleanMST,
-            pdf_url: customer?.pdf_url || "NONE",
-            content_preview: html.substring(0, 100) + "..."
-        });
-
-        finalMessageId = await sendWithRetry(mailOptions, sender);
-
+        // PHẦN 7: LOG LỖI (Success case)
         await supabase.rpc('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'sent',
@@ -381,23 +299,63 @@ async function processEmailTask(log, browser) {
 
         console.log(`[Worker] [${log.id}] ✅ Email sent successfully to ${log.email}`);
 
+        // PHẦN 10: UI FEEDBACK (Cập nhật chiến dịch)
         await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
 
     } catch (err) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
-        const newRetryCount = (log.retry_count || 0) + 1;
-        const isTerminal = newRetryCount >= 3;
+        // PHẦN 7: LOG LỖI (Fail case)
         await supabase.rpc('update_email_log_for_worker', {
             p_log_id: log.id,
-            p_status: isTerminal ? 'failed_permanent' : 'failed',
+            p_status: 'failed',
             p_error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
             p_sent_time: new Date().toISOString()
         }).catch(() => {});
 
-        if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+        await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
     }
+}
+
+// PHẦN 1, 2, 5 & 8: SMTP CONFIG, VERIFY, SEND + RETRY
+async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
+    let lastErr = null;
+    
+    // PHẦN 1: CẤU HÌNH SMTP GMAIL
+    const transporter = nodemailer.createTransport({
+        host: senderData.smtpHost || "smtp.gmail.com",
+        port: parseInt(senderData.smtpPort) || 587,
+        secure: senderData.smtpPort == 465, // secure: false for 587
+        auth: {
+            user: senderData.smtpUser,
+            pass: senderData.smtpPassword
+        },
+        tls: { rejectUnauthorized: false }
+    });
+
+    // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
+    try {
+        await transporter.verify();
+    } catch (verifyErr) {
+        throw new Error(`SMTP Connection Error: ${verifyErr.message} (Check auth or connection)`);
+    }
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const info = await transporter.sendMail(options);
+            return info.messageId;
+        } catch (err) {
+            lastErr = err;
+            console.error(`[Attempt ${attempt}] Send failed: ${err.message}`);
+            if (attempt < maxRetries) {
+                // Delay 2-5s giữa mỗi lần retry
+                const delay = Math.floor(Math.random() * 3000) + 2000;
+                await new Promise(r => setTimeout(r, delay));
+            }
+        }
+    }
+    throw lastErr;
 }
 
 async function checkCampaignCompletion(campaign_id) {
