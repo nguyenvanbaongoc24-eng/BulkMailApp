@@ -181,11 +181,26 @@ async function processEmailTask(log) {
         if (shouldAttach) {
             if (customer && customer.pdf_url) {
                 console.log(`[Worker] [${log.id}] BẮT ĐẦU ĐÍNH KÈM: Found existing PDF URL: ${customer.pdf_url}`);
-                finalAttachments.push({
-                    filename: `${cleanMST}.pdf`,
-                    path: customer.pdf_url // Nodemailer natively supports URLs
-                });
-                pdfAttachedStatus = '✅ Có PDF (Attached success)';
+                try {
+                    // Sử dụng Node_fetch với Timeout cực gắt để không treo server
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+                    
+                    const res = await (typeof fetch !== 'undefined' ? fetch : require('node-fetch'))(customer.pdf_url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    
+                    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+                    const buffer = await res.arrayBuffer();
+                    
+                    finalAttachments.push({
+                        filename: `${cleanMST}.pdf`,
+                        content: Buffer.from(buffer)
+                    });
+                    pdfAttachedStatus = '✅ Có PDF (Attached success)';
+                } catch (err) {
+                    pdfAttachedStatus = `⚠ Lỗi tải PDF: ${err.message}`;
+                    console.error(`[Worker] [${log.id}] ATTACH FAIL: ${pdfAttachedStatus}`);
+                }
             } else {
                 pdfAttachedStatus = `⚠ Không tìm thấy link PDF trên Supabase cho MST ${log.customer_id}`;
                 console.warn(`[Worker] [${log.id}] ATTACH FAIL: ${pdfAttachedStatus}`);
@@ -249,11 +264,15 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     const user = process.env.EMAIL_USER || process.env.SMTP_USER || senderData.smtpUser;
     const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS || senderData.smtpPassword;
     
+    const portRaw = parseInt(process.env.SMTP_PORT) || 587;
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: false,
-        auth: { user, pass }
+        port: portRaw,
+        secure: portRaw === 465,
+        auth: { user, pass },
+        connectionTimeout: 10000, // 10s
+        socketTimeout: 20000,     // 20s
+        greetingTimeout: 10000,   // 10s
     });
 
     // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
@@ -341,10 +360,11 @@ async function testEmailFlow(targetEmail) {
     console.log(`[E2E TEST] Nội dung: ${renderedContent.substring(0, 50)}...`);
 
     // 3. Attachments
-    console.log(`[E2E TEST] 3. Chuẩn bị file đính kèm từ URL: ${customer.pdf_url}`);
+    console.log(`[E2E TEST] 3. Chuẩn bị file đính kèm ảo...`);
+    const dummyPDFBuffer = Buffer.from('%PDF-1.4\\n1 0 obj\\n<<\\n/Type /Catalog\\n/Pages 2 0 R\\n>>\\nendobj\\n2 0 obj\\n<<\\n/Type /Pages\\n/Kids [3 0 R]\\n/Count 1\\n>>\\nendobj\\n3 0 obj\\n<<\\n/Type /Page\\n/Parent 2 0 R\\n/MediaBox [0 0 612 792]\\n/Resources <<\\n/Font <<\\n/F1 4 0 R\\n>>\\n>>\\n/Contents 5 0 R\\n>>\\nendobj\\n4 0 obj\\n<<\\n/Type /Font\\n/Subtype /Type1\\n/BaseFont /Helvetica\\n>>\\nendobj\\n5 0 obj\\n<< /Length 44 >>\\nstream\\nBT\\n/F1 24 Tf\\n100 700 Td\\n(Hello, this is a verified PDF attachment!) Tj\\nET\\nendstream\\nendobj\\nxref\\n0 6\\n0000000000 65535 f \\n0000000009 00000 n \\n0000000056 00000 n \\n0000000111 00000 n \\n0000000212 00000 n \\n0000000296 00000 n \\ntrailer\\n<<\\n/Size 6\\n/Root 1 0 R\\n>>\\nstartxref\\n389\\n%%EOF');
     const attachments = [{
         filename: `${customer.mst}_Verified_Cert.pdf`,
-        path: customer.pdf_url
+        content: dummyPDFBuffer
     }];
 
     // 4. Send Email
