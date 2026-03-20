@@ -406,7 +406,7 @@ async function createCampaignFromCA2CRM() {
         const campaignData = {
             name: `CRM Bulk - ${formatDate(new Date())}`,
             subject: "Thông báo về dịch vụ CA2",
-            content: "Kính gửi {{company_name}}, dịch vụ của quý khách (MST: {{mst}}) sắp hết hạn vào ngày {{expired_date}}.",
+            template: "Kính gửi #TênCôngTy, dịch vụ của quý khách (MST: #MST) sắp hết hạn vào ngày #NgàyHếtHạn.",
             recipients: recipients.map(c => ({
                 email: c.email,
                 company_name: c.company_name,

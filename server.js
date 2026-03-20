@@ -581,7 +581,7 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
         name: req.body.name,
         subject: req.body.subject,
         sender_account_id: req.body.senderAccountId,
-        template: req.body.template,
+        template: req.body.template || req.body.content,
         recipients: recipients.map(r => ({ ...r, status: 'Chờ xử lý', sentTime: null })),
         attach_cert: req.body.attachCert || false,
         status: 'Chờ gửi',
@@ -634,6 +634,33 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
 
         // Update campaign status to "Đang gửi" and reset counters
         // This triggers the emailService.js worker which picks up "pending" logs
+        // Ensure logs exist in email_logs table for this campaign
+        const { count } = await supabase.from('email_logs').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
+        if (!count || count === 0) {
+            console.log(`[Campaign] Creating missing email_logs for campaign ${campaignId}...`);
+            const recipients = campaign.recipients || [];
+            if (recipients.length > 0) {
+                const logs = recipients.map(r => {
+                    const getVal = (obj, keys) => {
+                        const foundKey = Object.keys(obj).find(k => keys.includes(k.toLowerCase()));
+                        return foundKey ? String(obj[foundKey]).trim() : '';
+                    };
+                    return {
+                        customer_id: getVal(r, ['mst', 'taxcode', 'mã số thuế']),
+                        campaign_id: campaignId,
+                        user_id: req.user.id,
+                        email: getVal(r, ['email']),
+                        status: 'pending',
+                        retry_count: 0,
+                        created_at: new Date().toISOString()
+                    };
+                });
+                const { error: logsError } = await getClient(req.token).from('email_logs').insert(logs);
+                if (logsError) throw new Error(`Lỗi tạo hàng đợi email: ${logsError.message}`);
+                console.log(`[Campaign] Successfully created ${logs.length} logs for campaign ${campaignId}.`);
+            }
+        }
+
         await supabase.from('campaigns').update({ 
             status: 'Đang gửi', 
             sent_count: 0, 
