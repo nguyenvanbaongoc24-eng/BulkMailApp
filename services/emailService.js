@@ -234,6 +234,11 @@ async function processEmailTask(log, browser) {
         html = replaceTags(html, dataForTags);
         subject = replaceTags(subject, dataForTags);
 
+        // Check for remaining tags
+        if (html.includes('#') || subject.includes('#')) {
+            console.warn(`[Worker] [${log.id}] ⚠ Warning: Detected '#' in final content. Possible unreplaced tags!`);
+        }
+
         // 3. Sender & Transporter
         const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
         if (!sender) throw new Error('Tài khoản người gửi không tồn tại.');
@@ -257,14 +262,15 @@ async function processEmailTask(log, browser) {
         if (customer?.pdf_url && shouldAttach) {
             try {
                 const storageInfo = getStorageInfo(customer.pdf_url);
+                const attachmentFileName = `${cleanMST}.pdf`;
                 if (storageInfo) {
                     const { data, error } = await supabase.storage.from(storageInfo.bucket).download(storageInfo.path);
                     if (error) throw error;
-                    mailOptions.attachments.push({ filename: `Cert_${cleanMST}.pdf`, content: Buffer.from(await data.arrayBuffer()) });
+                    mailOptions.attachments.push({ filename: attachmentFileName, content: Buffer.from(await data.arrayBuffer()) });
                     console.log(`[Worker] [${log.id}] Attached PDF via authenticated download.`);
                 } else {
                     const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer' });
-                    mailOptions.attachments.push({ filename: `Cert_${cleanMST}.pdf`, content: Buffer.from(response.data) });
+                    mailOptions.attachments.push({ filename: attachmentFileName, content: Buffer.from(response.data) });
                     console.log(`[Worker] [${log.id}] Attached PDF via public URL.`);
                 }
             } catch (err) {
@@ -324,6 +330,14 @@ async function processEmailTask(log, browser) {
         };
 
         await supabase.from('email_logs').update({ status: 'processing', error_message: 'Đang thực hiện gửi (Retry loop)...' }).eq('id', log.id).catch(() => {});
+        
+        console.log("[Worker] Sending Email Diagnostic:", {
+            email: log.email,
+            mst: cleanMST,
+            pdf_url: customer?.pdf_url || "NONE",
+            content_preview: html.substring(0, 100) + "..."
+        });
+
         finalMessageId = await sendWithRetry(mailOptions, sender);
 
         await supabase.from('email_logs').update({
