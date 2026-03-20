@@ -11,6 +11,7 @@ const RECOVERY_INTERVAL = 60 * 1000; // 1m (Gần hơn để test)
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
 let lastHeartbeat = null;
+let currentTaskId = null;
 
 // PHẦN 3: RENDER TEMPLATE (FIX TAG)
 function formatDate(date) {
@@ -59,6 +60,7 @@ async function startWorker() {
         console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks. Processing...`);
 
         for (const log of tasks) {
+            currentTaskId = log.id;
             try {
                 // PHẦN 9: CHỐNG SPAM
                 // Delay giữa mỗi mail: 3–5 giây
@@ -77,6 +79,7 @@ async function startWorker() {
             }
         }
         console.log(`[Worker] ✅ Batch processed.`);
+        currentTaskId = 'IDLE';
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
     } finally {
@@ -430,5 +433,5 @@ module.exports = {
     startWorker, 
     processEmailTask, 
     testEmailFlow, 
-    getHeartbeat: () => lastHeartbeat 
+    getHeartbeat: () => ({ time: lastHeartbeat, task: currentTaskId }) 
 };
