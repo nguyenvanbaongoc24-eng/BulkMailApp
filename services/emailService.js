@@ -289,8 +289,8 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     }
 
     // Bước 2: Dùng Nodemailer ở chế độ "stream" để biên soạn email thành chuỗi RFC2822
-    // (Không mở kết nối SMTP nào cả!)
-    const compiler = nodemailer.createTransport({ streamTransport: true, newline: 'unix' });
+    // (Không mở kết nối SMTP nào cả!) Thêm buffer: true để message trả về dạng Buffer thay vì Stream
+    const compiler = nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'unix' });
     const compiled = await compiler.sendMail(options);
     const rawMessage = compiled.message.toString('base64')
         .replace(/\+/g, '-')
