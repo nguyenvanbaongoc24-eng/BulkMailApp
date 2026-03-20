@@ -110,7 +110,11 @@ async function startWorker() {
                 ]);
             } catch (taskErr) {
                 console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
-                await supabase.from('email_logs').update({ status: 'failed', retry_count: (log.retry_count || 0) + 1 }).eq('id', log.id).catch(() => {});
+                await supabase.rpc('update_email_log_for_worker', {
+                    p_log_id: log.id,
+                    p_status: 'failed',
+                    p_error_message: `Unhandled Error: ${taskErr.message}`
+                }).catch(() => {});
             }
             await new Promise(r => setTimeout(r, Math.random() * 3000 + 2000));
         }
@@ -130,18 +134,25 @@ async function processEmailTask(log, browser) {
     let pdfAttachedStatus = 'Chờ xử lý';
     
     try {
-        await supabase.from('email_logs').update({ status: 'processing', error_message: 'Đang chuẩn bị nội dung...' }).eq('id', log.id).catch(() => {});
+        await supabase.rpc('update_email_log_for_worker', {
+            p_log_id: log.id,
+            p_status: 'processing',
+            p_error_message: 'Đang chuẩn bị nội dung...'
+        }).catch(() => {});
         
-        const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', log.campaign_id).single();
-        if (!campaign) throw new Error('Campaign not found.');
+        const { data: campaignData, error: campaignError } = await supabase.rpc('get_campaign_for_worker', { p_campaign_id: log.campaign_id });
+        const campaign = campaignData && campaignData[0];
+        if (campaignError || !campaign) throw new Error(`Campaign not found or inaccessible: ${log.campaign_id}`);
 
         const cleanMST = String(log.customer_id || '').trim();
         const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode || '').trim() === cleanMST);
-        let { data: customer } = await supabase.from('customers').select('*').eq('mst', cleanMST).maybeSingle();
+        const { data: customerData } = await supabase.rpc('get_customer_for_worker', { p_mst: cleanMST });
+        let customer = customerData && customerData[0];
 
         // FALLBACK: certificates table (Local Tool's output)
         if (!customer || !customer.pdf_url) {
-            const { data: cert } = await supabase.from('certificates').select('pdf_url, company_name, serial').eq('mst', cleanMST).maybeSingle();
+            const { data: certData } = await supabase.rpc('get_certificate_for_worker', { p_mst: cleanMST });
+            const cert = certData && certData[0];
             if (cert && cert.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found PDF in certificates table: ${cert.pdf_url}`);
                 customer = { 
@@ -192,8 +203,15 @@ async function processEmailTask(log, browser) {
                         user_id: campaign.user_id
                     };
 
-                    const { data: updatedCustomer } = await supabase.from('customers').upsert(customerUpdate, { onConflict: 'mst,user_id' }).select().single();
-                    customer = updatedCustomer || { ...customer, ...customerUpdate };
+                    await supabase.rpc('upsert_customer_for_worker', {
+                        p_mst: log.customer_id,
+                        p_pdf_url: publicUrl,
+                        p_company_name: targetCustomer.company_name,
+                        p_user_id: campaign.user_id
+                    });
+                    
+                    const { data: updatedCustomerData } = await supabase.rpc('get_customer_for_worker', { p_mst: log.customer_id });
+                    customer = updatedCustomerData && updatedCustomerData[0];
                     pdfAttachedStatus = '✅ Có PDF (Mới tải)';
                     try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
                 } else {
@@ -248,8 +266,9 @@ async function processEmailTask(log, browser) {
         }
 
         // 3. Sender & Transporter
-        const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
-        if (!sender) throw new Error('Tài khoản người gửi không tồn tại.');
+        const { data: senderData, error: senderError } = await supabase.rpc('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
+        const sender = senderData && senderData[0];
+        if (senderError || !sender) throw new Error('Tài khoản người gửi không tồn tại hoặc không thể truy cập.');
 
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
@@ -337,7 +356,11 @@ async function processEmailTask(log, browser) {
             throw lastErr;
         };
 
-        await supabase.from('email_logs').update({ status: 'processing', error_message: 'Đang thực hiện gửi (Retry loop)...' }).eq('id', log.id).catch(() => {});
+        await supabase.rpc('update_email_log_for_worker', {
+            p_log_id: log.id,
+            p_status: 'processing',
+            p_error_message: 'Đang thực hiện gửi (Retry loop)...'
+        }).catch(() => {});
         
         console.log("[Worker] Sending Email Diagnostic:", {
             email: log.email,
@@ -348,12 +371,13 @@ async function processEmailTask(log, browser) {
 
         finalMessageId = await sendWithRetry(mailOptions, sender);
 
-        await supabase.from('email_logs').update({
-            status: 'sent', 
-            sent_time: new Date().toISOString(), 
-            message_id: finalMessageId, 
-            error_message: `Hoàn thành | PDF: ${pdfAttachedStatus}`
-        }).eq('id', log.id);
+        await supabase.rpc('update_email_log_for_worker', {
+            p_log_id: log.id,
+            p_status: 'sent',
+            p_sent_time: new Date().toISOString(),
+            p_message_id: finalMessageId,
+            p_error_message: `Hoàn thành | PDF: ${pdfAttachedStatus}`
+        });
 
         console.log(`[Worker] [${log.id}] ✅ Email sent successfully to ${log.email}`);
 
@@ -364,12 +388,12 @@ async function processEmailTask(log, browser) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
         const newRetryCount = (log.retry_count || 0) + 1;
         const isTerminal = newRetryCount >= 3;
-        await supabase.from('email_logs').update({
-            status: isTerminal ? 'failed_permanent' : 'failed',
-            error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
-            retry_count: newRetryCount,
-            last_retry_time: new Date().toISOString()
-        }).eq('id', log.id).catch(() => {});
+        await supabase.rpc('update_email_log_for_worker', {
+            p_log_id: log.id,
+            p_status: isTerminal ? 'failed_permanent' : 'failed',
+            p_error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
+            p_sent_time: new Date().toISOString()
+        }).catch(() => {});
 
         if (isTerminal) await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
@@ -378,12 +402,18 @@ async function processEmailTask(log, browser) {
 
 async function checkCampaignCompletion(campaign_id) {
     try {
-        const { data: remaining } = await supabase.from('email_logs').select('id').eq('campaign_id', campaign_id).in('status', ['pending', 'retrying', 'failed', 'processing']).lt('retry_count', 3);
-        if (!remaining || remaining.length === 0) {
-            const { data: campaign } = await supabase.from('campaigns').select('error_count, recipients').eq('id', campaign_id).single();
+        const { data: remainingCount, error: countErr } = await supabase.rpc('get_remaining_tasks_count', { p_campaign_id: campaign_id });
+        if (countErr) throw countErr;
+        
+        if (parseInt(remainingCount) === 0) {
+            const { data: campaignData, error: campaignGetErr } = await supabase.rpc('get_campaign_for_worker', { p_campaign_id: campaign_id });
+            const campaign = campaignData && campaignData[0];
             const total = (campaign?.recipients || []).length;
             const final = (campaign?.error_count || 0) > 0 ? `Hoàn thành (Lỗi ${campaign.error_count}/${total})` : 'Hoàn thành';
-            await supabase.from('campaigns').update({ status: final }).eq('id', campaign_id);
+            await supabase.rpc('update_campaign_status_for_worker', {
+                p_campaign_id: campaign_id,
+                p_status: final
+            });
         }
     } catch (e) {}
 }

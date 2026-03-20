@@ -71,7 +71,7 @@ BEGIN
         success_count = success_count + 1
     WHERE id = campaign_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION increment_campaign_error(campaign_id TEXT)
 RETURNS void AS $$
@@ -81,7 +81,7 @@ BEGIN
         error_count = error_count + 1
     WHERE id = campaign_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 5. RPC Khôi phục các task bị kẹt (Locking)
 CREATE OR REPLACE FUNCTION pick_email_tasks(batch_size INT)
@@ -104,5 +104,86 @@ BEGIN
     FROM selected_tasks
     WHERE public.email_logs.id = selected_tasks.id
     RETURNING public.email_logs.*;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 6. RPC hỗ trợ Worker lấy dữ liệu không bị chặn bởi RLS
+CREATE OR REPLACE FUNCTION get_campaign_for_worker(p_campaign_id TEXT)
+RETURNS TABLE (LIKE public.campaigns) AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM public.campaigns WHERE id = p_campaign_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_sender_for_worker(p_sender_id TEXT)
+RETURNS TABLE (LIKE public.senders) AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM public.senders WHERE id = p_sender_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. RPC cập nhật trạng thái log & chiến dịch cho Worker
+CREATE OR REPLACE FUNCTION update_email_log_for_worker(
+    p_log_id UUID, 
+    p_status TEXT, 
+    p_error_message TEXT DEFAULT NULL,
+    p_message_id TEXT DEFAULT NULL,
+    p_sent_time TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.email_logs
+    SET status = p_status,
+        error_message = p_error_message,
+        message_id = p_message_id,
+        sent_time = p_sent_time
+    WHERE id = p_log_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_campaign_status_for_worker(p_campaign_id TEXT, p_status TEXT)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.campaigns SET status = p_status WHERE id = p_campaign_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_remaining_tasks_count(p_campaign_id TEXT)
+RETURNS bigint AS $$
+BEGIN
+    RETURN (SELECT count(*) FROM public.email_logs 
+            WHERE campaign_id = p_campaign_id 
+              AND status IN ('pending', 'retrying', 'failed', 'processing')
+              AND (retry_count IS NULL OR retry_count < 3));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_customer_for_worker(p_mst TEXT)
+RETURNS TABLE (LIKE public.customers) AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM public.customers WHERE mst = p_mst;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_certificate_for_worker(p_mst TEXT)
+RETURNS TABLE (LIKE public.certificates) AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM public.certificates WHERE mst = p_mst;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION upsert_customer_for_worker(
+    p_mst TEXT,
+    p_pdf_url TEXT,
+    p_company_name TEXT,
+    p_user_id UUID
+)
+RETURNS void AS $$
+BEGIN
+    INSERT INTO public.customers (mst, pdf_url, company_name, user_id)
+    VALUES (p_mst, p_pdf_url, p_company_name, p_user_id)
+    ON CONFLICT (mst, user_id) DO UPDATE
+    SET pdf_url = EXCLUDED.pdf_url,
+        company_name = EXCLUDED.company_name;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

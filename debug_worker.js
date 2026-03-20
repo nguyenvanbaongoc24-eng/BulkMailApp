@@ -1,28 +1,23 @@
 const { adminClient: supabase } = require('./services/supabaseClient');
 
-async function checkCampaigns() {
+async function testRPC() {
+    console.log("Testing RPC 'pick_email_tasks'...");
     try {
-        console.log("Listing campaigns...");
-        const { data, error } = await supabase.from('campaigns').select('id, name, status, total_recipients, user_id').limit(10);
+        const { data, error } = await supabase.rpc('pick_email_tasks', { batch_size: 10 });
         if (error) {
-            console.error("Error campaigns:", error.message);
+            console.error("RPC Error:", error.message);
+            if (error.hint) console.log("Hint:", error.hint);
         } else {
-            console.log("Campaigns found:", data.length);
-            data.forEach(c => {
-                console.log(`- [${c.id}] ${c.name} | Status: ${c.status} | Total: ${c.total_recipients} | User: ${c.user_id}`);
-            });
-            
+            console.log("RPC Success! Records returned:", data.length);
             if (data.length > 0) {
-                const campaignId = data[0].id;
-                console.log(`\nChecking logs for campaign: ${campaignId}`);
-                const { count, error: lError } = await supabase.from('email_logs').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
-                console.log(`Logs for this campaign: ${count} (Error: ${lError?.message || 'none'})`);
+                console.log("Sample task ID:", data[0].id);
+                console.log("Sample task status:", data[0].status);
+            } else {
+                console.log("No tasks picked (maybe no pending logs or RLS is still blocking).");
                 
-                // Inspect ONE recipient from the campaign record
-                const { data: cFull } = await supabase.from('campaigns').select('recipients').eq('id', campaignId).single();
-                if (cFull && cFull.recipients && cFull.recipients.length > 0) {
-                    console.log("Sample recipient from JSONB:", cFull.recipients[0]);
-                }
+                // Let's check if we can see ANY logs at all
+                const { count, error: cErr } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
+                console.log(`Total logs visible to adminClient: ${count} (Error: ${cErr?.message || 'none'})`);
             }
         }
     } catch (err) {
@@ -30,4 +25,4 @@ async function checkCampaigns() {
     }
 }
 
-checkCampaigns();
+testRPC();
