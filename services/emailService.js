@@ -12,6 +12,16 @@ let isWorkerRunning = false;
 let isRecoveryRunning = false;
 let lastHeartbeat = null;
 let currentTaskId = null;
+let currentStep = 'IDLE';
+let lastError = null;
+
+// Helper to wrap Supabase RPC with timeout
+const supabaseRPC = async (name, params) => {
+    return Promise.race([
+        supabase.rpc(name, params),
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Supabase RPC ${name} Timeout`)), 15000))
+    ]);
+};
 
 // PHẦN 3: RENDER TEMPLATE (FIX TAG)
 function formatDate(date) {
@@ -41,19 +51,23 @@ const validateEmail = (email) => {
 
 async function startWorker() {
     lastHeartbeat = new Date().toISOString();
+    currentStep = 'START_WORKER';
     if (isWorkerRunning) return;
     isWorkerRunning = true;
     console.log(`[Worker] 🛠 Checking for email tasks at ${new Date().toLocaleTimeString()}...`);
 
     try {
-        const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 });
+        currentStep = 'PICK_TASKS';
+        const { data: tasks, error: pickError } = await supabaseRPC('pick_email_tasks', { batch_size: 10 });
         if (pickError) {
              console.error(`[Worker] RPC pick_email_tasks failed: ${pickError.message}`);
+             lastError = pickError.message;
              throw pickError;
         }
 
         if (!tasks || tasks.length === 0) {
             console.log(`[Worker] No pending tasks.`);
+            currentStep = 'IDLE';
             return;
         }
 
@@ -64,12 +78,14 @@ async function startWorker() {
             try {
                 // PHẦN 9: CHỐNG SPAM
                 // Delay giữa mỗi mail: 3–5 giây
+                currentStep = 'SPAM_DELAY';
                 await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 3000));
                 
                 await processEmailTask(log);
             } catch (taskErr) {
                 console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
-                await supabase.rpc('update_email_log_for_worker', {
+                lastError = taskErr.message;
+                await supabaseRPC('update_email_log_for_worker', {
                     p_log_id: log.id,
                     p_status: 'failed',
                     p_error_message: `Unhandled Error: ${taskErr.message}`,
@@ -80,8 +96,10 @@ async function startWorker() {
         }
         console.log(`[Worker] ✅ Batch processed.`);
         currentTaskId = 'IDLE';
+        currentStep = 'IDLE';
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
+        lastError = err.message;
     } finally {
         isWorkerRunning = false;
     }
@@ -93,7 +111,8 @@ async function processEmailTask(log) {
     let pdfAttachedStatus = 'Chờ xử lý';
     
     try {
-        await supabase.rpc('update_email_log_for_worker', {
+        currentStep = 'UPDATE_LOG_PROCESSING';
+        await supabaseRPC('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'processing',
             p_error_message: 'Đang chuẩn bị nội dung...',
@@ -102,14 +121,16 @@ async function processEmailTask(log) {
         }).catch(() => {});
         
         // Lấy campaign
-        const { data: campaignData, error: campaignError } = await supabase.rpc('get_campaign_for_worker', { p_campaign_id: log.campaign_id });
+        currentStep = 'GET_CAMPAIGN';
+        const { data: campaignData, error: campaignError } = await supabaseRPC('get_campaign_for_worker', { p_campaign_id: log.campaign_id });
         const campaign = campaignData && campaignData[0];
         if (campaignError || !campaign) throw new Error(`Campaign not found or inaccessible: ${log.campaign_id}`);
 
         // Lấy customer
+        currentStep = 'GET_CUSTOMER';
         const cleanMST = String(log.customer_id || '').trim();
         const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode || '').trim() === cleanMST);
-        const { data: customerData } = await supabase.rpc('get_customer_for_worker', { p_mst: cleanMST });
+        const { data: customerData } = await supabaseRPC('get_customer_for_worker', { p_mst: cleanMST });
         let customer = customerData && customerData[0];
 
         // Lấy dữ liệu cơ bản cho customer nếu không có trong DB
@@ -178,7 +199,8 @@ async function processEmailTask(log) {
         console.log(`[Worker] [${log.id}] Nội dung (excerpt): ${renderedContent.substring(0, 50)}...`);
 
         // Lấy sender details
-        const { data: senderData, error: senderError } = await supabase.rpc('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
+        currentStep = 'GET_SENDER';
+        const { data: senderData, error: senderError } = await supabaseRPC('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
         const sender = senderData && senderData[0];
         if (senderError || !sender) throw new Error('Tài khoản người gửi không tồn tại hoặc không thể truy cập.');
 
@@ -235,7 +257,8 @@ async function processEmailTask(log) {
         const finalMessageId = await sendEmailWithRetry(mailOptions, sender);
 
         // PHẦN 7: LOG LỖI (Success case - save to db)
-        await supabase.rpc('update_email_log_for_worker', {
+        currentStep = 'LOG_SUCCESS';
+        await supabaseRPC('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'sent',
             p_sent_time: new Date().toISOString(),
@@ -246,13 +269,16 @@ async function processEmailTask(log) {
         console.log(`[Worker] [${log.id}] ✅ Email sent successfully to ${log.email}`);
 
         // PHẦN 10: UI FEEDBACK (Cập nhật số đã gửi/thành công vào chiến dịch)
-        await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
+        currentStep = 'UPDATE_CAMPAIGN_STATS';
+        await supabaseRPC('increment_campaign_success', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
 
     } catch (err) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
+        lastError = err.message;
         
-        await supabase.rpc('update_email_log_for_worker', {
+        currentStep = 'LOG_ERROR';
+        await supabaseRPC('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'failed',
             p_error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
@@ -261,7 +287,7 @@ async function processEmailTask(log) {
         }).catch(() => {});
 
         // Cập nhật lỗi UI Feedback
-        await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
+        await supabaseRPC('increment_campaign_error', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
     }
 }
@@ -351,15 +377,15 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
 
 async function checkCampaignCompletion(campaign_id) {
     try {
-        const { data: remainingCount, error: countErr } = await supabase.rpc('get_remaining_tasks_count', { p_campaign_id: campaign_id });
+        const { data: remainingCount, error: countErr } = await supabaseRPC('get_remaining_tasks_count', { p_campaign_id: campaign_id });
         if (countErr) throw countErr;
         
         if (parseInt(remainingCount) === 0) {
-            const { data: campaignData, error: campaignGetErr } = await supabase.rpc('get_campaign_for_worker', { p_campaign_id: campaign_id });
+            const { data: campaignData, error: campaignGetErr } = await supabaseRPC('get_campaign_for_worker', { p_campaign_id: campaign_id });
             const campaign = campaignData && campaignData[0];
             const total = (campaign?.recipients || []).length;
             const final = (campaign?.error_count || 0) > 0 ? `Hoàn thành (Lỗi ${campaign.error_count}/${total})` : 'Hoàn thành';
-            await supabase.rpc('update_campaign_status_for_worker', {
+            await supabaseRPC('update_campaign_status_for_worker', {
                 p_campaign_id: campaign_id,
                 p_status: final
             });
@@ -371,7 +397,7 @@ async function startRecoveryWorker() {
     if (isRecoveryRunning) return;
     isRecoveryRunning = true;
     try { 
-        const { error } = await supabase.rpc('recover_failed_tasks'); 
+        const { error } = await supabaseRPC('recover_failed_tasks'); 
         if (error) console.error(`[Recovery] RPC recover_failed_tasks failed: ${error.message}`);
     } catch (err) {
         console.error(`[Recovery] Critical Error:`, err.message);
@@ -433,5 +459,10 @@ module.exports = {
     startWorker, 
     processEmailTask, 
     testEmailFlow, 
-    getHeartbeat: () => ({ time: lastHeartbeat, task: currentTaskId }) 
+    getHeartbeat: () => ({ 
+        time: lastHeartbeat, 
+        task: currentTaskId, 
+        step: currentStep,
+        error: lastError
+    }) 
 };
