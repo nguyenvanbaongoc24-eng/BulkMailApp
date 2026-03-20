@@ -112,7 +112,8 @@ app.get('/api/debug-sender', async (req, res) => {
             token_length: token.length,
             token_prefix: token.substring(0, 10) + '...',
             clientId_length: (process.env.GOOGLE_CLIENT_ID || '').length,
-            clientSecret_length: (process.env.GOOGLE_CLIENT_SECRET || '').length
+            clientSecret_length: (process.env.GOOGLE_CLIENT_SECRET || '').length,
+            supabaseServiceKey_present: !!process.env.SUPABASE_SERVICE_ROLE_KEY
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
