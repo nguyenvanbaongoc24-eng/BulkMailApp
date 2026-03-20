@@ -7,7 +7,7 @@ const { google } = require('googleapis');
 const { adminClient: supabase } = require('./supabaseClient');
 
 const WORKER_INTERVAL = 10000; // 10s
-const RECOVERY_INTERVAL = 15 * 60 * 1000;
+const RECOVERY_INTERVAL = 60 * 1000; // 1m (Gần hơn để test)
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
 
@@ -44,14 +44,17 @@ async function startWorker() {
 
     try {
         const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 });
-        if (pickError) throw pickError;
+        if (pickError) {
+             console.error(`[Worker] RPC pick_email_tasks failed: ${pickError.message}`);
+             throw pickError;
+        }
 
         if (!tasks || tasks.length === 0) {
             console.log(`[Worker] No pending tasks.`);
             return;
         }
 
-        console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks.`);
+        console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks. Processing...`);
 
         for (const log of tasks) {
             try {
@@ -71,6 +74,7 @@ async function startWorker() {
                 }).catch(() => {});
             }
         }
+        console.log(`[Worker] ✅ Batch processed.`);
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
     } finally {
@@ -280,7 +284,11 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
 
     let accessToken;
     try {
-        const tokenRes = await oauth2Client.getAccessToken();
+        // Timeout 15s cho việc lấy token hòng tránh treo vĩnh viễn
+        const tokenRes = await Promise.race([
+            oauth2Client.getAccessToken(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout lấy Access Token (15s)')), 15000))
+        ]);
         accessToken = tokenRes.token;
         if (!accessToken) throw new Error('Không lấy được access token từ refresh token.');
         console.log(`[Gmail API] ✅ Access Token lấy thành công.`);
@@ -308,7 +316,7 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
             const result = await gmail.users.messages.send({
                 userId: 'me',
                 requestBody: { raw: rawMessage }
-            });
+            }, { timeout: 30000 }); // 30s timeout cho request Gmail API để tránh treo worker
 
             if (result.data && result.data.id) {
                 console.log(`[Gmail API] ✅ GỬI THÀNH CÔNG! MessageId: ${result.data.id}`);
@@ -357,7 +365,14 @@ async function checkCampaignCompletion(campaign_id) {
 async function startRecoveryWorker() {
     if (isRecoveryRunning) return;
     isRecoveryRunning = true;
-    try { await supabase.rpc('recover_failed_tasks'); } catch (err) {} finally { isRecoveryRunning = false; }
+    try { 
+        const { error } = await supabase.rpc('recover_failed_tasks'); 
+        if (error) console.error(`[Recovery] RPC recover_failed_tasks failed: ${error.message}`);
+    } catch (err) {
+        console.error(`[Recovery] Critical Error:`, err.message);
+    } finally { 
+        isRecoveryRunning = false; 
+    }
 }
 
 async function testEmailFlow(targetEmail) {
