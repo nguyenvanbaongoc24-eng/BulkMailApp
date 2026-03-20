@@ -64,7 +64,9 @@ async function startWorker() {
                 await supabase.rpc('update_email_log_for_worker', {
                     p_log_id: log.id,
                     p_status: 'failed',
-                    p_error_message: `Unhandled Error: ${taskErr.message}`
+                    p_error_message: `Unhandled Error: ${taskErr.message}`,
+                    p_message_id: null,
+                    p_sent_time: new Date().toISOString()
                 }).catch(() => {});
             }
         }
@@ -84,7 +86,9 @@ async function processEmailTask(log) {
         await supabase.rpc('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'processing',
-            p_error_message: 'Đang chuẩn bị nội dung...'
+            p_error_message: 'Đang chuẩn bị nội dung...',
+            p_message_id: null,
+            p_sent_time: null
         }).catch(() => {});
         
         // Lấy campaign
@@ -217,11 +221,11 @@ async function processEmailTask(log) {
     } catch (err) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
         
-        // PHẦN 7: LOG LỖI (Fail case - save to db)
         await supabase.rpc('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'failed',
             p_error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
+            p_message_id: null,
             p_sent_time: new Date().toISOString()
         }).catch(() => {});
 
