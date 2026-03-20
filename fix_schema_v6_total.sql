@@ -105,4 +105,4 @@ BEGIN
     WHERE public.email_logs.id = selected_tasks.id
     RETURNING public.email_logs.*;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

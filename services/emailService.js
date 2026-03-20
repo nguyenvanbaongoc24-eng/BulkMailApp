@@ -84,6 +84,11 @@ async function startWorker() {
     isWorkerRunning = true;
     console.log(`[Worker] 🛠 Checking for email tasks at ${new Date().toLocaleTimeString()}...`);
 
+    // Visibility Check (Diagnostic)
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn(`[Worker] ⚠ WARNING: SUPABASE_SERVICE_ROLE_KEY is MISSING. Background worker may be BLOCKED by RLS!`);
+    }
+
     let browser = null;
     try {
         const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 });
@@ -111,6 +116,9 @@ async function startWorker() {
         }
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
+        if (err.message.includes('RLS') || err.message.includes('permission denied')) {
+            console.error(`[Worker] 💡 Hint: This error is likely due to RLS policies. Make sure SUPABASE_SERVICE_ROLE_KEY is set in your environment.`);
+        }
     } finally {
         if (browser) await browser.close().catch(() => {});
         isWorkerRunning = false;
