@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 const { adminClient: supabase } = require('./supabaseClient');
-const scraperService = require('./scraperService');
 
 const WORKER_INTERVAL = 10000; // 10s
 const RECOVERY_INTERVAL = 15 * 60 * 1000;
@@ -42,7 +41,6 @@ async function startWorker() {
     isWorkerRunning = true;
     console.log(`[Worker] 🛠 Checking for email tasks at ${new Date().toLocaleTimeString()}...`);
 
-    let browser = null;
     try {
         const { data: tasks, error: pickError } = await supabase.rpc('pick_email_tasks', { batch_size: 10 });
         if (pickError) throw pickError;
@@ -52,8 +50,7 @@ async function startWorker() {
             return;
         }
 
-        console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks. Initializing Browser...`);
-        browser = await scraperService.initBrowser();
+        console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks.`);
 
         for (const log of tasks) {
             try {
@@ -61,7 +58,7 @@ async function startWorker() {
                 // Delay giữa mỗi mail: 3–5 giây
                 await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 3000));
                 
-                await processEmailTask(log, browser);
+                await processEmailTask(log);
             } catch (taskErr) {
                 console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
                 await supabase.rpc('update_email_log_for_worker', {
@@ -74,13 +71,12 @@ async function startWorker() {
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
     } finally {
-        if (browser) await browser.close().catch(() => {});
         isWorkerRunning = false;
     }
 }
 
 // PHẦN 6: FLOW GỬI MAIL
-async function processEmailTask(log, browser) {
+async function processEmailTask(log) {
     console.log(`[Worker] [${log.id}] Starting processing for MST: ${log.customer_id}`);
     let pdfAttachedStatus = 'Chờ xử lý';
     
@@ -110,52 +106,15 @@ async function processEmailTask(log, browser) {
              };
         }
 
-        // Lấy file PDF (Tự động cào nếu thiếu)
+        // Lấy file PDF
         const shouldAttach = campaign.attach_cert === true || campaign.attach_cert === 'true' || campaign.attachCert === true || campaign.attachCert === 'true';
         if (shouldAttach) {
             if (customer && customer.pdf_url) {
                 console.log(`[Worker] [${log.id}] Found existing PDF URL: ${customer.pdf_url}`);
-                pdfAttachedStatus = '✅ Có PDF (Sẵn có)';
+                pdfAttachedStatus = '✅ Có PDF';
             } else {
-                console.log(`[Worker] [${log.id}] PDF missing from CRM. Triggering Scraper...`);
-                // Use Serial from Excel or CRM
-                const targetSerial = recipientInExcel?.Serial || customer?.serial || '';
-                
-                const targetCustomer = { 
-                    mst: log.customer_id, 
-                    company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || 'Quý Doanh Nghiệp'
-                };
-                
-                const scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, targetSerial, targetCustomer);
-
-                if (scrapeResult && scrapeResult.status === 'Matched') {
-                    console.log(`[Worker] [${log.id}] Scraper found Match! Uploading file...`);
-                    const fileBuffer = fs.readFileSync(scrapeResult.filePath);
-                    const fileName = `${campaign.user_id}/${log.customer_id}_${Date.now()}.pdf`;
-
-                    const { error: uploadError } = await supabase.storage
-                        .from('pdf-attachments')
-                        .upload(fileName, fileBuffer, { upsert: true });
-
-                    if (uploadError) throw new Error(`Lỗi upload PDF: ${uploadError.message}`);
-
-                    const { data: { publicUrl } } = supabase.storage.from('pdf-attachments').getPublicUrl(fileName);
-                    
-                    await supabase.rpc('upsert_customer_for_worker', {
-                        p_mst: log.customer_id,
-                        p_pdf_url: publicUrl,
-                        p_company_name: targetCustomer.company_name,
-                        p_user_id: campaign.user_id
-                    });
-                    
-                    const { data: updatedCustomerData } = await supabase.rpc('get_customer_for_worker', { p_mst: log.customer_id });
-                    customer = updatedCustomerData && updatedCustomerData[0];
-                    pdfAttachedStatus = '✅ Có PDF (Mới tải)';
-                    try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
-                } else {
-                    pdfAttachedStatus = `⚠ Không PDF cho MST ${log.customer_id} (${scrapeResult?.message || 'Không tìm thấy'})`;
-                    console.warn(`[Worker] [${log.id}] ${pdfAttachedStatus}`);
-                }
+                pdfAttachedStatus = `⚠ Không tìm thấy link PDF trên Supabase cho MST ${log.customer_id}`;
+                console.warn(`[Worker] [${log.id}] ${pdfAttachedStatus}`);
             }
         } else {
             pdfAttachedStatus = 'Gửi không đính kèm';
