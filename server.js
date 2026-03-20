@@ -45,6 +45,28 @@ app.get('/api/config', (req, res) => {
     });
 });
 
+app.get('/api/diag', async (req, res) => {
+    try {
+        const { data: logs, error: lerr } = await supabase.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
+        const { data: camps, error: cerr } = await supabase.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(2);
+        
+        res.json({
+            nodeVersion: process.version,
+            hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            hasSmtpUser: !!process.env.SMTP_USER,
+            hasSmtpPass: !!process.env.SMTP_PASS,
+            smtpHost: process.env.SMTP_HOST,
+            smtpPort: process.env.SMTP_PORT,
+            recentCampaigns: camps,
+            campsError: cerr,
+            recentLogs: logs,
+            logsError: lerr
+        });
+    } catch(e) {
+        res.json({ error: e.message });
+    }
+});
+
 // Middleware to verify Supabase Auth Session
 const authenticate = async (req, res, next) => {
     let token = req.query.access_token; // Support URL-based auth for reports
