@@ -122,17 +122,23 @@ app.get('/api/debug-sender', async (req, res) => {
 
 app.get('/api/debug-worker', async (req, res) => {
     try {
-        const { count: campCount, error: cErr } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
-        const { count: logCount, error: lErr } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
-        const { data: pendingLogs } = await supabase.from('email_logs').select('*').eq('status', 'pending');
+        const { count: campCount } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
+        const { count: logCount } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
+        const { data: logs } = await supabase.from('email_logs').select('status');
+        
+        const statusCounts = {};
+        if (logs) {
+            logs.forEach(l => {
+                statusCounts[l.status] = (statusCounts[l.status] || 0) + 1;
+            });
+        }
         
         res.json({
             serviceKey_present: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
             campaigns_total: campCount || 0,
             email_logs_total: logCount || 0,
-            pending_logs_count: pendingLogs ? pendingLogs.length : 0,
-            campaign_error: cErr ? cErr.message : null,
-            log_error: lErr ? lErr.message : null
+            status_breakdown: statusCounts,
+            pending_logs_count: statusCounts['pending'] || 0
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
