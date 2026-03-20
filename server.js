@@ -133,7 +133,7 @@ app.get('/api/debug-worker', async (req, res) => {
             });
         }
         
-        const { data: recentLogs } = await supabase.from('email_logs').select('id, status, error_message, created_at').order('created_at', { ascending: false }).limit(5);
+        const { data: recentLogs } = await supabase.from('email_logs').select('id, campaign_id, status, error_message, created_at').order('created_at', { ascending: false }).limit(5);
         
         const heartbeat = emailService.getHeartbeat();
         
