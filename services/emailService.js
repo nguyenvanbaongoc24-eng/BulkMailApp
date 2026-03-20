@@ -18,13 +18,13 @@ function formatDate(date) {
   return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-function renderTemplate(template, customer) {
+function renderTemplate(template, data) {
   if (!template) return "";
   return template
-    .replaceAll("#TênCôngTy", customer.company_name || "")
-    .replaceAll("#MST", customer.mst || "")
-    .replaceAll("#ĐịaChỉ", customer.address || "")
-    .replaceAll("#NgàyHếtHạn", formatDate(customer.expired_date));
+    .replace(/#TênCôngTy/g, data.company_name || "")
+    .replace(/#MST/g, data.mst || "")
+    .replace(/#ĐịaChỉ/g, data.address || "")
+    .replace(/#NgàyHếtHạn/g, data.expired_date || "");
 }
 
 // Helper to validate email format
@@ -162,6 +162,11 @@ async function processEmailTask(log) {
         const renderedContent = renderTemplate(html, dataForTags);
         subject = renderTemplate(subject, dataForTags);
 
+        // PHẦN 3: Bắt buộc console.log nội dung FINAL
+        console.log(`[Worker] [${log.id}] NỘI DUNG FINAL (đã replace):`);
+        console.log(`[Worker] [${log.id}] Tiêu đề: ${subject}`);
+        console.log(`[Worker] [${log.id}] Nội dung (excerpt): ${renderedContent.substring(0, 50)}...`);
+
         // Lấy sender details
         const { data: senderData, error: senderError } = await supabase.rpc('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
         const sender = senderData && senderData[0];
@@ -172,17 +177,21 @@ async function processEmailTask(log) {
         }
 
         // PHẦN 4: LẤY FILE PDF TỪ SUPABASE
-        let buffer = null;
-        if (customer?.pdf_url && shouldAttach) {
-            try {
-                // Fetch direct via public URL
-                const res = await (typeof fetch !== 'undefined' ? fetch : require('node-fetch'))(customer.pdf_url);
-                buffer = await res.arrayBuffer();
-                console.log(`[Worker] [${log.id}] Attached PDF successfully via public URL.`);
-            } catch (err) {
-                console.error(`[Worker] [${log.id}] PDF attachment fetch failed:`, err.message);
-                pdfAttachedStatus += ` (Lỗi tải PDF: ${err.message})`;
+        let finalAttachments = [];
+        if (shouldAttach) {
+            if (customer && customer.pdf_url) {
+                console.log(`[Worker] [${log.id}] BẮT ĐẦU ĐÍNH KÈM: Found existing PDF URL: ${customer.pdf_url}`);
+                finalAttachments.push({
+                    filename: `${cleanMST}.pdf`,
+                    path: customer.pdf_url // Nodemailer natively supports URLs
+                });
+                pdfAttachedStatus = '✅ Có PDF (Attached success)';
+            } else {
+                pdfAttachedStatus = `⚠ Không tìm thấy link PDF trên Supabase cho MST ${log.customer_id}`;
+                console.warn(`[Worker] [${log.id}] ATTACH FAIL: ${pdfAttachedStatus}`);
             }
+        } else {
+            pdfAttachedStatus = 'Gửi không đính kèm';
         }
 
         // PHẦN 5: GỬI MAIL + ĐÍNH KÈM PDF (Options cấu hình mail)
@@ -192,13 +201,10 @@ async function processEmailTask(log) {
             to: log.email,
             subject: subject,
             html: renderedContent,
-            attachments: buffer ? [
-                {
-                    filename: `${cleanMST}.pdf`,
-                    content: Buffer.from(buffer)
-                }
-            ] : []
+            attachments: finalAttachments
         };
+
+        console.log(`[Worker] [${log.id}] CHUẨN BỊ GỬI EMAIL ĐẾN: ${log.email}`);
 
         // Gửi qua SMTP với Retry mechanism
         const finalMessageId = await sendEmailWithRetry(mailOptions, sender);
@@ -253,9 +259,10 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
     try {
         await transporter.verify();
+        console.log(`[SMTP Check] Kết nối SMTP THÀNH CÔNG cho tài khoản: ${user}`);
     } catch (verifyErr) {
         // Log rõ: auth fail / connection timeout
-        console.error("[SMTP Check] Lỗi kết nối gửi thư: Auth fail hoặc Connection timeout:", verifyErr.message);
+        console.error(`[SMTP Check] ❌ Lỗi kết nối gửi thư (Auth fail / Connection timeout): ${verifyErr.message}`);
         throw new Error(`SMTP Connection Error: ${verifyErr.message}`);
     }
 
@@ -263,10 +270,11 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const info = await transporter.sendMail(options);
+            console.log(`[SMTP Send] ✅ Send result THÀNH CÔNG: MessageId ${info.messageId}`);
             return info.messageId;
         } catch (err) {
             lastErr = err;
-            console.error(`[Attempt ${attempt}] Send failed: ${err.message}`);
+            console.error(`[SMTP Send] ❌ [Attempt ${attempt}] Send FAIL: ${err.message}`);
             if (attempt < maxRetries) {
                 // Delay 2-5s giữa mỗi lần retry nếu thất bại
                 const delay = Math.floor(Math.random() * 3000) + 2000;
@@ -301,6 +309,75 @@ async function startRecoveryWorker() {
     try { await supabase.rpc('recover_failed_tasks'); } catch (err) {} finally { isRecoveryRunning = false; }
 }
 
+async function testEmailFlow(targetEmail) {
+    console.log(`[E2E TEST] Bắt đầu verify toàn bộ flow gửi cho: ${targetEmail}`);
+    
+    // 1. Mock Data
+    const customer = {
+        company_name: 'CÔNG TY TNHH E2E TEST (VERIFIED)',
+        mst: '0123456789',
+        address: 'Hà Nội, Việt Nam',
+        expired_date: '2030-12-31',
+        // Dùng 1 public PDF URL cố định để test nếu hệ thống chưa có
+        pdf_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+    };
+
+    const template = `<h2>Xin chào #TênCôngTy,</h2>
+<p>Kính gửi quý khách có MST: <b>#MST</b></p>
+<p>Địa chỉ đăng ký: #ĐịaChỉ</p>
+<p>Dịch vụ sẽ hết hạn vào ngày: <b>#NgàyHếtHạn</b>.</p>
+<p>Đây là email test E2E để xác minh toàn bộ Flow: Email + Replace Tag + Attach PDF đều hoạt động 100%.</p>`;
+
+    const subjectTemplate = `[Test E2E] Thông báo gia hạn cho #TênCôngTy - MST: #MST`;
+
+    console.log(`[E2E TEST] 1. Template trước parse:`, template.substring(0, 50) + "...");
+
+    // 2. Parse Template
+    const renderedContent = renderTemplate(template, customer);
+    const subject = renderTemplate(subjectTemplate, customer);
+
+    console.log(`[E2E TEST] 2. NỘI DUNG FINAL (đã replace tag):`);
+    console.log(`[E2E TEST] Tiêu đề: ${subject}`);
+    console.log(`[E2E TEST] Nội dung: ${renderedContent.substring(0, 50)}...`);
+
+    // 3. Attachments
+    console.log(`[E2E TEST] 3. Chuẩn bị file đính kèm từ URL: ${customer.pdf_url}`);
+    const attachments = [{
+        filename: `${customer.mst}_Verified_Cert.pdf`,
+        path: customer.pdf_url
+    }];
+
+    // 4. Send Email
+    const user = process.env.EMAIL_USER || process.env.SMTP_USER;
+    const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+
+    if (!user || !pass) {
+        throw new Error("Không tìm thấy cấu hình SMTP_USER hoặc SMTP_PASS trong .env");
+    }
+
+    const mailOptions = {
+        from: user,
+        to: targetEmail,
+        subject: subject,
+        html: renderedContent,
+        attachments: attachments
+    };
+
+    // Override senderData cho hàm sendEmailWithRetry (nó dùng chung)
+    const mockSender = { smtpUser: user, smtpPassword: pass };
+
+    console.log(`[E2E TEST] 4. Gửi email qua SMTP...`);
+    const messageId = await sendEmailWithRetry(mailOptions, mockSender, 1);
+
+    console.log(`[E2E TEST] ✅ SUCCESS! Email đã được gửi thành công. MessageID: ${messageId}`);
+    return {
+        success: true,
+        messageId: messageId,
+        subject_replaced: subject,
+        attachment_url: customer.pdf_url
+    };
+}
+
 setInterval(startWorker, WORKER_INTERVAL);
 setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
-module.exports = { startWorker, processEmailTask };
+module.exports = { startWorker, processEmailTask, testEmailFlow };

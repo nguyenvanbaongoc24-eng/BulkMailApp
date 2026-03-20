@@ -56,7 +56,9 @@ app.get('/api/diag', async (req, res) => {
             const result = await supabase.rpc('update_email_log_for_worker', {
                 p_log_id: testLog.id,
                 p_status: testLog.status, // Keep same status
-                p_error_message: 'Diagnose test'
+                p_error_message: 'Diagnose test',
+                p_message_id: null,
+                p_sent_time: null
             });
             rpcTestError = result.error;
         }
@@ -76,6 +78,19 @@ app.get('/api/diag', async (req, res) => {
         });
     } catch(e) {
         res.json({ error: e.message });
+    }
+});
+
+// Endpoint phục vụ TEST END-TO-END luồng email (Yêu cầu Phần 4)
+app.get('/api/test-email', async (req, res) => {
+    try {
+        const targetEmail = req.query.email;
+        if (!targetEmail) return res.status(400).json({ error: 'Thiếu query ?email=...' });
+        
+        const result = await emailService.testEmailFlow(targetEmail);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
