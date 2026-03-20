@@ -133,13 +133,16 @@ app.get('/api/debug-worker', async (req, res) => {
             });
         }
         
+        const { data: recentLogs } = await supabase.from('email_logs').select('id, status, error_message, created_at').order('created_at', { ascending: false }).limit(5);
+        
         res.json({
             serviceKey_present: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
             worker_last_run: emailService.getHeartbeat(),
             campaigns_total: campCount || 0,
             email_logs_total: logCount || 0,
             status_breakdown: statusCounts,
-            pending_logs_count: statusCounts['pending'] || 0
+            pending_logs_count: statusCounts['pending'] || 0,
+            recent_logs: recentLogs
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
