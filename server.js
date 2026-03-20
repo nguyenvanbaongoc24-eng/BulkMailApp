@@ -50,6 +50,17 @@ app.get('/api/diag', async (req, res) => {
         const { data: logs, error: lerr } = await supabase.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
         const { data: camps, error: cerr } = await supabase.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(2);
         
+        let rpcTestError = null;
+        if (logs && logs.length > 0) {
+            const testLog = logs[0];
+            const result = await supabase.rpc('update_email_log_for_worker', {
+                p_log_id: testLog.id,
+                p_status: testLog.status, // Keep same status
+                p_error_message: 'Diagnose test'
+            });
+            rpcTestError = result.error;
+        }
+
         res.json({
             nodeVersion: process.version,
             hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -57,6 +68,7 @@ app.get('/api/diag', async (req, res) => {
             hasSmtpPass: !!process.env.SMTP_PASS,
             smtpHost: process.env.SMTP_HOST,
             smtpPort: process.env.SMTP_PORT,
+            rpcTestError: rpcTestError,
             recentCampaigns: camps,
             campsError: cerr,
             recentLogs: logs,
