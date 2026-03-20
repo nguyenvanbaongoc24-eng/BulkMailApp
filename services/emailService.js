@@ -182,8 +182,9 @@ async function processEmailTask(log) {
         }
 
         // PHẦN 5: GỬI MAIL + ĐÍNH KÈM PDF (Options cấu hình mail)
+        const userFallback = process.env.EMAIL_USER || process.env.SMTP_USER || sender.smtpUser;
         const mailOptions = {
-            from: process.env.EMAIL_USER || sender.smtpUser,
+            from: userFallback,
             to: log.email,
             subject: subject,
             html: renderedContent,
@@ -235,14 +236,14 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     
     // PHẦN 1: CẤU HÌNH SMTP GMAIL
     // Nếu có process.env thì ghi đè sử dụng cấu hình tập trung an toàn
+    const user = process.env.EMAIL_USER || process.env.SMTP_USER || senderData.smtpUser;
+    const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS || senderData.smtpPassword;
+    
     const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.SMTP_PORT) || 587,
         secure: false,
-        auth: {
-            user: process.env.EMAIL_USER || senderData.smtpUser,
-            pass: process.env.EMAIL_PASS || senderData.smtpPassword
-        }
+        auth: { user, pass }
     });
 
     // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
