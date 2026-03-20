@@ -191,7 +191,7 @@ app.post('/api/customers/upload-pdf', authenticate, upload.single('pdf'), async 
             .from('customers')
             .update({ pdf_url: publicUrl })
             .eq('taxCode', taxCode)
-            .eq('userId', req.user.id);
+            .eq('user_id', req.user.id);
 
         if (updateError) throw updateError;
 
@@ -267,7 +267,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
         // Save sender inside Supabase using smtpPassword as the refresh_token placeholder
         const newSender = {
             id: Date.now().toString(),
-            userId: userId,
+            user_id: userId,
             senderName: name,
             senderEmail: email,
             smtpHost: 'oauth2.google', // Marker to indicate OAuth2
@@ -330,7 +330,7 @@ app.post('/api/senders', authenticate, async (req, res) => {
     res.json(data[0]);
 });
 
-app.put('/api/senders/:id', authenticate, async (req, res) => {
+app.patch('/api/senders/:id', authenticate, async (req, res) => {
     const { id } = req.params;
     const updates = {
         senderName: req.body.senderName,
@@ -360,7 +360,7 @@ app.delete('/api/senders/:id', authenticate, async (req, res) => {
         .from('senders')
         .delete()
         .eq('id', id)
-        .eq('userId', req.user.id);
+        .eq('user_id', req.user.id);
     
     if (error) return res.status(500).json({ error: error.message });
     res.json({ message: 'Sender deleted successfully' });
@@ -726,7 +726,7 @@ app.delete('/api/campaigns/:id', authenticate, async (req, res) => {
         .from('campaigns')
         .delete()
         .eq('id', req.params.id)
-        .eq('userId', req.user.id);
+        .eq('user_id', req.user.id);
     if (error) return res.status(500).json({ error: 'Lỗi khi xóa chiến dịch hoặc Unauthorized.' });
     res.json({ message: 'Đã xóa chiến dịch thành công.' });
 });
@@ -1035,7 +1035,7 @@ app.get('/api/crm/stats', authenticate, async (req, res) => {
     const { data: customers, error } = await supabase
         .from('customers')
         .select('expired_date')
-        .eq('userId', req.user.id);
+        .eq('user_id', req.user.id);
     
     if (error) return res.status(500).json({ error: error.message });
 

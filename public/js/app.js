@@ -552,30 +552,131 @@ async function startCampaign(id) {
     }
 }
 
-// --- Senders ---
+// --- Senders Management ---
 async function loadSenders() {
     const list = document.getElementById('sender-list');
     if (!list) return;
     try {
         const res = await authedFetch('/api/senders');
         const senders = await res.json();
+        
         list.innerHTML = senders.map(s => `
-            <tr>
-                <td class="px-8 py-5 text-white font-bold">${s.senderName}</td>
-                <td class="px-8 py-5 text-gray-400">${s.senderEmail}</td>
-                <td class="px-8 py-5 text-gray-500">${s.smtpHost}</td>
+            <tr class="hover:bg-white/2 transition-all">
+                <td class="px-8 py-5">
+                    <div class="text-white font-bold">${s.senderName}</div>
+                    <div class="text-[10px] text-orange-500 font-bold uppercase tracking-widest mt-1">${s.smtpHost === 'oauth2.google' ? 'Google API' : 'SMTP Server'}</div>
+                </td>
+                <td class="px-8 py-5 text-gray-400 text-sm">${s.senderEmail}</td>
+                <td class="px-8 py-5">
+                    <span class="text-xs font-mono text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5 italic">
+                        ${s.smtpHost}
+                    </span>
+                </td>
                 <td class="px-8 py-5 text-right">
-                    <button onclick="deleteSender('${s.id}')" class="text-red-500 font-bold">Xóa</button>
+                    <div class="flex justify-end gap-3">
+                        ${s.smtpHost !== 'oauth2.google' ? 
+                            `<button onclick="openEditSenderModal('${s.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa"><i class="fas fa-edit text-xs"></i></button>` : ''
+                        }
+                        <button onclick="deleteSender('${s.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                    </div>
                 </td>
             </tr>
-        `).join('');
+        `).join('') || '<tr><td colspan="4" class="px-8 py-10 text-center text-gray-500 italic">Chưa có tài khoản nào.</td></tr>';
         
         const select = document.getElementById('select-sender');
         if (select) {
-            select.innerHTML = '<option value="">-- Chọn tài khoản --</option>' + 
-                senders.map(s => `<option value="${s.id}">${s.senderName}</option>`).join('');
+            select.innerHTML = '<option value="">-- Chọn tài khoản gửi --</option>' + 
+                senders.map(s => `<option value="${s.id}">${s.senderName} (${s.senderEmail})</option>`).join('');
         }
-    } catch (e) {}
+    } catch (e) { console.error('Load Senders Error:', e); }
+}
+
+function connectGoogleAccount() {
+    const token = localStorage.getItem('sb-token');
+    window.location.href = `/api/auth/google?access_token=${token}`;
+}
+
+function openAddSenderModal() {
+    document.getElementById('sender-modal-title').innerHTML = 'Thêm <span class="text-orange-gradient">tài khoản SMTP</span>';
+    document.getElementById('edit-sender-id').value = '';
+    document.getElementById('edit-sender-name').value = '';
+    document.getElementById('edit-sender-email').value = '';
+    document.getElementById('edit-smtp-host').value = 'smtp.gmail.com';
+    document.getElementById('edit-smtp-port').value = '587';
+    document.getElementById('edit-smtp-user').value = '';
+    document.getElementById('edit-smtp-pass').value = '';
+    document.getElementById('modal-edit-sender').classList.remove('hidden');
+}
+
+async function openEditSenderModal(id) {
+    try {
+        const res = await authedFetch(`/api/senders`);
+        const senders = await res.json();
+        const s = senders.find(x => x.id === id);
+        if (!s) return;
+
+        document.getElementById('sender-modal-title').innerHTML = 'Chỉnh sửa <span class="text-orange-gradient">tài khoản SMTP</span>';
+        document.getElementById('edit-sender-id').value = s.id;
+        document.getElementById('edit-sender-name').value = s.senderName;
+        document.getElementById('edit-sender-email').value = s.senderEmail;
+        document.getElementById('edit-smtp-host').value = s.smtpHost;
+        document.getElementById('edit-smtp-port').value = s.smtpPort;
+        document.getElementById('edit-smtp-user').value = s.smtpUser;
+        document.getElementById('edit-smtp-pass').value = ''; // Don't show password
+        
+        document.getElementById('modal-edit-sender').classList.remove('hidden');
+    } catch (e) { console.error(e); }
+}
+
+function closeSenderModal() {
+    document.getElementById('modal-edit-sender').classList.add('hidden');
+}
+
+async function saveSenderAccount() {
+    const id = document.getElementById('edit-sender-id').value;
+    const data = {
+        senderName: document.getElementById('edit-sender-name').value,
+        senderEmail: document.getElementById('edit-sender-email').value,
+        smtpHost: document.getElementById('edit-smtp-host').value,
+        smtpPort: document.getElementById('edit-smtp-port').value,
+        smtpUser: document.getElementById('edit-smtp-user').value,
+        smtpPassword: document.getElementById('edit-smtp-pass').value
+    };
+
+    if (!data.senderName || !data.senderEmail || !data.smtpHost || !data.smtpPort) {
+        return alert('Vui lòng điền đầy đủ các thông tin bắt buộc');
+    }
+
+    try {
+        const url = id ? `/api/senders/${id}` : '/api/senders';
+        const method = id ? 'PATCH' : 'POST';
+        
+        // If updating and password is empty, don't send it
+        if (id && !data.smtpPassword) delete data.smtpPassword;
+
+        const res = await authedFetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            closeSenderModal();
+            loadSenders();
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + (err.error || 'Không rõ'));
+        }
+    } catch (e) { alert('Lỗi kết nối server'); }
+}
+
+async function deleteSender(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) return;
+    try {
+        const res = await authedFetch(`/api/senders/${id}`, { method: 'DELETE' });
+        if (res.ok) loadSenders();
+        else alert('Lỗi khi xóa tài khoản');
+    } catch (e) { alert('Lỗi hệ thống'); }
 }
 
 // --- UTILITIES AND OLD CRM LOGIC ---

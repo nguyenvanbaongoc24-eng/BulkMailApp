@@ -37,37 +37,10 @@ const validateEmail = (email) => {
         );
 };
 
-// Standardized tag replacement function (Keep original robust one as fallback)
-const replaceTags = (template, data) => {
-    return renderTemplate(template, data);
-};
-
-// Helper to extract relative path and bucket from Supabase URL
-const getStorageInfo = (url) => {
-    if (!url) return null;
-    // Handle full URLs
-    if (url.includes('/storage/v1/object/public/')) {
-        const parts = url.split('/storage/v1/object/public/')[1].split('/');
-        const bucket = parts.shift();
-        const path = parts.join('/');
-        return { bucket, path };
-    }
-    // Fallback/Legacy: guess bucket based on URL content
-    if (url.includes('pdf-attachments')) return { bucket: 'pdf-attachments', path: url.split('pdf-attachments/')[1] || url };
-    if (url.includes('pdfs/')) return { bucket: 'pdfs', path: url.split('pdfs/')[1] || url };
-    
-    return null;
-};
-
 async function startWorker() {
     if (isWorkerRunning) return;
     isWorkerRunning = true;
     console.log(`[Worker] 🛠 Checking for email tasks at ${new Date().toLocaleTimeString()}...`);
-
-    // Visibility Check (Diagnostic)
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.warn(`[Worker] ⚠ WARNING: SUPABASE_SERVICE_ROLE_KEY is MISSING. Background worker may be BLOCKED by RLS!`);
-    }
 
     let browser = null;
     try {
@@ -84,7 +57,8 @@ async function startWorker() {
 
         for (const log of tasks) {
             try {
-                // PHẦN 9: CHỐNG SPAM (Delay 3-5 giây giữa mỗi mail)
+                // PHẦN 9: CHỐNG SPAM
+                // Delay giữa mỗi mail: 3–5 giây
                 await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 3000));
                 
                 await processEmailTask(log, browser);
@@ -99,15 +73,13 @@ async function startWorker() {
         }
     } catch (err) {
         console.error(`[Worker] Critical Loop Error:`, err.message);
-        if (err.message.includes('RLS') || err.message.includes('permission denied')) {
-            console.error(`[Worker] 💡 Hint: This error is likely due to RLS policies. Make sure SUPABASE_SERVICE_ROLE_KEY is set in your environment.`);
-        }
     } finally {
         if (browser) await browser.close().catch(() => {});
         isWorkerRunning = false;
     }
 }
 
+// PHẦN 6: FLOW GỬI MAIL
 async function processEmailTask(log, browser) {
     console.log(`[Worker] [${log.id}] Starting processing for MST: ${log.customer_id}`);
     let pdfAttachedStatus = 'Chờ xử lý';
@@ -119,31 +91,26 @@ async function processEmailTask(log, browser) {
             p_error_message: 'Đang chuẩn bị nội dung...'
         }).catch(() => {});
         
+        // Lấy campaign
         const { data: campaignData, error: campaignError } = await supabase.rpc('get_campaign_for_worker', { p_campaign_id: log.campaign_id });
         const campaign = campaignData && campaignData[0];
         if (campaignError || !campaign) throw new Error(`Campaign not found or inaccessible: ${log.campaign_id}`);
 
+        // Lấy customer
         const cleanMST = String(log.customer_id || '').trim();
         const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode || '').trim() === cleanMST);
         const { data: customerData } = await supabase.rpc('get_customer_for_worker', { p_mst: cleanMST });
         let customer = customerData && customerData[0];
 
-        // FALLBACK: certificates table (Local Tool's output)
-        if (!customer || !customer.pdf_url) {
-            const { data: certData } = await supabase.rpc('get_certificate_for_worker', { p_mst: cleanMST });
-            const cert = certData && certData[0];
-            if (cert && cert.pdf_url) {
-                console.log(`[Worker] [${log.id}] Found PDF in certificates table: ${cert.pdf_url}`);
-                customer = { 
-                    ...customer, 
-                    pdf_url: cert.pdf_url, 
-                    company_name: cert.company_name || recipientInExcel?.TenCongTy || customer?.company_name,
-                    serial: cert.serial || recipientInExcel?.Serial || customer?.serial
-                };
-            }
+        // Lấy dữ liệu cơ bản cho customer nếu không có trong DB
+        if (!customer) {
+             customer = { 
+                 mst: log.customer_id, 
+                 company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || 'Quý Doanh Nghiệp'
+             };
         }
 
-        // 1. PDF Handling (STRICT MODE)
+        // Lấy file PDF (Tự động cào nếu thiếu)
         const shouldAttach = campaign.attach_cert === true || campaign.attach_cert === 'true' || campaign.attachCert === true || campaign.attachCert === 'true';
         if (shouldAttach) {
             if (customer && customer.pdf_url) {
@@ -154,12 +121,11 @@ async function processEmailTask(log, browser) {
                 // Use Serial from Excel or CRM
                 const targetSerial = recipientInExcel?.Serial || customer?.serial || '';
                 
-                const targetCustomer = customer || { 
+                const targetCustomer = { 
                     mst: log.customer_id, 
                     company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || 'Quý Doanh Nghiệp'
                 };
                 
-                // Only trigger scraper if we have a serial, or it's mandatory
                 const scrapeResult = await scraperService.getLatestCertificate(browser, log.customer_id, targetSerial, targetCustomer);
 
                 if (scrapeResult && scrapeResult.status === 'Matched') {
@@ -175,13 +141,6 @@ async function processEmailTask(log, browser) {
 
                     const { data: { publicUrl } } = supabase.storage.from('pdf-attachments').getPublicUrl(fileName);
                     
-                    const customerUpdate = { 
-                        mst: log.customer_id, 
-                        pdf_url: publicUrl,
-                        company_name: targetCustomer.company_name,
-                        user_id: campaign.user_id
-                    };
-
                     await supabase.rpc('upsert_customer_for_worker', {
                         p_mst: log.customer_id,
                         p_pdf_url: publicUrl,
@@ -194,7 +153,7 @@ async function processEmailTask(log, browser) {
                     pdfAttachedStatus = '✅ Có PDF (Mới tải)';
                     try { if (scrapeResult.dirPath) fs.rmSync(scrapeResult.dirPath, { recursive: true, force: true }); } catch(e) {}
                 } else {
-                    pdfAttachedStatus = `⚠ Không PDF cho MST ${log.customer_id} (${scrapeResult?.message || 'Không tìm thấy trên hệ thống'})`;
+                    pdfAttachedStatus = `⚠ Không PDF cho MST ${log.customer_id} (${scrapeResult?.message || 'Không tìm thấy'})`;
                     console.warn(`[Worker] [${log.id}] ${pdfAttachedStatus}`);
                 }
             }
@@ -202,7 +161,7 @@ async function processEmailTask(log, browser) {
             pdfAttachedStatus = 'Gửi không đính kèm';
         }
 
-        // 2. Content Preparation
+        // Lấy template & replace data
         const findVal = (obj, keys) => {
             if (!obj) return '';
             const entries = Object.entries(obj);
@@ -236,59 +195,51 @@ async function processEmailTask(log, browser) {
         let html = decodeEntities(campaign.template || '');
         let subject = decodeEntities(campaign.subject || 'Thông báo từ Automation CA2');
 
-        html = replaceTags(html, dataForTags);
-        subject = replaceTags(subject, dataForTags);
+        // Lấy content cuối cùng (Replace content template)
+        const renderedContent = renderTemplate(html, dataForTags);
+        subject = renderTemplate(subject, dataForTags);
 
-        // Check for remaining tags
-        if (html.includes('#') || subject.includes('#')) {
-            console.warn(`[Worker] [${log.id}] ⚠ Warning: Detected '#' in final content. Possible unreplaced tags!`);
-        }
-
-        // 3. Sender & Transporter
+        // Lấy sender details
         const { data: senderData, error: senderError } = await supabase.rpc('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
         const sender = senderData && senderData[0];
         if (senderError || !sender) throw new Error('Tài khoản người gửi không tồn tại hoặc không thể truy cập.');
 
-        const mailOptions = {
-            from: `"${sender.senderName}" <${sender.senderEmail}>`,
-            to: log.email, 
-            subject: subject, 
-            html: html,
-            text: html.replace(/<[^>]*>?/gm, '').substring(0, 500), // Fallback text body
-            headers: { "X-Mailer": "NodeMailer Automation" },
-            attachments: []
-        };
-
-        // Validate Email
         if (!validateEmail(log.email)) {
             throw new Error(`Email không hợp lệ: ${log.email}`);
         }
 
-        // Authenticated PDF attachment
+        // PHẦN 4: LẤY FILE PDF TỪ SUPABASE
+        let buffer = null;
         if (customer?.pdf_url && shouldAttach) {
             try {
-                const storageInfo = getStorageInfo(customer.pdf_url);
-                const attachmentFileName = `${cleanMST}.pdf`;
-                if (storageInfo) {
-                    const { data, error } = await supabase.storage.from(storageInfo.bucket).download(storageInfo.path);
-                    if (error) throw error;
-                    mailOptions.attachments.push({ filename: attachmentFileName, content: Buffer.from(await data.arrayBuffer()) });
-                    console.log(`[Worker] [${log.id}] Attached PDF via authenticated download.`);
-                } else {
-                    const response = await axios.get(customer.pdf_url, { responseType: 'arraybuffer' });
-                    mailOptions.attachments.push({ filename: attachmentFileName, content: Buffer.from(response.data) });
-                    console.log(`[Worker] [${log.id}] Attached PDF via public URL.`);
-                }
+                // Fetch direct via public URL
+                const res = await (typeof fetch !== 'undefined' ? fetch : require('node-fetch'))(customer.pdf_url);
+                buffer = await res.arrayBuffer();
+                console.log(`[Worker] [${log.id}] Attached PDF successfully via public URL.`);
             } catch (err) {
-                console.error(`[Worker] [${log.id}] PDF attachment failed:`, err.message);
-                pdfAttachedStatus += ` (Lỗi đính kèm: ${err.message})`;
+                console.error(`[Worker] [${log.id}] PDF attachment fetch failed:`, err.message);
+                pdfAttachedStatus += ` (Lỗi tải PDF: ${err.message})`;
             }
         }
 
-        // PHẦN 8: RETRY (Tối đa 3 lần, delay 2-5s)
+        // PHẦN 5: GỬI MAIL + ĐÍNH KÈM PDF (Options cấu hình mail)
+        const mailOptions = {
+            from: process.env.EMAIL_USER || sender.smtpUser,
+            to: log.email,
+            subject: subject,
+            html: renderedContent,
+            attachments: buffer ? [
+                {
+                    filename: `${cleanMST}.pdf`,
+                    content: Buffer.from(buffer)
+                }
+            ] : []
+        };
+
+        // Gửi qua SMTP với Retry mechanism
         const finalMessageId = await sendEmailWithRetry(mailOptions, sender);
 
-        // PHẦN 7: LOG LỖI (Success case)
+        // PHẦN 7: LOG LỖI (Success case - save to db)
         await supabase.rpc('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'sent',
@@ -299,13 +250,14 @@ async function processEmailTask(log, browser) {
 
         console.log(`[Worker] [${log.id}] ✅ Email sent successfully to ${log.email}`);
 
-        // PHẦN 10: UI FEEDBACK (Cập nhật chiến dịch)
+        // PHẦN 10: UI FEEDBACK (Cập nhật số đã gửi/thành công vào chiến dịch)
         await supabase.rpc('increment_campaign_success', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
 
     } catch (err) {
         console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
-        // PHẦN 7: LOG LỖI (Fail case)
+        
+        // PHẦN 7: LOG LỖI (Fail case - save to db)
         await supabase.rpc('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'failed',
@@ -313,34 +265,37 @@ async function processEmailTask(log, browser) {
             p_sent_time: new Date().toISOString()
         }).catch(() => {});
 
+        // Cập nhật lỗi UI Feedback
         await supabase.rpc('increment_campaign_error', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
     }
 }
 
-// PHẦN 1, 2, 5 & 8: SMTP CONFIG, VERIFY, SEND + RETRY
 async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     let lastErr = null;
     
     // PHẦN 1: CẤU HÌNH SMTP GMAIL
+    // Nếu có process.env thì ghi đè sử dụng cấu hình tập trung an toàn
     const transporter = nodemailer.createTransport({
-        host: senderData.smtpHost || "smtp.gmail.com",
-        port: parseInt(senderData.smtpPort) || 587,
-        secure: senderData.smtpPort == 465, // secure: false for 587
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
         auth: {
-            user: senderData.smtpUser,
-            pass: senderData.smtpPassword
-        },
-        tls: { rejectUnauthorized: false }
+            user: process.env.EMAIL_USER || senderData.smtpUser,
+            pass: process.env.EMAIL_PASS || senderData.smtpPassword
+        }
     });
 
     // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
     try {
         await transporter.verify();
     } catch (verifyErr) {
-        throw new Error(`SMTP Connection Error: ${verifyErr.message} (Check auth or connection)`);
+        // Log rõ: auth fail / connection timeout
+        console.error("[SMTP Check] Lỗi kết nối gửi thư: Auth fail hoặc Connection timeout:", verifyErr.message);
+        throw new Error(`SMTP Connection Error: ${verifyErr.message}`);
     }
 
+    // PHẦN 8: RETRY
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const info = await transporter.sendMail(options);
@@ -349,7 +304,7 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
             lastErr = err;
             console.error(`[Attempt ${attempt}] Send failed: ${err.message}`);
             if (attempt < maxRetries) {
-                // Delay 2-5s giữa mỗi lần retry
+                // Delay 2-5s giữa mỗi lần retry nếu thất bại
                 const delay = Math.floor(Math.random() * 3000) + 2000;
                 await new Promise(r => setTimeout(r, delay));
             }
