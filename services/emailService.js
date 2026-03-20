@@ -276,23 +276,43 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
         secure = true;
     }
 
+    // PHƯƠNG ÁN CUỐI CÙNG: Giải quyết triệt để lỗi ENETUNREACH IPv6 trên Render
+    // Chúng ta sẽ tự giải quyết IP (DNS) sang IPv4 trước khi tạo kết nối.
+    let targetIp = host;
+    try {
+        console.log(`[DNS Check] Đang phân giải IPv4 cho host: ${host}...`);
+        const addresses = await new Promise((resolve, reject) => {
+            dns.resolve4(host, (err, addr) => {
+                if (err) reject(err);
+                else resolve(addr);
+            });
+        });
+        if (addresses && addresses.length > 0) {
+            targetIp = addresses[0];
+            console.log(`[DNS Check] ✅ Thành công: ${host} -> ${targetIp}`);
+        }
+    } catch (dnsErr) {
+        console.warn(`[DNS Check] ⚠ Cảnh báo: Không thể giải quyết IPv4 thủ công (${dnsErr.message}). Sẽ dùng host mặc định.`);
+    }
+
     const transporter = nodemailer.createTransport({
-        host: host,
+        host: targetIp, // Dùng IP trực tiếp để ÉP BUỘC không dùng IPv6
         port: portRaw,
         secure: secure,
         auth: { user, pass },
-        lookup: (hostname, options, callback) => {
-            // ÉP BUỘC dùng IPv4 (family: 4) để tránh lỗi ENETUNREACH trên Render (do IPv6 bị chặn)
-            dns.lookup(hostname, { family: 4 }, callback);
+        tls: {
+            // QUAN TRỌNG: Phải có servername để chứng chỉ SSL vẫn khớp với tên miền gốc
+            servername: host,
+            rejectUnauthorized: true
         },
-        connectionTimeout: 15000, // 15s
-        socketTimeout: 30000,     // 30s
-        greetingTimeout: 15000,   // 15s
+        connectionTimeout: 20000, // 20s
+        socketTimeout: 40000,     // 40s
+        greetingTimeout: 20000,   // 20s
     });
 
     // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
     try {
-        console.log(`[SMTP Check] Đang thử kết nối ${host}:${portRaw} (SSL: ${secure})...`);
+        console.log(`[SMTP Check] Đang thử kết nối ${targetIp}:${portRaw} (SSL: ${secure}, SNI: ${host})...`);
         await transporter.verify();
         console.log(`[SMTP Check] Kết nối SMTP THÀNH CÔNG cho tài khoản: ${user}`);
     } catch (verifyErr) {
