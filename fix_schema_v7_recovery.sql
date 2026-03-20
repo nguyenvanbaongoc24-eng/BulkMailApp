@@ -1,6 +1,8 @@
 -- SQL V7: RECOVERY LOGIC - KHÔI PHỤC TASK BỊ KẸT
 -- Mục tiêu: Tự động chuyển các task bị kẹt ở trạng thái 'processing' quá lâu về 'pending' để worker thử lại.
 
+DROP FUNCTION IF EXISTS recover_failed_tasks();
+
 CREATE OR REPLACE FUNCTION recover_failed_tasks()
 RETURNS void AS $$
 BEGIN
