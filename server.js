@@ -154,6 +154,28 @@ app.get('/api/debug-worker', async (req, res) => {
     }
 });
 
+app.get('/api/reset-worker', async (req, res) => {
+    try {
+        const { count, error } = await supabase
+            .from('email_logs')
+            .update({ 
+                status: 'pending', 
+                last_retry_time: null,
+                error_message: 'Manual reset via /api/reset-worker'
+            })
+            .eq('status', 'processing')
+            .select('*', { count: 'exact', head: true });
+            
+        res.json({
+            success: true,
+            rows_affected: count || 0,
+            error: error ? error.message : null
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Middleware to verify Supabase Auth Session
 const authenticate = async (req, res, next) => {
     let token = req.query.access_token; // Support URL-based auth for reports
