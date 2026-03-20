@@ -120,6 +120,25 @@ app.get('/api/debug-sender', async (req, res) => {
     }
 });
 
+app.get('/api/debug-worker', async (req, res) => {
+    try {
+        const { count: campCount, error: cErr } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
+        const { count: logCount, error: lErr } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
+        const { data: pendingLogs } = await supabase.from('email_logs').select('*').eq('status', 'pending');
+        
+        res.json({
+            serviceKey_present: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            campaigns_total: campCount || 0,
+            email_logs_total: logCount || 0,
+            pending_logs_count: pendingLogs ? pendingLogs.length : 0,
+            campaign_error: cErr ? cErr.message : null,
+            log_error: lErr ? lErr.message : null
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Middleware to verify Supabase Auth Session
 const authenticate = async (req, res, next) => {
     let token = req.query.access_token; // Support URL-based auth for reports
