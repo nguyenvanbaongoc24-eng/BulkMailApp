@@ -264,19 +264,30 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
     const user = process.env.EMAIL_USER || process.env.SMTP_USER || senderData.smtpUser;
     const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS || senderData.smtpPassword;
     
-    const portRaw = parseInt(process.env.SMTP_PORT) || 587;
+    const host = process.env.SMTP_HOST || "smtp.gmail.com";
+    let portRaw = parseInt(process.env.SMTP_PORT) || 587;
+    let secure = portRaw === 465;
+
+    // FORCE: Gmail on 465 is much more stable on Render/Cloud than 587
+    if (host.includes("gmail.com")) {
+        console.log("[SMTP] Detect Gmail: Forcing Port 465 SSL for stability on Render.");
+        portRaw = 465;
+        secure = true;
+    }
+
     const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        host: host,
         port: portRaw,
-        secure: portRaw === 465,
+        secure: secure,
         auth: { user, pass },
-        connectionTimeout: 10000, // 10s
-        socketTimeout: 20000,     // 20s
-        greetingTimeout: 10000,   // 10s
+        connectionTimeout: 15000, // 15s
+        socketTimeout: 30000,     // 30s
+        greetingTimeout: 15000,   // 15s
     });
 
     // PHẦN 2: KIỂM TRA KẾT NỐI SMTP
     try {
+        console.log(`[SMTP Check] Đang thử kết nối ${host}:${portRaw} (SSL: ${secure})...`);
         await transporter.verify();
         console.log(`[SMTP Check] Kết nối SMTP THÀNH CÔNG cho tài khoản: ${user}`);
     } catch (verifyErr) {
