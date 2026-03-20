@@ -1,14 +1,14 @@
+const dns = require('dns');
+// FIX: Máy chủ Render (Free Tier) bị lỗi định tuyến mạng IPv6 ra ngoài (gây ENETUNREACH khi gửi Mail hoặc Fetch)
+// Force toàn bộ Node.js server ưu tiên dùng mạng IPv4 100% - LUÔN ĐỂ Ở DÒNG 1
+dns.setDefaultResultOrder('ipv4first');
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-const dns = require('dns');
-
-// FIX: Máy chủ Render (Free Tier) bị lỗi định tuyến mạng IPv6 ra ngoài (gây ENETUNREACH khi gửi Mail hoặc Fetch)
-// Force toàn bộ Node.js server ưu tiên dùng mạng IPv4 100%
-dns.setDefaultResultOrder('ipv4first');
 const XLSX = require('xlsx');
 require('dotenv').config();
 

@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -280,6 +281,10 @@ async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
         port: portRaw,
         secure: secure,
         auth: { user, pass },
+        lookup: (hostname, options, callback) => {
+            // ÉP BUỘC dùng IPv4 (family: 4) để tránh lỗi ENETUNREACH trên Render (do IPv6 bị chặn)
+            dns.lookup(hostname, { family: 4 }, callback);
+        },
         connectionTimeout: 15000, // 15s
         socketTimeout: 30000,     // 30s
         greetingTimeout: 15000,   // 15s
