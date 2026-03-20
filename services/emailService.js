@@ -26,6 +26,15 @@ const formatDateVN = (dateVal) => {
     return `${day}/${month}/${year}`;
 };
 
+// Helper to validate email format
+const validateEmail = (email) => {
+    return String(email)
+        .toLowerCase()
+        .match(
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        );
+};
+
 // Standardized tag replacement function
 const replaceTags = (template, data) => {
     if (!template) return "";
@@ -113,6 +122,8 @@ async function processEmailTask(log, browser) {
     let pdfAttachedStatus = 'Chờ xử lý';
     
     try {
+        await supabase.from('email_logs').update({ status: 'processing', error_message: 'Đang chuẩn bị nội dung...' }).eq('id', log.id).catch(() => {});
+        
         const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', log.campaign_id).single();
         if (!campaign) throw new Error('Campaign not found.');
 
@@ -223,18 +234,24 @@ async function processEmailTask(log, browser) {
         html = replaceTags(html, dataForTags);
         subject = replaceTags(subject, dataForTags);
 
-        // 3. Sender
+        // 3. Sender & Transporter
         const { data: sender } = await supabase.from('senders').select('*').eq('id', campaign.senderAccountId).single();
         if (!sender) throw new Error('Tài khoản người gửi không tồn tại.');
 
-        let finalMessageId = null;
-        let transporter;
-
         const mailOptions = {
             from: `"${sender.senderName}" <${sender.senderEmail}>`,
-            to: log.email, subject: subject, html: html,
+            to: log.email, 
+            subject: subject, 
+            html: html,
+            text: html.replace(/<[^>]*>?/gm, '').substring(0, 500), // Fallback text body
+            headers: { "X-Mailer": "NodeMailer Automation" },
             attachments: []
         };
+
+        // Validate Email
+        if (!validateEmail(log.email)) {
+            throw new Error(`Email không hợp lệ: ${log.email}`);
+        }
 
         // Authenticated PDF attachment
         if (customer?.pdf_url && shouldAttach) {
@@ -256,27 +273,58 @@ async function processEmailTask(log, browser) {
             }
         }
 
-        if (sender.smtpHost === 'oauth2.google') {
-            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-            oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
-            const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-            transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
-            const info = await transporter.sendMail(mailOptions);
-            const chunks = [];
-            for await (const chunk of info.message) chunks.push(chunk);
-            const base64Raw = Buffer.concat(chunks).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            const gResponse = await gmail.users.messages.send({ userId: 'me', requestBody: { raw: base64Raw } });
-            finalMessageId = gResponse.data.id;
-        } else {
-            transporter = nodemailer.createTransport({
-                host: sender.smtpHost, port: parseInt(sender.smtpPort),
-                secure: sender.smtpPort == 465,
-                auth: { user: sender.smtpUser, pass: sender.smtpPassword },
-                tls: { rejectUnauthorized: false }
-            });
-            const info = await transporter.sendMail(mailOptions);
-            finalMessageId = info.messageId;
-        }
+        let finalMessageId = null;
+
+        const sendWithRetry = async (options, senderData, maxRetries = 3) => {
+            let lastErr = null;
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`[Worker] [${log.id}] Attempt ${attempt}/${maxRetries} to send email...`);
+                    
+                    if (senderData.smtpHost === 'oauth2.google') {
+                        const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+                        oauth2Client.setCredentials({ refresh_token: senderData.smtpPassword });
+                        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+                        
+                        const tempTransporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
+                        const info = await tempTransporter.sendMail(options);
+                        const chunks = [];
+                        for await (const chunk of info.message) chunks.push(chunk);
+                        const base64Raw = Buffer.concat(chunks).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                        
+                        const gResponse = await gmail.users.messages.send({ userId: 'me', requestBody: { raw: base64Raw } });
+                        return gResponse.data.id;
+                    } else {
+                        console.log(`[Worker] SMTP Config: host=${senderData.smtpHost}, port=${senderData.smtpPort}, user=${senderData.smtpUser}, secure=${senderData.smtpPort == 465}`);
+                        const transporter = nodemailer.createTransport({
+                            host: senderData.smtpHost, port: parseInt(senderData.smtpPort),
+                            secure: senderData.smtpPort == 465,
+                            auth: { user: senderData.smtpUser, pass: senderData.smtpPassword },
+                            tls: { rejectUnauthorized: false },
+                            connectionTimeout: 10000, // 10s
+                            greetingTimeout: 5000     // 5s
+                        });
+                        
+                        // Verification Step
+                        await transporter.verify();
+                        
+                        const info = await transporter.sendMail(options);
+                        return info.messageId;
+                    }
+                } catch (err) {
+                    lastErr = err;
+                    console.error(`[Worker] [${log.id}] Attempt ${attempt} failed: ${err.message}${err.code ? ' (' + err.code + ')' : ''}`);
+                    if (attempt < maxRetries) {
+                        const delaySec = attempt * 3000; // 3s, 6s...
+                        await new Promise(r => setTimeout(r, delaySec));
+                    }
+                }
+            }
+            throw lastErr;
+        };
+
+        await supabase.from('email_logs').update({ status: 'processing', error_message: 'Đang thực hiện gửi (Retry loop)...' }).eq('id', log.id).catch(() => {});
+        finalMessageId = await sendWithRetry(mailOptions, sender);
 
         await supabase.from('email_logs').update({
             status: 'sent', 
