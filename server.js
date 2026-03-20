@@ -99,6 +99,26 @@ app.get('/api/test-email', async (req, res) => {
     }
 });
 
+app.get('/api/debug-sender', async (req, res) => {
+    try {
+        const { data: senders } = await supabase.from('senders').select('*').limit(1);
+        if (!senders || senders.length === 0) return res.json({ error: 'No senders found' });
+        
+        const sender = senders[0];
+        const token = sender.smtpPassword || '';
+        res.json({
+            id: sender.id,
+            smtpHost: sender.smtpHost,
+            token_length: token.length,
+            token_prefix: token.substring(0, 10) + '...',
+            clientId_length: (process.env.GOOGLE_CLIENT_ID || '').length,
+            clientSecret_length: (process.env.GOOGLE_CLIENT_SECRET || '').length
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Middleware to verify Supabase Auth Session
 const authenticate = async (req, res, next) => {
     let token = req.query.access_token; // Support URL-based auth for reports

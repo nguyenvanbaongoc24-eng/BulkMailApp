@@ -1,4 +1,4 @@
-﻿const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');
 const dns = require('dns');
 const axios = require('axios');
 const fs = require('fs');
@@ -363,10 +363,16 @@ async function startRecoveryWorker() {
 async function testEmailFlow(targetEmail) {
     console.log(`[E2E TEST] Bắt đầu verify toàn bộ flow gửi cho: ${targetEmail}`);
     
-    // 0. Lấy sender đầu tiên từ DB (cần có refresh_token OAuth2)
-    const { data: senders, error: sErr } = await supabase.from('senders').select('*').limit(1);
+    // 0. Lấy sender đầu tiên từ DB CÓ chứa refresh_token OAuth2
+    const { data: senders, error: sErr } = await supabase
+        .from('senders')
+        .select('*')
+        .eq('smtpHost', 'oauth2.google')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
     if (sErr || !senders || senders.length === 0) {
-        throw new Error('Không tìm thấy tài khoản gửi nào trong DB. Hãy kết nối Gmail OAuth trước tại giao diện web.');
+        throw new Error('Không tìm thấy tài khoản gửi Gmail REST API (OAuth2) nào trong DB. Hãy kết nối lại Gmail OAuth tại giao diện web.');
     }
     const sender = senders[0];
     console.log(`[E2E TEST] Sử dụng sender: ${sender.senderEmail || sender.smtpUser}`);
