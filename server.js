@@ -135,6 +135,7 @@ app.get('/api/debug-worker', async (req, res) => {
         
         res.json({
             serviceKey_present: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            worker_last_run: emailService.getHeartbeat(),
             campaigns_total: campCount || 0,
             email_logs_total: logCount || 0,
             status_breakdown: statusCounts,

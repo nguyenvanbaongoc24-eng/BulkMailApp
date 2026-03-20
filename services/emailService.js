@@ -10,6 +10,7 @@ const WORKER_INTERVAL = 10000; // 10s
 const RECOVERY_INTERVAL = 60 * 1000; // 1m (Gần hơn để test)
 let isWorkerRunning = false;
 let isRecoveryRunning = false;
+let lastHeartbeat = null;
 
 // PHẦN 3: RENDER TEMPLATE (FIX TAG)
 function formatDate(date) {
@@ -38,6 +39,7 @@ const validateEmail = (email) => {
 };
 
 async function startWorker() {
+    lastHeartbeat = new Date().toISOString();
     if (isWorkerRunning) return;
     isWorkerRunning = true;
     console.log(`[Worker] 🛠 Checking for email tasks at ${new Date().toLocaleTimeString()}...`);
@@ -424,5 +426,9 @@ async function testEmailFlow(targetEmail) {
 
 setInterval(startWorker, WORKER_INTERVAL);
 setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
-module.exports = { startWorker, processEmailTask, testEmailFlow };
-
+module.exports = { 
+    startWorker, 
+    processEmailTask, 
+    testEmailFlow, 
+    getHeartbeat: () => lastHeartbeat 
+};
