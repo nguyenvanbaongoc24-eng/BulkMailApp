@@ -591,10 +591,29 @@ async function loadSenders() {
     } catch (e) { console.error('Load Senders Error:', e); }
 }
 
-function connectGoogleAccount() {
-    const token = localStorage.getItem('sb-token');
-    window.location.href = `/api/auth/google?access_token=${token}`;
+async function connectGoogleAccount() {
+    try {
+        const res = await authedFetch('/api/auth/google/url');
+        const data = await res.json();
+        if (data.url) {
+            // Mở cửa sổ popup để kết nối Gmail OAuth
+            window.open(data.url, 'GoogleAuth', 'width=600,height=700');
+        } else {
+            alert('Không lấy được URL kết nối Google. Vui lòng thử lại.');
+        }
+    } catch (e) {
+        alert('Lỗi kết nối server khi lấy URL Google OAuth.');
+        console.error(e);
+    }
 }
+
+// Lắng nghe message từ popup OAuth
+window.addEventListener('message', (event) => {
+    if (event.data === 'google_auth_success') {
+        alert('Kết nối Gmail thành công! Đang tải lại danh sách tài khoản...');
+        loadSenders();
+    }
+});
 
 function openAddSenderModal() {
     document.getElementById('sender-modal-title').innerHTML = 'Thêm <span class="text-orange-gradient">tài khoản SMTP</span>';
