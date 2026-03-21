@@ -157,15 +157,40 @@ app.get('/api/debug-worker', async (req, res) => {
 
 app.get('/api/count-all', async (req, res) => {
     try {
-        const { count: c } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
-        const { count: l } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
-        const { count: s } = await supabase.from('senders').select('*', { count: 'exact', head: true });
-        const { count: t } = await supabase.from('templates').select('*', { count: 'exact', head: true });
-        const { count: cu } = await supabase.from('customers').select('*', { count: 'exact', head: true });
-        res.json({ campaigns: c, logs: l, senders: s, templates: t, customers: cu });
-    } catch (e) {
-        res.json({ error: e.message });
-    }
+        const { count: camps } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
+        const { count: logs } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
+        const { count: senders } = await supabase.from('senders').select('*', { count: 'exact', head: true });
+        const { count: temps } = await supabase.from('templates').select('*', { count: 'exact', head: true });
+        const { count: cust } = await supabase.from('customers').select('*', { count: 'exact', head: true });
+        res.json({ campaigns: camps, logs, senders, templates: temps, customers: cust });
+    } catch (e) { res.json({ error: e.message }); }
+});
+
+app.get('/api/net-diag', async (req, res) => {
+    const results = {};
+    try {
+        const dns = require('dns').promises;
+        const target = 'smtp.gmail.com';
+        
+        results.dns_v4 = await dns.resolve4(target).catch(e => e.message);
+        results.dns_v6 = await dns.resolve6(target).catch(e => e.message);
+        results.dns_lookup = await dns.lookup(target).catch(e => e.message);
+        results.dns_lookup_v4 = await dns.lookup(target, { family: 4 }).catch(e => e.message);
+        
+        const net = require('net');
+        const checkPort = (host, port) => new Promise(res => {
+            const socket = net.createConnection(port, host);
+            socket.setTimeout(3000);
+            socket.on('connect', () => { socket.destroy(); res('OPEN'); });
+            socket.on('error', (e) => res('CLOSED: ' + e.message));
+            socket.on('timeout', () => { socket.destroy(); res('TIMEOUT'); });
+        });
+        
+        results.port_587 = await checkPort(target, 587);
+        results.port_465 = await checkPort(target, 465);
+        
+        res.json(results);
+    } catch (e) { res.json({ error: e.message }); }
 });
 
 app.get('/api/reset-worker', async (req, res) => {
