@@ -1,21 +1,125 @@
 const nodemailer = require('nodemailer');
-const dns = require('dns');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const { google } = require('googleapis');
 const { adminClient: supabase } = require('./supabaseClient');
+require('dotenv').config();
 
-const WORKER_INTERVAL = 10000; // 10s
-const RECOVERY_INTERVAL = 60 * 1000; // 1m (Gần hơn để test)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+// -----------------------------------
+// 1. TẠO LOGIC LẤY SMTP TỪ SUPABASE SENDERS
+// -----------------------------------
+async function createTransporter(sender) {
+    if (!sender || !sender.smtpUser || !sender.smtpPassword || !sender.smtpHost) {
+        throw new Error("Missing SMTP config (Sender không hợp lệ hoặc thiếu thông tin cấu hình)");
+    }
+
+    const host = sender.smtpHost;
+    const port = parseInt(sender.smtpPort || "587", 10);
+    const user = sender.smtpUser;
+    const pass = sender.smtpPassword;
+    const senderName = sender.senderName || "Automation CA2";
+
+    console.log(`\n[EmailService] SMTP đang dùng: ${user} (Thuộc người gửi: ${senderName})`);
+
+    const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass }
+    });
+
+    // BẮT BUỘC verify trước khi chuẩn bị gửi
+    try {
+        await transporter.verify();
+        console.log(`[EmailService] SMTP connect OK (Verified) cho ${user}`);
+        return { transporter, fromEmail: user, senderName };
+    } catch(err) {
+        console.error(`[EmailService] SMTP connect FAIL (${user}) | Lỗi chi tiết:`, err.message);
+        throw new Error(`SMTP FAIL: ${err.message}`);
+    }
+}
+
+// -----------------------------------
+// 2. FIX TEMPLATE TAG VÀ XỬ LÝ SÓT TAG
+// -----------------------------------
+function parseTemplateAndCheckTags(template, data, isAttachMode) {
+    if (!template) return { html: "", missingTags: [] };
+
+    console.log(`[EmailService] Đang parse template (Trước):`, template.substring(0, 50) + "...");
+    
+    // Replace đúng dữ liệu
+    let parsedHTML = template
+        .replace(/#TênCôngTy/g, data.company_name || "")
+        .replace(/#MST/g, data.mst || "")
+        .replace(/#ĐịaChỉ/g, data.address || "")
+        .replace(/#NgàyHếtHạn/g, data.expired_date || "");
+
+    console.log(`[EmailService] Đã parse template (Sau):`, parsedHTML.substring(0, 50) + "...");
+
+    // Tìm các tag còn sót lại (Bắt đầu bằng # và theo sau là chữ)
+    const unmatched = parsedHTML.match(/#[A-Za-zÀ-ỹ0-9_]+/g);
+    let missingTags = [];
+    
+    if (unmatched && unmatched.length > 0) {
+        // Lọc các tag như màu sắc (#fff) ra ngoài (Chỉ coi các tag chữ tiếng Việt là tag mẫu)
+        missingTags = unmatched.filter(tag => tag.length > 4 && !(/^#[0-9A-Fa-f]{3,6}$/.test(tag)));
+        
+        if (missingTags.length > 0) {
+            console.warn(`[EmailService] WARNING: Còn sót các tag chưa được thay thế: ${missingTags.join(', ')}`);
+            // Yêu cầu: KHÔNG được gửi nếu attachCertificate = TRUE 
+            if (isAttachMode) {
+                throw new Error(`Template còn sót tag chưa thay thế: ${missingTags.join(', ')}. Không thể gửi khi đang bật chế độ đính kèm.`);
+            }
+        }
+    }
+
+    return { html: parsedHTML, missingTags };
+}
+
+// -----------------------------------
+// 3. GỬI MAIL CHUẨN + ĐÍNH KÈM THEO LOGIC MỚI
+// -----------------------------------
+async function sendEmail({ transporter, from, to, subject, html, pdf_url, isAttachMode }) {
+    console.log(`[EmailService] Chi tiết luồng gửi email tới: ${to}`);
+
+    const attachments = [];
+
+    // Kiểm tra Attach mode
+    if (isAttachMode) {
+        console.log(`[EmailService] ATTACHMENT ON`);
+        if (!pdf_url) {
+            console.error(`[EmailService] Lỗi: Bật attachCertificate nhưng thiếu URL PDF`);
+            throw new Error("Missing PDF attachment (Bật đính kèm nhưng không tìm thấy file PDF hợp lệ)");
+        }
+        
+        attachments.push({
+            filename: `ChungNhan_${subject.replace(/[^a-zA-Z0-9]/g, '_') || "CA2"}.pdf`,
+            path: pdf_url
+        });
+        console.log(`[EmailService] File được attach: ${pdf_url}`);
+    } else {
+        console.log(`[EmailService] ATTACHMENT OFF (Gửi mail thường)`);
+    }
+
+    // Call gửi
+    const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+        attachments
+    });
+
+    console.log(`[EmailService] Response từ Gmail/SMTP - Success! messageId=${info.messageId}`);
+    return info;
+}
+
+
+// -----------------------------------
+// 4. FLOW CHUẨN (XỬ LÝ WORKER TỰ ĐỘNG)
+// -----------------------------------
+const WORKER_INTERVAL = 10000;
 let isWorkerRunning = false;
-let isRecoveryRunning = false;
-let lastHeartbeat = null;
-let currentTaskId = null;
-let currentStep = 'IDLE';
-let lastError = null;
 
-// Helper to wrap Supabase RPC with timeout
 const supabaseRPC = async (name, params) => {
     return Promise.race([
         supabase.rpc(name, params),
@@ -23,446 +127,222 @@ const supabaseRPC = async (name, params) => {
     ]);
 };
 
-// PHẦN 3: RENDER TEMPLATE (FIX TAG)
-function formatDate(date) {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return date;
-  return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-}
-
-function renderTemplate(template, data) {
-  if (!template) return "";
-  return template
-    .replace(/#TênCôngTy/g, data.company_name || "")
-    .replace(/#MST/g, data.mst || "")
-    .replace(/#ĐịaChỉ/g, data.address || "")
-    .replace(/#NgàyHếtHạn/g, data.expired_date || "");
-}
-
-// Helper to validate email format
-const validateEmail = (email) => {
-    return String(email)
-        .toLowerCase()
-        .match(
-            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-        );
-};
-
-async function startWorker() {
-    lastHeartbeat = new Date().toISOString();
-    currentStep = 'START_WORKER';
-    if (isWorkerRunning) return;
-    isWorkerRunning = true;
-    console.log(`[Worker] 🛠 Checking for email tasks at ${new Date().toLocaleTimeString()}...`);
-
-    try {
-        currentStep = 'PICK_TASKS';
-        const { data: tasks, error: pickError } = await supabaseRPC('pick_email_tasks', { batch_size: 10 });
-        if (pickError) {
-             console.error(`[Worker] RPC pick_email_tasks failed: ${pickError.message}`);
-             lastError = pickError.message;
-             throw pickError;
-        }
-
-        if (!tasks || tasks.length === 0) {
-            console.log(`[Worker] No pending tasks.`);
-            currentStep = 'IDLE';
-            return;
-        }
-
-        console.log(`[Worker] 🚀 RPC returned ${tasks.length} tasks. Processing...`);
-
-        for (const log of tasks) {
-            currentTaskId = log.id;
-            try {
-                // PHẦN 9: CHỐNG SPAM
-                // Delay giữa mỗi mail: 3–5 giây
-                currentStep = 'SPAM_DELAY';
-                await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 3000));
-                
-                await processEmailTask(log);
-            } catch (taskErr) {
-                console.error(`[Worker] [${log.id}] Unhandled Task Error:`, taskErr.message);
-                lastError = taskErr.message;
-                await supabaseRPC('update_email_log_for_worker', {
-                    p_log_id: log.id,
-                    p_status: 'failed',
-                    p_error_message: `Unhandled Error: ${taskErr.message}`,
-                    p_message_id: null,
-                    p_sent_time: new Date().toISOString()
-                }).catch(() => {});
-            }
-        }
-        console.log(`[Worker] ✅ Batch processed.`);
-        currentTaskId = 'IDLE';
-        currentStep = 'IDLE';
-    } catch (err) {
-        console.error(`[Worker] Critical Loop Error:`, err.message);
-        lastError = err.message;
-    } finally {
-        isWorkerRunning = false;
-    }
-}
-
-// PHẦN 6: FLOW GỬI MAIL
 async function processEmailTask(log) {
-    console.log(`[Worker] [${log.id}] Starting processing for MST: ${log.customer_id}`);
-    let pdfAttachedStatus = 'Chờ xử lý';
-    
     try {
-        currentStep = 'UPDATE_LOG_PROCESSING';
         await supabaseRPC('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'processing',
-            p_error_message: 'Đang chuẩn bị nội dung...',
+            p_error_message: null,
             p_message_id: null,
             p_sent_time: null
         }).catch(() => {});
         
-        // Lấy campaign
-        currentStep = 'GET_CAMPAIGN';
-        const { data: campaignData, error: campaignError } = await supabaseRPC('get_campaign_for_worker', { p_campaign_id: log.campaign_id });
+        // 4. Máy chủ Lấy Campaign, Customer, Sender
+        const { data: campaignData } = await supabaseRPC('get_campaign_for_worker', { p_campaign_id: log.campaign_id });
         const campaign = campaignData && campaignData[0];
-        if (campaignError || !campaign) throw new Error(`Campaign not found or inaccessible: ${log.campaign_id}`);
+        if (!campaign) throw new Error('Dữ liệu Campaign trống rỗng');
 
-        // Lấy customer
-        currentStep = 'GET_CUSTOMER';
         const cleanMST = String(log.customer_id || '').trim();
         const recipientInExcel = (campaign.recipients || []).find(r => String(r.MST || r.taxCode || '').trim() === cleanMST);
         const { data: customerData } = await supabaseRPC('get_customer_for_worker', { p_mst: cleanMST });
-        let customer = customerData && customerData[0];
+        const customer = customerData && customerData[0] || {};
 
-        // Lấy dữ liệu cơ bản cho customer nếu không có trong DB
-        if (!customer) {
-             customer = { 
-                 mst: log.customer_id, 
-                 company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || 'Quý Doanh Nghiệp'
-             };
-        }
+        const { data: senderData } = await supabaseRPC('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
+        const senderPayload = senderData && senderData[0];
+        if (!senderPayload) throw new Error(`Không tìm thấy Sender ID ${campaign.sender_account_id || 'Unknown'}`);
 
-        // Lấy file PDF
-        const shouldAttach = campaign.attach_cert === true || campaign.attach_cert === 'true' || campaign.attachCert === true || campaign.attachCert === 'true';
-        if (shouldAttach) {
-            if (customer && customer.pdf_url) {
-                console.log(`[Worker] [${log.id}] Found existing PDF URL: ${customer.pdf_url}`);
-                pdfAttachedStatus = '✅ Có PDF';
-            } else {
-                pdfAttachedStatus = `⚠ Không tìm thấy link PDF trên Supabase cho MST ${log.customer_id}`;
-                console.warn(`[Worker] [${log.id}] ${pdfAttachedStatus}`);
-            }
-        } else {
-            pdfAttachedStatus = 'Gửi không đính kèm';
-        }
+        // Lấy điều kiện đính kèm
+        const attachCertificate = campaign.attach_cert === true || campaign.attach_cert === 'true' || campaign.attachCert === true || campaign.attachCert === 'true';
 
-        // Lấy template & replace data
-        const findVal = (obj, keys) => {
-            if (!obj) return '';
-            const entries = Object.entries(obj);
-            for (const key of keys) {
-                const found = entries.find(([k]) => k.toLowerCase().trim() === key.toLowerCase().trim());
-                if (found && found[1]) return String(found[1]);
-            }
-            return '';
-        };
-
+        // 3. Parse Template & Validate: Bắt buộc Check Sot Tag
         const dataForTags = {
-            company_name: findVal(recipientInExcel, ['company_name', 'TenCongTy', 'Tên Công Ty', 'Name', 'companyName']) || customer?.company_name || 'Quý Doanh Nghiệp',
-            mst: findVal(recipientInExcel, ['mst', 'MST', 'taxCode', 'Mã số thuế']) || customer?.mst || log.customer_id || '',
-            address: findVal(recipientInExcel, ['dia_chi', 'DiaChi', 'Địa chỉ', 'Address']) || customer?.dia_chi || '',
-            expired_date: findVal(recipientInExcel, ['NgayHetHanChuKySo', 'expired_date', 'Ngày hết hạn', 'Expiration', 'Hết hạn']) || customer?.expired_date || ''
+            company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
+            mst: recipientInExcel?.MST || recipientInExcel?.taxCode || customer.mst || cleanMST,
+            address: recipientInExcel?.DiaChi || recipientInExcel?.['Địa chỉ'] || customer.dia_chi || '',
+            expired_date: recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || ''
         };
 
-        const decodeEntities = (str) => {
-            if (!str) return '';
-            return str.replace(/&[#a-z0-9]+;/gi, match => {
-                const map = { 
-                    '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
-                    '&ecirc;': 'ê', '&ocirc;': 'ô', '&agrave;': 'à', '&aacute;': 'á', '&iacute;': 'í', 
-                    '&ograve;': 'ò', '&oacute;': 'ó', '&ugrave;': 'ù', '&uacute;': 'ú', '&yacute;': 'ý', '&đ;': 'đ',
-                    '&Agrave;': 'À', '&Aacute;': 'Á', '&Iacute;': 'Í', '&Ograve;': 'Ò', '&Oacute;': 'Ó', '&Ugrave;': 'Ù', '&Uacute;': 'Ú'
-                };
-                return map[match.toLowerCase()] || match;
-            }).normalize('NFC');
-        };
+        // Hàm này tự ném lỗi nếu tag lỗi + attachCertificate = true
+        const parsedSubject = parseTemplateAndCheckTags(campaign.subject || 'Thông báo tự động', dataForTags, attachCertificate);
+        const parsedBody = parseTemplateAndCheckTags(campaign.template || '', dataForTags, attachCertificate);
 
-        let html = decodeEntities(campaign.template || '');
-        let subject = decodeEntities(campaign.subject || 'Thông báo từ Automation CA2');
+        // 1 & 2. Khởi tạo trực tiếp Transporter, Check Verify
+        const { transporter, fromEmail, senderName } = await createTransporter(senderPayload);
 
-        // Lấy content cuối cùng (Replace content template)
-        const renderedContent = renderTemplate(html, dataForTags);
-        subject = renderTemplate(subject, dataForTags);
-
-        // PHẦN 3: Bắt buộc console.log nội dung FINAL
-        console.log(`[Worker] [${log.id}] NỘI DUNG FINAL (đã replace):`);
-        console.log(`[Worker] [${log.id}] Tiêu đề: ${subject}`);
-        console.log(`[Worker] [${log.id}] Nội dung (excerpt): ${renderedContent.substring(0, 50)}...`);
-
-        // Lấy sender details
-        currentStep = 'GET_SENDER';
-        const { data: senderData, error: senderError } = await supabaseRPC('get_sender_for_worker', { p_sender_id: campaign.sender_account_id || campaign.senderAccountId });
-        const sender = senderData && senderData[0];
-        if (senderError || !sender) throw new Error('Tài khoản người gửi không tồn tại hoặc không thể truy cập.');
-
-        if (!validateEmail(log.email)) {
-            throw new Error(`Email không hợp lệ: ${log.email}`);
-        }
-
-        // PHẦN 4: LẤY FILE PDF TỪ SUPABASE
-        let finalAttachments = [];
-        if (shouldAttach) {
-            if (customer && customer.pdf_url) {
-                console.log(`[Worker] [${log.id}] BẮT ĐẦU ĐÍNH KÈM: Found existing PDF URL: ${customer.pdf_url}`);
-                try {
-                    // Sử dụng Node_fetch với Timeout cực gắt để không treo server
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-                    
-                    const res = await (typeof fetch !== 'undefined' ? fetch : require('node-fetch'))(customer.pdf_url, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    
-                    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-                    const buffer = await res.arrayBuffer();
-                    
-                    finalAttachments.push({
-                        filename: `${cleanMST}.pdf`,
-                        content: Buffer.from(buffer)
-                    });
-                    pdfAttachedStatus = '✅ Có PDF (Attached success)';
-                } catch (err) {
-                    pdfAttachedStatus = `⚠ Lỗi tải PDF: ${err.message}`;
-                    console.error(`[Worker] [${log.id}] ATTACH FAIL: ${pdfAttachedStatus}`);
-                }
-            } else {
-                pdfAttachedStatus = `⚠ Không tìm thấy link PDF trên Supabase cho MST ${log.customer_id}`;
-                console.warn(`[Worker] [${log.id}] ATTACH FAIL: ${pdfAttachedStatus}`);
+        // ==========================================
+        // AUTO RETRY
+        // ==========================================
+        let successInfo = null;
+        let lastError = null;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                successInfo = await sendEmail({
+                    transporter,
+                    from: `"${senderName}" <${fromEmail}>`,
+                    to: log.email,
+                    subject: parsedSubject.html,
+                    html: parsedBody.html,
+                    pdf_url: customer.pdf_url, // Lấy từ DB
+                    isAttachMode: attachCertificate
+                });
+                break; // Thoát nếu OK
+            } catch (e) {
+                lastError = e;
+                console.error(`[EmailService] Retry (Lần thử ${attempt}/3) FAIL:`, e.message);
+                if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
             }
-        } else {
-            pdfAttachedStatus = 'Gửi không đính kèm';
         }
 
-        // PHẦN 5: GỬI MAIL + ĐÍNH KÈM PDF (Options cấu hình mail)
-        const userFallback = process.env.EMAIL_USER || process.env.SMTP_USER || sender.smtpUser;
-        const mailOptions = {
-            from: userFallback,
-            to: log.email,
-            subject: subject,
-            html: renderedContent,
-            attachments: finalAttachments
-        };
+        if (!successInfo) throw lastError;
 
-        console.log(`[Worker] [${log.id}] CHUẨN BỊ GỬI EMAIL ĐẾN: ${log.email}`);
-
-        // Gửi qua SMTP với Retry mechanism
-        const finalMessageId = await sendEmailWithRetry(mailOptions, sender);
-
-        // PHẦN 7: LOG LỖI (Success case - save to db)
-        currentStep = 'LOG_SUCCESS';
         await supabaseRPC('update_email_log_for_worker', {
             p_log_id: log.id,
-            p_status: 'sent',
+            p_status: 'success',
+            p_message_id: successInfo.messageId,
             p_sent_time: new Date().toISOString(),
-            p_message_id: finalMessageId,
-            p_error_message: `Hoàn thành | PDF: ${pdfAttachedStatus}`
+            p_error_message: 'Hoàn thành'
         });
-
-        console.log(`[Worker] [${log.id}] ✅ Email sent successfully to ${log.email}`);
-
-        // PHẦN 10: UI FEEDBACK (Cập nhật số đã gửi/thành công vào chiến dịch)
-        currentStep = 'UPDATE_CAMPAIGN_STATS';
         await supabaseRPC('increment_campaign_success', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
 
     } catch (err) {
-        console.error(`[Worker] [${log.id}] ❌ FAIL: ${err.message}`);
-        lastError = err.message;
+        console.error(`[EmailService] FATAL ERROR khi xử lý:`, err.message);
         
-        currentStep = 'LOG_ERROR';
         await supabaseRPC('update_email_log_for_worker', {
             p_log_id: log.id,
             p_status: 'failed',
-            p_error_message: `${pdfAttachedStatus} | Lỗi: ${err.message}`,
+            p_error_message: `Lỗi: ${err.message}`, // Bắt cứng ném nguyên String lỗi ra ngoài (No Silent Fail)
             p_message_id: null,
             p_sent_time: new Date().toISOString()
-        }).catch(() => {});
-
-        // Cập nhật lỗi UI Feedback
+        });
         await supabaseRPC('increment_campaign_error', { campaign_id: log.campaign_id });
         await checkCampaignCompletion(log.campaign_id);
     }
 }
 
-async function sendEmailWithRetry(options, senderData, maxRetries = 3) {
-    let lastErr = null;
-    
-    // ==============================================================
-    // GIẢI PHÁP DỨT ĐIỂM: KHÔNG DÙNG SMTP NỮA!
-    // Render Free Tier CHẶN TOÀN BỘ cổng SMTP (587, 465).
-    // Chuyển sang Gmail REST API qua HTTPS (port 443) - KHÔNG BAO GIỜ BỊ CHẶN.
-    // ==============================================================
-    
-    const user = process.env.EMAIL_USER || process.env.SMTP_USER || senderData.smtpUser;
-    const refreshToken = senderData.smtpPassword; // OAuth2 refresh_token được lưu trong cột smtpPassword
-
-    console.log(`[Gmail API] Sử dụng Gmail REST API (HTTPS) thay vì SMTP. Tài khoản: ${user}`);
-
-    // Bước 1: Lấy Access Token từ Refresh Token qua Google OAuth2
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
-    );
-    oauth2Client.setCredentials({ refresh_token: refreshToken });
-
-    let accessToken;
-    try {
-        // Timeout 15s cho việc lấy token hòng tránh treo vĩnh viễn
-        const tokenRes = await Promise.race([
-            oauth2Client.getAccessToken(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout lấy Access Token (15s)')), 15000))
-        ]);
-        accessToken = tokenRes.token;
-        if (!accessToken) throw new Error('Không lấy được access token từ refresh token.');
-        console.log(`[Gmail API] ✅ Access Token lấy thành công.`);
-    } catch (tokenErr) {
-        throw new Error(`OAuth2 Token Error: ${tokenErr.message}. Hãy kết nối lại Gmail OAuth.`);
-    }
-
-    // Bước 2: Dùng Nodemailer ở chế độ "stream" để biên soạn email thành chuỗi RFC2822
-    // (Không mở kết nối SMTP nào cả!) Thêm buffer: true để message trả về dạng Buffer thay vì Stream
-    const compiler = nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'unix' });
-    const compiled = await compiler.sendMail(options);
-    const rawMessage = compiled.message.toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-    console.log(`[Gmail API] Email đã được biên soạn (RFC2822). Kích thước: ${compiled.message.length} bytes`);
-
-    // Bước 3: Gửi qua Gmail REST API (HTTPS - port 443) với Retry
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`[Gmail API] [Attempt ${attempt}] Đang gửi qua HTTPS...`);
-            
-            const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-            const result = await gmail.users.messages.send({
-                userId: 'me',
-                requestBody: { raw: rawMessage }
-            }, { timeout: 30000 }); // 30s timeout cho request Gmail API để tránh treo worker
-
-            if (result.data && result.data.id) {
-                console.log(`[Gmail API] ✅ GỬI THÀNH CÔNG! MessageId: ${result.data.id}`);
-                return result.data.id;
-            }
-
-            throw new Error('Gmail API trả về response không hợp lệ: ' + JSON.stringify(result.data));
-        } catch (err) {
-            lastErr = err;
-            const errMsg = err.response?.data?.error?.message || err.errors?.[0]?.message || err.message;
-            console.error(`[Gmail API] ❌ [Attempt ${attempt}] FAIL: ${errMsg}`);
-
-            // Nếu lỗi 401/403 (Auth) thì không cần retry
-            if (err.code === 401 || err.code === 403) {
-                throw new Error(`Gmail Auth Error (${err.code}): ${errMsg}. Hãy kết nối lại tài khoản Gmail.`);
-            }
-
-            if (attempt < maxRetries) {
-                const delay = Math.floor(Math.random() * 3000) + 2000;
-                await new Promise(r => setTimeout(r, delay));
-            }
-        }
-    }
-    throw lastErr;
-}
-
-
 async function checkCampaignCompletion(campaign_id) {
     try {
-        const { data: remainingCount, error: countErr } = await supabaseRPC('get_remaining_tasks_count', { p_campaign_id: campaign_id });
-        if (countErr) throw countErr;
-        
+        const { data: remainingCount } = await supabaseRPC('get_remaining_tasks_count', { p_campaign_id: campaign_id });
         if (parseInt(remainingCount) === 0) {
-            const { data: campaignData, error: campaignGetErr } = await supabaseRPC('get_campaign_for_worker', { p_campaign_id: campaign_id });
+            const { data: campaignData } = await supabaseRPC('get_campaign_for_worker', { p_campaign_id: campaign_id });
             const campaign = campaignData && campaignData[0];
             const total = (campaign?.recipients || []).length;
             const final = (campaign?.error_count || 0) > 0 ? `Hoàn thành (Lỗi ${campaign.error_count}/${total})` : 'Hoàn thành';
-            await supabaseRPC('update_campaign_status_for_worker', {
-                p_campaign_id: campaign_id,
-                p_status: final
-            });
+            await supabaseRPC('update_campaign_status_for_worker', { p_campaign_id: campaign_id, p_status: final });
         }
     } catch (e) {}
 }
 
-async function startRecoveryWorker() {
-    if (isRecoveryRunning) return;
-    isRecoveryRunning = true;
-    try { 
-        const { error } = await supabaseRPC('recover_failed_tasks'); 
-        if (error) console.error(`[Recovery] RPC recover_failed_tasks failed: ${error.message}`);
-    } catch (err) {
-        console.error(`[Recovery] Critical Error:`, err.message);
-    } finally { 
-        isRecoveryRunning = false; 
-    }
+async function startWorker() {
+    if (isWorkerRunning) return;
+    isWorkerRunning = true;
+    try {
+        const { data: tasks, error: pickError } = await supabaseRPC('pick_email_tasks', { batch_size: 10 });
+        if (pickError) throw pickError;
+        if (!tasks || tasks.length === 0) return;
+
+        for (const log of tasks) {
+            await new Promise(r => setTimeout(r, 2000));
+            await processEmailTask(log);
+        }
+    } catch (err) { } finally { isWorkerRunning = false; }
 }
 
-async function testEmailFlow(targetEmail) {
-    console.log(`[E2E TEST] Bắt đầu verify toàn bộ flow gửi cho: ${targetEmail}`);
-    
-    // 0. Lấy sender đầu tiên từ DB CÓ chứa refresh_token OAuth2
-    const { data: senders, error: sErr } = await supabase
-        .from('senders')
-        .select('*')
-        .eq('smtpHost', 'oauth2.google')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-    if (sErr || !senders || senders.length === 0) {
-        throw new Error('Không tìm thấy tài khoản gửi Gmail REST API (OAuth2) nào trong DB. Hãy kết nối lại Gmail OAuth tại giao diện web.');
-    }
-    const sender = senders[0];
-    console.log(`[E2E TEST] Sử dụng sender: ${sender.senderEmail || sender.smtpUser}`);
-
-    const customer = {
-        company_name: 'CÔNG TY TNHH E2E TEST',
-        mst: '0123456789',
-        address: 'Hà Nội, Việt Nam',
-        expired_date: '2030-12-31'
-    };
-
-    const renderedContent = renderTemplate(`<h2>Xin chào #TênCôngTy,</h2><p>MST: <b>#MST</b></p><p>Địa chỉ: #ĐịaChỉ</p><p>Hết hạn: <b>#NgàyHếtHạn</b></p><p>Email test E2E qua Gmail API HTTPS.</p>`, customer);
-    const subject = renderTemplate(`[E2E] Thông báo cho #TênCôngTy - MST: #MST`, customer);
-
-    const mailOptions = {
-        from: sender.senderEmail || sender.smtpUser,
-        to: targetEmail,
-        subject: subject,
-        html: renderedContent,
-        attachments: [{ filename: `${customer.mst}_Cert.pdf`, content: Buffer.from('%PDF-1.0 Test') }]
-    };
-
-    console.log(`[E2E TEST] Gửi qua Gmail REST API (HTTPS)...`);
-    const messageId = await sendEmailWithRetry(mailOptions, sender, 1);
-
-    return {
-        success: true,
-        method: 'Gmail REST API (HTTPS)',
-        messageId: messageId,
-        subject_replaced: subject,
-        sender_used: sender.senderEmail || sender.smtpUser
-    };
+async function recoverFailedTasks() {
+    try { await supabaseRPC('recover_failed_tasks'); } catch(e) {}
 }
 
 setInterval(startWorker, WORKER_INTERVAL);
-setInterval(startRecoveryWorker, RECOVERY_INTERVAL);
+setInterval(recoverFailedTasks, 60 * 1000);
+
+// -----------------------------------
+// 5. TEST BẮT BUỘC 3 CASES 
+// -----------------------------------
+async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
+    console.log(`\n\n=== RUNNING E2E TEST: CASE ${testCase} ===`);
+    
+    // Fallback thử nghiệm (dùng .env nếu DB trống, để code tự test nội bộ k bị đổ gãy)
+    const fallbackSender = {
+        smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+        smtpPort: process.env.SMTP_PORT || "587",
+        smtpUser: process.env.SMTP_USER,
+        smtpPassword: process.env.SMTP_PASS,
+        senderName: "System Auto Test"
+    };
+
+    let sender;
+    if (forcedSenderId) {
+        const { data: s } = await supabase.from('senders').select('*').eq('id', forcedSenderId).limit(1);
+        sender = (s && s[0]) || fallbackSender;
+    } else {
+        const { data: senders } = await supabase.from('senders').select('*').order('created_at', { ascending: false }).limit(1);
+        sender = (senders && senders[0]) || fallbackSender;
+    }
+
+    const { transporter, fromEmail, senderName } = await createTransporter(sender);
+
+    // Mock Payload
+    const dataForTags = {
+        company_name: "TẬP ĐOÀN CA2 TEST_COMPANY",
+        mst: "010101010",
+        address: "HN VN",
+        expired_date: "12/12/2030"
+    };
+
+    let rawTemplate = `Xin chào #TênCôngTy, Mã số thuế của ngài là #MST.</p>`;
+    let attachCertificate = false;
+    let mockPdfUrl = null;
+
+    if (testCase === 1) {
+        // CASE 1: attachCertificate = FALSE -> gửi mail thành công, không PDF
+        attachCertificate = false;
+        mockPdfUrl = null; 
+    } 
+    else if (testCase === 2) {
+        // CASE 2: attachCertificate = TRUE + có PDF -> gửi thành công + có đính kèm
+        attachCertificate = true;
+        mockPdfUrl = "https://media.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+    }
+    else if (testCase === 3) {
+        // CASE 3: attachCertificate = TRUE + KHÔNG có PDF -> FAIL + BÁO LỖI
+        attachCertificate = true;
+        mockPdfUrl = null;
+    }
+    else if (testCase === 4) {
+        // BONUS CASE: attachCertificate = TRUE + Có SÓT TAG LỖI -> FAIL + BÁO LỖI
+        attachCertificate = true;
+        mockPdfUrl = "https://media.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+        rawTemplate = `Xin chào #TênCôngTy, mã là #MST. Các biến lỗi: #LoiNghiemTrongChuaThayThe`;
+    }
+
+    // Tiến hành Render
+    const parsedBody = parseTemplateAndCheckTags(rawTemplate, dataForTags, attachCertificate);
+
+    // Gọi lệnh gửi (Nếu thiếu file PDF sẽ throw Error)
+    try {
+        const info = await sendEmail({
+            transporter,
+            from: `"[TEST V${testCase}] ${senderName}" <${fromEmail}>`,
+            to: targetEmail,
+            subject: `Test CA2 - Case ${testCase}`,
+            html: parsedBody.html,
+            pdf_url: mockPdfUrl,
+            isAttachMode: attachCertificate
+        });
+        console.log(`\n✅ TEST CASE ${testCase} XONG - SUCCESS!`);
+        return { success: true, messageId: info.messageId, html: parsedBody.html, sent_via: fromEmail, case: testCase };
+    } catch(err) {
+        console.error(`\n❌ TEST CASE ${testCase} XONG - THẤT BẠI CÓ CHỦ ĐÍCH:`, err.message);
+        throw err; // BẮT BUỘC RƠI LỖI LÊN - KHÔNG SILENT FAIL
+    }
+}
+
 module.exports = { 
     startWorker, 
     processEmailTask, 
-    testEmailFlow, 
-    getHeartbeat: () => ({ 
-        time: lastHeartbeat, 
-        task: currentTaskId, 
-        step: currentStep,
-        error: lastError
-    }) 
+    testEmailFlow,
+    createTransporter,
+    parseTemplateAndCheckTags,
+    sendEmail
 };
