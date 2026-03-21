@@ -840,14 +840,21 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
             }
         }
 
+        // Reset any failed logs to "pending" so the worker can retry them
+        await supabase.from('email_logs')
+            .update({ status: 'pending', retry_count: 0, error_message: null })
+            .eq('campaign_id', campaignId)
+            .eq('status', 'failed')
+            .eq('user_id', req.user.id);
+
         await supabase.from('campaigns').update({ 
             status: 'Đang gửi', 
             sent_count: 0, 
             success_count: 0, 
             error_count: 0 
-        }).eq('id', campaign.id);
+        }).eq('id', campaign.id).eq('user_id', req.user.id);
 
-        res.json({ success: true, message: 'Chiến dịch đã bắt đầu. Vui lòng theo dõi tiến độ trên giao diện.' });
+        res.json({ success: true, message: 'Chiến dịch đã bắt đầu (Đã reset các lỗi cũ nếu có). Vui lòng theo dõi tiến độ.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
