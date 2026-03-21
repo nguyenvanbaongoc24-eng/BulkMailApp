@@ -198,17 +198,26 @@ const authenticate = async (req, res, next) => {
         token = req.headers.authorization.split(' ')[1];
     }
 
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
-    const { data: { user }, error } = await anonClient.auth.getUser(token);
-    if (error || !user) {
-        console.error('[Auth] getUser failed:', error?.message || 'No user found');
-        return res.status(401).json({ error: 'Invalid session' });
+    if (!token) {
+        console.warn('[AUTH] Missing token');
+        return res.status(401).json({ error: 'Unauthorized: Missing token' });
     }
 
-    req.user = user;
-    req.token = token;
-    next();
+    try {
+        const { data: { user }, error } = await anonClient.auth.getUser(token);
+        
+        if (error || !user) {
+            console.error('[AUTH] getUser failed:', error?.message || 'No user found', 'Token prefix:', token.substring(0, 10));
+            return res.status(401).json({ error: 'Invalid session: ' + (error?.message || 'No user found') });
+        }
+
+        req.user = user;
+        req.token = token;
+        next();
+    } catch (e) {
+        console.error('[AUTH] Critical error during authentication:', e.message);
+        return res.status(500).json({ error: 'Internal Auth Error' });
+    }
 };
 
 // Direct SMTP Test - Tests a specific sender from DB
