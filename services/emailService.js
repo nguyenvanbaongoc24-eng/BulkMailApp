@@ -1,6 +1,12 @@
 const nodemailer = require('nodemailer');
 const { adminClient: supabase } = require('./supabaseClient');
+const dns = require('dns');
 require('dotenv').config();
+
+// FIX: Force IPv4 for Render network issues (ENETUNREACH IPv6)
+if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+}
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -31,9 +37,6 @@ function normalizeSender(raw) {
     };
 }
 
-// -----------------------------------
-// 1. TẠO TRANSPORTER VỚI FULL VALIDATION
-// -----------------------------------
 async function createTransporter(rawSender) {
     const sender = normalizeSender(rawSender);
 
@@ -63,16 +66,20 @@ async function createTransporter(rawSender) {
     const pass = sender.smtpPassword;
     const senderName = sender.senderName;
 
-    console.log(`[SMTP] Connecting to ${host}:${port} as ${user}...`);
+    console.log(`[SMTP] Connecting to ${host}:${port} as ${user} (Forcing IPv4)...`);
 
     const transporter = nodemailer.createTransport({
         host,
         port,
         secure: port === 465,
         auth: { user, pass },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        family: 4, // Enforce IPv4 to avoid Render ENETUNREACH error
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 30000,
+        tls: {
+            rejectUnauthorized: false // Bypass self-signed or legacy SMTP cert issues
+        }
     });
 
     try {
