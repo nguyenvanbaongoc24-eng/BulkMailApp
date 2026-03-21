@@ -155,6 +155,19 @@ app.get('/api/debug-worker', async (req, res) => {
     }
 });
 
+app.get('/api/count-all', async (req, res) => {
+    try {
+        const { count: c } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
+        const { count: l } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
+        const { count: s } = await supabase.from('senders').select('*', { count: 'exact', head: true });
+        const { count: t } = await supabase.from('templates').select('*', { count: 'exact', head: true });
+        const { count: cu } = await supabase.from('customers').select('*', { count: 'exact', head: true });
+        res.json({ campaigns: c, logs: l, senders: s, templates: t, customers: cu });
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
 app.get('/api/reset-worker', async (req, res) => {
     try {
         const { count, error } = await supabase
