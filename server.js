@@ -99,47 +99,6 @@ app.get('/api/test-email', async (req, res) => {
     }
 });
 
-// Direct SMTP Test - Tests a specific sender from DB
-app.get('/api/test-smtp', authenticate, async (req, res) => {
-    try {
-        const senderId = req.query.sender_id;
-        const targetEmail = req.query.email || req.user.email;
-        
-        if (!senderId) {
-            // List all senders for this user
-            const { data: senders } = await getClient(req.token).from('senders').select('id, senderName, senderEmail, smtpHost, smtpPort, smtpUser').eq('user_id', req.user.id);
-            return res.json({ 
-                message: 'Add ?sender_id=XXX&email=YYY to test. Available senders:', 
-                senders 
-            });
-        }
-        
-        const { data: senders } = await getClient(req.token).from('senders').select('*').eq('id', senderId).eq('user_id', req.user.id);
-        if (!senders || senders.length === 0) return res.status(404).json({ error: 'Sender not found' });
-        
-        const sender = senders[0];
-        console.log(`[TEST-SMTP] Testing sender ${sender.id} (${sender.smtpUser || sender.smtp_user}) -> ${targetEmail}`);
-        
-        const { transporter, fromEmail, senderName } = await emailService.createTransporter(sender);
-        
-        const info = await transporter.sendMail({
-            from: `"[TEST] ${senderName}" <${fromEmail}>`,
-            to: targetEmail,
-            subject: `[SMTP Test] ${new Date().toISOString()}`,
-            html: '<h2>SMTP Test OK!</h2><p>Nếu bạn thấy email này, cấu hình SMTP đúng rồi!</p>'
-        });
-        
-        res.json({ 
-            success: true, 
-            messageId: info.messageId, 
-            response: info.response,
-            from: fromEmail,
-            to: targetEmail
-        });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
 
 app.get('/api/debug-sender', async (req, res) => {
     try {
@@ -238,6 +197,31 @@ const authenticate = async (req, res, next) => {
     req.token = token;
     next();
 };
+
+// Direct SMTP Test - Tests a specific sender from DB
+app.get('/api/test-smtp', authenticate, async (req, res) => {
+    try {
+        const senderId = req.query.sender_id;
+        const targetEmail = req.query.email || req.user.email;
+        if (!senderId) {
+            const { data: senders } = await getClient(req.token).from('senders').select('id, senderName, senderEmail, smtpHost, smtpPort, smtpUser').eq('user_id', req.user.id);
+            return res.json({ message: 'Add ?sender_id=XXX&email=YYY to test.', senders });
+        }
+        const { data: senders } = await getClient(req.token).from('senders').select('*').eq('id', senderId).eq('user_id', req.user.id);
+        if (!senders || senders.length === 0) return res.status(404).json({ error: 'Sender not found' });
+        const sender = senders[0];
+        const { transporter, fromEmail, senderName } = await emailService.createTransporter(sender);
+        const info = await transporter.sendMail({
+            from: `"[TEST] ${senderName}" <${fromEmail}>`,
+            to: targetEmail,
+            subject: `[SMTP Test] ${new Date().toISOString()}`,
+            html: '<h2>SMTP Test OK!</h2><p>Email này xác nhận cấu hình SMTP đúng.</p>'
+        });
+        res.json({ success: true, messageId: info.messageId, response: info.response, from: fromEmail, to: targetEmail });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
 
 // --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
