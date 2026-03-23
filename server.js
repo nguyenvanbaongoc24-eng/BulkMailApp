@@ -245,31 +245,6 @@ const authenticate = async (req, res, next) => {
     }
 };
 
-// Direct SMTP Test - Tests a specific sender from DB
-app.get('/api/test-smtp', authenticate, async (req, res) => {
-    try {
-        const senderId = req.query.sender_id;
-        const targetEmail = req.query.email || req.user.email;
-        if (!senderId) {
-            const { data: senders } = await getClient(req.token).from('senders').select('id, senderName, senderEmail, smtpHost, smtpPort, smtpUser').eq('user_id', req.user.id);
-            return res.json({ message: 'Add ?sender_id=XXX&email=YYY to test.', senders });
-        }
-        const { data: senders } = await getClient(req.token).from('senders').select('*').eq('id', senderId).eq('user_id', req.user.id);
-        if (!senders || senders.length === 0) return res.status(404).json({ error: 'Sender not found' });
-        const sender = senders[0];
-        const { transporter, fromEmail, senderName } = await emailService.createTransporter(sender);
-        const info = await transporter.sendMail({
-            from: `"[TEST] ${senderName}" <${fromEmail}>`,
-            to: targetEmail,
-            subject: `[SMTP Test] ${new Date().toISOString()}`,
-            html: '<h2>SMTP Test OK!</h2><p>Email này xác nhận cấu hình SMTP đúng.</p>'
-        });
-        res.json({ success: true, messageId: info.messageId, response: info.response, from: fromEmail, to: targetEmail });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
 // --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
     try {
@@ -836,12 +811,21 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
         const { data: campaign, error: cErr } = await getClient(req.token).from('campaigns').select('*').eq('id', campaignId).eq('user_id', req.user.id).single();
         if (cErr || !campaign) throw new Error('Không tìm thấy chiến dịch');
 
+        console.log(`\n[CAMPAIGN SEND] ========================================`);
+        console.log(`[CAMPAIGN SEND] Starting campaign: ${campaignId}`);
+        console.log(`[CAMPAIGN SEND] Name: ${campaign.name}`);
+        console.log(`[CAMPAIGN SEND] attach_cert: ${campaign.attach_cert} (type: ${typeof campaign.attach_cert})`);
+        console.log(`[CAMPAIGN SEND] sender_account_id: ${campaign.sender_account_id}`);
+        console.log(`[CAMPAIGN SEND] Recipients: ${(campaign.recipients || []).length}`);
+
         // Update campaign status to "Đang gửi" and reset counters
         // This triggers the emailService.js worker which picks up "pending" logs
         // Ensure logs exist in email_logs table for this campaign
         const { count } = await supabase.from('email_logs').select('*', { count: 'exact', head: true }).eq('campaign_id', campaignId);
+        console.log(`[CAMPAIGN SEND] Existing email_logs count: ${count || 0}`);
+        
         if (!count || count === 0) {
-            console.log(`[Campaign] Creating missing email_logs for campaign ${campaignId}...`);
+            console.log(`[CAMPAIGN SEND] Creating missing email_logs for campaign ${campaignId}...`);
             const recipients = campaign.recipients || [];
             if (recipients.length > 0) {
                 const logs = recipients.map(r => {
@@ -861,16 +845,19 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
                 });
                 const { error: logsError } = await getClient(req.token).from('email_logs').insert(logs);
                 if (logsError) throw new Error(`Lỗi tạo hàng đợi email: ${logsError.message}`);
-                console.log(`[Campaign] Successfully created ${logs.length} logs for campaign ${campaignId}.`);
+                console.log(`[CAMPAIGN SEND] ✅ Created ${logs.length} email_logs`);
             }
         }
 
         // Reset any failed logs to "pending" so the worker can retry them
-        await supabase.from('email_logs')
+        const { count: resetCount } = await supabase.from('email_logs')
             .update({ status: 'pending', retry_count: 0, error_message: null })
             .eq('campaign_id', campaignId)
             .eq('status', 'failed')
-            .eq('user_id', req.user.id);
+            .eq('user_id', req.user.id)
+            .select('*', { count: 'exact', head: true });
+        
+        console.log(`[CAMPAIGN SEND] Reset ${resetCount || 0} previously failed logs to pending`);
 
         await supabase.from('campaigns').update({ 
             status: 'Đang gửi', 
@@ -879,8 +866,12 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
             error_count: 0 
         }).eq('id', campaign.id).eq('user_id', req.user.id);
 
+        console.log(`[CAMPAIGN SEND] ✅ Campaign status set to "Đang gửi". Worker will pick up tasks.`);
+        console.log(`[CAMPAIGN SEND] ========================================\n`);
+
         res.json({ success: true, message: 'Chiến dịch đã bắt đầu (Đã reset các lỗi cũ nếu có). Vui lòng theo dõi tiến độ.' });
     } catch (err) {
+        console.error(`[CAMPAIGN SEND] ❌ Error: ${err.message}`);
         res.status(500).json({ error: err.message });
     }
 });

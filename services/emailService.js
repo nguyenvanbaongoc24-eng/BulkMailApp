@@ -69,6 +69,7 @@ const makeBase64Url = (str) => {
 const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMode) => {
     const boundary = `====boundary_${Date.now()}====`;
     const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+    let pdfSkipped = false;
     
     let message = `To: ${to}\r\n`;
     message += `From: ${from}\r\n`;
@@ -81,85 +82,118 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     message += `Content-Type: text/html; charset="UTF-8"\r\n\r\n`;
     message += `${htmlBody}\r\n\r\n`;
     
-    // Part 2: PDF Attachment (if any)
+    // Part 2: PDF Attachment (if requested)
     if (isAttachMode) {
         if (!pdfUrl) {
-            throw new Error('attachCertificate=TRUE nhưng không có PDF URL. Không gửi.');
-        }
-        try {
-            console.log(`[MIME] Fetching PDF from: ${pdfUrl}`);
-            const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
-            const pdfBase64 = Buffer.from(response.data).toString('base64');
-            const filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-            
-            message += `--${boundary}\r\n`;
-            message += `Content-Type: application/pdf; name="${filename}"\r\n`;
-            message += `Content-Disposition: attachment; filename="${filename}"\r\n`;
-            message += `Content-Transfer-Encoding: base64\r\n\r\n`;
-            
-            // Gmail API requires word-wrapping the base64 attachment roughly every 76 chars
-            const wrappedBase64 = pdfBase64.match(/.{1,76}/g).join('\r\n');
-            message += `${wrappedBase64}\r\n\r\n`;
-            console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
-        } catch (err) {
-            console.error('[MIME] Lỗi tải File PDF:', err.message);
-            throw new Error('Lỗi khi tải hoặc đính kèm PDF: ' + err.message);
+            // FIX: Send email WITHOUT attachment instead of throwing
+            console.warn(`[MIME] ⚠ attachCertificate=TRUE nhưng pdf_url=NULL → GỬI MAIL KHÔNG ĐÍNH KÈM PDF`);
+            pdfSkipped = true;
+        } else {
+            try {
+                console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl}`);
+                const response = await axios.get(pdfUrl, { responseType: 'arraybuffer', timeout: 30000 });
+                const pdfBase64 = Buffer.from(response.data).toString('base64');
+                const filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+                console.log(`[MIME] PDF fetched OK: size=${response.data.length} bytes, base64 length=${pdfBase64.length}`);
+                
+                message += `--${boundary}\r\n`;
+                message += `Content-Type: application/pdf; name="${filename}"\r\n`;
+                message += `Content-Disposition: attachment; filename="${filename}"\r\n`;
+                message += `Content-Transfer-Encoding: base64\r\n\r\n`;
+                
+                // Gmail API requires word-wrapping the base64 attachment roughly every 76 chars
+                const wrappedBase64 = pdfBase64.match(/.{1,76}/g).join('\r\n');
+                message += `${wrappedBase64}\r\n\r\n`;
+                console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
+            } catch (err) {
+                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, err.message);
+                console.warn(`[MIME] ⚠ Skipping PDF attachment, sending email without it...`);
+                pdfSkipped = true;
+            }
         }
     }
     
     message += `--${boundary}--`;
-    return makeBase64Url(message);
+    
+    const encoded = makeBase64Url(message);
+    console.log(`[MIME] ✅ MIME built: total size=${message.length} chars, base64url length=${encoded.length}, hasAttachment=${isAttachMode && !pdfSkipped}`);
+    return { raw: encoded, pdfSkipped };
 };
 
 async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMode }) {
     const sender = normalizeSender(rawSender);
-    console.log(`\n[SEND] FROM: ${sender.senderEmail}`);
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`[SEND] 📧 GMAIL API SEND START`);
+    console.log(`[SEND] FROM: ${sender.senderEmail}`);
     console.log(`[SEND] TO: ${to}`);
     console.log(`[SEND] SUBJECT: ${subject}`);
+    console.log(`[SEND] attachMode: ${isAttachMode}, pdf_url: ${pdf_url || 'NULL'}`);
     
     // The refresh_token is stored in smtpPassword for OAuth2 accounts
     const refreshToken = sender.smtpPassword;
-    if (!refreshToken) throw new Error('Không tìm thấy Refresh Token (smtpPassword trống).');
+    if (!refreshToken) {
+        console.error(`[SEND] ❌ FATAL: smtpPassword (refresh_token) is EMPTY!`);
+        throw new Error('Không tìm thấy Refresh Token (smtpPassword trống).');
+    }
+    console.log(`[SEND] 🔑 refresh_token exists: length=${refreshToken.length}, starts=${refreshToken.substring(0, 8)}...`);
 
     // 1. Initialize OAuth2 Client
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
-    );
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    console.log(`[SEND] GOOGLE_CLIENT_ID: ${clientId ? `exists (${clientId.length} chars)` : '❌ MISSING'}`);
+    console.log(`[SEND] GOOGLE_CLIENT_SECRET: ${clientSecret ? `exists (${clientSecret.length} chars)` : '❌ MISSING'}`);
+    
+    if (!clientId || !clientSecret) {
+        throw new Error('GOOGLE_CLIENT_ID hoặc GOOGLE_CLIENT_SECRET chưa được cấu hình trên server!');
+    }
+    
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
     oauth2Client.setCredentials({ refresh_token: refreshToken });
 
     // Ensure token is valid / refreshed
     let accessToken;
     try {
-        const { token } = await oauth2Client.getAccessToken(); // Auto-refreshes if needed
+        console.log(`[SEND] 🔄 Refreshing access token...`);
+        const { token } = await oauth2Client.getAccessToken();
         accessToken = token;
-        if (!accessToken) throw new Error('Cannot get access token from refresh token');
-        console.log(`[SEND] 🔑 Token refreshed OK. Token starts with: ${accessToken.substring(0, 10)}...`);
+        if (!accessToken) throw new Error('getAccessToken() returned null — refresh token may be revoked');
+        console.log(`[SEND] ✅ Access token OK: length=${accessToken.length}, starts=${accessToken.substring(0, 15)}...`);
     } catch (tokenErr) {
-        console.error(`[SEND] ❌ Auth Error:`, tokenErr.response?.data || tokenErr.message);
-        throw new Error('Lỗi làm mới Token (invalid_grant hoặc token expired). Vui lòng kết nối lại tài khoản Gmail.');
+        const detail = tokenErr.response?.data || tokenErr.message;
+        console.error(`[SEND] ❌ OAuth2 Token Error:`, JSON.stringify(detail));
+        throw new Error('Lỗi làm mới Token (invalid_grant hoặc token expired). Vui lòng kết nối lại tài khoản Gmail. Detail: ' + JSON.stringify(detail));
     }
 
     // 2. Build MIME
     const fromString = `"${sender.senderName}" <${sender.senderEmail}>`;
-    const mimeEncodedMessage = await buildMimeMessage(fromString, to, subject, html, pdf_url, isAttachMode);
+    console.log(`[SEND] 📝 Building MIME message...`);
+    const mimeResult = await buildMimeMessage(fromString, to, subject, html, pdf_url, isAttachMode);
 
     // 3. Send using Gmail API
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
     
     try {
-        console.log(`[SEND] Calling gmail.users.messages.send...`);
+        console.log(`[SEND] 🚀 Calling gmail.users.messages.send... (raw length: ${mimeResult.raw.length})`);
         const res = await gmail.users.messages.send({
             userId: 'me',
-            requestBody: { raw: mimeEncodedMessage }
+            requestBody: { raw: mimeResult.raw }
         });
         
-        console.log(`[SEND] ✅ SUCCESS! messageId: ${res.data.id}`);
-        return { messageId: res.data.id, response: 'Sent via Gmail API' };
+        console.log(`[SEND] ✅✅✅ GMAIL API SUCCESS! messageId: ${res.data.id}, threadId: ${res.data.threadId}`);
+        console.log(`[SEND] Full response:`, JSON.stringify(res.data));
+        console.log(`${'='.repeat(60)}\n`);
+        
+        let responseMsg = 'Sent via Gmail API';
+        if (mimeResult.pdfSkipped) responseMsg += ' (PDF skipped - no URL)';
+        
+        return { messageId: res.data.id, response: responseMsg, pdfSkipped: mimeResult.pdfSkipped };
     } catch (gErr) {
-        const errorDetails = gErr.response?.data || gErr.message;
-        console.error(`[SEND] ❌ GMAIL API ERROR:`, errorDetails);
-        throw new Error(`Gmail API failure: ${JSON.stringify(errorDetails)}`);
+        const errorDetails = gErr.response?.data?.error || gErr.response?.data || gErr.message;
+        console.error(`[SEND] ❌ GMAIL API ERROR:`, JSON.stringify(errorDetails));
+        console.error(`[SEND] Error status:`, gErr.response?.status);
+        console.error(`[SEND] Error headers:`, JSON.stringify(gErr.response?.headers || {}));
+        console.log(`${'='.repeat(60)}\n`);
+        throw new Error(`Gmail API failure (${gErr.response?.status || 'unknown'}): ${JSON.stringify(errorDetails)}`);
     }
 }
 
@@ -309,52 +343,74 @@ async function dbRecoverStuck() {
 
 async function processEmailTask(log) {
     setHeartbeat('START processEmailTask', log.id);
-    console.log(`\n\n▶▶▶ PROCESSING: ${log.id} | email: ${log.email} | MST: ${log.customer_id} ▶▶▶`);
+    console.log(`\n\n${'▶'.repeat(30)}`);
+    console.log(`▶ PROCESSING TASK: ${log.id}`);
+    console.log(`▶ Email: ${log.email}`);
+    console.log(`▶ MST/customer_id: ${log.customer_id}`);
+    console.log(`▶ Campaign: ${log.campaign_id}`);
+    console.log(`${'▶'.repeat(30)}`);
 
     try {
         // Mark as processing
         await dbUpdateEmailLog(log.id, 'processing', null, null);
 
-        // Get Campaign
+        // Step 1: Get Campaign
         setHeartbeat('Getting campaign', log.id);
         const campaign = await dbGetCampaign(log.campaign_id);
-        console.log(`[TASK] Campaign: "${campaign.name}", sender: ${campaign.sender_account_id}`);
+        console.log(`[TASK:1] ✅ Campaign loaded: "${campaign.name}"`);
+        console.log(`[TASK:1]    sender_account_id: ${campaign.sender_account_id}`);
+        console.log(`[TASK:1]    attach_cert: ${campaign.attach_cert} (type: ${typeof campaign.attach_cert})`);
+        console.log(`[TASK:1]    recipients count: ${(campaign.recipients || []).length}`);
+        console.log(`[TASK:1]    subject: ${campaign.subject}`);
 
-        // Get Customer
+        // Step 2: Get Customer data
         const cleanMST = String(log.customer_id || '').trim();
         const recipientInExcel = (campaign.recipients || []).find(r =>
             String(r.MST || r.taxCode || '').trim() === cleanMST
         );
         const customer = await dbGetCustomer(cleanMST);
-        console.log(`[TASK] Excel match: ${recipientInExcel ? 'YES' : 'NO'}, DB pdf: ${customer.pdf_url || 'NONE'}`);
+        console.log(`[TASK:2] ✅ Customer lookup for MST "${cleanMST}":`);
+        console.log(`[TASK:2]    Excel match: ${recipientInExcel ? 'YES' : 'NO'}`);
+        console.log(`[TASK:2]    DB customer found: ${customer && customer.mst ? 'YES' : 'NO'}`);
+        console.log(`[TASK:2]    pdf_url: ${customer.pdf_url || '❌ NULL/EMPTY'}`);
+        console.log(`[TASK:2]    company_name: ${customer.company_name || recipientInExcel?.TenCongTy || 'N/A'}`);
 
-        // Get Sender
+        // Step 3: Get Sender
         setHeartbeat('Getting sender', log.id);
         const senderId = campaign.sender_account_id || campaign.senderAccountId;
+        console.log(`[TASK:3] Looking up sender: ${senderId}`);
         const senderRaw = await dbGetSender(senderId);
+        console.log(`[TASK:3] ✅ Sender loaded: ${senderRaw.senderEmail || senderRaw.sender_email || 'unknown'}`);
+        console.log(`[TASK:3]    smtpHost: ${senderRaw.smtpHost || senderRaw.smtp_host || 'N/A'}`);
+        console.log(`[TASK:3]    has refresh_token: ${!!(senderRaw.smtpPassword || senderRaw.smtp_password)}`);
 
-        // Attach mode
+        // Step 4: Determine attach mode
         const attachCertificate = campaign.attach_cert === true || campaign.attach_cert === 'true';
-        console.log(`[TASK] attachCertificate: ${attachCertificate}`);
+        console.log(`[TASK:4] attachCertificate resolved: ${attachCertificate}`);
 
-        // Parse Template
+        // Step 5: Parse Template
         const dataForTags = {
             company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
             mst: recipientInExcel?.MST || recipientInExcel?.taxCode || customer.mst || cleanMST,
             address: recipientInExcel?.DiaChi || recipientInExcel?.['Địa chỉ'] || customer.dia_chi || '',
             expired_date: recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || ''
         };
-        const parsedSubject = parseTemplateAndCheckTags(campaign.subject || 'Thông báo tự động', dataForTags, attachCertificate);
-        const parsedBody = parseTemplateAndCheckTags(campaign.template || '', dataForTags, attachCertificate);
+        console.log(`[TASK:5] Template data:`, JSON.stringify(dataForTags));
+        
+        const parsedSubject = parseTemplateAndCheckTags(campaign.subject || 'Thông báo tự động', dataForTags, false);
+        const parsedBody = parseTemplateAndCheckTags(campaign.template || '', dataForTags, false);
+        console.log(`[TASK:5] ✅ Parsed subject: ${parsedSubject.html}`);
+        console.log(`[TASK:5]    Parsed body length: ${parsedBody.html.length} chars`);
+        if (parsedSubject.missingTags.length > 0) console.warn(`[TASK:5] ⚠ Subject missing tags: ${parsedSubject.missingTags}`);
+        if (parsedBody.missingTags.length > 0) console.warn(`[TASK:5] ⚠ Body missing tags: ${parsedBody.missingTags}`);
 
-        // Send with retry (3 attempts)
+        // Step 6: Send with retry (3 attempts)
         setHeartbeat('Sending', log.id);
         let successInfo = null;
         let lastError = null;
-
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-                console.log(`[TASK] Send attempt ${attempt}/3...`);
+                console.log(`\n[TASK:6] 🚀 Send attempt ${attempt}/3 using Gmail API...`);
                 successInfo = await sendGmailAPI({
                     rawSender: senderRaw,
                     to: log.email,
@@ -363,25 +419,35 @@ async function processEmailTask(log) {
                     pdf_url: customer.pdf_url,
                     isAttachMode: attachCertificate
                 });
+                console.log(`[TASK:6] ✅ Attempt ${attempt} succeeded!`);
                 break;
             } catch (e) {
                 lastError = e;
-                console.error(`[TASK] ❌ Attempt ${attempt}/3: ${e.message}`);
-                if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+                console.error(`[TASK:6] ❌ Attempt ${attempt}/3 FAILED: ${e.message}`);
+                if (attempt < 3) {
+                    console.log(`[TASK:6] ⏳ Waiting 3s before retry...`);
+                    await new Promise(r => setTimeout(r, 3000));
+                }
             }
         }
 
-        if (!successInfo) throw lastError || new Error('All 3 attempts failed');
+        if (!successInfo) throw lastError || new Error('All 3 send attempts failed');
 
         // ✅ SUCCESS
-        await dbUpdateEmailLog(log.id, 'success', successInfo.messageId, `OK: ${successInfo.response || 'Delivered'}`);
+        let statusMsg = `OK: ${successInfo.response || 'Delivered'}`;
+        if (successInfo.pdfSkipped) statusMsg += ' [PDF skipped - no URL]';
+        
+        await dbUpdateEmailLog(log.id, 'success', successInfo.messageId, statusMsg);
         await dbIncrementSuccess(log.campaign_id);
         await dbCheckCompletion(log.campaign_id);
-        console.log(`[TASK] ✅✅✅ SENT to ${log.email} ✅✅✅\n`);
+        console.log(`\n[TASK] ✅✅✅ EMAIL SENT SUCCESSFULLY to ${log.email} ✅✅✅`);
+        console.log(`[TASK] messageId: ${successInfo.messageId}\n`);
 
     } catch (err) {
         setHeartbeat('ERROR', log.id, err.message);
-        console.error(`[TASK] ❌❌❌ FAILED for ${log.email}: ${err.message}`);
+        console.error(`\n[TASK] ❌❌❌ TASK FAILED for ${log.email} ❌❌❌`);
+        console.error(`[TASK] Error: ${err.message}`);
+        console.error(`[TASK] Stack: ${err.stack}\n`);
 
         try {
             await dbUpdateEmailLog(log.id, 'failed', null, `FAILED: ${err.message}`.substring(0, 500));
@@ -402,13 +468,21 @@ async function startWorker() {
         const tasks = await dbPickTasks(10);
         if (!tasks || tasks.length === 0) return;
 
-        console.log(`\n🔄 WORKER: Found ${tasks.length} pending tasks`);
-        for (const log of tasks) {
+        console.log(`\n${'🔄'.repeat(5)} WORKER CYCLE START ${'🔄'.repeat(5)}`);
+        console.log(`[WORKER] Found ${tasks.length} pending task(s)`);
+        console.log(`[WORKER] Tasks: ${tasks.map(t => `${t.id.substring(0,8)}→${t.email}`).join(', ')}`);
+        
+        for (let i = 0; i < tasks.length; i++) {
+            const log = tasks[i];
+            console.log(`\n[WORKER] Processing task ${i + 1}/${tasks.length}...`);
             await new Promise(r => setTimeout(r, 2000));
             await processEmailTask(log);
         }
+        
+        console.log(`[WORKER] ✅ Cycle complete. Processed ${tasks.length} task(s).\n`);
     } catch (err) {
-        console.error(`[WORKER] ❌ Error: ${err.message}`);
+        console.error(`[WORKER] ❌ Critical Error: ${err.message}`);
+        console.error(`[WORKER] Stack: ${err.stack}`);
         setHeartbeat('Worker error', null, err.message);
     } finally {
         isWorkerRunning = false;
@@ -452,14 +526,16 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
     if (testCase === 3) { attachCertificate = true; mockPdfUrl = null; }
 
     const parsedBody = parseTemplateAndCheckTags(rawTemplate, dataForTags, attachCertificate);
-    const info = await sendGmailAPI({
+    const sendArgs = {
         rawSender: sender,
         to: targetEmail,
         subject: `[TEST CA2] Case ${testCase} - ${new Date().toISOString()}`,
         html: parsedBody.html,
         pdf_url: mockPdfUrl,
         isAttachMode: attachCertificate
-    });
+    };
+
+    const info = await sendGmailAPI(sendArgs);
 
     return { success: true, messageId: info.messageId, response: info.response, sent_via: sender.senderEmail, case: testCase };
 }
