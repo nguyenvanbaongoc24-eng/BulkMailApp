@@ -165,7 +165,10 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
     }
 
     // 2. Build MIME
-    const fromString = `"${sender.senderName}" <${sender.senderEmail}>`;
+    // Fix: Properly encode sender name for UTF-8 (RFC 2047) to prevent "BÃ¡o LÃ£i" gibberish
+    const encodedSenderName = `=?utf-8?B?${Buffer.from(sender.senderName || sender.senderEmail).toString('base64')}?=`;
+    const fromString = `${encodedSenderName} <${sender.senderEmail}>`;
+    
     console.log(`[SEND] 📝 Building MIME message...`);
     const mimeResult = await buildMimeMessage(fromString, to, subject, html, pdf_url, isAttachMode);
 
