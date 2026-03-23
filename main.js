@@ -180,7 +180,7 @@ ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, co
         const { error: customerError } = await supabase
             .from('customers')
             .update({ pdf_url: publicUrl })
-            .eq('taxCode', mst);
+            .eq('mst', mst); // FIX: match on 'mst' column, not 'taxCode'
 
         if (customerError) {
             console.warn('[ELECTRON] Customer update warning:', customerError.message);

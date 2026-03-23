@@ -392,11 +392,24 @@ async function processEmailTask(log) {
         console.log(`[TASK:4] attachCertificate resolved: ${attachCertificate}`);
 
         // Step 5: Parse Template
+        const formatDateDDMMYYYY = (dateStr) => {
+            if (!dateStr) return '';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            } catch {
+                return dateStr;
+            }
+        };
+
+        const rawExpiredDate = recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || '';
+
         const dataForTags = {
             company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
             mst: recipientInExcel?.MST || recipientInExcel?.taxCode || customer.mst || cleanMST,
             address: recipientInExcel?.DiaChi || recipientInExcel?.['Địa chỉ'] || customer.dia_chi || '',
-            expired_date: recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || ''
+            expired_date: formatDateDDMMYYYY(rawExpiredDate)
         };
         console.log(`[TASK:5] Template data:`, JSON.stringify(dataForTags));
         
