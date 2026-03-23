@@ -1172,25 +1172,12 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
 
         console.log(`[TestSend] 🧪 Starting test send To: ${testEmail} (PDF: ${testPdfUrl || 'No'})`);
 
-        // 2. Prepare Transporter (OAuth2)
-        const { google } = require('googleapis');
-        const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-        oauth2Client.setCredentials({ refresh_token: sender.smtpPassword });
+        const isAttachMode = !!testPdfUrl;
         
-        try {
-            await oauth2Client.getAccessToken();
-        } catch (tokenErr) {
-            return res.status(401).json({ error: 'Không thể làm mới quyền Gmail. Vui lòng kết nối lại.', details: tokenErr.message });
-        }
-
-        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
-
-        const mailOptions = {
-            from: `"${sender.senderName}" <${sender.senderEmail}>`,
+        // 2. Delegate to emailService.sendGmailAPI
+        const info = await emailService.sendGmailAPI({
+            rawSender: sender,
             to: testEmail,
-            replyTo: sender.senderEmail,
             subject: 'Test Email từ Automation CA2 - Verification',
             html: `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -1200,42 +1187,16 @@ app.post('/api/test-send-email', authenticate, async (req, res) => {
                     <p style="font-size: 12px; color: gray;">Timestamp: ${new Date().toISOString()}</p>
                 </div>
             `,
-            attachments: []
-        };
-
-        // 3. Optional PDF Attachment for Testing
-        if (testPdfUrl) {
-            console.log(`[TestSend] Downloading test PDF from: ${testPdfUrl}`);
-            const response = await axios.get(testPdfUrl, { responseType: 'arraybuffer' });
-            mailOptions.attachments.push({
-                filename: `${testTaxCode || 'TEST'}_Certification.pdf`,
-                content: Buffer.from(response.data),
-                contentType: 'application/pdf'
-            });
-            console.log(`[TestSend] PDF attached. Size: ${response.data.length} bytes`);
-        }
-
-        const info = await transporter.sendMail(mailOptions);
-        const chunks = [];
-        for await (const chunk of info.message) chunks.push(chunk);
-        const messageBuffer = Buffer.concat(chunks);
-        const base64EncodedEmail = messageBuffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        
-        const gResponse = await gmail.users.messages.send({
-            userId: 'me',
-            requestBody: { raw: base64EncodedEmail }
+            pdf_url: testPdfUrl || null,
+            isAttachMode: isAttachMode
         });
 
-        if (gResponse.data && gResponse.data.id) {
-            res.json({ 
-                success: true, 
-                message: 'Email test đã được gửi!', 
-                messageId: gResponse.data.id,
-                pdfAttached: !!testPdfUrl
-            });
-        } else {
-            throw new Error('Gmail API không trả về messageId');
-        }
+        res.json({ 
+            success: true, 
+            message: 'Email test đã được gửi!', 
+            messageId: info.messageId,
+            pdfAttached: isAttachMode
+        });
     } catch (error) {
         console.error('[TestSend] ❌ Error:', error);
         res.status(500).json({ error: 'Lỗi khi gửi test: ' + error.message });

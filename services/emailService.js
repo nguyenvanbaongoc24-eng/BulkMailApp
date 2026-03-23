@@ -1,14 +1,7 @@
-const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
+const axios = require('axios');
 const { adminClient: supabase } = require('./supabaseClient');
-const dns = require('dns');
 require('dotenv').config();
-
-// FIX: Force IPv4 for Render network issues (ENETUNREACH IPv6)
-if (dns.setDefaultResultOrder) {
-    dns.setDefaultResultOrder('ipv4first');
-}
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // -----------------------------------
 // HEARTBEAT: Track worker activity
@@ -23,13 +16,12 @@ function setHeartbeat(step, taskId = null, error = null) {
 }
 
 // -----------------------------------
-// COLUMN NORMALIZER: Handle both camelCase and snake_case from Supabase
+// SENDER HELPER: Ensure valid OAuth2 credentials
 // -----------------------------------
 function normalizeSender(raw) {
     if (!raw) return null;
     return {
         smtpHost: raw.smtpHost || raw.smtp_host || raw.smtphost || null,
-        smtpPort: raw.smtpPort || raw.smtp_port || raw.smtpport || '587',
         smtpUser: raw.smtpUser || raw.smtp_user || raw.smtpuser || null,
         smtpPassword: raw.smtpPassword || raw.smtp_password || raw.smtppassword || null,
         senderName: raw.senderName || raw.sender_name || raw.sendername || 'Automation CA2',
@@ -37,63 +29,8 @@ function normalizeSender(raw) {
     };
 }
 
-async function createTransporter(rawSender) {
-    const sender = normalizeSender(rawSender);
-
-    console.log(`\n========================================`);
-    console.log(`[SMTP] RAW SENDER DATA:`, JSON.stringify({ ...rawSender, smtpPassword: '***HIDDEN***' }, null, 2));
-    console.log(`[SMTP] NORMALIZED:`, JSON.stringify({ ...sender, smtpPassword: sender.smtpPassword ? '***HIDDEN***' : 'TRỐNG' }, null, 2));
-
-    // DETECT OAUTH SENDERS (BUG #1 FIX)
-    if (sender.smtpHost === 'oauth2.google' || sender.smtpHost === 'oauth2.googleapis.com') {
-        throw new Error(
-            `SENDER DÙNG OAUTH2 CŨ (smtpHost='${sender.smtpHost}'). ` +
-            `Hệ thống đã chuyển sang SMTP thuần túy. Vui lòng xóa sender này và tạo mới với: ` +
-            `Host=smtp.gmail.com, Port=587, User=email@gmail.com, Pass=App Password 16 ký tự.`
-        );
-    }
-
-    if (!sender.smtpUser || !sender.smtpPassword || !sender.smtpHost) {
-        throw new Error(
-            `THIẾU CẤU HÌNH SMTP! ` +
-            `Host=${sender.smtpHost || 'TRỐNG'}, User=${sender.smtpUser || 'TRỐNG'}, Pass=${sender.smtpPassword ? '***' : 'TRỐNG'}`
-        );
-    }
-
-    const host = sender.smtpHost;
-    const port = parseInt(sender.smtpPort || '587', 10);
-    const user = sender.smtpUser;
-    const pass = sender.smtpPassword;
-    const senderName = sender.senderName;
-
-    console.log(`[SMTP] Connecting to ${host}:${port} as ${user} (Forcing IPv4)...`);
-
-    const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-        family: 4, // Enforce IPv4 to avoid Render ENETUNREACH error
-        connectionTimeout: 20000,
-        greetingTimeout: 20000,
-        socketTimeout: 30000,
-        tls: {
-            rejectUnauthorized: false // Bypass self-signed or legacy SMTP cert issues
-        }
-    });
-
-    try {
-        await transporter.verify();
-        console.log(`[SMTP] ✅ VERIFY OK for ${user}`);
-        return { transporter, fromEmail: user, senderName };
-    } catch (err) {
-        console.error(`[SMTP] ❌ VERIFY FAIL for ${user}:`, err.message);
-        throw new Error(`SMTP VERIFY FAIL (${user}): ${err.message}`);
-    }
-}
-
 // -----------------------------------
-// 2. TEMPLATE TAG PARSER
+// TEMPLATE TAG PARSER
 // -----------------------------------
 function parseTemplateAndCheckTags(template, data, isAttachMode) {
     if (!template) return { html: '', missingTags: [] };
@@ -119,38 +56,111 @@ function parseTemplateAndCheckTags(template, data, isAttachMode) {
 }
 
 // -----------------------------------
-// 3. GỬI MAIL + PDF ATTACH
+// GMAIL API: BUILD MIME & SEND
 // -----------------------------------
-async function sendEmail({ transporter, from, to, subject, html, pdf_url, isAttachMode }) {
-    console.log(`\n[SEND] FROM: ${from}`);
-    console.log(`[SEND] TO: ${to}`);
-    console.log(`[SEND] SUBJECT: ${subject}`);
-    console.log(`[SEND] ATTACH MODE: ${isAttachMode}, PDF: ${pdf_url || 'NONE'}`);
+const makeBase64Url = (str) => {
+    return Buffer.from(str)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+};
 
-    const attachments = [];
+const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMode) => {
+    const boundary = `====boundary_${Date.now()}====`;
+    const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+    
+    let message = `To: ${to}\r\n`;
+    message += `From: ${from}\r\n`;
+    message += `Subject: ${encodedSubject}\r\n`;
+    message += `MIME-Version: 1.0\r\n`;
+    message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
+    
+    // Part 1: HTML Body
+    message += `--${boundary}\r\n`;
+    message += `Content-Type: text/html; charset="UTF-8"\r\n\r\n`;
+    message += `${htmlBody}\r\n\r\n`;
+    
+    // Part 2: PDF Attachment (if any)
     if (isAttachMode) {
-        if (!pdf_url) {
+        if (!pdfUrl) {
             throw new Error('attachCertificate=TRUE nhưng không có PDF URL. Không gửi.');
         }
-        const filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-        attachments.push({ filename, path: pdf_url });
-        console.log(`[SEND] 📎 ATTACHING: ${filename}`);
+        try {
+            console.log(`[MIME] Fetching PDF from: ${pdfUrl}`);
+            const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
+            const pdfBase64 = Buffer.from(response.data).toString('base64');
+            const filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+            
+            message += `--${boundary}\r\n`;
+            message += `Content-Type: application/pdf; name="${filename}"\r\n`;
+            message += `Content-Disposition: attachment; filename="${filename}"\r\n`;
+            message += `Content-Transfer-Encoding: base64\r\n\r\n`;
+            
+            // Gmail API requires word-wrapping the base64 attachment roughly every 76 chars
+            const wrappedBase64 = pdfBase64.match(/.{1,76}/g).join('\r\n');
+            message += `${wrappedBase64}\r\n\r\n`;
+            console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
+        } catch (err) {
+            console.error('[MIME] Lỗi tải File PDF:', err.message);
+            throw new Error('Lỗi khi tải hoặc đính kèm PDF: ' + err.message);
+        }
+    }
+    
+    message += `--${boundary}--`;
+    return makeBase64Url(message);
+};
+
+async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMode }) {
+    const sender = normalizeSender(rawSender);
+    console.log(`\n[SEND] FROM: ${sender.senderEmail}`);
+    console.log(`[SEND] TO: ${to}`);
+    console.log(`[SEND] SUBJECT: ${subject}`);
+    
+    // The refresh_token is stored in smtpPassword for OAuth2 accounts
+    const refreshToken = sender.smtpPassword;
+    if (!refreshToken) throw new Error('Không tìm thấy Refresh Token (smtpPassword trống).');
+
+    // 1. Initialize OAuth2 Client
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+    );
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+    // Ensure token is valid / refreshed
+    let accessToken;
+    try {
+        const { token } = await oauth2Client.getAccessToken(); // Auto-refreshes if needed
+        accessToken = token;
+        if (!accessToken) throw new Error('Cannot get access token from refresh token');
+        console.log(`[SEND] 🔑 Token refreshed OK. Token starts with: ${accessToken.substring(0, 10)}...`);
+    } catch (tokenErr) {
+        console.error(`[SEND] ❌ Auth Error:`, tokenErr.response?.data || tokenErr.message);
+        throw new Error('Lỗi làm mới Token (invalid_grant hoặc token expired). Vui lòng kết nối lại tài khoản Gmail.');
     }
 
-    console.log(`[SEND] Calling transporter.sendMail()...`);
-    const info = await transporter.sendMail({ from, to, subject, html, attachments });
+    // 2. Build MIME
+    const fromString = `"${sender.senderName}" <${sender.senderEmail}>`;
+    const mimeEncodedMessage = await buildMimeMessage(fromString, to, subject, html, pdf_url, isAttachMode);
 
-    console.log(`[SEND] ✅ SUCCESS! messageId: ${info.messageId}`);
-    console.log(`[SEND] response: ${info.response}`);
-    console.log(`[SEND] accepted: ${JSON.stringify(info.accepted)}, rejected: ${JSON.stringify(info.rejected)}`);
-
-    if (!info.messageId) {
-        throw new Error('sendMail returned but NO messageId!');
+    // 3. Send using Gmail API
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    
+    try {
+        console.log(`[SEND] Calling gmail.users.messages.send...`);
+        const res = await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: { raw: mimeEncodedMessage }
+        });
+        
+        console.log(`[SEND] ✅ SUCCESS! messageId: ${res.data.id}`);
+        return { messageId: res.data.id, response: 'Sent via Gmail API' };
+    } catch (gErr) {
+        const errorDetails = gErr.response?.data || gErr.message;
+        console.error(`[SEND] ❌ GMAIL API ERROR:`, errorDetails);
+        throw new Error(`Gmail API failure: ${JSON.stringify(errorDetails)}`);
     }
-    if (info.rejected && info.rejected.length > 0) {
-        throw new Error(`Email bị từ chối: ${info.rejected.join(', ')}`);
-    }
-    return info;
 }
 
 // ===========================================
@@ -337,10 +347,6 @@ async function processEmailTask(log) {
         const parsedSubject = parseTemplateAndCheckTags(campaign.subject || 'Thông báo tự động', dataForTags, attachCertificate);
         const parsedBody = parseTemplateAndCheckTags(campaign.template || '', dataForTags, attachCertificate);
 
-        // Create Transporter
-        setHeartbeat('SMTP connect', log.id);
-        const { transporter, fromEmail, senderName } = await createTransporter(senderRaw);
-
         // Send with retry (3 attempts)
         setHeartbeat('Sending', log.id);
         let successInfo = null;
@@ -349,9 +355,8 @@ async function processEmailTask(log) {
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
                 console.log(`[TASK] Send attempt ${attempt}/3...`);
-                successInfo = await sendEmail({
-                    transporter,
-                    from: `"${senderName}" <${fromEmail}>`,
+                successInfo = await sendGmailAPI({
+                    rawSender: senderRaw,
                     to: log.email,
                     subject: parsedSubject.html,
                     html: parsedBody.html,
@@ -438,8 +443,6 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
         };
     }
 
-    const { transporter, fromEmail, senderName } = await createTransporter(sender);
-
     const dataForTags = { company_name: 'CÔNG TY TEST CA2', mst: '0101010101', address: 'HN VN', expired_date: '31/12/2030' };
     let rawTemplate = `<p>Xin chào <b>#TênCôngTy</b> (MST: #MST).</p><p>Đây là email test từ Automation CA2.</p>`;
     let attachCertificate = false;
@@ -449,9 +452,8 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
     if (testCase === 3) { attachCertificate = true; mockPdfUrl = null; }
 
     const parsedBody = parseTemplateAndCheckTags(rawTemplate, dataForTags, attachCertificate);
-    const info = await sendEmail({
-        transporter,
-        from: `"[TEST] ${senderName}" <${fromEmail}>`,
+    const info = await sendGmailAPI({
+        rawSender: sender,
         to: targetEmail,
         subject: `[TEST CA2] Case ${testCase} - ${new Date().toISOString()}`,
         html: parsedBody.html,
@@ -459,15 +461,14 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
         isAttachMode: attachCertificate
     });
 
-    return { success: true, messageId: info.messageId, response: info.response, sent_via: fromEmail, case: testCase };
+    return { success: true, messageId: info.messageId, response: info.response, sent_via: sender.senderEmail, case: testCase };
 }
 
 module.exports = {
     startWorker,
     processEmailTask,
     testEmailFlow,
-    createTransporter,
+    sendGmailAPI,
     parseTemplateAndCheckTags,
-    sendEmail,
     getHeartbeat
 };
