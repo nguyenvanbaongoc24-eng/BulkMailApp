@@ -21,13 +21,9 @@ export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 npm ci --omit=dev
 
 # 3. Handle Puppeteer Chromium Installation
-# We check if chrome is already present in the persistent disk cache
-# Look for the internal structure of puppeteer chrome installation
-if [ -d "$PUPPETEER_CACHE_DIR/chrome" ]; then
-    echo "✅ Puppeteer Chrome found in cache. Skipping download."
-else
-    echo "🚀 Puppeteer Chrome NOT found. Installing to $PUPPETEER_CACHE_DIR..."
-    npx puppeteer browsers install chrome
-fi
+# ❌ DISABLED: The web app no longer needs Chromium because scraping is handled locally by the Desktop App.
+# This prevents the long download time that caused Render timeouts.
+echo "✅ Scraping is handled locally by Desktop App. Skipping heavy Chromium download on Render."
+# npx puppeteer browsers install chrome
 
 echo "--- Build Finished Successfully ---"
