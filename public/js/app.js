@@ -555,33 +555,55 @@ async function startCampaign(id) {
 // --- Senders Management ---
 async function loadSenders() {
     const list = document.getElementById('sender-list');
+    const countEl = document.getElementById('sender-count');
     if (!list) return;
+    
     try {
         const res = await authedFetch('/api/senders');
         const senders = await res.json();
         
-        list.innerHTML = senders.map(s => `
-            <tr class="hover:bg-white/2 transition-all">
-                <td class="px-8 py-5">
-                    <div class="text-white font-bold">${s.senderName}</div>
-                    <div class="text-[10px] text-orange-500 font-bold uppercase tracking-widest mt-1">${s.smtpHost === 'oauth2.google' ? 'Google API' : 'SMTP Server'}</div>
-                </td>
-                <td class="px-8 py-5 text-gray-400 text-sm">${s.senderEmail}</td>
-                <td class="px-8 py-5">
-                    <span class="text-xs font-mono text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5 italic">
-                        ${s.smtpHost}
-                    </span>
-                </td>
-                <td class="px-8 py-5 text-right">
-                    <div class="flex justify-end gap-3">
-                        ${s.smtpHost !== 'oauth2.google' ? 
-                            `<button onclick="openEditSenderModal('${s.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa"><i class="fas fa-edit text-xs"></i></button>` : ''
-                        }
-                        <button onclick="deleteSender('${s.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `).join('') || '<tr><td colspan="4" class="px-8 py-10 text-center text-gray-500 italic">Chưa có tài khoản nào.</td></tr>';
+        if (countEl) countEl.innerText = `Tổng cộng: ${senders.length} tài khoản`;
+        
+        list.innerHTML = senders.map(s => {
+            const isGmailAPI = s.smtpHost === 'oauth2.google' || s.smtpHost === 'oauth2.googleapis.com';
+            
+            return `
+                <tr class="hover:bg-white/[0.03] transition-all group">
+                    <td class="px-10 py-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isGmailAPI ? 'bg-white shadow-lg shadow-white/5' : 'bg-orange-gradient/20 text-orange-500'}">
+                                ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : '⚙️'}
+                            </div>
+                            <div>
+                                <div class="text-white font-black text-sm">${s.senderName}</div>
+                                <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-bold uppercase tracking-wider text-gray-400 mt-1">
+                                    ${isGmailAPI ? '<span class="text-blue-400">●</span> Gmail API' : '<span class="text-orange-500">○</span> SMTP Server'}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-10 py-6">
+                        <div class="text-gray-300 text-sm font-medium">${s.senderEmail}</div>
+                        <div class="text-[10px] text-gray-500 font-mono mt-1 italic">${s.smtpHost}</div>
+                    </td>
+                    <td class="px-10 py-6 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest border border-green-500/20">
+                            <i class="fas fa-check-circle"></i> Đã kết nối
+                        </span>
+                    </td>
+                    <td class="px-10 py-6 text-right">
+                        <div class="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                            ${!isGmailAPI ? 
+                                `<button onclick="openEditSenderModal('${s.id}')" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Chỉnh sửa"><i class="fas fa-pen text-[10px]"></i></button>` : ''
+                            }
+                            <button onclick="deleteSender('${s.id}')" class="w-10 h-10 flex items-center justify-center bg-red-500/5 text-red-400 hover:text-white hover:bg-red-500 transition-all rounded-xl shadow-lg shadow-red-900/0 hover:shadow-red-900/40" title="Xóa tài khoản">
+                                <i class="fas fa-trash-alt text-[10px]"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="4" class="px-10 py-20 text-center text-gray-600 font-bold italic">Chưa có tài khoản nào. Hãy kết nối Gmail ngay!</td></tr>';
         
         const select = document.getElementById('select-sender');
         if (select) {

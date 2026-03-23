@@ -421,71 +421,128 @@
                 </div>
             </div>
 
-            <!-- Senders View -->
-            <div id="view-senders" class="hidden space-y-10 animate-in fade-in duration-500">
-                <div class="bg-glass rounded-[32px] p-8 border border-white/5">
-                    <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                        <span class="bg-orange-gradient p-2 rounded-lg text-white">🔑</span>
-                        Thêm tài khoản gửi mail mới
-                    </h3>
+            <!-- Senders View (Redesigned for Gmail API) -->
+            <div id="view-senders" class="hidden space-y-10 animate-in fade-in duration-500 pb-20">
+                
+                <!-- Main Connection Area -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- Left: Info & Instructions -->
-                        <div class="p-8 rounded-[32px] bg-gradient-to-br from-white/5 to-transparent border border-white/10 relative overflow-hidden group">
-                            <div class="absolute inset-0 bg-orange-500/5 transition-transform duration-1000 group-hover:scale-105"></div>
-                            <div class="relative z-10">
-                                <div class="w-14 h-14 bg-orange-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-orange-900/40 text-2xl mb-6">⚙️</div>
-                                <h4 class="text-2xl font-black text-white mb-3 tracking-tight">Cấu hình máy chủ SMTP</h4>
-                                <p class="text-sm text-gray-400 font-medium mb-8 leading-relaxed">
-                                    Hệ thống Automation CA2 sử dụng kết nối chuẩn SMTP quốc tế. Bạn có thể thêm tài khoản Email (Gmail, Yahoo, Outlook, Webmail Server) để bắt đầu gửi thư hàng loạt ổn định, không lo gián đoạn.
+                    <!-- Left: Primary Gmail API Connection -->
+                    <div class="lg:col-span-8 flex flex-col">
+                        <div class="bg-glass rounded-[48px] p-12 border border-white/10 relative overflow-hidden group h-full flex flex-col justify-center">
+                            <!-- Animated Glow in background -->
+                            <div class="absolute -top-24 -right-24 w-80 h-80 bg-orange-600/10 blur-[100px] rounded-full group-hover:scale-125 transition-all duration-1000"></div>
+                            <div class="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-600/10 blur-[100px] rounded-full group-hover:scale-125 transition-all duration-1000"></div>
+                            
+                            <div class="relative z-10 space-y-8">
+                                <div class="flex items-center gap-6">
+                                    <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-2xl shadow-white/10 group-hover:rotate-6 transition-transform">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-10 h-10" alt="Google">
+                                    </div>
+                                    <div>
+                                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-green-500/20 mb-2">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Khuyên dùng
+                                        </div>
+                                        <h3 class="text-4xl font-black text-white tracking-tighter">Kết nối <span class="text-orange-gradient">Gmail API</span></h3>
+                                    </div>
+                                </div>
+
+                                <p class="text-lg text-gray-400 font-medium leading-relaxed max-w-2xl">
+                                    Giải pháp gửi mail chuyên nghiệp nhất. Không lo bị chặn cổng (Port), tỷ lệ vào Inbox 100% và bảo mật tuyệt đối qua Google OAuth2.
                                 </p>
-                                <button onclick="openAddSenderModal()" class="w-full bg-white text-black px-8 py-5 rounded-2xl hover:scale-105 active:scale-95 transition-all font-black text-lg shadow-xl hover:shadow-2xl hover:bg-gray-100 flex items-center justify-center gap-3">
-                                    <i class="fas fa-plus"></i>
-                                    Thêm tài khoản SMTP mới
+
+                                <div class="flex flex-wrap gap-10 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl">🚀</span>
+                                        <div>
+                                            <p class="text-white font-bold text-sm">Tốc độ cao</p>
+                                            <p class="text-gray-500 text-[11px]">Gửi hàng ngàn mail/ngày</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl">🛡️</span>
+                                        <div>
+                                            <p class="text-white font-bold text-sm">An toàn tuyệt đối</p>
+                                            <p class="text-gray-500 text-[11px]">Không cần lộ mật khẩu</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl">📈</span>
+                                        <div>
+                                            <p class="text-white font-bold text-sm">Inbox 100%</p>
+                                            <p class="text-gray-500 text-[11px]">Vượt qua mọi bộ lọc Spam</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button onclick="connectGoogleAccount()" class="group/btn relative w-full sm:w-auto bg-white text-black px-12 py-6 rounded-3xl hover:scale-105 active:scale-95 transition-all font-black text-xl shadow-2xl hover:shadow-white/20 flex items-center justify-center gap-4 overflow-hidden">
+                                     <div class="absolute inset-0 bg-orange-gradient opacity-0 group-hover/btn:opacity-5 transition-opacity"></div>
+                                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-6 h-6" alt="G">
+                                     Kết nối Gmail Ngay (1-Click)
                                 </button>
+                                
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center sm:text-left">
+                                    🔒 Chúng tôi tuân thủ chính sách bảo mật của Google API.
+                                </p>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Right: Gmail App Password Guide -->
-                        <div class="p-8 rounded-[32px] bg-white/5 border border-white/10 flex flex-col justify-center relative overflow-hidden">
-                            <h4 class="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                                <span class="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-[0_0_15px_rgba(59,130,246,0.5)]">💡</span> 
-                                Hướng dẫn tạo Mật khẩu ứng dụng Gmail
+                    <!-- Right: Secondary / SMTP Fallback Area -->
+                    <div class="lg:col-span-4 flex flex-col gap-6">
+                        <!-- SMTP Quick Card -->
+                        <div class="bg-white/5 p-8 rounded-[40px] border border-white/5 space-y-6">
+                            <h4 class="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                                Cấu hình SMTP
+                                <span class="text-[9px] bg-white/5 px-2 py-0.5 rounded border border-white/10 font-bold">Dành cho Pro</span>
                             </h4>
-                            <ul class="space-y-5 text-sm text-gray-400 font-medium">
-                                <li class="flex items-start gap-4">
-                                    <span class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white shrink-0 mt-0.5 border border-white/20">1</span>
-                                    <span>Bật tùy chọn <b>Xác minh 2 bước</b> trên tài khoản Google của bạn tại trang <a href="https://myaccount.google.com/security" target="_blank" class="text-blue-400 hover:underline">Quản lý Tài khoản</a>.</span>
-                                </li>
-                                <li class="flex items-start gap-4">
-                                    <span class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white shrink-0 mt-0.5 border border-white/20">2</span>
-                                    <span>Tìm kiếm <b>Mật khẩu ứng dụng (App passwords)</b> ở thanh tìm kiếm trong phần Bảo mật.</span>
-                                </li>
-                                <li class="flex items-start gap-4">
-                                    <span class="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center text-xs font-black text-orange-500 shrink-0 mt-0.5 border border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.5)]">3</span>
-                                    <span>Nhập tên tùy chọn (vd: SMTP CA2). Google sẽ cấp <b class="text-white bg-white/10 px-2 py-0.5 rounded ml-1">16 ký tự</b> ngẫu nhiên. Xin hãy copy lại dãy mật khẩu đó dán vào hệ thống này!</span>
-                                </li>
-                            </ul>
+                            <p class="text-xs text-gray-500 leading-relaxed font-medium">
+                                Nếu bạn muốn sử dụng máy chủ riêng hoặc các dịch vụ khác (Yahoo, Outlook, Webmail), hãy thiết lập thủ công tại đây.
+                            </p>
+                            <button onclick="openAddSenderModal()" class="w-full py-4 border border-orange-500/30 rounded-[20px] text-orange-500 font-bold text-sm hover:bg-orange-500/10 transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-plus-circle text-xs"></i>
+                                Thêm SMTP thủ công
+                            </button>
+                        </div>
+
+                        <!-- Info Card -->
+                        <div class="bg-orange-gradient/10 p-8 rounded-[40px] border border-orange-500/20 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl">💡</div>
+                            <h4 class="text-orange-500 font-black text-sm uppercase tracking-widest mb-4">Lưu ý quan trọng</h4>
+                            <p class="text-xs text-gray-400 font-medium leading-relaxed">
+                                Google đã khóa cổng SMTP (Port 587) trên một số hệ thống đám mây (như Render). 
+                                <br><br>
+                                <b class="text-white">Cách khắc phục duy nhất:</b> Hãy chuyển sang dùng <span class="text-orange-500 font-bold">Gmail API</span> phía bên trái để đảm bảo chiến dịch luôn chạy thông suốt.
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden mt-10">
-                    <table class="w-full text-left">
-                        <thead class="bg-white/5 border-b border-white/5">
-                            <tr>
-                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Người gửi</th>
-                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Email</th>
-                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Host</th>
-                                <th class="px-8 py-5 text-xs font-bold text-gray-500 uppercase tracking-widest text-right">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sender-list" class="divide-y divide-white/5">
-                            <!-- Senders injected via JS -->
-                        </tbody>
-                    </table>
+                <!-- Footer List Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="text-2xl font-black text-white tracking-tight">Danh sách <span class="text-orange-gradient">tài khoản hiện có</span></h3>
+                        <p id="sender-count" class="text-xs font-bold text-gray-500 uppercase tracking-widest">Đang tải...</p>
+                    </div>
+                    
+                    <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                        <table class="w-full text-left">
+                            <thead class="bg-white/5 border-b border-white/5">
+                                <tr>
+                                    <th class="px-10 py-6 text-[11px] font-black text-gray-500 uppercase tracking-widest">Loại & Tên Người gửi</th>
+                                    <th class="px-10 py-6 text-[11px] font-black text-gray-500 uppercase tracking-widest">Email Liên kết</th>
+                                    <th class="px-10 py-6 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Trạng thái kết nối</th>
+                                    <th class="px-10 py-6 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sender-list" class="divide-y divide-white/2">
+                                <!-- Senders injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+
 
 
             <!-- Reports View -->
