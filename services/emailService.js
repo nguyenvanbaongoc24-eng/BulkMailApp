@@ -429,7 +429,20 @@ async function processEmailTask(log) {
         console.log(`[TASK:2] ✅ Customer lookup for MST "${cleanMST}":`);
         console.log(`[TASK:2]    Excel match: ${recipientInExcel ? 'YES' : 'NO'}`);
         console.log(`[TASK:2]    DB customer found: ${customer && customer.mst ? 'YES' : 'NO'}`);
-        console.log(`[TASK:2]    pdf_url: ${customer.pdf_url || '❌ NULL/EMPTY'}`);
+        
+        let pdfUrl = customer.pdf_url;
+        
+        // --- FALLBACK: Check certificates table if customers table has no PDF ---
+        if (!pdfUrl) {
+            console.log(`[TASK:2] 🔍 No PDF found in customers table. Checking certificates table...`);
+            const { data: cert } = await supabase.from('certificates').select('pdf_url').eq('mst', cleanMST).maybeSingle();
+            if (cert && cert.pdf_url) {
+                pdfUrl = cert.pdf_url;
+                console.log(`[TASK:2] ✅ Fallback PDF found in certificates: ${pdfUrl}`);
+            }
+        }
+
+        console.log(`[TASK:2]    Final pdf_url: ${pdfUrl || '❌ NULL/EMPTY'}`);
         console.log(`[TASK:2]    company_name: ${customer.company_name || recipientInExcel?.TenCongTy || 'N/A'}`);
 
         // Step 3: Get Sender
@@ -486,7 +499,7 @@ async function processEmailTask(log) {
                     to: log.email,
                     subject: parsedSubjectHTML,
                     html: parsedBodyHTML,
-                    pdf_url: customer.pdf_url,
+                    pdf_url: pdfUrl,
                     isAttachMode: attachCertificate
                 });
                 console.log(`[TASK:6] ✅ Attempt ${attempt} succeeded!`);

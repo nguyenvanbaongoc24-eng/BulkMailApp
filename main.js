@@ -231,7 +231,7 @@ ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, co
                     email: email || ''
                 })
                 .eq('id', existingCust.id);
-            if (customerError) console.warn('[ELECTRON] Customer update warning:', customerError.message);
+            if (customerError) throw new Error(`Lỗi cập nhật CRM: ${customerError.message}`); // FIX: Throw instead of warn
         } else {
             console.log('[ELECTRON] Customer missing, performing INSERT...');
             const { error: insertCustError } = await supabase
@@ -244,7 +244,7 @@ ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, co
                     pdf_url: publicUrl,
                     created_at: new Date().toISOString()
                 });
-            if (insertCustError) console.error('[ELECTRON] Customer insert error:', insertCustError.message);
+            if (insertCustError) throw new Error(`Lỗi thêm mới CRM: ${insertCustError.message}`); // FIX: Throw instead of log
         }
 
         console.log('[ELECTRON] Sync completed successfully.');
