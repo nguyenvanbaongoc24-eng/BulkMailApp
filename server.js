@@ -751,6 +751,23 @@ app.get('/api/campaigns', authenticate, async (req, res) => {
     res.json(data);
 });
 
+// DEBUG ENDPOINT FOR CAMPAIGNS
+app.get('/api/debug-campaign/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: campaign, error } = await adminClient.from('campaigns').select('*').eq('id', id).single();
+        if (error) throw error;
+        res.json({
+            id: campaign.id,
+            template: campaign.template,
+            first_recipient: campaign.recipients ? campaign.recipients[0] : null,
+            total_recipients: campaign.recipients ? campaign.recipients.length : 0
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/campaigns', authenticate, async (req, res) => {
     const campaignId = Date.now().toString();
     const recipients = req.body.recipients || [];
