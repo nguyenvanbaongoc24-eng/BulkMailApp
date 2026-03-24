@@ -35,6 +35,40 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// --- EMERGENCY DEBUG ROUTES (AT START) ---
+app.get('/api/diag', async (req, res) => {
+    try {
+        const hb = emailService.getHeartbeat();
+        const { data: camps } = await adminClient.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(5);
+        const { data: logs } = await adminClient.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
+        
+        res.json({
+            nodeVersion: process.version,
+            heartbeat: hb,
+            hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            recentCampaigns: camps,
+            recentLogs: logs,
+            server_time: new Date().toISOString(),
+            version: "1.0.9-DEBUG"
+        });
+    } catch(e) { res.json({ error: e.message }); }
+});
+
+app.post('/api/debug-reset-worker', async (req, res) => {
+    try {
+        await adminClient.from('email_logs').update({ status: 'pending', error_message: 'Manual reset by AI' }).eq('status', 'processing');
+        res.json({ success: true, message: 'Worker reset successful' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/debug-campaign/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: campaign } = await adminClient.from('campaigns').select('*').eq('id', id).single();
+        res.json({ id: campaign.id, template: campaign.template, recipients: campaign.recipients?.slice(0,2) });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Ensure required directories exist for temp file processing
 if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
     fs.mkdirSync(path.join(__dirname, 'uploads'));
