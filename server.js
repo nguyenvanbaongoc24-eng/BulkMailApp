@@ -768,6 +768,19 @@ app.get('/api/debug-campaign/:id', async (req, res) => {
     }
 });
 
+app.post('/api/debug-reset-worker', async (req, res) => {
+    try {
+        const { error } = await adminClient
+            .from('email_logs')
+            .update({ status: 'pending', error_message: 'Manual reset by AI' })
+            .eq('status', 'processing');
+        if (error) throw error;
+        res.json({ success: true, message: 'All processing tasks reset to pending' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/campaigns', authenticate, async (req, res) => {
     const campaignId = Date.now().toString();
     const recipients = req.body.recipients || [];

@@ -102,19 +102,26 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
         } else {
             try {
                 console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl}`);
-                const response = await fetch(pdfUrl);
+                // Add Timeout to fetch (20s)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 20000);
+                
+                const response = await fetch(pdfUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
                 if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
                 const buffer = await response.arrayBuffer();
                 pdfBase64 = Buffer.from(buffer).toString("base64");
                 console.log(`[MIME] PDF SIZE: ${buffer.byteLength}`);
-                console.log(`[MIME] PDF BASE64 LENGTH: ${pdfBase64.length}`);
             } catch (err) {
-                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, err.message);
-                console.warn(`[MIME] ⚠ Skipping PDF attachment, sending email without it...`);
+                const isTimeout = err.name === 'AbortError';
+                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, isTimeout ? 'TIMEOUT (20s)' : err.message);
+                console.warn(`[MIME] ⚠ Skipping PDF attachment...`);
                 pdfSkipped = true;
             }
         }
     }
+    // ... remaining MIME construction ...
 
     let message = `To: ${to}\r\n`;
     message += `From: ${from}\r\n`;
@@ -530,7 +537,22 @@ async function startWorker() {
             const log = tasks[i];
             console.log(`\n[WORKER] Processing task ${i + 1}/${tasks.length}...`);
             await new Promise(r => setTimeout(r, 2000));
-            await processEmailTask(log);
+            
+            try {
+                // Wrap task in a 90s timeout (Promise.race)
+                await Promise.race([
+                    processEmailTask(log),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('MÔI TRƯỜNG GỬI MAIL BỊ TREO (90s)')), 90000))
+                ]);
+            } catch (taskErr) {
+                console.error(`[WORKER] ⚠ Task ${log.id} failed or timed out: ${taskErr.message}`);
+                setHeartbeat('Task Error', log.id, taskErr.message);
+                try {
+                    await dbUpdateEmailLog(log.id, 'failed', null, `WORKER ERROR/TIMEOUT: ${taskErr.message}`);
+                } catch (dbErr) {
+                    console.error(`[WORKER] ⚠ Failed to mark task as failed in DB: ${dbErr.message}`);
+                }
+            }
         }
         
         console.log(`[WORKER] ✅ Cycle complete. Processed ${tasks.length} task(s).\n`);
