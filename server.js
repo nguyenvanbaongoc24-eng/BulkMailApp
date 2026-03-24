@@ -53,7 +53,7 @@ app.get('/api/diag', async (req, res) => {
             recentLogs: logs,
             logsError: lerr,
             server_time: new Date().toISOString(),
-            version: "1.1.0-STABLE",
+            version: "1.1.1-STABLE",
             dnsOrder: "ipv4first"
         });
     } catch(e) { res.json({ error: e.message }); }
