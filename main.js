@@ -87,14 +87,42 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
         
         // Use row-index based parsing similar to excelService.js for reliability
         const rawData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
-        const data = rawData.map(row => {
-            const mst = row[4];
+        if (rawData.length === 0) return { success: true, data: [] };
+
+        // Find header row (consistent with excelService.js)
+        let headerIdx = -1;
+        let colMap = { mst: 4, name: 3, serial: 1, email: 8 };
+
+        for (let i = 0; i < Math.min(rawData.length, 10); i++) {
+            const row = rawData[i];
+            if (!row || !Array.isArray(row)) continue;
+            const rowStr = row.join('|').toLowerCase();
+            if (rowStr.includes('mst') || rowStr.includes('mã số thuế') || rowStr.includes('tên công ty')) {
+                headerIdx = i;
+                row.forEach((cell, idx) => {
+                    const val = String(cell || '').toLowerCase().trim();
+                    if (val === 'mst' || val.includes('mã số thuế')) colMap.mst = idx;
+                    if (val.includes('tên công ty') || val.includes('tên đơn vị')) colMap.name = idx;
+                    if (val.includes('serial') || val.includes('số máy')) colMap.serial = idx;
+                    if (val.includes('email')) colMap.email = idx;
+                });
+                break;
+            }
+        }
+
+        const startRow = headerIdx !== -1 ? headerIdx + 1 : 0;
+        const data = rawData.slice(startRow).map(row => {
+            const mst = row[colMap.mst];
             if (!mst || String(mst).trim() === '') return null;
 
-            // Serial can be in Col B (1) or Col C (2)
-            const serial = (row[1] || row[2] || '').toString().trim();
-            const ten = (row[3] || '').toString().trim();
-            const email = (row[8] || '').toString().trim();
+            // Serial check (Col B or C fallback)
+            let serial = row[colMap.serial] ? String(row[colMap.serial]).trim() : '';
+            if (!serial && colMap.serial === 1) {
+                serial = row[2] ? String(row[2]).trim() : '';
+            }
+
+            const ten = row[colMap.name] ? String(row[colMap.name]).trim() : '';
+            const email = row[colMap.email] ? String(row[colMap.email]).trim() : '';
 
             return { MST: mst.toString().trim(), Ten: ten, Serial: serial, Email: email };
         }).filter(r => r !== null);

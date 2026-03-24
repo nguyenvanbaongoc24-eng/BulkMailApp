@@ -34,31 +34,46 @@ function normalizeSender(raw) {
 // -----------------------------------
 function parseTemplate(data, template) {
     if (!template) return '';
-    console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 100) + '...');
-    console.log(`[TEMPLATE PARSER] DATA:`, data);
-
-    const sanitize = (val) => {
+    console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 50) + '...');
+    
+    const s = (val) => {
         if (val === null || val === undefined) return '';
         return String(val).trim();
     };
 
-    let parsedHTML = template
-        .replace(/#TênCôngTy/g, sanitize(data.company_name))
-        .replace(/#MST/g, sanitize(data.mst))
-        .replace(/#ĐịaChỉ/g, sanitize(data.address))
-        .replace(/#Email/g, sanitize(data.email))
-        .replace(/#NgàyHếtHạn/g, sanitize(data.expired_date));
+    // Mapping of (Regex Pattern) -> (Value)
+    // Supports: #Tag, {{Tag}}, {{ Tag }}
+    const replacements = [
+        { patterns: [/#TênCôngTy/g, /#TenCongTy/g, /{{TenCongTy}}/gi, /{{Tên Công Ty}}/gi], val: s(data.company_name) },
+        { patterns: [/#MST/g, /{{MST}}/gi, /{{Mã Số Thuế}}/gi], val: s(data.mst) },
+        { patterns: [/#ĐịaChỉ/g, /#DiaChi/g, /{{DiaChi}}/gi, /{{Địa Chỉ}}/gi], val: s(data.address) },
+        { patterns: [/#Email/g, /{{Email}}/gi], val: s(data.email) },
+        { patterns: [/#NgàyHếtHạn/g, /#NgayHetHan/g, /{{NgayHetHan}}/gi, /{{Ngày Hết Hạn}}/gi], val: s(data.expired_date) }
+    ];
 
-    console.log(`[TEMPLATE PARSER] AFTER:`, parsedHTML.substring(0, 100) + '...');
+    let parsedHTML = template;
+    replacements.forEach(item => {
+        item.patterns.forEach(p => {
+            parsedHTML = parsedHTML.replace(p, item.val);
+        });
+    });
 
-    const unmatched = parsedHTML.match(/#[A-Za-zÀ-ỹ0-9_]+/g);
-    if (unmatched && unmatched.length > 0) {
-        const remaining = unmatched.filter(tag => !(/^#[0-9A-Fa-f]{3,6}$/.test(tag)));
-        if (remaining.length > 0) {
-            console.error(`[TEMPLATE] ERROR TAG NOT REPLACED:`, remaining);
-            throw new Error(`TAG NOT REPLACED: ${remaining.join(', ')}`);
+    // Smart Validation: Match #Tags but ignore CSS HEX colors (#abc or #abcdef)
+    const unmatched = parsedHTML.match(/#[A-Za-zÀ-ỹ_][A-Za-zÀ-ỹ0-9_]+/g) || [];
+    const unmatchedBraces = parsedHTML.match(/{{[^}]+}}/g) || [];
+    
+    const remaining = [...unmatched, ...unmatchedBraces];
+
+    if (remaining.length > 0) {
+        console.warn(`[TEMPLATE] ⚠ Dấu hiệu Tag chưa được thay thế:`, remaining);
+        // We throw ONLY if it looks like one of OUR critical tags
+        const criticalTags = ['#Tên', '#MST', '#ĐịaChỉ', '{{Ten', '{{MST', '{{Địa'];
+        const hasCritical = remaining.some(r => criticalTags.some(c => r.includes(c)));
+        if (hasCritical) {
+            throw new Error(`PHÁT HIỆN TAG CHƯA THAY THẾ: ${remaining.join(', ')}. Vui lòng kiểm tra lại Excel.`);
         }
     }
+
     return parsedHTML;
 }
 
