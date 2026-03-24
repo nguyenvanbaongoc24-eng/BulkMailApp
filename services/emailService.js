@@ -564,12 +564,12 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
     if (testCase === 2) { attachCertificate = true; mockPdfUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'; }
     if (testCase === 3) { attachCertificate = true; mockPdfUrl = null; }
 
-    const parsedBody = parseTemplateAndCheckTags(rawTemplate, dataForTags, attachCertificate);
+    const parsedBodyHTML = parseTemplate(dataForTags, rawTemplate);
     const sendArgs = {
         rawSender: sender,
         to: targetEmail,
         subject: `[TEST CA2] Case ${testCase} - ${new Date().toISOString()}`,
-        html: parsedBody.html,
+        html: parsedBodyHTML,
         pdf_url: mockPdfUrl,
         isAttachMode: attachCertificate
     };
@@ -584,6 +584,6 @@ module.exports = {
     processEmailTask,
     testEmailFlow,
     sendGmailAPI,
-    parseTemplateAndCheckTags,
+    parseTemplate,
     getHeartbeat
 };
