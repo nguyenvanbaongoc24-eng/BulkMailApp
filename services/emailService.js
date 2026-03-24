@@ -44,11 +44,40 @@ function parseTemplate(data, template) {
     // Mapping of (Regex Pattern) -> (Value)
     // Supports: #Tag, {{Tag}}, {{ Tag }}, {{  Tag  }}
     const replacements = [
-        { patterns: [/#TênCôngTy/g, /#TenCongTy/g, /{{\s*TenCongTy\s*}}/gi, /{{\s*Tên Công Ty\s*}}/gi, /{{\s*TênCôngTy\s*}}/gi], val: s(data.company_name) },
-        { patterns: [/#MST/g, /{{\s*MST\s*}}/gi, /{{\s*Mã Số Thuế\s*}}/gi], val: s(data.mst) },
-        { patterns: [/#ĐịaChỉ/g, /#DiaChi/g, /{{\s*DiaChi\s*}}/gi, /{{\s*Địa Chỉ\s*}}/gi], val: s(data.address) },
-        { patterns: [/#Email/g, /{{\s*Email\s*}}/gi], val: s(data.email) },
-        { patterns: [/#NgàyHếtHạn/g, /#NgayHetHan/g, /{{\s*NgayHetHan\s*}}/gi, /{{\s*Ngày Hết Hạn\s*}}/gi], val: s(data.expired_date) }
+        { 
+            patterns: [
+                /#TênCônnTy/gi, /#TenCongTy/gi, /#Tên\s+Công\s+Ty/gi, /#Tên\s+đơn\s+vị/gi, /#Tên\s+khách\s+hàng/gi,
+                /{{\s*TenCongTy\s*}}/gi, /{{\s*Tên Công Ty\s*}}/gi, /{{\s*Tên\s*Công\s*Ty\s*}}/gi, /{{\s*Tên\s*Khách\s*Hàng\s*}}/gi
+            ], 
+            val: s(data.company_name) 
+        },
+        { 
+            patterns: [
+                /#MST/gi, /#MãSốThuế/gi, /#Mã\s+Số\s+Thuế/gi,
+                /{{\s*MST\s*}}/gi, /{{\s*Mã Số Thuế\s*}}/gi, /{{\s*Mã\s+Số\s+Thuế\s*}}/gi
+            ], 
+            val: s(data.mst) 
+        },
+        { 
+            patterns: [
+                /#ĐịaChỉ/gi, /#DiaChi/gi, /#Địa\s+Chỉ/gi,
+                /{{\s*DiaChi\s*}}/gi, /{{\s*Địa Chỉ\s*}}/gi, /{{\s*Địa\s+Chỉ\s*}}/gi
+            ], 
+            val: s(data.address) 
+        },
+        { 
+            patterns: [
+                /#Email/gi, /{{\s*Email\s*}}/gi
+            ], 
+            val: s(data.email) 
+        },
+        { 
+            patterns: [
+                /#NgàyHếtHạn/gi, /#NgayHetHan/gi, /#Ngày\s+Hết\s+Hạn/gi,
+                /{{\s*NgayHetHan\s*}}/gi, /{{\s*Ngày Hết Hạn\s*}}/gi, /{{\s*Ngày\s+Hết\s+Hạn\s*}}/gi
+            ], 
+            val: s(data.expired_date) 
+        }
     ];
 
     let parsedHTML = template;
@@ -473,7 +502,7 @@ async function processEmailTask(log) {
         const rawExpiredDate = recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || '';
 
         const dataForTags = {
-            company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
+            company_name: recipientInExcel?.TenCongTy || recipientInExcel?.Ten || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
             mst: recipientInExcel?.MST || recipientInExcel?.taxCode || customer.mst || cleanMST,
             address: recipientInExcel?.DiaChi || recipientInExcel?.['Địa chỉ'] || customer.dia_chi || '',
             email: log.email || recipientInExcel?.Email || customer.email || '',
