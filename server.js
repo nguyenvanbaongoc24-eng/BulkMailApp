@@ -53,7 +53,7 @@ app.get('/api/diag', async (req, res) => {
             recentLogs: logs,
             logsError: lerr,
             server_time: new Date().toISOString(),
-            version: "1.1.2-STABLE",
+            version: "1.1.3-STABLE",
             dnsOrder: "ipv4first"
         });
     } catch(e) { res.json({ error: e.message }); }
@@ -882,18 +882,21 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
             }
         }
 
-        // Reset any failed OR stuck processing logs to "pending" so the worker can retry them
+        // Reset ALL logs for this campaign to "pending" so the worker can (re)process them
+        // This allows the user to FIX tags/PDFs and re-run even if some were "success"
         const { count: resetCount } = await supabase.from('email_logs')
             .update({ status: 'pending', retry_count: 0, error_message: null })
             .eq('campaign_id', campaignId)
-            .in('status', ['failed', 'processing']) // FIX: Reset both states
+            // .in('status', ['failed', 'processing', 'success']) // Reset EVERYTHING
             .eq('user_id', req.user.id)
             .select('*', { count: 'exact', head: true });
         
-        console.log(`[CAMPAIGN SEND] Reset ${resetCount || 0} previously failed/stuck logs to pending`);
+        console.log(`[CAMPAIGN SEND] Reset ${resetCount || 0} logs to pending (Force Re-run mode)`);
 
         await supabase.from('campaigns').update({ 
             status: 'Đang gửi', 
+            // We don't reset counts to 0 yet, the worker will update them as it goes
+            // OR we can reset them for a clean UI
             sent_count: 0, 
             success_count: 0, 
             error_count: 0 

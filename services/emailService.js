@@ -283,16 +283,19 @@ let isWorkerRunning = false;
 // --- DIRECT DB HELPERS (Replace all RPCs) ---
 
 async function dbPickTasks(batchSize) {
-    // Try RPC first (if it exists), fallback to direct query
+    // Try RPC first (if it exists)
     try {
         const { data, error } = await supabase.rpc('pick_email_tasks', { batch_size: batchSize });
-        if (!error && data) return data;
+        if (!error && data && data.length > 0) {
+            console.log(`[DB] ✅ RPC 'pick_email_tasks' returned ${data.length} tasks.`);
+            return data;
+        }
     } catch (e) {
-        console.log(`[DB] pick_email_tasks RPC not available, using direct query`);
+        console.log(`[DB] RPC not available or failed: ${e.message}`);
     }
 
-    // Fallback: direct query
-    console.log(`[DB] Fallback: Searching for 'pending' tasks (limit ${batchSize})...`);
+    // Fallback: direct query (More reliable for custom logic)
+    console.log(`[DB] 🔍 Searching for 'pending' tasks via Direct Query (batch: ${batchSize})...`);
     const { data, error } = await supabase
         .from('email_logs')
         .select('*')
