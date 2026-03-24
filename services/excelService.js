@@ -32,7 +32,6 @@ function parseExcel(filePath) {
         const row = rawData[i];
         if (!row || !Array.isArray(row)) continue;
         
-        // Count how many headers we can find in this row
         let matchCount = 0;
         const tempMap = { mst: -1, name: -1, address: -1, email: -1, serial: -1, expiry: -1 };
         
@@ -58,7 +57,6 @@ function parseExcel(filePath) {
             }
         });
 
-        // ONLY accept as header if at least 2 columns matched (prevents picking up title rows)
         if (matchCount >= 2) {
             headerIdx = i;
             colMap = { ...colMap, ...Object.fromEntries(Object.entries(tempMap).filter(([_, v]) => v !== -1)) };
@@ -66,7 +64,35 @@ function parseExcel(filePath) {
         }
     }
 
-    // Start parsing from next row after header, or from row 0 if no header found
+    // FALLBACK: If no headers found, try to PREDICT columns from the first data row
+    if (headerIdx === -1 && rawData.length > 0) {
+        console.log('[EXCEL] 🔍 No headers found. Attempting pattern-based prediction on Row 0...');
+        const firstRow = rawData[0];
+        firstRow.forEach((cell, idx) => {
+            const val = String(cell || '').trim();
+            // MST pattern: 10 or 13 digits
+            if (/^\d{10}(\d{3})?$/.test(val.replace(/\s/g, ''))) {
+                colMap.mst = idx;
+                console.log(`[EXCEL] -> Predicted MST at Col ${idx}`);
+            }
+            else if (val.includes('@')) {
+                colMap.email = idx;
+                console.log(`[EXCEL] -> Predicted Email at Col ${idx}`);
+            }
+            else if (val.split(' ').length >= 2 && !/\d/.test(val) && val.length > 5) {
+                // If it's a long string with no numbers and multiple words, it's likely a name
+                if (colMap.name === 3) { 
+                    colMap.name = idx;
+                    console.log(`[EXCEL] -> Predicted Name at Col ${idx}`);
+                }
+            }
+            else if (/(đường|phố|quận|huyện|tỉnh|số|khu)/i.test(val) && val.length > 15) {
+                colMap.address = idx;
+                console.log(`[EXCEL] -> Predicted Address at Col ${idx}`);
+            }
+        });
+    }
+
     const startRow = headerIdx !== -1 ? headerIdx + 1 : 0;
 
     return rawData.slice(startRow).map(row => {

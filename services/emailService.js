@@ -457,7 +457,7 @@ async function processEmailTask(log) {
             email: log.email || recipientInExcel?.Email || customer.email || '',
             expired_date: formatDateDDMMYYYY(rawExpiredDate)
         };
-        console.log(`[TASK:5] Template data keys prep:`, Object.keys(dataForTags));
+        console.log(`[TASK:5] TAG DATA [${log.id}]:`, JSON.stringify(dataForTags, null, 2));
         
         const parsedSubjectHTML = parseTemplate(dataForTags, campaign.subject || 'Thông báo tự động');
         const parsedBodyHTML = parseTemplate(dataForTags, campaign.template || '');

@@ -114,7 +114,13 @@
                     const r = data[i];
                     if (r.status === '✅ Ready') {
                         const res = await window.electronAPI.uploadToSupabase({
-                            filePath: r.filePath, fileName: r.fileName, mst: r.MST, companyName: r.Ten, serial: r.Serial
+                            filePath: r.filePath, 
+                            fileName: r.fileName, 
+                            mst: r.MST, 
+                            companyName: r.Ten, 
+                            serial: r.Serial,
+                            email: r.Email,
+                            diaChi: r.DiaChi
                         });
                         if (res.success) {
                             setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '☁️ Synced', uploaded: true } : item));

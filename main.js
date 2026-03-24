@@ -136,8 +136,9 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
 
             const ten = row[colMap.name] ? String(row[colMap.name]).trim() : '';
             const email = row[colMap.email] ? String(row[colMap.email]).trim() : '';
+            const diaChi = row[colMap.address] ? String(row[colMap.address]).trim() : '';
 
-            return { MST: mst.toString().trim(), Ten: ten, Serial: serial, Email: email };
+            return { MST: mst.toString().trim(), Ten: ten, Serial: serial, Email: email, DiaChi: diaChi };
         }).filter(r => r !== null);
 
         console.log(`[ELECTRON] Successfully parsed ${data.length} rows.`);
@@ -176,7 +177,7 @@ ipcMain.handle('fetch-single-pdf', async (event, { MST, Serial, companyName }) =
 });
 
 // 4. Upload to Cloud (Supabase) + Sync with Web App CRM
-ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, companyName, serial }) => {
+ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, companyName, serial, email, diaChi }) => {
     console.log('[ELECTRON] Syncing to Cloud:', mst);
     try {
         const fileContent = fs.readFileSync(filePath);
@@ -216,15 +217,34 @@ ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, co
             if (insertError) throw insertError;
         }
 
-        // 4. Update 'customers' table (Main CRM)
-        console.log('[ELECTRON] Updating customers table...');
-        const { error: customerError } = await supabase
-            .from('customers')
-            .update({ pdf_url: publicUrl })
-            .eq('mst', mst); // FIX: match on 'mst' column, not 'taxCode'
-
-        if (customerError) {
-            console.warn('[ELECTRON] Customer update warning:', customerError.message);
+        // 4. Update 'customers' table (Main CRM) - UPSERT logic
+        console.log('[ELECTRON] Upserting into customers table...');
+        const { data: existingCust } = await supabase.from('customers').select('id').eq('mst', mst).maybeSingle();
+        
+        if (existingCust) {
+            const { error: customerError } = await supabase
+                .from('customers')
+                .update({ 
+                    pdf_url: publicUrl,
+                    company_name: companyName,
+                    dia_chi: diaChi || '',
+                    email: email || ''
+                })
+                .eq('id', existingCust.id);
+            if (customerError) console.warn('[ELECTRON] Customer update warning:', customerError.message);
+        } else {
+            console.log('[ELECTRON] Customer missing, performing INSERT...');
+            const { error: insertCustError } = await supabase
+                .from('customers')
+                .insert({
+                    mst: mst,
+                    company_name: companyName,
+                    dia_chi: diaChi || '',
+                    email: email || '',
+                    pdf_url: publicUrl,
+                    created_at: new Date().toISOString()
+                });
+            if (insertCustError) console.error('[ELECTRON] Customer insert error:', insertCustError.message);
         }
 
         console.log('[ELECTRON] Sync completed successfully.');
