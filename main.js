@@ -96,16 +96,29 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
         for (let i = 0; i < Math.min(rawData.length, 10); i++) {
             const row = rawData[i];
             if (!row || !Array.isArray(row)) continue;
-            const rowStr = row.join('|').toLowerCase();
-            if (rowStr.includes('mst') || rowStr.includes('mã số thuế') || rowStr.includes('tên công ty')) {
+            
+            let matchCount = 0;
+            const tempMap = { mst: -1, name: -1, serial: -1, email: -1 };
+
+            row.forEach((cell, idx) => {
+                const val = String(cell || '').toLowerCase().trim();
+                if (val === 'mst' || val === 'mã số thuế' || (val.includes('mã số thuế') && val.length < 20)) {
+                    tempMap.mst = idx; matchCount++;
+                }
+                if (val.includes('tên công ty') || val.includes('tên đơn vị') || val.includes('tên khách hàng')) {
+                    tempMap.name = idx; matchCount++;
+                }
+                if (val.includes('serial') || val.includes('số máy') || val.includes('số chứng thư')) {
+                    tempMap.serial = idx; matchCount++;
+                }
+                if (val.includes('email')) {
+                    tempMap.email = idx; matchCount++;
+                }
+            });
+
+            if (matchCount >= 2) {
                 headerIdx = i;
-                row.forEach((cell, idx) => {
-                    const val = String(cell || '').toLowerCase().trim();
-                    if (val === 'mst' || val.includes('mã số thuế')) colMap.mst = idx;
-                    if (val.includes('tên công ty') || val.includes('tên đơn vị')) colMap.name = idx;
-                    if (val.includes('serial') || val.includes('số máy')) colMap.serial = idx;
-                    if (val.includes('email')) colMap.email = idx;
-                });
+                colMap = { ...colMap, ...Object.fromEntries(Object.entries(tempMap).filter(([_, v]) => v !== -1)) };
                 break;
             }
         }
