@@ -263,22 +263,31 @@ async function dbPickTasks(batchSize) {
     }
 
     // Fallback: direct query
+    console.log(`[DB] Fallback: Searching for 'pending' tasks (limit ${batchSize})...`);
     const { data, error } = await supabase
         .from('email_logs')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
         .limit(batchSize);
-
-    if (error) throw error;
-
+ 
+    if (error) {
+        console.error(`[DB] ❌ Fallback query error: ${error.message}`);
+        throw error;
+    }
+ 
     // Mark them as processing
     if (data && data.length > 0) {
         const ids = data.map(d => d.id);
-        await supabase
+        console.log(`[DB] 🔄 Marking ${ids.length} tasks as 'processing'...`);
+        const { error: updErr } = await supabase
             .from('email_logs')
             .update({ status: 'processing', last_retry_time: new Date().toISOString() })
             .in('id', ids);
+        
+        if (updErr) console.error(`[DB] ❌ Failed to mark tasks as processing: ${updErr.message}`);
+    } else {
+        console.log(`[DB] No pending tasks found.`);
     }
     return data || [];
 }

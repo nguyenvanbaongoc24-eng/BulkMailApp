@@ -35,21 +35,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- EMERGENCY DEBUG ROUTES (AT START) ---
+// --- EMERGENCY DIAGNOSTICS ---
 app.get('/api/diag', async (req, res) => {
     try {
         const hb = emailService.getHeartbeat();
-        const { data: camps } = await supabase.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(5);
-        const { data: logs } = await supabase.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
+        const { data: camps, error: cerr } = await supabase.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(5);
+        const { data: logs, error: lerr } = await supabase.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
         
         res.json({
             nodeVersion: process.version,
             heartbeat: hb,
             hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            hasSmtpUser: !!process.env.SMTP_USER,
+            hasSmtpPass: !!process.env.SMTP_PASS,
             recentCampaigns: camps,
+            campsError: cerr,
             recentLogs: logs,
+            logsError: lerr,
             server_time: new Date().toISOString(),
-            version: "1.0.9-DEBUG"
+            version: "1.1.0-STABLE",
+            dnsOrder: "ipv4first"
         });
     } catch(e) { res.json({ error: e.message }); }
 });
@@ -82,42 +87,6 @@ app.get('/api/config', (req, res) => {
         supabaseUrl: process.env.SUPABASE_URL,
         supabaseKey: process.env.SUPABASE_KEY
     });
-});
-
-app.get('/api/diag', async (req, res) => {
-    try {
-        const { data: logs, error: lerr } = await supabase.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
-        const { data: camps, error: cerr } = await supabase.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(2);
-        
-        let rpcTestError = null;
-        if (logs && logs.length > 0) {
-            const testLog = logs[0];
-            const result = await supabase.rpc('update_email_log_for_worker', {
-                p_log_id: testLog.id,
-                p_status: testLog.status, // Keep same status
-                p_error_message: 'Diagnose test',
-                p_message_id: null,
-                p_sent_time: null
-            });
-            rpcTestError = result.error;
-        }
-
-        res.json({
-            nodeVersion: process.version,
-            hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-            hasSmtpUser: !!process.env.SMTP_USER,
-            hasSmtpPass: !!process.env.SMTP_PASS,
-            smtpHost: process.env.SMTP_HOST,
-            smtpPort: process.env.SMTP_PORT,
-            rpcTestError: rpcTestError,
-            recentCampaigns: camps,
-            campsError: cerr,
-            recentLogs: logs,
-            logsError: lerr
-        });
-    } catch(e) {
-        res.json({ error: e.message });
-    }
 });
 
 // Endpoint phục vụ TEST END-TO-END luồng email (Yêu cầu Phần 4)
@@ -913,15 +882,15 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
             }
         }
 
-        // Reset any failed logs to "pending" so the worker can retry them
+        // Reset any failed OR stuck processing logs to "pending" so the worker can retry them
         const { count: resetCount } = await supabase.from('email_logs')
             .update({ status: 'pending', retry_count: 0, error_message: null })
             .eq('campaign_id', campaignId)
-            .eq('status', 'failed')
+            .in('status', ['failed', 'processing']) // FIX: Reset both states
             .eq('user_id', req.user.id)
             .select('*', { count: 'exact', head: true });
         
-        console.log(`[CAMPAIGN SEND] Reset ${resetCount || 0} previously failed logs to pending`);
+        console.log(`[CAMPAIGN SEND] Reset ${resetCount || 0} previously failed/stuck logs to pending`);
 
         await supabase.from('campaigns').update({ 
             status: 'Đang gửi', 
