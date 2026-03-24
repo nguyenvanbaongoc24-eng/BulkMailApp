@@ -39,8 +39,8 @@ app.use(express.static('public'));
 app.get('/api/diag', async (req, res) => {
     try {
         const hb = emailService.getHeartbeat();
-        const { data: camps } = await adminClient.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(5);
-        const { data: logs } = await adminClient.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
+        const { data: camps } = await supabase.from('campaigns').select('id,status,sent_count,error_count,success_count').order('created_at', { ascending: false }).limit(5);
+        const { data: logs } = await supabase.from('email_logs').select('id,status,error_message,customer_id,retry_count').order('created_at', { ascending: false }).limit(10);
         
         res.json({
             nodeVersion: process.version,
@@ -56,7 +56,7 @@ app.get('/api/diag', async (req, res) => {
 
 app.post('/api/debug-reset-worker', async (req, res) => {
     try {
-        await adminClient.from('email_logs').update({ status: 'pending', error_message: 'Manual reset by AI' }).eq('status', 'processing');
+        await supabase.from('email_logs').update({ status: 'pending', error_message: 'Manual reset by AI' }).eq('status', 'processing');
         res.json({ success: true, message: 'Worker reset successful' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -64,7 +64,7 @@ app.post('/api/debug-reset-worker', async (req, res) => {
 app.get('/api/debug-campaign/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { data: campaign } = await adminClient.from('campaigns').select('*').eq('id', id).single();
+        const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', id).single();
         res.json({ id: campaign.id, template: campaign.template, recipients: campaign.recipients?.slice(0,2) });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
