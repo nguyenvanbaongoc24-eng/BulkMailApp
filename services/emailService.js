@@ -32,27 +32,34 @@ function normalizeSender(raw) {
 // -----------------------------------
 // TEMPLATE TAG PARSER
 // -----------------------------------
-function parseTemplateAndCheckTags(template, data, isAttachMode) {
-    if (!template) return { html: '', missingTags: [] };
+function parseTemplate(data, template) {
+    if (!template) return '';
+    console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 100) + '...');
+    console.log(`[TEMPLATE PARSER] DATA:`, data);
+
+    const sanitize = (val) => {
+        if (val === null || val === undefined) return '';
+        return String(val).trim();
+    };
 
     let parsedHTML = template
-        .replace(/#TênCôngTy/g, data.company_name || '')
-        .replace(/#MST/g, data.mst || '')
-        .replace(/#ĐịaChỉ/g, data.address || '')
-        .replace(/#NgàyHếtHạn/g, data.expired_date || '');
+        .replace(/#TênCôngTy/g, sanitize(data.company_name))
+        .replace(/#MST/g, sanitize(data.mst))
+        .replace(/#ĐịaChỉ/g, sanitize(data.address))
+        .replace(/#Email/g, sanitize(data.email))
+        .replace(/#NgàyHếtHạn/g, sanitize(data.expired_date));
+
+    console.log(`[TEMPLATE PARSER] AFTER:`, parsedHTML.substring(0, 100) + '...');
 
     const unmatched = parsedHTML.match(/#[A-Za-zÀ-ỹ0-9_]+/g);
-    let missingTags = [];
     if (unmatched && unmatched.length > 0) {
-        missingTags = unmatched.filter(tag => tag.length > 4 && !(/^#[0-9A-Fa-f]{3,6}$/.test(tag)));
-        if (missingTags.length > 0) {
-            console.warn(`[TEMPLATE] ⚠ UNPARSED TAGS: ${missingTags.join(', ')}`);
-            if (isAttachMode) {
-                throw new Error(`Template còn tag chưa thay thế: ${missingTags.join(', ')}`);
-            }
+        const remaining = unmatched.filter(tag => !(/^#[0-9A-Fa-f]{3,6}$/.test(tag)));
+        if (remaining.length > 0) {
+            console.error(`[TEMPLATE] ERROR TAG NOT REPLACED:`, remaining);
+            throw new Error(`TAG NOT REPLACED: ${remaining.join(', ')}`);
         }
     }
-    return { html: parsedHTML, missingTags };
+    return parsedHTML;
 }
 
 // -----------------------------------
@@ -70,7 +77,30 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     const boundary = `====boundary_${Date.now()}====`;
     const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     let pdfSkipped = false;
+    let pdfBase64 = null;
+    let filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
     
+    if (isAttachMode === true) {
+        if (!pdfUrl) {
+            console.warn(`[MIME] ⚠ attachCertificate=TRUE nhưng pdf_url=NULL → GỬI MAIL KHÔNG ĐÍNH KÈM PDF`);
+            pdfSkipped = true;
+        } else {
+            try {
+                console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl}`);
+                const response = await fetch(pdfUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                const buffer = await response.arrayBuffer();
+                pdfBase64 = Buffer.from(buffer).toString("base64");
+                console.log(`[MIME] PDF SIZE: ${buffer.byteLength}`);
+                console.log(`[MIME] PDF BASE64 LENGTH: ${pdfBase64.length}`);
+            } catch (err) {
+                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, err.message);
+                console.warn(`[MIME] ⚠ Skipping PDF attachment, sending email without it...`);
+                pdfSkipped = true;
+            }
+        }
+    }
+
     let message = `To: ${to}\r\n`;
     message += `From: ${from}\r\n`;
     message += `Subject: ${encodedSubject}\r\n`;
@@ -82,41 +112,30 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     message += `Content-Type: text/html; charset="UTF-8"\r\n\r\n`;
     message += `${htmlBody}\r\n\r\n`;
     
-    // Part 2: PDF Attachment (if requested)
-    if (isAttachMode) {
-        if (!pdfUrl) {
-            // FIX: Send email WITHOUT attachment instead of throwing
-            console.warn(`[MIME] ⚠ attachCertificate=TRUE nhưng pdf_url=NULL → GỬI MAIL KHÔNG ĐÍNH KÈM PDF`);
-            pdfSkipped = true;
-        } else {
-            try {
-                console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl}`);
-                const response = await axios.get(pdfUrl, { responseType: 'arraybuffer', timeout: 30000 });
-                const pdfBase64 = Buffer.from(response.data).toString('base64');
-                const filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-                console.log(`[MIME] PDF fetched OK: size=${response.data.length} bytes, base64 length=${pdfBase64.length}`);
-                
-                message += `--${boundary}\r\n`;
-                message += `Content-Type: application/pdf; name="${filename}"\r\n`;
-                message += `Content-Disposition: attachment; filename="${filename}"\r\n`;
-                message += `Content-Transfer-Encoding: base64\r\n\r\n`;
-                
-                // Gmail API requires word-wrapping the base64 attachment roughly every 76 chars
-                const wrappedBase64 = pdfBase64.match(/.{1,76}/g).join('\r\n');
-                message += `${wrappedBase64}\r\n\r\n`;
-                console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
-            } catch (err) {
-                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, err.message);
-                console.warn(`[MIME] ⚠ Skipping PDF attachment, sending email without it...`);
-                pdfSkipped = true;
-            }
-        }
+    // Part 2: HTML Attachment
+    if (pdfBase64) {
+        message += `--${boundary}\r\n`;
+        message += `Content-Type: application/pdf; name="${filename}"\r\n`;
+        message += `Content-Disposition: attachment; filename="${filename}"\r\n`;
+        message += `Content-Transfer-Encoding: base64\r\n\r\n`;
+        
+        // Wrap base64 to avoid line length limits in old MTA nodes, Gmail handles it well though
+        const wrappedBase64 = pdfBase64.match(/.{1,76}/g)?.join('\r\n') || pdfBase64;
+        message += `${wrappedBase64}\r\n\r\n`;
+        console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
     }
     
     message += `--${boundary}--`;
     
-    const encoded = makeBase64Url(message);
-    console.log(`[MIME] ✅ MIME built: total size=${message.length} chars, base64url length=${encoded.length}, hasAttachment=${isAttachMode && !pdfSkipped}`);
+    const encoded = Buffer.from(message)
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+    console.log(`[MIME] FINAL EMAIL HTML length: ${htmlBody.length}`);
+    console.log(`[MIME] HAS PDF: ${!!pdfBase64}`);
+    
     return { raw: encoded, pdfSkipped };
 };
 
@@ -182,8 +201,12 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
             requestBody: { raw: mimeResult.raw }
         });
         
-        console.log(`[SEND] ✅✅✅ GMAIL API SUCCESS! messageId: ${res.data.id}, threadId: ${res.data.threadId}`);
-        console.log(`[SEND] Full response:`, JSON.stringify(res.data));
+        console.log(`[SEND] GMAIL RESPONSE:`, JSON.stringify(res.data));
+        if (!res.data || !res.data.id) {
+            throw new Error(`Gmail API không trả về messageId hợp lệ.`);
+        }
+        
+        console.log(`[SEND] ✅✅✅ GMAIL API SUCCESS! messageId: ${res.data.id}`);
         console.log(`${'='.repeat(60)}\n`);
         
         let responseMsg = 'Sent via Gmail API';
@@ -409,16 +432,16 @@ async function processEmailTask(log) {
             company_name: recipientInExcel?.TenCongTy || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
             mst: recipientInExcel?.MST || recipientInExcel?.taxCode || customer.mst || cleanMST,
             address: recipientInExcel?.DiaChi || recipientInExcel?.['Địa chỉ'] || customer.dia_chi || '',
+            email: log.email || recipientInExcel?.Email || customer.email || '',
             expired_date: formatDateDDMMYYYY(rawExpiredDate)
         };
-        console.log(`[TASK:5] Template data:`, JSON.stringify(dataForTags));
+        console.log(`[TASK:5] Template data keys prep:`, Object.keys(dataForTags));
         
-        const parsedSubject = parseTemplateAndCheckTags(campaign.subject || 'Thông báo tự động', dataForTags, false);
-        const parsedBody = parseTemplateAndCheckTags(campaign.template || '', dataForTags, false);
-        console.log(`[TASK:5] ✅ Parsed subject: ${parsedSubject.html}`);
-        console.log(`[TASK:5]    Parsed body length: ${parsedBody.html.length} chars`);
-        if (parsedSubject.missingTags.length > 0) console.warn(`[TASK:5] ⚠ Subject missing tags: ${parsedSubject.missingTags}`);
-        if (parsedBody.missingTags.length > 0) console.warn(`[TASK:5] ⚠ Body missing tags: ${parsedBody.missingTags}`);
+        const parsedSubjectHTML = parseTemplate(dataForTags, campaign.subject || 'Thông báo tự động');
+        const parsedBodyHTML = parseTemplate(dataForTags, campaign.template || '');
+
+        console.log(`[TASK:5] ✅ Parsed subject: ${parsedSubjectHTML}`);
+        console.log(`[TASK:5]    Parsed body length: ${parsedBodyHTML.length} chars`);
 
         // Step 6: Send with retry (3 attempts)
         setHeartbeat('Sending', log.id);
@@ -430,8 +453,8 @@ async function processEmailTask(log) {
                 successInfo = await sendGmailAPI({
                     rawSender: senderRaw,
                     to: log.email,
-                    subject: parsedSubject.html,
-                    html: parsedBody.html,
+                    subject: parsedSubjectHTML,
+                    html: parsedBodyHTML,
                     pdf_url: customer.pdf_url,
                     isAttachMode: attachCertificate
                 });
