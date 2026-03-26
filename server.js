@@ -821,7 +821,7 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
                 campaign_id: campaignId,
                 user_id: req.user.id,
                 email: getVal(r, ['email']),
-                status: 'pending',
+                status: 'draft',
                 retry_count: 0,
                 created_at: new Date().toISOString()
             };

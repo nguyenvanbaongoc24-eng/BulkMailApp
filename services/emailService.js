@@ -130,20 +130,17 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
             pdfSkipped = true;
         } else {
             try {
-                console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl}`);
-                // Add Timeout to fetch (20s)
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 20000);
+                console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl} (using axios)`);
                 
-                const response = await fetch(pdfUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
+                const response = await axios.get(pdfUrl, { 
+                    responseType: 'arraybuffer', 
+                    timeout: 20000 
+                });
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
-                const buffer = await response.arrayBuffer();
-                pdfBase64 = Buffer.from(buffer).toString("base64");
-                console.log(`[MIME] PDF SIZE: ${buffer.byteLength}`);
+                pdfBase64 = Buffer.from(response.data).toString("base64");
+                console.log(`[MIME] PDF SIZE: ${response.data.byteLength}`);
             } catch (err) {
-                const isTimeout = err.name === 'AbortError';
+                const isTimeout = err.code === 'ECONNABORTED';
                 console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, isTimeout ? 'TIMEOUT (20s)' : err.message);
                 console.warn(`[MIME] ⚠ Skipping PDF attachment...`);
                 pdfSkipped = true;
