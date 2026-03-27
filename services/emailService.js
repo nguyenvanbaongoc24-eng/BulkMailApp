@@ -37,19 +37,39 @@ function normalizeSender(raw) {
 // TEMPLATE TAG PARSER
 // -----------------------------------
 function normalizeCustomer(row) {
+    if (!row) row = {};
     return {
-        company_name: row.company_name || row.ten_cong_ty || row.name || row.Ten || row['Tên Công Ty'] || row.TenCongTy || "",
-        mst: row.mst || row.tax_code || row.MST || row.taxCode || "",
-        address: row.address || row.dia_chi || row.DiaChi || row['Địa chỉ'] || "",
+        company_name: row.company_name || row.TenCongTy || row.ten_cong_ty || row.name || row.Ten || row['Tên Công Ty'] || "",
+        mst: row.mst || row.MST || row.tax_code || row.taxCode || "",
+        address: row.address || row.DiaChi || row.dia_chi || row['Địa chỉ'] || "",
         email: row.email || row.Email || "",
         expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ngày hết hạn'] || ""
     };
 }
 
+function decodeHtmlEntities(str) {
+    if (!str) return '';
+    const entities = {
+        '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
+        '&acirc;': 'â', '&ecirc;': 'ê', '&ocirc;': 'ô', '&ucirc;': 'û', '&icirc;': 'î',
+        '&agrave;': 'à', '&egrave;': 'è', '&ograve;': 'ò', '&ugrave;': 'ù', '&igrave;': 'ì',
+        '&aacute;': 'á', '&eacute;': 'é', '&oacute;': 'ó', '&uacute;': 'ú', '&iacute;': 'í',
+        '&atilde;': 'ã', '&etilde;': 'ẽ', '&otilde;': 'õ', '&utilde;': 'ũ', '&itilde;': 'ĩ',
+        '&Acirc;': 'Â', '&Ecirc;': 'Ê', '&Ocirc;': 'Ô',
+    };
+    let result = str;
+    // Also handle &#xxx; numeric entities
+    result = result.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)));
+    for (const [entity, char] of Object.entries(entities)) {
+        result = result.split(entity).join(char);
+    }
+    return result;
+}
+
 function parseTemplate(template, customer) {
     if (!template) return '';
-    console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 50) + '...');
-    console.log("CUSTOMER RAW:", customer);
+    console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 80));
+    console.log("CUSTOMER RAW KEYS:", Object.keys(customer || {}));
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
@@ -61,25 +81,55 @@ function parseTemplate(template, customer) {
     };
 
     const norm = normalizeCustomer(customer);
+    console.log("NORMALIZED:", JSON.stringify(norm));
 
-    const map = [
-        { regex: /#(?:TênCôngTy|TenCongTy|Tên Công Ty|Ten Cong Ty|T[\w&;\s]*C[\w&;\s]*ngTy)/gi, value: norm.company_name },
-        { regex: /#MST/gi, value: norm.mst },
-        { regex: /#(?:ĐịaChỉ|DiaChi|Địa Chỉ|Dia Chi|Đ[\w&;\s]*aCh[\w&;\s]*)/gi, value: norm.address },
-        { regex: /#Email/gi, value: norm.email },
-        { regex: /#(?:NgàyHếtHạn|NgayHetHan|Ngày Hết Hạn|Ngay Het Han|Ng[\w&;\s]*yH[\w&;\s]*tH[\w&;\s]*n)/gi, value: formatDate(norm.expired_date) }
+    // Step 1: Decode HTML entities in the template so "#T&ecirc;nC&ocirc;ngTy" becomes "#TênCôngTy"
+    let result = decodeHtmlEntities(template);
+
+    // Step 2: Build a flat map of ALL known tag variants -> value
+    // Each tag variant is a plain string (case-insensitive replacement)
+    const tagMap = [
+        // Company name variants
+        ['#TênCôngTy', norm.company_name],
+        ['#TenCongTy', norm.company_name],
+        ['#tencongty', norm.company_name],
+        ['#Tên Công Ty', norm.company_name],
+        ['#Ten Cong Ty', norm.company_name],
+        // MST variants
+        ['#MST', norm.mst],
+        ['#mst', norm.mst],
+        // Address variants
+        ['#ĐịaChỉ', norm.address],
+        ['#DiaChi', norm.address],
+        ['#diachi', norm.address],
+        ['#Địa Chỉ', norm.address],
+        ['#Dia Chi', norm.address],
+        // Email variants
+        ['#Email', norm.email],
+        ['#email', norm.email],
+        // Expiry date variants
+        ['#NgàyHếtHạn', formatDate(norm.expired_date)],
+        ['#NgayHetHan', formatDate(norm.expired_date)],
+        ['#ngayhethan', formatDate(norm.expired_date)],
+        ['#Ngày Hết Hạn', formatDate(norm.expired_date)],
+        ['#Ngay Het Han', formatDate(norm.expired_date)],
     ];
 
-    let result = template;
-    map.forEach(item => {
-        result = result.replace(item.regex, item.value || "");
-    });
-
-    if (result.includes("#")) {
-        console.warn(`[TEMPLATE] ⚠ TAG NOT FULLY REPLACED:`, result.match(/#[^\s<.,]+/g) || []);
+    // Step 3: Replace each tag (case-insensitive)
+    for (const [tag, value] of tagMap) {
+        // Use a simple case-insensitive find-and-replace
+        const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        result = result.replace(new RegExp(escaped, 'gi'), value || '');
     }
 
-    console.log("PARSED EMAIL:", result.substring(0, 100));
+    if (result.includes('#')) {
+        const remaining = result.match(/#[^\s<.,;:!?"']+/g) || [];
+        if (remaining.length > 0) {
+            console.warn(`[TEMPLATE] ⚠ UNREPLACED TAGS:`, remaining);
+        }
+    }
+
+    console.log("PARSED RESULT:", result.substring(0, 120));
     return result;
 }
 
@@ -438,15 +488,19 @@ async function processEmailTask(log) {
         console.log(`[TASK:2]    Excel match: ${recipientInExcel ? 'YES' : 'NO'}`);
         console.log(`[TASK:2]    DB customer found: ${customer && customer.mst ? 'YES' : 'NO'}`);
         
-        let pdfUrl = customer.pdf_url;
+        let pdfUrl = customer.pdf_url || null;
         
         // --- FALLBACK: Check certificates table if customers table has no PDF ---
         if (!pdfUrl) {
             console.log(`[TASK:2] 🔍 No PDF found in customers table. Checking certificates table...`);
-            const { data: cert } = await supabase.from('certificates').select('pdf_url').eq('mst', cleanMST).maybeSingle();
-            if (cert && cert.pdf_url) {
-                pdfUrl = cert.pdf_url;
-                console.log(`[TASK:2] ✅ Fallback PDF found in certificates: ${pdfUrl}`);
+            try {
+                const { data: certRows } = await supabase.from('certificates').select('pdf_url').eq('mst', cleanMST).limit(1);
+                if (certRows && certRows.length > 0 && certRows[0].pdf_url) {
+                    pdfUrl = certRows[0].pdf_url;
+                    console.log(`[TASK:2] ✅ Fallback PDF found in certificates: ${pdfUrl}`);
+                }
+            } catch (certErr) {
+                console.error(`[TASK:2] ❌ Error checking certificates table: ${certErr.message}`);
             }
         }
 

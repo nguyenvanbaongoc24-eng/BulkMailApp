@@ -76,7 +76,30 @@ app.get('/api/debug-campaign/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', id).single();
-        res.json({ id: campaign.id, template: campaign.template, recipients: campaign.recipients?.slice(0,2) });
+        const recipients = campaign.recipients?.slice(0, 3) || [];
+        
+        // For each recipient, check customers and certificates tables
+        const debugData = [];
+        for (const r of recipients) {
+            const mst = r.MST || r.mst || r.taxCode || '';
+            const { data: custRows } = await supabase.from('customers').select('mst,company_name,pdf_url').eq('mst', mst).limit(1);
+            const { data: certRows } = await supabase.from('certificates').select('mst,pdf_url').eq('mst', mst).limit(1);
+            debugData.push({
+                recipient_keys: Object.keys(r),
+                recipient_sample: { MST: r.MST, TenCongTy: r.TenCongTy, DiaChi: r.DiaChi, Email: r.Email },
+                customer_in_db: custRows?.[0] || null,
+                certificate_in_db: certRows?.[0] || null
+            });
+        }
+        
+        res.json({
+            id: campaign.id,
+            subject: campaign.subject,
+            attach_cert: campaign.attach_cert,
+            template_preview: (campaign.template || '').substring(0, 200),
+            total_recipients: (campaign.recipients || []).length,
+            debug: debugData
+        });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
