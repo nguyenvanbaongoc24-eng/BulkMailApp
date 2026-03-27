@@ -32,78 +32,51 @@ function normalizeSender(raw) {
 // -----------------------------------
 // TEMPLATE TAG PARSER
 // -----------------------------------
-function parseTemplate(data, template) {
+function normalizeCustomer(row) {
+    return {
+        company_name: row.company_name || row.ten_cong_ty || row.name || row.Ten || row['Tên Công Ty'] || row.TenCongTy || "",
+        mst: row.mst || row.tax_code || row.MST || row.taxCode || "",
+        address: row.address || row.dia_chi || row.DiaChi || row['Địa chỉ'] || "",
+        email: row.email || row.Email || "",
+        expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ngày hết hạn'] || ""
+    };
+}
+
+function parseTemplate(template, customer) {
     if (!template) return '';
     console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 50) + '...');
-    
-    const s = (val) => {
-        if (val === null || val === undefined) return '';
-        return String(val).trim();
+    console.log("CUSTOMER RAW:", customer);
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        } catch { return dateStr; }
     };
 
-    // Mapping of (Regex Pattern) -> (Value)
-    // Supports: #Tag, {{Tag}}, {{ Tag }}, {{  Tag  }}
-    const replacements = [
-        { 
-            patterns: [
-                /#TênCônnTy/gi, /#TenCongTy/gi, /#Tên\s+Công\s+Ty/gi, /#Tên\s+đơn\s+vị/gi, /#Tên\s+khách\s+hàng/gi,
-                /{{\s*TenCongTy\s*}}/gi, /{{\s*Tên Công Ty\s*}}/gi, /{{\s*Tên\s*Công\s*Ty\s*}}/gi, /{{\s*Tên\s*Khách\s*Hàng\s*}}/gi
-            ], 
-            val: s(data.company_name) 
-        },
-        { 
-            patterns: [
-                /#MST/gi, /#MãSốThuế/gi, /#Mã\s+Số\s+Thuế/gi,
-                /{{\s*MST\s*}}/gi, /{{\s*Mã Số Thuế\s*}}/gi, /{{\s*Mã\s+Số\s+Thuế\s*}}/gi
-            ], 
-            val: s(data.mst) 
-        },
-        { 
-            patterns: [
-                /#ĐịaChỉ/gi, /#DiaChi/gi, /#Địa\s+Chỉ/gi,
-                /{{\s*DiaChi\s*}}/gi, /{{\s*Địa Chỉ\s*}}/gi, /{{\s*Địa\s+Chỉ\s*}}/gi
-            ], 
-            val: s(data.address) 
-        },
-        { 
-            patterns: [
-                /#Email/gi, /{{\s*Email\s*}}/gi
-            ], 
-            val: s(data.email) 
-        },
-        { 
-            patterns: [
-                /#NgàyHếtHạn/gi, /#NgayHetHan/gi, /#Ngày\s+Hết\s+Hạn/gi,
-                /{{\s*NgayHetHan\s*}}/gi, /{{\s*Ngày Hết Hạn\s*}}/gi, /{{\s*Ngày\s+Hết\s+Hạn\s*}}/gi
-            ], 
-            val: s(data.expired_date) 
-        }
+    const norm = normalizeCustomer(customer);
+
+    const map = [
+        { regex: /#(?:TênCôngTy|TenCongTy|Tên Công Ty|Ten Cong Ty|T[\w&;\s]*C[\w&;\s]*ngTy)/gi, value: norm.company_name },
+        { regex: /#MST/gi, value: norm.mst },
+        { regex: /#(?:ĐịaChỉ|DiaChi|Địa Chỉ|Dia Chi|Đ[\w&;\s]*aCh[\w&;\s]*)/gi, value: norm.address },
+        { regex: /#Email/gi, value: norm.email },
+        { regex: /#(?:NgàyHếtHạn|NgayHetHan|Ngày Hết Hạn|Ngay Het Han|Ng[\w&;\s]*yH[\w&;\s]*tH[\w&;\s]*n)/gi, value: formatDate(norm.expired_date) }
     ];
 
-    let parsedHTML = template;
-    replacements.forEach(item => {
-        item.patterns.forEach(p => {
-            parsedHTML = parsedHTML.replace(p, item.val);
-        });
+    let result = template;
+    map.forEach(item => {
+        result = result.replace(item.regex, item.value || "");
     });
 
-    // Smart Validation: Match #Tags but ignore CSS HEX colors (#abc or #abcdef)
-    const unmatched = parsedHTML.match(/#[A-Za-zÀ-ỹ_][A-Za-zÀ-ỹ0-9_]+/g) || [];
-    const unmatchedBraces = parsedHTML.match(/{{[^}]+}}/g) || [];
-    
-    const remaining = [...unmatched, ...unmatchedBraces];
-
-    if (remaining.length > 0) {
-        console.warn(`[TEMPLATE] ⚠ Dấu hiệu Tag chưa được thay thế:`, remaining);
-        // We throw ONLY if it looks like one of OUR critical tags
-        const criticalTags = ['Tên', 'MST', 'Địa', 'Email', 'Ngày'];
-        const hasCritical = remaining.some(r => criticalTags.some(c => r.toLowerCase().includes(c.toLowerCase())));
-        if (hasCritical) {
-            console.error(`[TEMPLATE] CRITICAL TAG NOT REPLACED:`, remaining);
-        }
+    if (result.includes("#")) {
+        console.warn(`[TEMPLATE] ⚠ TAG NOT FULLY REPLACED:`, result.match(/#[^\s<.,]+/g) || []);
     }
 
-    return parsedHTML;
+    console.log("PARSED EMAIL:", result.substring(0, 100));
+    return result;
 }
 
 // -----------------------------------
@@ -123,31 +96,25 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     let pdfSkipped = false;
     let pdfBase64 = null;
     let filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    
+
     if (isAttachMode === true) {
         if (!pdfUrl) {
             console.warn(`[MIME] ⚠ attachCertificate=TRUE nhưng pdf_url=NULL → GỬI MAIL KHÔNG ĐÍNH KÈM PDF`);
             pdfSkipped = true;
         } else {
+            console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl} (using Native Fetch)`);
             try {
-                console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl} (using axios)`);
-                
-                const response = await axios.get(pdfUrl, { 
-                    responseType: 'arraybuffer', 
-                    timeout: 20000 
-                });
-                
-                pdfBase64 = Buffer.from(response.data).toString("base64");
-                console.log(`[MIME] PDF SIZE: ${response.data.byteLength}`);
+                const res = await fetch(pdfUrl);
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const buffer = await res.arrayBuffer();
+                pdfBase64 = Buffer.from(buffer).toString("base64");
             } catch (err) {
-                const isTimeout = err.code === 'ECONNABORTED';
-                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, isTimeout ? 'TIMEOUT (20s)' : err.message);
+                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, err.message);
                 console.warn(`[MIME] ⚠ Skipping PDF attachment...`);
                 pdfSkipped = true;
             }
         }
     }
-    // ... remaining MIME construction ...
 
     let message = `To: ${to}\r\n`;
     message += `From: ${from}\r\n`;
@@ -160,14 +127,13 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     message += `Content-Type: text/html; charset="UTF-8"\r\n\r\n`;
     message += `${htmlBody}\r\n\r\n`;
     
-    // Part 2: HTML Attachment
+    // Part 2: PDF Attachment
     if (pdfBase64) {
         message += `--${boundary}\r\n`;
         message += `Content-Type: application/pdf; name="${filename}"\r\n`;
         message += `Content-Disposition: attachment; filename="${filename}"\r\n`;
         message += `Content-Transfer-Encoding: base64\r\n\r\n`;
         
-        // Wrap base64 to avoid line length limits in old MTA nodes, Gmail handles it well though
         const wrappedBase64 = pdfBase64.match(/.{1,76}/g)?.join('\r\n') || pdfBase64;
         message += `${wrappedBase64}\r\n\r\n`;
         console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
@@ -181,8 +147,8 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
         .replace(/\//g, "_")
         .replace(/=+$/, "");
 
-    console.log(`[MIME] FINAL EMAIL HTML length: ${htmlBody.length}`);
     console.log(`[MIME] HAS PDF: ${!!pdfBase64}`);
+    console.log(`[MIME] PDF LENGTH: ${pdfBase64 ? pdfBase64.length : 0}`);
     
     return { raw: encoded, pdfSkipped };
 };
@@ -346,9 +312,13 @@ async function dbGetSender(senderId) {
 }
 
 async function dbGetCustomer(mst) {
-    if (!mst) return {};
-    const { data } = await supabase.from('customers').select('*').eq('mst', mst).limit(1);
-    return (data && data[0]) || {};
+    const { data } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('mst', String(mst).trim())
+        .order('created_at', { ascending: false })
+        .limit(1);
+    return data && data.length > 0 ? data[0] : null;
 }
 
 async function dbIncrementSuccess(campaignId) {
@@ -501,17 +471,14 @@ async function processEmailTask(log) {
 
         const rawExpiredDate = recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || '';
 
-        const dataForTags = {
-            company_name: recipientInExcel?.TenCongTy || recipientInExcel?.Ten || recipientInExcel?.['Tên Công Ty'] || customer.company_name || 'Quý khách',
-            mst: recipientInExcel?.MST || recipientInExcel?.taxCode || customer.mst || cleanMST,
-            address: recipientInExcel?.DiaChi || recipientInExcel?.['Địa chỉ'] || customer.dia_chi || '',
-            email: log.email || recipientInExcel?.Email || customer.email || '',
-            expired_date: formatDateDDMMYYYY(rawExpiredDate)
-        };
-        console.log(`[TASK:5] TAG DATA [${log.id}]:`, JSON.stringify(dataForTags, null, 2));
+        // Combine DB customer, Excel row, and log item as raw customer object
+        const dataForTags = { ...customer, ...recipientInExcel, email: log.email || recipientInExcel?.Email || customer.email || '' };
+        if (rawExpiredDate) dataForTags.expired_date = rawExpiredDate;
         
-        const parsedSubjectHTML = parseTemplate(dataForTags, campaign.subject || 'Thông báo tự động');
-        const parsedBodyHTML = parseTemplate(dataForTags, campaign.template || '');
+        console.log(`[TASK:5] TAG DATA MAP:`);
+        
+        const parsedSubjectHTML = parseTemplate(campaign.subject || 'Thông báo tự động', dataForTags);
+        const parsedBodyHTML = parseTemplate(campaign.template || '', dataForTags);
 
         console.log(`[TASK:5] ✅ Parsed subject: ${parsedSubjectHTML}`);
         console.log(`[TASK:5]    Parsed body length: ${parsedBodyHTML.length} chars`);
@@ -578,7 +545,10 @@ async function startWorker() {
 
     try {
         const tasks = await dbPickTasks(10);
-        if (!tasks || tasks.length === 0) return;
+        if (!tasks || tasks.length === 0) {
+            isWorkerRunning = false; // Reset here too
+            return;
+        }
 
         console.log(`\n${'🔄'.repeat(5)} WORKER CYCLE START ${'🔄'.repeat(5)}`);
         console.log(`[WORKER] Found ${tasks.length} pending task(s)`);
@@ -624,24 +594,21 @@ setInterval(() => dbRecoverStuck().catch(e => console.error('[RECOVER]', e.messa
 // -----------------------------------
 async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
     console.log(`\n=== E2E TEST: CASE ${testCase} to ${targetEmail} ===`);
-
-    let sender;
+    let sender = null;
+    
+    // Test case setup
     if (forcedSenderId) {
-        const { data: s } = await supabase.from('senders').select('*').eq('id', forcedSenderId).limit(1);
-        sender = s && s[0];
+        const { data: s } = await supabase.from('senders').select('*').eq('id', forcedSenderId).single();
+        sender = s;
     }
+
     if (!sender) {
         const { data: senders } = await supabase.from('senders').select('*').order('created_at', { ascending: false }).limit(1);
-        sender = senders && senders[0];
-    }
-    if (!sender) {
-        sender = {
-            smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
-            smtpPort: process.env.SMTP_PORT || '587',
-            smtpUser: process.env.SMTP_USER,
-            smtpPassword: process.env.SMTP_PASS,
-            senderName: 'ENV Fallback Test'
-        };
+        if (senders && senders.length > 0) {
+            sender = senders[0];
+        } else {
+            throw new Error('Bạn chưa có tài khoản Gmail nào được kết nối trong Cơ Sở Dữ Liệu. Vui lòng vào ứng dụng 웹 -> "Tài khoản Gmail" -> "Kết nối Gmail API" trước khi thử gửi Test.');
+        }
     }
 
     const dataForTags = { company_name: 'CÔNG TY TEST CA2', mst: '0101010101', address: 'HN VN', expired_date: '31/12/2030' };
@@ -652,7 +619,7 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
     if (testCase === 2) { attachCertificate = true; mockPdfUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'; }
     if (testCase === 3) { attachCertificate = true; mockPdfUrl = null; }
 
-    const parsedBodyHTML = parseTemplate(dataForTags, rawTemplate);
+    const parsedBodyHTML = parseTemplate(rawTemplate, dataForTags);
     const sendArgs = {
         rawSender: sender,
         to: targetEmail,

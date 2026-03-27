@@ -14,7 +14,13 @@ require('dotenv').config();
 
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
-const scraperService = require('./services/scraperService');
+// const scraperService = require('./services/scraperService'); // Moved to dynamic require for Render compatibility
+let scraperService = null;
+try {
+    scraperService = require('./services/scraperService');
+} catch (e) {
+    console.warn('[SERVER] ⚠ Scraper service not loaded (puppeteer missing). Automation routes will be disabled.');
+}
 const { adminClient: supabase, anonClient, getClient } = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
@@ -1100,8 +1106,8 @@ app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
         console.log(`[Scraper] Starting manual scrape for MST: ${customer.mst}`);
         
         // 2. Init Browser
-        const { initBrowser, getLatestCertificate } = require('./services/scraperService');
-        browser = await initBrowser();
+        if (!scraperService) return res.status(400).json({ error: 'Dịch vụ Crawler không khả dụng trên máy chủ này. Vui lòng sử dụng App Desktop để cào PDF.' });
+        browser = await scraperService.initBrowser();
         
         // 3. Scrape
         const result = await getLatestCertificate(browser, customer.mst, customer.serial || '', customer);
@@ -1596,6 +1602,7 @@ app.post('/api/automation/fetch-single', async (req, res) => {
         });
 
         const task = (async () => {
+            if (!scraperService) throw new Error('Dịch vụ Crawler không khả dụng trên máy chủ này (Vui lòng dùng App Desktop).');
             browser = await scraperService.initBrowser();
             const customerInfo = { 
                 taxCode: MST, 
