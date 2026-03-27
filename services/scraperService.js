@@ -164,7 +164,7 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                     }
                 };
                 browser.on('targetcreated', handler);
-                setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 15000);
+                setTimeout(() => { browser.off('targetcreated', handler); resolve(null); }, 30000);
             });
 
             console.log(`[Scraper] [${mst}] Clicking Search...`);
@@ -203,43 +203,50 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                     ? targetSerials.map(norm).filter(s => s !== '')
                     : [norm(targetSerials)].filter(s => s !== '');
                 
-                const tables = Array.from(document.querySelectorAll('table[id="tblresult"]'));
-                const results = [];
-                
-                tables.forEach((tbl, idx) => {
-                    const cells = Array.from(tbl.querySelectorAll('td')).map(td => td.innerText.trim());
-                    let serialText = '';
-                    
-                    // Col 3 (Index 2) is priority based on user feedback
-                    if (cells[2]) serialText = norm(cells[2]);
-                    else if (cells[1]) serialText = norm(cells[1]);
+                console.log('Target serials to match:', targets);
 
-                    const link = tbl.querySelector('a');
-                    if (link) {
-                        results.push({
-                            serial: serialText,
-                            index: idx,
-                            isActive: tbl.innerText.includes('Hoạt động')
-                        });
-                    }
+                // Strategy: Find all links that say "Tải về" or similar
+                const allLinks = Array.from(document.querySelectorAll('a, input[type="button"], input[type="submit"]'));
+                const downloadLinks = allLinks.filter(l => {
+                    const text = (l.innerText || l.value || '').toLowerCase();
+                    return text.includes('tải về') || text.includes('download');
                 });
 
-                if (results.length === 0) return { found: false, count: 0, foundSerials: [] };
+                if (downloadLinks.length === 0) {
+                    return { found: false, reason: 'Không tìm thấy bất kỳ link "Tải về" nào trên trang.' };
+                }
 
-                const matched = results.find(r => 
-                    targets.some(t => r.serial === t || r.serial.includes(t) || t.includes(r.serial))
-                );
-
-                if (matched) {
-                    const targetTable = tables[matched.index];
-                    const downloadLink = targetTable.querySelector('a');
-                    if (downloadLink) {
-                        downloadLink.click();
-                        return { found: true, serial: matched.serial };
+                // For each download link, look at the surrounding text to find a matching serial
+                for (const link of downloadLinks) {
+                    // Look up to 3 levels up for a container (like a table row or a div)
+                    let container = link.parentElement;
+                    for (let i = 0; i < 5; i++) {
+                        if (!container) break;
+                        const containerText = norm(container.innerText);
+                        const match = targets.find(t => containerText.includes(t));
+                        if (match) {
+                            link.click();
+                            return { found: true, serial: match };
+                        }
+                        container = container.parentElement;
                     }
                 }
 
-                return { found: false, count: results.length, reason: results.length > 0 ? 'Không tìm thấy Serial khớp trong danh sách' : 'Không có dữ liệu chứng thư' };
+                // Fallback: If no direct container match, check if ANY target serial exists on the page
+                const fullPageText = norm(document.body.innerText);
+                const globalMatch = targets.find(t => fullPageText.includes(t));
+                
+                if (globalMatch) {
+                    // Match found globally but couldn't associate with a link. 
+                    // Just click the first download link if there's only one, or try to be smart.
+                    if (downloadLinks.length === 1) {
+                        downloadLinks[0].click();
+                        return { found: true, serial: globalMatch, note: 'Matched globally, clicked only available link' };
+                    }
+                    return { found: false, reason: `Tìm thấy Serial ${globalMatch} trên trang nhưng không xác định được link "Tải về" tương ứng.` };
+                }
+
+                return { found: false, reason: 'Không tìm thấy Serial khớp trong nội dung trang.' };
             }, excelSerials);
 
             if (!matchData || !matchData.found) {
