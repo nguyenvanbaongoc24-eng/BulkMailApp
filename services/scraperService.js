@@ -29,13 +29,17 @@ function sanitizeString(str) {
 async function initBrowser() {
     console.log('[Scraper] Initializing browser configuration...');
     const launchOptions = {
-        headless: 'new',
+        headless: true, // Use stable headless mode for better download interception
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--ignore-certificate-errors'
+            '--ignore-certificate-errors',
+            '--disable-features=DownloadBubble,DownloadBubbleV2', // Fixes "Save As" logic in some builds
+            '--disable-extensions',
+            '--no-default-browser-check',
+            '--no-first-run'
         ],
         ignoreHTTPSErrors: true,
         acceptInsecureCerts: true,
@@ -133,18 +137,23 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
             page.setDefaultTimeout(60000);
 
             const client = await page.createCDPSession();
+            await client.send('Browser.setDownloadBehavior', {
+                behavior: 'allowAndName', // Try newer behavioral flag
+                downloadPath: mstDownloadDir,
+                eventsEnabled: true
+            });
             await client.send('Page.setDownloadBehavior', {
                 behavior: 'allow',
                 downloadPath: mstDownloadDir
             });
 
             console.log(`[Scraper] [${mst}] Navigating to ${SEARCH_URL}...`);
-            await page.goto(SEARCH_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.goto(SEARCH_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
             const mstInputSelector = 'input[name$="txtMasothue"], input[id$="txtMasothue"]';
             const searchBtnSelector = 'input[name$="btnTim"], input[id$="btnTim"], input[type="submit"]';
 
-            await page.waitForSelector(mstInputSelector, { timeout: 20000 });
+            await page.waitForSelector(mstInputSelector, { timeout: 10000 });
             
             console.log(`[Scraper] [${mst}] Entering tax code...`);
             await page.focus(mstInputSelector);
@@ -176,6 +185,11 @@ async function getLatestCertificate(browser, mst, excelSerials, recipientInfo) {
                 console.log(`[Scraper] [${mst}] New result tab detected.`);
                 try {
                     const newClient = await newPage.createCDPSession();
+                    await newClient.send('Browser.setDownloadBehavior', {
+                        behavior: 'allowAndName',
+                        downloadPath: mstDownloadDir,
+                        eventsEnabled: true
+                    });
                     await newClient.send('Page.setDownloadBehavior', {
                         behavior: 'allow',
                         downloadPath: mstDownloadDir

@@ -41,7 +41,7 @@ function normalizeCustomer(row) {
     return {
         company_name: row.company_name || row.TenCongTy || row.ten_cong_ty || row.name || row.Ten || row['Tên Công Ty'] || "",
         mst: row.mst || row.MST || row.tax_code || row.taxCode || "",
-        address: row.address || row.DiaChi || row.dia_chi || row['Địa chỉ'] || "",
+        address: row.address || row.DiaChi || row.dia_chi || row['Địa chỉ'] || row.notes || "",
         email: row.email || row.Email || "",
         expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ngày hết hạn'] || ""
     };

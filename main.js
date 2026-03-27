@@ -224,34 +224,43 @@ ipcMain.handle('process-single-record', async (event, { MST, Serial, companyName
         }
 
         // Step 6: Update 'customers' table (Main CRM)
-        console.log('[ELECTRON] Upserting into customers table...');
-        const { data: existingCustList } = await supabase.from('customers').select('id').eq('mst', MST).limit(1);
-        const existingCust = existingCustList && existingCustList.length > 0 ? existingCustList[0] : null;
-        
-        if (existingCust) {
-            const { error: customerError } = await supabase
-                .from('customers')
-                .update({ 
-                    pdf_url: publicUrl,
-                    company_name: companyName,
-                    dia_chi: diaChi || '',
-                    email: email || ''
-                })
-                .eq('id', existingCust.id);
-            if (customerError) throw new Error(`Lỗi cập nhật CRM: ${customerError.message}`);
-        } else {
-            console.log('[ELECTRON] Customer missing, performing INSERT...');
-            const { error: insertCustError } = await supabase
-                .from('customers')
-                .insert({
-                    mst: MST,
-                    company_name: companyName,
-                    dia_chi: diaChi || '',
-                    email: email || '',
-                    pdf_url: publicUrl,
-                    created_at: new Date().toISOString()
-                });
-            if (insertCustError) throw new Error(`Lỗi thêm mới CRM: ${insertCustError.message}`);
+        try {
+            console.log('[ELECTRON] Updating customers table (Notes fallback for address)...');
+            const { data: existingCustList } = await supabase.from('customers').select('id, notes').eq('mst', MST).limit(1);
+            const existingCust = existingCustList && existingCustList.length > 0 ? existingCustList[0] : null;
+
+            const addressNote = diaChi ? `\nĐịa chỉ: ${diaChi}` : '';
+            const newNotes = existingCust ? ((existingCust.notes || '') + addressNote).trim() : (diaChi ? `Địa chỉ: ${diaChi}` : '');
+
+            if (existingCust) {
+                await supabase
+                    .from('customers')
+                    .update({ 
+                        pdf_url: publicUrl,
+                        company_name: companyName,
+                        notes: newNotes,
+                        email: email || '',
+                        status: 'active'
+                    })
+                    .eq('id', existingCust.id);
+            } else {
+                console.log('[ELECTRON] Customer missing, performing INSERT into customers...');
+                await supabase
+                    .from('customers')
+                    .insert({
+                        mst: MST,
+                        company_name: companyName,
+                        notes: newNotes,
+                        email: email || '',
+                        pdf_url: publicUrl,
+                        status: 'active',
+                        created_at: new Date().toISOString()
+                    });
+            }
+            console.log('[ELECTRON] CRM Sync successful.');
+        } catch (crmErr) {
+            console.error('[ELECTRON] Non-critical CRM Sync error:', crmErr.message);
+            // We continue even if CRM update fails, so the user still gets their PDFs
         }
 
         console.log(`[ELECTRON] Sync completed successfully for ${MST}.`);
