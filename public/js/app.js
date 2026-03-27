@@ -850,8 +850,17 @@ function handleFileUpload(event) {
                         } else if (val.length > 20 && !val.includes(' ')) {
                             obj['Serial'] = val;
                         } else if (val.length > 5 && val.includes(' ') && !isDate(val)) {
-                            // Only map to TenCongTy if it's NOT a date-like string
-                            obj['TenCongTy'] = val;
+                            // Detect if the string is an ADDRESS (contains location keywords)
+                            const lowerVal = val.toLowerCase();
+                            const addressKeywords = ['phường', 'quận', 'huyện', 'tỉnh', 'thành phố', 'đường', 'ngõ', 'số', 'khu phố', 'xã', 'thị trấn', 'phố', 'ward', 'district', 'city', 'street'];
+                            const isAddress = addressKeywords.some(kw => lowerVal.includes(kw));
+                            
+                            if (isAddress) {
+                                obj['DiaChi'] = val;
+                            } else if (!obj['TenCongTy']) {
+                                // Only set TenCongTy if not already set
+                                obj['TenCongTy'] = val;
+                            }
                         }
                     });
                 } else {
