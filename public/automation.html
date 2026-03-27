@@ -35,7 +35,7 @@
             const [stats, setStats] = useState({ total: 0, success: 0, error: 0 });
 
             useEffect(() => {
-                const successful = data.filter(r => r.status === '✅ Ready' || r.status === '☁️ Synced').length;
+                const successful = data.filter(r => r.status === '✅ Hoàn tất').length;
                 const errors = data.filter(r => r.status?.includes('❌')).length;
                 setStats({ total: data.length, success: successful, error: errors });
             }, [data]);
@@ -73,22 +73,27 @@
 
                 for (let i = 0; i < data.length; i++) {
                     const r = data[i];
-                    if (retryOnly && !r.status.includes('❌')) continue;
+                    if (retryOnly && !r.status.includes('❌') && r.status !== '⏳ Pending') continue;
 
-                    setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '🔍 Scraping...' } : item));
+                    setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '🔄 Đang xử lý...' } : item));
                     setStatusText(`Processing: ${r.MST}`);
 
                     try {
-                        const res = await window.electronAPI.fetchSinglePdf({ MST: r.MST, Serial: r.Serial, companyName: r.Ten });
-                        if (res.success && res.result.status === 'Matched') {
+                        const res = await window.electronAPI.processSingleRecord({ 
+                            MST: r.MST, 
+                            Serial: r.Serial, 
+                            companyName: r.Ten,
+                            email: r.Email,
+                            diaChi: r.DiaChi
+                        });
+                        
+                        if (res.success) {
                             setData(prev => prev.map((item, idx) => idx === i ? { 
                                 ...item, 
-                                status: '✅ Ready', 
-                                filePath: res.result.filePath, 
-                                fileName: res.result.fileName 
+                                status: '✅ Hoàn tất'
                             } : item));
                         } else {
-                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${res.error || res.result?.message || 'Failed'}` } : item));
+                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${res.error || 'Lỗi xử lý'}` } : item));
                         }
                     } catch (err) {
                         setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${err.message}` } : item));
@@ -96,42 +101,11 @@
 
                     done++;
                     setProgress(Math.round((done / targets.length) * 100));
-                    await new Promise(res => setTimeout(res, 1200));
+                    await new Promise(res => setTimeout(res, 500)); // Brief pause between requests
                 }
 
                 setIsProcessing(false);
                 setStatusText('Automation Cycle Complete');
-            };
-
-            const syncCloud = async () => {
-                const candidates = data.filter(r => r.status === '✅ Ready');
-                if (candidates.length === 0) return alert('No local PDFs ready for sync.');
-
-                setIsProcessing(true);
-                setStatusText('Syncing to Supabase...');
-                
-                for (let i = 0; i < data.length; i++) {
-                    const r = data[i];
-                    if (r.status === '✅ Ready') {
-                        const res = await window.electronAPI.uploadToSupabase({
-                            filePath: r.filePath, 
-                            fileName: r.fileName, 
-                            mst: r.MST, 
-                            companyName: r.Ten, 
-                            serial: r.Serial,
-                            email: r.Email,
-                            diaChi: r.DiaChi
-                        });
-                        if (res.success) {
-                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '☁️ Synced', uploaded: true } : item));
-                        } else {
-                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ Sync Fail: ${res.error}` } : item));
-                        }
-                    }
-                }
-
-                setIsProcessing(false);
-                setStatusText('Supabase Sync Finished');
             };
 
             return (
@@ -140,10 +114,10 @@
                     <div className="flex items-center justify-between glass p-6 rounded-[2rem]">
                         <div className="flex flex-col">
                             <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">CA2 AUTOMATION PRO</h1>
-                            <p className="text-[10px] text-gray-500 font-bold tracking-[0.2em] uppercase">Enterprise Desktop Suite</p>
+                            <p className="text-[10px] text-gray-500 font-bold tracking-[0.2em] uppercase">Enterprise Desktop Suite V2</p>
                         </div>
                         <div className="flex gap-10">
-                            {[ {l: 'Total', v: stats.total, c: 'white'}, {l: 'Ready', v: stats.success, c: '#10b981'}, {l: 'Issue', v: stats.error, c: '#ef4444'} ].map((s,i) => (
+                            {[ {l: 'Tổng số', v: stats.total, c: 'white'}, {l: 'Thành công', v: stats.success, c: '#10b981'}, {l: 'Lỗi', v: stats.error, c: '#ef4444'} ].map((s,i) => (
                                 <div key={i} className="text-right">
                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{s.l}</p>
                                     <p className="text-3xl font-black" style={{color: s.c}}>{s.v}</p>
@@ -169,24 +143,24 @@
                     {/* Content Area */}
                     <div className="flex-1 glass rounded-[2rem] overflow-hidden flex flex-col min-h-0">
                         <div className="grid grid-cols-12 px-6 py-4 border-b border-white/5 bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-gray-500">
-                            <div className="col-span-2">Tax Code</div>
-                            <div className="col-span-5">Company Identity</div>
+                            <div className="col-span-2">Mã Số Thuế</div>
+                            <div className="col-span-4">Tên Công Ty</div>
                             <div className="col-span-2">Serial</div>
-                            <div className="col-span-3">App State</div>
+                            <div className="col-span-4">Trạng Thái</div>
                         </div>
                         <div className="flex-1 overflow-y-auto table-container overflow-x-hidden p-2">
                             {data.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center space-y-4 opacity-30">
                                     <div className="text-4xl">📂</div>
-                                    <p className="font-bold italic">No data loaded. Please select an Excel file.</p>
+                                    <p className="font-bold italic">Chưa nhập dữ liệu. Vui lòng tải lên file Excel.</p>
                                 </div>
                             ) : (
                                 data.map((r, i) => (
                                     <div key={i} className="grid grid-cols-12 px-4 py-3 border-b border-white/5 hover:bg-white/[0.03] transition-colors items-center rounded-xl">
                                         <div className="col-span-2 font-mono text-xs text-gray-400">{r.MST}</div>
-                                        <div className="col-span-5 font-bold text-sm truncate pr-8">{r.Ten}</div>
+                                        <div className="col-span-4 font-bold text-sm truncate pr-4">{r.Ten}</div>
                                         <div className="col-span-2 font-mono text-[10px] text-blue-400">{r.Serial}</div>
-                                        <div className={`col-span-3 text-xs font-black rounded-lg py-1 px-3 w-fit ${r.status.includes('✅') || r.status.includes('☁️') ? 'bg-green-500/10 text-green-500' : r.status.includes('❌') ? 'bg-red-500/10 text-red-500' : 'bg-white/5 text-gray-400'}`}>
+                                        <div className={`col-span-4 text-[11px] font-black rounded-lg py-1 px-3 w-fit ${r.status.includes('✅') ? 'bg-green-500/10 text-green-500' : r.status.includes('❌') ? 'bg-red-500/10 text-red-500' : 'bg-white/5 text-gray-400'}`}>
                                             {r.status}
                                         </div>
                                     </div>
@@ -208,11 +182,11 @@
                             🚀 Start Automation
                         </button>
                         <button 
-                            onClick={syncCloud} 
-                            disabled={isProcessing || stats.success === 0}
-                            className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isProcessing || stats.success === 0 ? 'bg-white/5 text-gray-600' : 'border border-green-500/30 text-green-500 hover:bg-green-500/10'}`}
+                            onClick={() => runAuto(true)} 
+                            disabled={isProcessing || stats.error === 0}
+                            className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isProcessing || stats.error === 0 ? 'bg-white/5 text-gray-600 border border-white/10' : 'border border-red-500/50 text-red-400 hover:bg-red-500/10 shadow-lg'}`}
                         >
-                            ☁️ Cloud Sync
+                            🔁 Thử lại file lỗi ({stats.error})
                         </button>
                     </div>
                 </div>

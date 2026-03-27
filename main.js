@@ -162,27 +162,26 @@ ipcMain.handle('select-file', async () => {
     return result.filePaths[0];
 });
 
-// 3. Fetch Single PDF (via Scraper)
-ipcMain.handle('fetch-single-pdf', async (event, { MST, Serial, companyName }) => {
+// 3. Process Single Record (Crawl -> Upload -> DB Update)
+ipcMain.handle('process-single-record', async (event, { MST, Serial, companyName, email, diaChi }) => {
     let browser = null;
+    let localFileResult = null;
     try {
-        browser = await scraperService.initBrowser();
-        const result = await scraperService.getLatestCertificate(browser, MST, Serial, { companyName });
-        return { success: true, result };
-    } catch (err) {
-        return { success: false, error: err.message };
-    } finally {
-        if (browser) await browser.close();
-    }
-});
-
-// 4. Upload to Cloud (Supabase) + Sync with Web App CRM
-ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, companyName, serial, email, diaChi }) => {
-    console.log('[ELECTRON] Syncing to Cloud:', mst);
-    try {
-        const fileContent = fs.readFileSync(filePath);
+        console.log(`\n[ELECTRON] Processing: ${MST} - ${companyName}`);
         
-        // 1. Try to upload to "pdf-attachments" (Web App bucket) first, fallback to "pdfs"
+        // Step 1: Crawl PDF
+        browser = await scraperService.initBrowser();
+        localFileResult = await scraperService.getLatestCertificate(browser, MST, Serial, { companyName });
+        
+        if (!localFileResult || localFileResult.status !== 'Matched') {
+            throw new Error(localFileResult?.message || 'Không tìm thấy chứng thư');
+        }
+        
+        const { filePath, fileName } = localFileResult;
+        console.log("[ELECTRON] UPLOAD PDF:", fileName);
+        
+        // Step 2: Upload to Supabase Storage
+        const fileContent = fs.readFileSync(filePath);
         let bucketName = 'pdf-attachments';
         let { error: uploadError } = await supabase.storage
             .from(bucketName)
@@ -199,27 +198,30 @@ ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, co
 
         if (uploadError) throw uploadError;
 
-        // 2. Get Public URL
+        // Step 3: Get Public URL
         const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(`certs/${fileName}`);
+        console.log("[ELECTRON] PUBLIC URL:", publicUrl);
 
-        // 3. Update 'certificates' table (MANUAL UPSERT to avoid Unique Constraint Error)
+        // Step 4: Delete local file explicitly as requested
+        try { fs.rmSync(filePath, { force: true }); } catch (e) { console.warn('[ELECTRON] Could not delete temp file', e); }
+
+        // Step 5: Update 'certificates' table (MANUAL UPSERT)
         console.log('[ELECTRON] Updating certificates table...');
-        const { data: existingCert } = await supabase.from('certificates').select('id').eq('mst', mst).maybeSingle();
-        
+        const { data: existingCertList } = await supabase.from('certificates').select('id').eq('mst', MST).limit(1);
+        const existingCert = existingCertList && existingCertList.length > 0 ? existingCertList[0] : null;
         if (existingCert) {
-            const { error: updateError } = await supabase.from('certificates')
-                .update({ company_name: companyName, serial, pdf_url: publicUrl, created_at: new Date().toISOString() })
-                .eq('mst', mst);
-            if (updateError) throw updateError;
+            await supabase.from('certificates')
+                .update({ company_name: companyName, serial: Serial, pdf_url: publicUrl, created_at: new Date().toISOString() })
+                .eq('mst', MST);
         } else {
-            const { error: insertError } = await supabase.from('certificates')
-                .insert({ mst, company_name: companyName, serial, pdf_url: publicUrl, created_at: new Date().toISOString() });
-            if (insertError) throw insertError;
+            await supabase.from('certificates')
+                .insert({ mst: MST, company_name: companyName, serial: Serial, pdf_url: publicUrl, created_at: new Date().toISOString() });
         }
 
-        // 4. Update 'customers' table (Main CRM) - UPSERT logic
+        // Step 6: Update 'customers' table (Main CRM)
         console.log('[ELECTRON] Upserting into customers table...');
-        const { data: existingCust } = await supabase.from('customers').select('id').eq('mst', mst).maybeSingle();
+        const { data: existingCustList } = await supabase.from('customers').select('id').eq('mst', MST).limit(1);
+        const existingCust = existingCustList && existingCustList.length > 0 ? existingCustList[0] : null;
         
         if (existingCust) {
             const { error: customerError } = await supabase
@@ -231,33 +233,34 @@ ipcMain.handle('upload-to-supabase', async (event, { filePath, fileName, mst, co
                     email: email || ''
                 })
                 .eq('id', existingCust.id);
-            if (customerError) throw new Error(`Lỗi cập nhật CRM: ${customerError.message}`); // FIX: Throw instead of warn
+            if (customerError) throw new Error(`Lỗi cập nhật CRM: ${customerError.message}`);
         } else {
             console.log('[ELECTRON] Customer missing, performing INSERT...');
             const { error: insertCustError } = await supabase
                 .from('customers')
                 .insert({
-                    mst: mst,
+                    mst: MST,
                     company_name: companyName,
                     dia_chi: diaChi || '',
                     email: email || '',
                     pdf_url: publicUrl,
                     created_at: new Date().toISOString()
                 });
-            if (insertCustError) throw new Error(`Lỗi thêm mới CRM: ${insertCustError.message}`); // FIX: Throw instead of log
+            if (insertCustError) throw new Error(`Lỗi thêm mới CRM: ${insertCustError.message}`);
         }
 
-        console.log('[ELECTRON] Sync completed successfully.');
+        console.log(`[ELECTRON] Sync completed successfully for ${MST}.`);
         return { success: true, publicUrl };
+
     } catch (err) {
-        console.error('[ELECTRON] Sync Error:', err.message);
+        console.error('[ELECTRON] Process Error:', err.message);
         let friendlyMessage = err.message;
         if (err.message.includes('row-level security')) {
             friendlyMessage = 'Lỗi bảo mật (RLS). Bạn cần tắt RLS hoặc cấp quyền Insert/Update cho role "anon" trên Table/Storage của Supabase.';
-        } else if (err.message.includes('unique or exclusion constraint')) {
-            friendlyMessage = 'Lỗi ràng buộc. (Đã được khắc phục bằng Manual Upsert, nếu vẫn bị hãy báo lại).';
         }
         return { success: false, error: friendlyMessage };
+    } finally {
+        if (browser) await browser.close().catch(() => {});
     }
 });
 

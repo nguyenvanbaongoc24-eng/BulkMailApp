@@ -433,7 +433,7 @@ async function processEmailTask(log) {
         const recipientInExcel = (campaign.recipients || []).find(r =>
             String(r.MST || r.taxCode || '').trim() === cleanMST
         );
-        const customer = await dbGetCustomer(cleanMST);
+        const customer = (await dbGetCustomer(cleanMST)) || {};
         console.log(`[TASK:2] ✅ Customer lookup for MST "${cleanMST}":`);
         console.log(`[TASK:2]    Excel match: ${recipientInExcel ? 'YES' : 'NO'}`);
         console.log(`[TASK:2]    DB customer found: ${customer && customer.mst ? 'YES' : 'NO'}`);
