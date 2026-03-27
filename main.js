@@ -90,15 +90,15 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
         if (rawData.length === 0) return { success: true, data: [] };
 
         // Find header row (consistent with excelService.js)
-        let headerIdx = -1;
-        let colMap = { mst: 4, name: 3, serial: 1, email: 8 };
+        // CA Vietnam Standard: Serial=B(1)/C(2), Name=D(3), MST=E(4), Address=G(6), Email=I(8)
+        let colMap = { mst: 4, name: 3, address: 6, serial: 1, email: 8 };
 
         for (let i = 0; i < Math.min(rawData.length, 10); i++) {
             const row = rawData[i];
             if (!row || !Array.isArray(row)) continue;
             
             let matchCount = 0;
-            const tempMap = { mst: -1, name: -1, serial: -1, email: -1 };
+            const tempMap = { mst: -1, name: -1, address: -1, serial: -1, email: -1 };
 
             row.forEach((cell, idx) => {
                 const val = String(cell || '').toLowerCase().trim();
@@ -107,6 +107,9 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
                 }
                 if (val.includes('tên công ty') || val.includes('tên đơn vị') || val.includes('tên khách hàng')) {
                     tempMap.name = idx; matchCount++;
+                }
+                if (val.includes('địa chỉ') || val.includes('address')) {
+                    tempMap.address = idx; matchCount++;
                 }
                 if (val.includes('serial') || val.includes('số máy') || val.includes('số chứng thư')) {
                     tempMap.serial = idx; matchCount++;
@@ -124,6 +127,7 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
         }
 
         const startRow = headerIdx !== -1 ? headerIdx + 1 : 0;
+        console.log(`[ELECTRON] Column map: MST=${colMap.mst}(${String.fromCharCode(65+colMap.mst)}), Serial=${colMap.serial}(${String.fromCharCode(65+colMap.serial)}), Name=${colMap.name}(${String.fromCharCode(65+colMap.name)}), Address=${colMap.address}(${String.fromCharCode(65+colMap.address)}), Email=${colMap.email}(${String.fromCharCode(65+colMap.email)})`);
         const data = rawData.slice(startRow).map(row => {
             const mst = row[colMap.mst];
             if (!mst || String(mst).trim() === '') return null;
