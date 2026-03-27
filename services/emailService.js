@@ -68,6 +68,7 @@ function decodeHtmlEntities(str) {
 
 function parseTemplate(template, customer) {
     if (!template) return '';
+    const norm = normalizeCustomer(customer);
     console.log(`\n[TEMPLATE PARSER] BEFORE:`, template.substring(0, 80));
     console.log("CUSTOMER RAW KEYS:", Object.keys(customer || {}));
 
@@ -80,7 +81,6 @@ function parseTemplate(template, customer) {
         } catch { return dateStr; }
     };
 
-    const norm = normalizeCustomer(customer);
     console.log("NORMALIZED:", JSON.stringify(norm));
 
     // Step 1: Decode HTML entities in the template so "#T&ecirc;nC&ocirc;ngTy" becomes "#TênCôngTy"
@@ -370,11 +370,17 @@ async function dbGetSender(senderId) {
     return data;
 }
 
+function cleanMST(mst) {
+    if (!mst) return '';
+    return String(mst).replace(/\s/g, '').trim();
+}
+
 async function dbGetCustomer(mst) {
+    const cleaned = cleanMST(mst);
     const { data } = await supabase
         .from('customers')
         .select('*')
-        .eq('mst', String(mst).trim())
+        .eq('mst', cleaned)
         .order('created_at', { ascending: false })
         .limit(1);
     return data && data.length > 0 ? data[0] : null;
@@ -479,12 +485,13 @@ async function processEmailTask(log) {
         console.log(`[TASK:1]    subject: ${campaign.subject}`);
 
         // Step 2: Get Customer data
-        const cleanMST = String(log.customer_id || '').trim();
+        const rawMST = log.customer_id || '';
+        const cleanMST_val = cleanMST(rawMST);
         const recipientInExcel = (campaign.recipients || []).find(r =>
-            String(r.MST || r.taxCode || '').trim() === cleanMST
+            cleanMST(r.MST || r.taxCode || r.mst || '') === cleanMST_val
         );
-        const customer = (await dbGetCustomer(cleanMST)) || {};
-        console.log(`[TASK:2] ✅ Customer lookup for MST "${cleanMST}":`);
+        const customer = (await dbGetCustomer(cleanMST_val)) || {};
+        console.log(`[TASK:2] ✅ Customer lookup for MST "${rawMST}" (Cleaned: "${cleanMST_val}"):`);
         console.log(`[TASK:2]    Excel match: ${recipientInExcel ? 'YES' : 'NO'}`);
         console.log(`[TASK:2]    DB customer found: ${customer && customer.mst ? 'YES' : 'NO'}`);
         
@@ -494,7 +501,7 @@ async function processEmailTask(log) {
         if (!pdfUrl) {
             console.log(`[TASK:2] 🔍 No PDF found in customers table. Checking certificates table...`);
             try {
-                const { data: certRows } = await supabase.from('certificates').select('pdf_url').eq('mst', cleanMST).limit(1);
+                const { data: certRows } = await supabase.from('certificates').select('pdf_url').eq('mst', cleanMST_val).limit(1);
                 if (certRows && certRows.length > 0 && certRows[0].pdf_url) {
                     pdfUrl = certRows[0].pdf_url;
                     console.log(`[TASK:2] ✅ Fallback PDF found in certificates: ${pdfUrl}`);
@@ -703,5 +710,6 @@ module.exports = {
     testEmailFlow,
     sendGmailAPI,
     parseTemplate,
+    dbGetCustomer,
     getHeartbeat
 };

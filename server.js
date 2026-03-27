@@ -59,11 +59,16 @@ app.get('/api/diag', async (req, res) => {
             recentLogs: logs,
             logsError: lerr,
             server_time: new Date().toISOString(),
-            version: "1.1.3-STABLE",
+            version: "1.1.4-STABLE",
             dnsOrder: "ipv4first"
         });
     } catch(e) { res.json({ error: e.message }); }
 });
+
+function cleanMST(mst) {
+    if (!mst) return '';
+    return String(mst).replace(/\s/g, '').trim();
+}
 
 app.post('/api/debug-reset-worker', async (req, res) => {
     try {
@@ -81,12 +86,12 @@ app.get('/api/debug-campaign/:id', async (req, res) => {
         // For each recipient, check customers and certificates tables
         const debugData = [];
         for (const r of recipients) {
-            const mst = r.MST || r.mst || r.taxCode || '';
+            const rawMST = r.MST || r.mst || r.taxCode || '';
+            const mst = cleanMST(rawMST);
             const { data: custRows } = await supabase.from('customers').select('mst,company_name,pdf_url').eq('mst', mst).limit(1);
             const { data: certRows } = await supabase.from('certificates').select('mst,pdf_url').eq('mst', mst).limit(1);
             debugData.push({
-                recipient_keys: Object.keys(r),
-                recipient_sample: { MST: r.MST, TenCongTy: r.TenCongTy, DiaChi: r.DiaChi, Email: r.Email },
+                recipient: { MST: rawMST, Cleaned: mst },
                 customer_in_db: custRows?.[0] || null,
                 certificate_in_db: certRows?.[0] || null
             });
