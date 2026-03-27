@@ -43,26 +43,49 @@ async function initBrowser() {
         userDataDir: PUPPETEER_CACHE
     };
 
-    // Auto-detect Chrome executable for Render
+    // Auto-detect browser executable (Windows & Linux)
     let foundPath = null;
+    const isWindows = process.platform === 'win32';
+    
     const searchRoots = [
         process.env.PUPPETEER_EXECUTABLE_PATH,
-        path.join(require('os').homedir(), '.cache', 'puppeteer', 'chrome'),
-        '/opt/render/.cache/puppeteer/chrome',
-        '/home/render/.cache/puppeteer/chrome'
     ];
 
+    if (isWindows) {
+        // Standard Windows Paths
+        searchRoots.push(
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe')
+        );
+    } else {
+        // Linux / Render Paths
+        searchRoots.push(
+            path.join(require('os').homedir(), '.cache', 'puppeteer', 'chrome'),
+            '/opt/render/.cache/puppeteer/chrome',
+            '/home/render/.cache/puppeteer/chrome'
+        );
+    }
+
     for (const root of searchRoots) {
-        if (root && fs.existsSync(root)) {
+        if (!root) continue;
+        if (fs.existsSync(root)) {
             if (fs.statSync(root).isFile()) {
                 foundPath = root;
                 break;
             }
+            // If it's a directory (common in puppeteer default cache), search inside
             try {
                 const items = fs.readdirSync(root);
                 for (const item of items) {
-                    const p = path.join(root, item, 'chrome-linux64', 'chrome');
-                    if (fs.existsSync(p)) { foundPath = p; break; }
+                    // Check for linux structure
+                    const pLinux = path.join(root, item, 'chrome-linux64', 'chrome');
+                    if (fs.existsSync(pLinux)) { foundPath = pLinux; break; }
+                    // Check for win structure
+                    const pWin = path.join(root, item, 'chrome-win64', 'chrome.exe');
+                    if (fs.existsSync(pWin)) { foundPath = pWin; break; }
                 }
             } catch(e) {}
         }
@@ -73,7 +96,7 @@ async function initBrowser() {
         launchOptions.executablePath = foundPath;
         console.log(`[Scraper] Using detected executable: ${foundPath}`);
     } else {
-        console.log('[Scraper] No specific executable detected, using default puppeteer launch config.');
+        console.log('[Scraper] No specific executable detected, letting Puppeteer try default path.');
     }
 
     try {
