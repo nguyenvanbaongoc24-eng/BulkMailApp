@@ -6,13 +6,17 @@ require('dotenv').config();
 // -----------------------------------
 // HEARTBEAT: Track worker activity
 // -----------------------------------
-const heartbeat = { time: null, task: null, step: null, error: null };
+const heartbeat = { time: null, task: null, step: null, error: null, lastErrors: [] };
 function getHeartbeat() { return heartbeat; }
 function setHeartbeat(step, taskId = null, error = null) {
     heartbeat.time = new Date().toISOString();
     heartbeat.step = step;
     if (taskId) heartbeat.task = taskId;
-    if (error) heartbeat.error = error;
+    if (error) {
+        heartbeat.error = error;
+        heartbeat.lastErrors.unshift({ time: heartbeat.time, task: taskId, error });
+        if (heartbeat.lastErrors.length > 10) heartbeat.lastErrors.pop();
+    }
 }
 
 // -----------------------------------
@@ -102,14 +106,19 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
             console.warn(`[MIME] ⚠ attachCertificate=TRUE nhưng pdf_url=NULL → GỬI MAIL KHÔNG ĐÍNH KÈM PDF`);
             pdfSkipped = true;
         } else {
-            console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl} (using Native Fetch)`);
+            console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl} (using Axios)`);
             try {
-                const res = await fetch(pdfUrl);
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                const buffer = await res.arrayBuffer();
-                pdfBase64 = Buffer.from(buffer).toString("base64");
+                // Using axios because it's proven reliable with dns.setDefaultResultOrder on Render
+                const response = await axios({
+                    url: pdfUrl,
+                    method: 'GET',
+                    responseType: 'arraybuffer',
+                    timeout: 45000 // 45s timeout for PDF download
+                });
+                pdfBase64 = Buffer.from(response.data, 'binary').toString('base64');
             } catch (err) {
-                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, err.message);
+                const errMsg = err.response ? `HTTP ${err.response.status}` : err.message;
+                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, errMsg);
                 console.warn(`[MIME] ⚠ Skipping PDF attachment...`);
                 pdfSkipped = true;
             }
