@@ -90,6 +90,7 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
         if (rawData.length === 0) return { success: true, data: [] };
 
         // Find header row (consistent with excelService.js)
+        let headerIdx = -1;
         // CA Vietnam Standard: Serial=B(1)/C(2), Name=D(3), MST=E(4), Address=G(6), Email=I(8)
         let colMap = { mst: 4, name: 3, address: 6, serial: 1, email: 8 };
 
