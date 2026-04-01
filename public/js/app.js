@@ -844,7 +844,13 @@ function handleFileUpload(event) {
                         if (val.includes('@')) {
                             obj['Email'] = val;
                         } else if (/^\d{10}(\d{3})?$/.test(val.replace(/[^0-9]/g,''))) {
-                            obj['MST'] = val;
+                            // Check if it starts with '0' (likely a phone number) vs non-'0' (likely MST)
+                            // or if MST is already found
+                            if (val.trim().startsWith('0') && val.replace(/[^0-9]/g,'').length === 10) {
+                                obj['Phone'] = val;
+                            } else if (!obj['MST']) {
+                                obj['MST'] = val;
+                            }
                         } else if (isDate(val)) {
                             obj['NgayHetHanChuKySo'] = val;
                         } else if (val.length > 20 && !val.includes(' ')) {

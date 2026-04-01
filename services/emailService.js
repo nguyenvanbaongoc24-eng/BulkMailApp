@@ -714,5 +714,6 @@ module.exports = {
     sendGmailAPI,
     parseTemplate,
     dbGetCustomer,
-    getHeartbeat
+    getHeartbeat,
+    buildMimeMessage
 };
