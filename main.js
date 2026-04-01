@@ -17,6 +17,9 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL || 'https://placeholder.co', SUPABASE_KEY || 'placeholder');
 
+// Storage bucket name
+const STORAGE_BUCKET = 'certificates';
+
 // Writable Paths
 const USER_DATA_PATH = app.getPath('userData');
 const CERT_DIR = path.join(USER_DATA_PATH, 'certs');
@@ -24,8 +27,21 @@ const PUPPETEER_CACHE = path.join(USER_DATA_PATH, 'puppeteer_cache');
 
 let mainWindow;
 
+// =============================================
+// LOGGING HELPER
+// =============================================
+function pipelineLog(mst, step, status, detail = '') {
+    const ts = new Date().toISOString().substring(11, 19);
+    const icon = status === 'OK' ? '✅' : status === 'FAIL' ? '❌' : '🔄';
+    const msg = `[${ts}] [PIPELINE] [${mst}] ${icon} ${step}${detail ? ': ' + detail : ''}`;
+    console.log(msg);
+    return msg;
+}
+
+// =============================================
+// WINDOW CREATION
+// =============================================
 function createWindow() {
-    // Initialize Scraper Paths BEFORE starting logic
     scraperService.initPaths(CERT_DIR, PUPPETEER_CACHE);
 
     mainWindow = new BrowserWindow({
@@ -61,7 +77,6 @@ if (!gotTheLock) {
     app.quit();
 } else {
     app.on('second-instance', (event, commandLine, workingDirectory) => {
-        // Someone tried to run a second instance, we should focus our window.
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();
@@ -75,29 +90,27 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
 
-// --- IPC Handlers ---
-
-// 1. Parsing Excel (CA Vietnam Standard)
+// =============================================
+// IPC: PARSE EXCEL
+// =============================================
 ipcMain.handle('parse-excel', async (event, filePath) => {
     console.log('[ELECTRON] Attempting to parse Excel:', filePath);
     try {
         if (!filePath) throw new Error('No file path provided.');
         const workbook = xlsx.readFile(filePath);
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        
-        // Use row-index based parsing similar to excelService.js for reliability
+
         const rawData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
         if (rawData.length === 0) return { success: true, data: [] };
 
-        // Find header row (consistent with excelService.js)
+        // Find header row
         let headerIdx = -1;
-        // CA Vietnam Standard: Serial=B(1)/C(2), Name=D(3), MST=E(4), Address=G(6), Email=I(8)
-        let colMap = { mst: 4, name: 3, address: 6, serial: 1, email: 8 };
+        let colMap = { mst: 4, name: 3, address: 6, serial: 1, phone: 7, email: 8 };
 
         for (let i = 0; i < Math.min(rawData.length, 10); i++) {
             const row = rawData[i];
             if (!row || !Array.isArray(row)) continue;
-            
+
             let matchCount = 0;
             const tempMap = { mst: -1, name: -1, address: -1, serial: -1, email: -1 };
 
@@ -129,21 +142,22 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
 
         const startRow = headerIdx !== -1 ? headerIdx + 1 : 0;
         console.log(`[ELECTRON] Column map: MST=${colMap.mst}(${String.fromCharCode(65+colMap.mst)}), Serial=${colMap.serial}(${String.fromCharCode(65+colMap.serial)}), Name=${colMap.name}(${String.fromCharCode(65+colMap.name)}), Address=${colMap.address}(${String.fromCharCode(65+colMap.address)}), Email=${colMap.email}(${String.fromCharCode(65+colMap.email)})`);
+
         const data = rawData.slice(startRow).map(row => {
             const mst = row[colMap.mst];
             if (!mst || String(mst).trim() === '') return null;
 
-            // Serial check (Col B or C fallback)
             let serial = row[colMap.serial] ? String(row[colMap.serial]).trim() : '';
             if (!serial && colMap.serial === 1) {
                 serial = row[2] ? String(row[2]).trim() : '';
             }
 
             const ten = row[colMap.name] ? String(row[colMap.name]).trim() : '';
+            const phone = row[colMap.phone] ? String(row[colMap.phone]).trim() : '';
             const email = row[colMap.email] ? String(row[colMap.email]).trim() : '';
             const diaChi = row[colMap.address] ? String(row[colMap.address]).trim() : '';
 
-            return { MST: mst.toString().trim(), Ten: ten, Serial: serial, Email: email, DiaChi: diaChi };
+            return { MST: mst.toString().trim(), Ten: ten, Serial: serial, Email: email, DiaChi: diaChi, Phone: phone };
         }).filter(r => r !== null);
 
         console.log(`[ELECTRON] Successfully parsed ${data.length} rows.`);
@@ -154,131 +168,217 @@ ipcMain.handle('parse-excel', async (event, filePath) => {
     }
 });
 
-// 2. Select File (Native Dialog)
+// =============================================
+// IPC: SELECT FILE
+// =============================================
 ipcMain.handle('select-file', async () => {
     console.log('[ELECTRON] Opening file dialog...');
     const result = await dialog.showOpenDialog({
         properties: ['openFile'],
         filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }]
     });
-    
+
     if (result.canceled || result.filePaths.length === 0) return null;
     console.log('[ELECTRON] File selected:', result.filePaths[0]);
     return result.filePaths[0];
 });
 
-// 3. Process Single Record (Crawl -> Upload -> DB Update)
-ipcMain.handle('process-single-record', async (event, { MST, Serial, companyName, email, diaChi }) => {
+// =============================================
+// IPC: PROCESS SINGLE RECORD — STRICT 3-STEP PIPELINE
+// =============================================
+ipcMain.handle('process-single-record', async (event, { MST, Serial, companyName, email, diaChi, Phone }) => {
     let browser = null;
-    let localFileResult = null;
+    let localFilePath = null;
+
+    const sendStatus = (statusMsg) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('record-status-update', { mst: MST, status: statusMsg });
+        }
+    };
+
     try {
-        console.log(`\n[ELECTRON] Processing: ${MST} - ${companyName}`);
-        
-        // Step 1: Crawl PDF
+        console.log(`\n${'='.repeat(60)}`);
+        pipelineLog(MST, 'PIPELINE START', 'OK', companyName);
+
+        // ============================================
+        // STEP 1: CRAWL PDF
+        // ============================================
+        sendStatus('🌐 Crawling PDF...');
+
         browser = await scraperService.initBrowser();
-        localFileResult = await scraperService.getLatestCertificate(browser, MST, Serial, { companyName });
-        
-        if (!localFileResult || localFileResult.status !== 'Matched') {
-            throw new Error(localFileResult?.message || 'Không tìm thấy chứng thư');
-        }
-        
-        const { filePath, fileName } = localFileResult;
-        console.log("[ELECTRON] UPLOAD PDF:", fileName);
-        
-        // Step 2: Upload to Supabase Storage
-        const fileContent = fs.readFileSync(filePath);
-        let bucketName = 'pdf-attachments';
-        let { error: uploadError } = await supabase.storage
-            .from(bucketName)
-            .upload(`certs/${fileName}`, fileContent, { upsert: true });
+        const crawlResult = await scraperService.getLatestCertificate(
+            browser, MST, Serial, { companyName }, sendStatus
+        );
 
-        if (uploadError && uploadError.message.includes('not found')) {
-            console.log('[ELECTRON] bucket "pdf-attachments" not found, falling back to "pdfs"');
-            bucketName = 'pdfs';
-            const { error: retryError } = await supabase.storage
-                .from(bucketName)
-                .upload(`certs/${fileName}`, fileContent, { upsert: true });
-            uploadError = retryError;
+        // STRICT CHECK: Crawl must return 'Matched' with a valid file
+        if (!crawlResult || crawlResult.status !== 'Matched') {
+            const reason = crawlResult?.message || 'Không tìm thấy chứng thư';
+            pipelineLog(MST, 'CRAWL PDF', 'FAIL', reason);
+            sendStatus(`❌ Crawl thất bại: ${reason}`);
+            return { success: false, error: `CRAWL FAILED: ${reason}` };
         }
 
-        if (uploadError) throw uploadError;
+        // Verify file exists on disk
+        if (!fs.existsSync(crawlResult.filePath)) {
+            pipelineLog(MST, 'CRAWL PDF', 'FAIL', 'File không tồn tại trên disk sau khi crawl');
+            sendStatus('❌ File PDF không tồn tại trên disk');
+            return { success: false, error: 'CRAWL FAILED: File PDF không tồn tại sau khi crawl' };
+        }
 
-        // Step 3: Get Public URL
-        const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(`certs/${fileName}`);
-        console.log("[ELECTRON] PUBLIC URL:", publicUrl);
+        localFilePath = crawlResult.filePath;
+        const fileName = crawlResult.fileName; // {mst}.pdf
+        pipelineLog(MST, 'CRAWL PDF', 'OK', `${fileName} (${(crawlResult.fileSize / 1024).toFixed(1)} KB)`);
 
-        // Step 4: Delete local file explicitly as requested
-        try { fs.rmSync(filePath, { force: true }); } catch (e) { console.warn('[ELECTRON] Could not delete temp file', e); }
+        // ============================================
+        // STEP 2: UPLOAD TO SUPABASE STORAGE
+        // ============================================
+        sendStatus('📤 Uploading to Supabase...');
 
-        // Step 5: Update 'certificates' table (MANUAL UPSERT)
-        console.log('[ELECTRON] Updating certificates table...');
-        const { data: existingCertList } = await supabase.from('certificates').select('id').eq('mst', MST).limit(1);
-        const existingCert = existingCertList && existingCertList.length > 0 ? existingCertList[0] : null;
-        if (existingCert) {
-            await supabase.from('certificates')
-                .update({ company_name: companyName, serial: Serial, pdf_url: publicUrl, created_at: new Date().toISOString() })
+        const fileContent = fs.readFileSync(localFilePath);
+        const storagePath = `certs/${fileName}`; // certificates/certs/{mst}.pdf
+
+        const { error: uploadError } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(storagePath, fileContent, {
+                contentType: 'application/pdf',
+                upsert: true
+            });
+
+        if (uploadError) {
+            pipelineLog(MST, 'UPLOAD STORAGE', 'FAIL', uploadError.message);
+            sendStatus(`❌ Upload thất bại: ${uploadError.message}`);
+
+            // If bucket doesn't exist, give clear error
+            if (uploadError.message.includes('not found') || uploadError.message.includes('Bucket')) {
+                return { success: false, error: `UPLOAD FAILED: Bucket "${STORAGE_BUCKET}" không tồn tại trong Supabase. Vui lòng tạo bucket.` };
+            }
+            return { success: false, error: `UPLOAD FAILED: ${uploadError.message}` };
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
+        pipelineLog(MST, 'UPLOAD STORAGE', 'OK', publicUrl);
+
+        // Delete local file after successful upload
+        try { fs.rmSync(localFilePath, { force: true }); } catch (e) {}
+        // Clean up the temp directory too
+        try { fs.rmSync(crawlResult.dirPath, { recursive: true, force: true }); } catch (e) {}
+
+        // ============================================
+        // STEP 3: UPDATE DATABASE
+        // ============================================
+        sendStatus('💾 Updating database...');
+
+        // Update certificates table
+        const certData = {
+            mst: MST,
+            serial: Serial || '',
+            pdf_url: publicUrl,
+            pdf_status: 'ready',
+            updated_at: new Date().toISOString()
+        };
+
+        // Upsert: check if exists first
+        const { data: existingCerts } = await supabase
+            .from('certificates')
+            .select('id')
+            .eq('mst', MST)
+            .limit(1);
+
+        let dbError = null;
+        if (existingCerts && existingCerts.length > 0) {
+            const { error } = await supabase
+                .from('certificates')
+                .update({
+                    serial: Serial || '',
+                    pdf_url: publicUrl,
+                    pdf_status: 'ready',
+                    updated_at: new Date().toISOString()
+                })
                 .eq('mst', MST);
+            dbError = error;
         } else {
-            await supabase.from('certificates')
-                .insert({ mst: MST, company_name: companyName, serial: Serial, pdf_url: publicUrl, created_at: new Date().toISOString() });
+            const { error } = await supabase
+                .from('certificates')
+                .insert(certData);
+            dbError = error;
         }
 
-        // Step 6: Update 'customers' table (Main CRM)
+        if (dbError) {
+            pipelineLog(MST, 'DB UPDATE (certificates)', 'FAIL', dbError.message);
+            sendStatus(`❌ DB update thất bại: ${dbError.message}`);
+
+            if (dbError.message.includes('row-level security')) {
+                return { success: false, error: 'DB UPDATE FAILED: RLS đang chặn. Vui lòng tắt RLS hoặc cấp quyền cho role "anon".' };
+            }
+            return { success: false, error: `DB UPDATE FAILED: ${dbError.message}` };
+        }
+
+        pipelineLog(MST, 'DB UPDATE (certificates)', 'OK', 'pdf_status = ready');
+
+        // Also update customers table (pdf_url) for email worker compatibility
         try {
-            console.log('[ELECTRON] Updating customers table (Notes fallback for address)...');
-            const { data: existingCustList } = await supabase.from('customers').select('id, notes').eq('mst', MST).limit(1);
-            const existingCust = existingCustList && existingCustList.length > 0 ? existingCustList[0] : null;
+            const { data: existingCustList } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('mst', MST)
+                .limit(1);
 
-            const addressNote = diaChi ? `\nĐịa chỉ: ${diaChi}` : '';
-            const newNotes = existingCust ? ((existingCust.notes || '') + addressNote).trim() : (diaChi ? `Địa chỉ: ${diaChi}` : '');
-
-            if (existingCust) {
+            if (existingCustList && existingCustList.length > 0) {
                 await supabase
                     .from('customers')
-                    .update({ 
+                    .update({
                         pdf_url: publicUrl,
-                        company_name: companyName,
-                        notes: newNotes,
+                        company_name: companyName || '',
                         email: email || '',
+                        phone: Phone || '',
                         status: 'active'
                     })
-                    .eq('id', existingCust.id);
+                    .eq('mst', MST);
+                pipelineLog(MST, 'DB UPDATE (customers)', 'OK', 'Synced pdf_url');
             } else {
-                console.log('[ELECTRON] Customer missing, performing INSERT into customers...');
                 await supabase
                     .from('customers')
                     .insert({
                         mst: MST,
-                        company_name: companyName,
-                        notes: newNotes,
+                        company_name: companyName || '',
                         email: email || '',
+                        phone: Phone || '',
                         pdf_url: publicUrl,
                         status: 'active',
+                        notes: diaChi ? `Địa chỉ: ${diaChi}` : '',
                         created_at: new Date().toISOString()
                     });
+                pipelineLog(MST, 'DB UPDATE (customers)', 'OK', 'Inserted new customer');
             }
-            console.log('[ELECTRON] CRM Sync successful.');
         } catch (crmErr) {
-            console.error('[ELECTRON] Non-critical CRM Sync error:', crmErr.message);
-            // We continue even if CRM update fails, so the user still gets their PDFs
+            // CRM sync is non-critical — certificates table is the source of truth
+            pipelineLog(MST, 'DB UPDATE (customers)', 'FAIL', crmErr.message + ' (non-critical)');
         }
 
-        console.log(`[ELECTRON] Sync completed successfully for ${MST}.`);
+        // ============================================
+        // ALL 3 STEPS PASSED → SUCCESS
+        // ============================================
+        sendStatus('✅ SUCCESS');
+        pipelineLog(MST, 'PIPELINE COMPLETE', 'OK', publicUrl);
+        console.log(`${'='.repeat(60)}\n`);
+
         return { success: true, publicUrl };
 
     } catch (err) {
-        console.error('[ELECTRON] Process Error:', err.message);
-        let friendlyMessage = err.message;
-        if (err.message.includes('row-level security')) {
-            friendlyMessage = 'Lỗi bảo mật (RLS). Bạn cần tắt RLS hoặc cấp quyền Insert/Update cho role "anon" trên Table/Storage của Supabase.';
-        }
-        return { success: false, error: friendlyMessage };
+        console.error('[PIPELINE] UNEXPECTED ERROR:', err.message);
+        pipelineLog(MST, 'PIPELINE', 'FAIL', err.message);
+        sendStatus(`❌ ${err.message}`);
+
+        return { success: false, error: err.message };
     } finally {
         if (browser) await browser.close().catch(() => {});
     }
 });
 
-// 5. Cleanup
+// =============================================
+// IPC: CLEANUP
+// =============================================
 ipcMain.handle('cleanup-temp', async () => {
     try {
         if (fs.existsSync(CERT_DIR)) {

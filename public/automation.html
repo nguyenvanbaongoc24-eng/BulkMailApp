@@ -8,24 +8,60 @@
     <script src="js/libs/react.min.js"></script>
     <script src="js/libs/react-dom.min.js"></script>
     <script src="js/libs/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #0c0c0c; color: white; }
+        body { font-family: 'Outfit', sans-serif; background-color: #050505; color: white; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .premium-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: linear-gradient(135deg, #2563eb, #1d4ed8); }
         .premium-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4); filter: brightness(1.1); }
         .premium-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-        .loader { width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loader { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.1); border-top: 2.5px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .pulse-glow { animation: pulse-glow 1.5s ease-in-out infinite; }
         .table-container::-webkit-scrollbar { width: 6px; }
         .table-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .status-crawling { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .status-uploading { background: rgba(168, 85, 247, 0.1); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.2); }
+        .status-syncing { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .status-success { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .status-failed { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .status-pending { background: rgba(255, 255, 255, 0.03); color: rgba(255,255,255,0.4); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .status-retrying { background: rgba(251, 146, 60, 0.1); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.2); }
+        .log-panel { font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.6; }
+        .log-panel .log-ok { color: #34d399; }
+        .log-panel .log-fail { color: #f87171; }
+        .log-panel .log-info { color: #60a5fa; }
     </style>
 </head>
-<body class="p-8 h-screen overflow-hidden flex flex-col bg-[#050505]">
+<body class="p-6 h-screen overflow-hidden flex flex-col">
     <div id="root" class="h-full flex flex-col"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        function getStatusClass(status) {
+            if (!status) return 'status-pending';
+            if (status.includes('SUCCESS')) return 'status-success';
+            if (status.includes('FAILED') || status.includes('❌')) return 'status-failed';
+            if (status.includes('Uploading') || status.includes('📤')) return 'status-uploading';
+            if (status.includes('database') || status.includes('💾') || status.includes('Syncing')) return 'status-syncing';
+            if (status.includes('RETRYING') || status.includes('🔁')) return 'status-retrying';
+            if (status.includes('Crawling') || status.includes('🌐') || status.includes('🔍') || status.includes('📥') || status.includes('📋') || status.includes('⏳')) return 'status-crawling';
+            if (status.includes('Pending')) return 'status-pending';
+            return 'status-pending';
+        }
+
+        function getStatusIcon(status) {
+            if (!status) return '⏳';
+            if (status.includes('SUCCESS')) return '✅';
+            if (status.includes('FAILED') || status.includes('❌')) return '❌';
+            if (status.includes('📤') || status.includes('Uploading')) return '📤';
+            if (status.includes('💾') || status.includes('Syncing')) return '💾';
+            if (status.includes('🔁') || status.includes('RETRYING')) return '🔁';
+            if (status.includes('📥') || status.includes('Downloading') || status.includes('tải')) return '📥';
+            return '🔄';
+        }
 
         function App() {
             const [data, setData] = useState([]);
@@ -33,12 +69,43 @@
             const [progress, setProgress] = useState(0);
             const [statusText, setStatusText] = useState('System Standby');
             const [stats, setStats] = useState({ total: 0, success: 0, error: 0 });
+            const [logs, setLogs] = useState([]);
+            const logRef = useRef(null);
+
+            const addLog = useCallback((msg, type = 'info') => {
+                const ts = new Date().toLocaleTimeString('vi-VN');
+                setLogs(prev => [...prev.slice(-200), { ts, msg, type }]);
+            }, []);
 
             useEffect(() => {
-                const successful = data.filter(r => r.status === '✅ Hoàn tất').length;
-                const errors = data.filter(r => r.status?.includes('❌')).length;
+                const successful = data.filter(r => r.status?.includes('SUCCESS')).length;
+                const errors = data.filter(r => r.status?.includes('FAILED') || r.status?.includes('❌')).length;
                 setStats({ total: data.length, success: successful, error: errors });
             }, [data]);
+
+            // Auto-scroll log panel
+            useEffect(() => {
+                if (logRef.current) {
+                    logRef.current.scrollTop = logRef.current.scrollHeight;
+                }
+            }, [logs]);
+
+            // Listen for real-time status updates from main process
+            useEffect(() => {
+                if (window.electronAPI && window.electronAPI.onStatusUpdate) {
+                    window.electronAPI.onStatusUpdate(({ mst, status }) => {
+                        setData(prev => prev.map(item =>
+                            item.MST === mst ? { ...item, status } : item
+                        ));
+                        addLog(`[${mst}] ${status}`, status.includes('❌') ? 'fail' : status.includes('✅') ? 'ok' : 'info');
+                    });
+                }
+                return () => {
+                    if (window.electronAPI && window.electronAPI.removeStatusListener) {
+                        window.electronAPI.removeStatusListener();
+                    }
+                };
+            }, [addLog]);
 
             const chooseFile = async () => {
                 try {
@@ -50,16 +117,20 @@
                     }
 
                     setStatusText('Reading Excel data...');
+                    addLog('📂 Đang đọc file Excel...', 'info');
                     const res = await window.electronAPI.parseExcel(path);
                     if (res.success) {
                         setData(res.data.map(r => ({ ...r, status: '⏳ Pending' })));
                         setStatusText(`Imported ${res.data.length} records.`);
+                        addLog(`✅ Đã import ${res.data.length} records`, 'ok');
+                        setLogs(prev => [...prev]);
                     } else {
                         throw new Error(res.error);
                     }
                 } catch (err) {
                     alert('CRITICAL ERROR:\n' + err.message);
                     setStatusText('Error occurred.');
+                    addLog(`❌ ${err.message}`, 'fail');
                 }
             };
 
@@ -67,126 +138,173 @@
                 if (isProcessing) return;
                 setIsProcessing(true);
                 setProgress(0);
+                addLog(retryOnly ? '🔁 Bắt đầu retry các records lỗi...' : '🚀 Bắt đầu Automation Pipeline...', 'info');
 
-                const targets = retryOnly ? data.filter(r => r.status.includes('❌')) : data;
+                const targets = retryOnly
+                    ? data.filter(r => r.status?.includes('FAILED') || r.status?.includes('❌'))
+                    : data;
                 let done = 0;
+                const total = targets.length;
 
                 for (let i = 0; i < data.length; i++) {
                     const r = data[i];
-                    if (retryOnly && !r.status.includes('❌') && r.status !== '⏳ Pending') continue;
+                    const isTarget = retryOnly
+                        ? (r.status?.includes('FAILED') || r.status?.includes('❌'))
+                        : true;
+                    
+                    if (!isTarget || (r.status?.includes('SUCCESS') && !retryOnly)) continue;
 
-                    setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '🔄 Đang xử lý...' } : item));
-                    setStatusText(`Processing: ${r.MST}`);
+                    // Set initial processing status
+                    setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: '🌐 Crawling PDF...' } : item));
+                    setStatusText(`Processing: ${r.MST} (${done + 1}/${total})`);
+                    addLog(`\n--- Processing: ${r.MST} - ${r.Ten} ---`, 'info');
 
                     try {
-                        const res = await window.electronAPI.processSingleRecord({ 
-                            MST: r.MST, 
-                            Serial: r.Serial, 
+                        const res = await window.electronAPI.processSingleRecord({
+                            MST: r.MST,
+                            Serial: r.Serial,
                             companyName: r.Ten,
                             email: r.Email,
-                            diaChi: r.DiaChi
+                            diaChi: r.DiaChi,
+                            Phone: r.Phone
                         });
-                        
+
                         if (res.success) {
-                            setData(prev => prev.map((item, idx) => idx === i ? { 
-                                ...item, 
-                                status: '✅ Hoàn tất'
+                            setData(prev => prev.map((item, idx) => idx === i ? {
+                                ...item,
+                                status: '✅ SUCCESS'
                             } : item));
+                            addLog(`✅ [${r.MST}] Pipeline hoàn tất: ${res.publicUrl}`, 'ok');
                         } else {
-                            setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${res.error || 'Lỗi xử lý'}` } : item));
+                            setData(prev => prev.map((item, idx) => idx === i ? {
+                                ...item,
+                                status: `❌ FAILED: ${res.error || 'Unknown error'}`
+                            } : item));
+                            addLog(`❌ [${r.MST}] FAILED: ${res.error}`, 'fail');
                         }
                     } catch (err) {
-                        setData(prev => prev.map((item, idx) => idx === i ? { ...item, status: `❌ ${err.message}` } : item));
+                        setData(prev => prev.map((item, idx) => idx === i ? {
+                            ...item,
+                            status: `❌ FAILED: ${err.message}`
+                        } : item));
+                        addLog(`❌ [${r.MST}] EXCEPTION: ${err.message}`, 'fail');
                     }
 
                     done++;
-                    setProgress(Math.round((done / targets.length) * 100));
-                    await new Promise(res => setTimeout(res, 500)); // Brief pause between requests
+                    setProgress(Math.round((done / total) * 100));
+                    await new Promise(res => setTimeout(res, 500));
                 }
 
                 setIsProcessing(false);
-                setStatusText('Automation Cycle Complete');
+                setStatusText('Pipeline Complete');
+                addLog('\n🏁 === Pipeline Cycle Complete ===\n', 'info');
             };
 
             return (
-                <div className="flex flex-col h-full space-y-6">
+                <div className="flex flex-col h-full gap-4">
                     {/* Top Bar */}
-                    <div className="flex items-center justify-between glass p-6 rounded-[2rem]">
+                    <div className="flex items-center justify-between glass p-5 rounded-2xl">
                         <div className="flex flex-col">
-                            <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">CA2 AUTOMATION PRO</h1>
-                            <p className="text-[10px] text-gray-500 font-bold tracking-[0.2em] uppercase">Enterprise Desktop Suite V2</p>
+                            <h1 className="text-xl font-black bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">CA2 AUTOMATION PRO</h1>
+                            <p className="text-[9px] text-gray-500 font-bold tracking-[0.2em] uppercase">PDF Pipeline Desktop v3</p>
                         </div>
-                        <div className="flex gap-10">
-                            {[ {l: 'Tổng số', v: stats.total, c: 'white'}, {l: 'Thành công', v: stats.success, c: '#10b981'}, {l: 'Lỗi', v: stats.error, c: '#ef4444'} ].map((s,i) => (
+                        <div className="flex gap-8">
+                            {[ {l: 'TỔNG', v: stats.total, c: 'white'}, {l: 'SUCCESS', v: stats.success, c: '#34d399'}, {l: 'FAILED', v: stats.error, c: '#f87171'} ].map((s,i) => (
                                 <div key={i} className="text-right">
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{s.l}</p>
-                                    <p className="text-3xl font-black" style={{color: s.c}}>{s.v}</p>
+                                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{s.l}</p>
+                                    <p className="text-2xl font-black" style={{color: s.c}}>{s.v}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Progress Card */}
-                    <div className="glass p-6 rounded-[2rem]">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="glass p-4 rounded-2xl">
+                        <div className="flex justify-between items-center mb-3">
                             <div className="flex items-center gap-3">
                                 {isProcessing && <div className="loader"></div>}
-                                <span className={isProcessing ? "text-sm font-bold text-blue-400" : "text-sm font-bold text-gray-400"}>{statusText}</span>
+                                <span className={`text-xs font-bold ${isProcessing ? 'text-blue-400 pulse-glow' : 'text-gray-500'}`}>{statusText}</span>
                             </div>
-                            <span className="text-xl font-black italic">{progress}%</span>
+                            <span className="text-lg font-black text-white/80">{progress}%</span>
                         </div>
-                        <div className="h-3 bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)] transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all duration-500" style={{ width: `${progress}%` }}></div>
                         </div>
                     </div>
 
-                    {/* Content Area */}
-                    <div className="flex-1 glass rounded-[2rem] overflow-hidden flex flex-col min-h-0">
-                        <div className="grid grid-cols-12 px-6 py-4 border-b border-white/5 bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-gray-500">
-                            <div className="col-span-2">Mã Số Thuế</div>
-                            <div className="col-span-4">Tên Công Ty</div>
-                            <div className="col-span-2">Serial</div>
-                            <div className="col-span-4">Trạng Thái</div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto table-container overflow-x-hidden p-2">
-                            {data.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center space-y-4 opacity-30">
-                                    <div className="text-4xl">📂</div>
-                                    <p className="font-bold italic">Chưa nhập dữ liệu. Vui lòng tải lên file Excel.</p>
-                                </div>
-                            ) : (
-                                data.map((r, i) => (
-                                    <div key={i} className="grid grid-cols-12 px-4 py-3 border-b border-white/5 hover:bg-white/[0.03] transition-colors items-center rounded-xl">
-                                        <div className="col-span-2 font-mono text-xs text-gray-400">{r.MST}</div>
-                                        <div className="col-span-4 font-bold text-sm truncate pr-4">{r.Ten}</div>
-                                        <div className="col-span-2 font-mono text-[10px] text-blue-400">{r.Serial}</div>
-                                        <div className={`col-span-4 text-[11px] font-black rounded-lg py-1 px-3 w-fit ${r.status.includes('✅') ? 'bg-green-500/10 text-green-500' : r.status.includes('❌') ? 'bg-red-500/10 text-red-500' : 'bg-white/5 text-gray-400'}`}>
-                                            {r.status}
-                                        </div>
+                    {/* Content Area — Split: Table + Log */}
+                    <div className="flex-1 flex gap-4 min-h-0">
+                        {/* Data Table */}
+                        <div className="flex-1 glass rounded-2xl overflow-hidden flex flex-col min-h-0">
+                            <div className="grid grid-cols-12 px-5 py-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-black uppercase tracking-widest text-gray-500">
+                                <div className="col-span-2">MST</div>
+                                <div className="col-span-3">Công Ty</div>
+                                <div className="col-span-2">Serial</div>
+                                <div className="col-span-5">Trạng Thái Pipeline</div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto table-container overflow-x-hidden">
+                                {data.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center space-y-3 opacity-30">
+                                        <div className="text-4xl">📂</div>
+                                        <p className="font-bold text-sm">Chưa nhập dữ liệu. Vui lòng tải lên file Excel.</p>
                                     </div>
-                                ))
-                            )}
+                                ) : (
+                                    data.map((r, i) => (
+                                        <div key={i} className="grid grid-cols-12 px-5 py-2.5 border-b border-white/5 hover:bg-white/[0.02] items-center transition-colors">
+                                            <div className="col-span-2 font-mono text-xs text-gray-400">{r.MST}</div>
+                                            <div className="col-span-3 font-semibold text-xs truncate pr-3">{r.Ten}</div>
+                                            <div className="col-span-2 font-mono text-[10px] text-blue-400 truncate">{r.Serial}</div>
+                                            <div className="col-span-5">
+                                                <div className={`text-[10px] font-bold rounded-lg py-1 px-2.5 inline-flex items-center gap-1.5 ${getStatusClass(r.status)}`}>
+                                                    {(r.status?.includes('Crawling') || r.status?.includes('Uploading') || r.status?.includes('database') || r.status?.includes('RETRYING') || r.status?.includes('🔍') || r.status?.includes('📥') || r.status?.includes('⏳ Đang')) && (
+                                                        <div className="loader" style={{width: '12px', height: '12px', borderWidth: '2px'}}></div>
+                                                    )}
+                                                    <span className="truncate max-w-[280px]">{r.status}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Log Panel */}
+                        <div className="w-[320px] glass rounded-2xl overflow-hidden flex flex-col min-h-0">
+                            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">📋 Pipeline Log</span>
+                            </div>
+                            <div ref={logRef} className="flex-1 overflow-y-auto p-3 log-panel table-container">
+                                {logs.length === 0 ? (
+                                    <div className="text-gray-600 text-center mt-8 text-xs">Log trống</div>
+                                ) : (
+                                    logs.map((l, i) => (
+                                        <div key={i} className={`${l.type === 'ok' ? 'log-ok' : l.type === 'fail' ? 'log-fail' : 'log-info'}`}>
+                                            <span className="text-gray-600">{l.ts}</span> {l.msg}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
 
                     {/* Bottom Actions */}
-                    <div className="flex justify-center gap-4 pt-2 pb-4">
-                        <button onClick={chooseFile} className="premium-btn px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white">
+                    <div className="flex justify-center gap-3 py-2">
+                        <button onClick={chooseFile} disabled={isProcessing} className="premium-btn px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-white disabled:opacity-50">
                             📁 Select Excel
                         </button>
-                        <button 
-                            onClick={() => runAuto()} 
+                        <button
+                            onClick={() => runAuto()}
                             disabled={isProcessing || data.length === 0}
-                            className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isProcessing || data.length === 0 ? 'bg-white/5 text-gray-600' : 'bg-blue-600 text-white shadow-lg'}`}
+                            className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isProcessing || data.length === 0 ? 'bg-white/5 text-gray-600' : 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5'}`}
                         >
-                            🚀 Start Automation
+                            🚀 Start Pipeline
                         </button>
-                        <button 
-                            onClick={() => runAuto(true)} 
+                        <button
+                            onClick={() => runAuto(true)}
                             disabled={isProcessing || stats.error === 0}
-                            className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isProcessing || stats.error === 0 ? 'bg-white/5 text-gray-600 border border-white/10' : 'border border-red-500/50 text-red-400 hover:bg-red-500/10 shadow-lg'}`}
+                            className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isProcessing || stats.error === 0 ? 'bg-white/5 text-gray-600 border border-white/5' : 'border border-orange-500/50 text-orange-400 hover:bg-orange-500/10'}`}
                         >
-                            🔁 Thử lại file lỗi ({stats.error})
+                            🔁 Retry Failed ({stats.error})
                         </button>
                     </div>
                 </div>

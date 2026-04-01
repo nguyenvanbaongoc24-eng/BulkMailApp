@@ -1,4 +1,4 @@
-const { google } = require('googleapis');
+﻿const { google } = require('googleapis');
 const axios = require('axios');
 const { adminClient: supabase } = require('./supabaseClient');
 require('dotenv').config();
@@ -39,11 +39,11 @@ function normalizeSender(raw) {
 function normalizeCustomer(row) {
     if (!row) row = {};
     return {
-        company_name: row.company_name || row.TenCongTy || row.ten_cong_ty || row.name || row.Ten || row['Tên Công Ty'] || "",
+        company_name: row.company_name || row.TenCongTy || row.ten_cong_ty || row.name || row.Ten || row['T├¬n C├┤ng Ty'] || "",
         mst: row.mst || row.MST || row.tax_code || row.taxCode || "",
-        address: row.address || row.DiaChi || row.dia_chi || row['Địa chỉ'] || row.notes || "",
+        address: row.address || row.DiaChi || row.dia_chi || row['─Éß╗ïa chß╗ë'] || row.notes || "",
         email: row.email || row.Email || "",
-        expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ngày hết hạn'] || ""
+        expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ng├áy hß║┐t hß║ín'] || ""
     };
 }
 
@@ -51,11 +51,11 @@ function decodeHtmlEntities(str) {
     if (!str) return '';
     const entities = {
         '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
-        '&acirc;': 'â', '&ecirc;': 'ê', '&ocirc;': 'ô', '&ucirc;': 'û', '&icirc;': 'î',
-        '&agrave;': 'à', '&egrave;': 'è', '&ograve;': 'ò', '&ugrave;': 'ù', '&igrave;': 'ì',
-        '&aacute;': 'á', '&eacute;': 'é', '&oacute;': 'ó', '&uacute;': 'ú', '&iacute;': 'í',
-        '&atilde;': 'ã', '&etilde;': 'ẽ', '&otilde;': 'õ', '&utilde;': 'ũ', '&itilde;': 'ĩ',
-        '&Acirc;': 'Â', '&Ecirc;': 'Ê', '&Ocirc;': 'Ô',
+        '&acirc;': '├ó', '&ecirc;': '├¬', '&ocirc;': '├┤', '&ucirc;': '├╗', '&icirc;': '├«',
+        '&agrave;': '├á', '&egrave;': '├¿', '&ograve;': '├▓', '&ugrave;': '├╣', '&igrave;': '├¼',
+        '&aacute;': '├í', '&eacute;': '├⌐', '&oacute;': '├│', '&uacute;': '├║', '&iacute;': '├¡',
+        '&atilde;': '├ú', '&etilde;': 'ß║╜', '&otilde;': '├╡', '&utilde;': '┼⌐', '&itilde;': '─⌐',
+        '&Acirc;': '├é', '&Ecirc;': '├è', '&Ocirc;': '├ö',
     };
     let result = str;
     // Also handle &#xxx; numeric entities
@@ -83,35 +83,35 @@ function parseTemplate(template, customer) {
 
     console.log("NORMALIZED:", JSON.stringify(norm));
 
-    // Step 1: Decode HTML entities in the template so "#T&ecirc;nC&ocirc;ngTy" becomes "#TênCôngTy"
+    // Step 1: Decode HTML entities in the template so "#T&ecirc;nC&ocirc;ngTy" becomes "#T├¬nC├┤ngTy"
     let result = decodeHtmlEntities(template);
 
     // Step 2: Build a flat map of ALL known tag variants -> value
     // Each tag variant is a plain string (case-insensitive replacement)
     const tagMap = [
         // Company name variants
-        ['#TênCôngTy', norm.company_name],
+        ['#T├¬nC├┤ngTy', norm.company_name],
         ['#TenCongTy', norm.company_name],
         ['#tencongty', norm.company_name],
-        ['#Tên Công Ty', norm.company_name],
+        ['#T├¬n C├┤ng Ty', norm.company_name],
         ['#Ten Cong Ty', norm.company_name],
         // MST variants
         ['#MST', norm.mst],
         ['#mst', norm.mst],
         // Address variants
-        ['#ĐịaChỉ', norm.address],
+        ['#─Éß╗ïaChß╗ë', norm.address],
         ['#DiaChi', norm.address],
         ['#diachi', norm.address],
-        ['#Địa Chỉ', norm.address],
+        ['#─Éß╗ïa Chß╗ë', norm.address],
         ['#Dia Chi', norm.address],
         // Email variants
         ['#Email', norm.email],
         ['#email', norm.email],
         // Expiry date variants
-        ['#NgàyHếtHạn', formatDate(norm.expired_date)],
+        ['#Ng├áyHß║┐tHß║ín', formatDate(norm.expired_date)],
         ['#NgayHetHan', formatDate(norm.expired_date)],
         ['#ngayhethan', formatDate(norm.expired_date)],
-        ['#Ngày Hết Hạn', formatDate(norm.expired_date)],
+        ['#Ng├áy Hß║┐t Hß║ín', formatDate(norm.expired_date)],
         ['#Ngay Het Han', formatDate(norm.expired_date)],
     ];
 
@@ -125,7 +125,7 @@ function parseTemplate(template, customer) {
     if (result.includes('#')) {
         const remaining = result.match(/#[^\s<.,;:!?"']+/g) || [];
         if (remaining.length > 0) {
-            console.warn(`[TEMPLATE] ⚠ UNREPLACED TAGS:`, remaining);
+            console.warn(`[TEMPLATE] ΓÜá UNREPLACED TAGS:`, remaining);
         }
     }
 
@@ -153,10 +153,10 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
 
     if (isAttachMode === true) {
         if (!pdfUrl) {
-            console.warn(`[MIME] ⚠ attachCertificate=TRUE nhưng pdf_url=NULL → GỬI MAIL KHÔNG ĐÍNH KÈM PDF`);
+            console.warn(`[MIME] ΓÜá attachCertificate=TRUE nh╞░ng pdf_url=NULL ΓåÆ Gß╗¼I MAIL KH├öNG ─É├ìNH K├êM PDF`);
             pdfSkipped = true;
         } else {
-            console.log(`[MIME] 📥 Fetching PDF from: ${pdfUrl} (using Axios)`);
+            console.log(`[MIME] ≡ƒôÑ Fetching PDF from: ${pdfUrl} (using Axios)`);
             try {
                 // Using axios because it's proven reliable with dns.setDefaultResultOrder on Render
                 const response = await axios({
@@ -168,8 +168,8 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
                 pdfBase64 = Buffer.from(response.data, 'binary').toString('base64');
             } catch (err) {
                 const errMsg = err.response ? `HTTP ${err.response.status}` : err.message;
-                console.error(`[MIME] ❌ Lỗi tải PDF (${pdfUrl}):`, errMsg);
-                console.warn(`[MIME] ⚠ Skipping PDF attachment...`);
+                console.error(`[MIME] Γ¥î Lß╗ùi tß║úi PDF (${pdfUrl}):`, errMsg);
+                console.warn(`[MIME] ΓÜá Skipping PDF attachment...`);
                 pdfSkipped = true;
             }
         }
@@ -181,13 +181,10 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     message += `MIME-Version: 1.0\r\n`;
     message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
     
-    // Part 1: HTML Body (Base64 Encoded to prevent UTF-8 boundary corruption in Gmail)
-    const htmlBase64 = Buffer.from(htmlBody, 'utf8').toString('base64');
+    // Part 1: HTML Body
     message += `--${boundary}\r\n`;
-    message += `Content-Type: text/html; charset="UTF-8"\r\n`;
-    message += `Content-Transfer-Encoding: base64\r\n\r\n`;
-    const wrappedHtml = htmlBase64.match(/.{1,76}/g)?.join('\r\n') || htmlBase64;
-    message += `${wrappedHtml}\r\n\r\n`;
+    message += `Content-Type: text/html; charset="UTF-8"\r\n\r\n`;
+    message += `${htmlBody}\r\n\r\n`;
     
     // Part 2: PDF Attachment
     if (pdfBase64) {
@@ -198,7 +195,7 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
         
         const wrappedBase64 = pdfBase64.match(/.{1,76}/g)?.join('\r\n') || pdfBase64;
         message += `${wrappedBase64}\r\n\r\n`;
-        console.log(`[MIME] 📎 ATTACHED PDF successfully: ${filename}`);
+        console.log(`[MIME] ≡ƒôÄ ATTACHED PDF successfully: ${filename}`);
     }
     
     message += `--${boundary}--`;
@@ -218,7 +215,7 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
 async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMode }) {
     const sender = normalizeSender(rawSender);
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`[SEND] 📧 GMAIL API SEND START`);
+    console.log(`[SEND] ≡ƒôº GMAIL API SEND START`);
     console.log(`[SEND] FROM: ${sender.senderEmail}`);
     console.log(`[SEND] TO: ${to}`);
     console.log(`[SEND] SUBJECT: ${subject}`);
@@ -227,19 +224,19 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
     // The refresh_token is stored in smtpPassword for OAuth2 accounts
     const refreshToken = sender.smtpPassword;
     if (!refreshToken) {
-        console.error(`[SEND] ❌ FATAL: smtpPassword (refresh_token) is EMPTY!`);
-        throw new Error('Không tìm thấy Refresh Token (smtpPassword trống).');
+        console.error(`[SEND] Γ¥î FATAL: smtpPassword (refresh_token) is EMPTY!`);
+        throw new Error('Kh├┤ng t├¼m thß║Ñy Refresh Token (smtpPassword trß╗æng).');
     }
-    console.log(`[SEND] 🔑 refresh_token exists: length=${refreshToken.length}, starts=${refreshToken.substring(0, 8)}...`);
+    console.log(`[SEND] ≡ƒöæ refresh_token exists: length=${refreshToken.length}, starts=${refreshToken.substring(0, 8)}...`);
 
     // 1. Initialize OAuth2 Client
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    console.log(`[SEND] GOOGLE_CLIENT_ID: ${clientId ? `exists (${clientId.length} chars)` : '❌ MISSING'}`);
-    console.log(`[SEND] GOOGLE_CLIENT_SECRET: ${clientSecret ? `exists (${clientSecret.length} chars)` : '❌ MISSING'}`);
+    console.log(`[SEND] GOOGLE_CLIENT_ID: ${clientId ? `exists (${clientId.length} chars)` : 'Γ¥î MISSING'}`);
+    console.log(`[SEND] GOOGLE_CLIENT_SECRET: ${clientSecret ? `exists (${clientSecret.length} chars)` : 'Γ¥î MISSING'}`);
     
     if (!clientId || !clientSecret) {
-        throw new Error('GOOGLE_CLIENT_ID hoặc GOOGLE_CLIENT_SECRET chưa được cấu hình trên server!');
+        throw new Error('GOOGLE_CLIENT_ID hoß║╖c GOOGLE_CLIENT_SECRET ch╞░a ─æ╞░ß╗úc cß║Ñu h├¼nh tr├¬n server!');
     }
     
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
@@ -248,30 +245,30 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
     // Ensure token is valid / refreshed
     let accessToken;
     try {
-        console.log(`[SEND] 🔄 Refreshing access token...`);
+        console.log(`[SEND] ≡ƒöä Refreshing access token...`);
         const { token } = await oauth2Client.getAccessToken();
         accessToken = token;
-        if (!accessToken) throw new Error('getAccessToken() returned null — refresh token may be revoked');
-        console.log(`[SEND] ✅ Access token OK: length=${accessToken.length}, starts=${accessToken.substring(0, 15)}...`);
+        if (!accessToken) throw new Error('getAccessToken() returned null ΓÇö refresh token may be revoked');
+        console.log(`[SEND] Γ£à Access token OK: length=${accessToken.length}, starts=${accessToken.substring(0, 15)}...`);
     } catch (tokenErr) {
         const detail = tokenErr.response?.data || tokenErr.message;
-        console.error(`[SEND] ❌ OAuth2 Token Error:`, JSON.stringify(detail));
-        throw new Error('Lỗi làm mới Token (invalid_grant hoặc token expired). Vui lòng kết nối lại tài khoản Gmail. Detail: ' + JSON.stringify(detail));
+        console.error(`[SEND] Γ¥î OAuth2 Token Error:`, JSON.stringify(detail));
+        throw new Error('Lß╗ùi l├ám mß╗¢i Token (invalid_grant hoß║╖c token expired). Vui l├▓ng kß║┐t nß╗æi lß║íi t├ái khoß║ún Gmail. Detail: ' + JSON.stringify(detail));
     }
 
     // 2. Build MIME
-    // Fix: Properly encode sender name for UTF-8 (RFC 2047) to prevent "BÃ¡o LÃ£i" gibberish
+    // Fix: Properly encode sender name for UTF-8 (RFC 2047) to prevent "B├â┬ío L├â┬úi" gibberish
     const encodedSenderName = `=?utf-8?B?${Buffer.from(sender.senderName || sender.senderEmail).toString('base64')}?=`;
     const fromString = `${encodedSenderName} <${sender.senderEmail}>`;
     
-    console.log(`[SEND] 📝 Building MIME message...`);
+    console.log(`[SEND] ≡ƒô¥ Building MIME message...`);
     const mimeResult = await buildMimeMessage(fromString, to, subject, html, pdf_url, isAttachMode);
 
     // 3. Send using Gmail API
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
     
     try {
-        console.log(`[SEND] 🚀 Calling gmail.users.messages.send... (raw length: ${mimeResult.raw.length})`);
+        console.log(`[SEND] ≡ƒÜÇ Calling gmail.users.messages.send... (raw length: ${mimeResult.raw.length})`);
         const res = await gmail.users.messages.send({
             userId: 'me',
             requestBody: { raw: mimeResult.raw }
@@ -279,10 +276,10 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
         
         console.log(`[SEND] GMAIL RESPONSE:`, JSON.stringify(res.data));
         if (!res.data || !res.data.id) {
-            throw new Error(`Gmail API không trả về messageId hợp lệ.`);
+            throw new Error(`Gmail API kh├┤ng trß║ú vß╗ü messageId hß╗úp lß╗ç.`);
         }
         
-        console.log(`[SEND] ✅✅✅ GMAIL API SUCCESS! messageId: ${res.data.id}`);
+        console.log(`[SEND] Γ£àΓ£àΓ£à GMAIL API SUCCESS! messageId: ${res.data.id}`);
         console.log(`${'='.repeat(60)}\n`);
         
         let responseMsg = 'Sent via Gmail API';
@@ -291,7 +288,7 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
         return { messageId: res.data.id, response: responseMsg, pdfSkipped: mimeResult.pdfSkipped };
     } catch (gErr) {
         const errorDetails = gErr.response?.data?.error || gErr.response?.data || gErr.message;
-        console.error(`[SEND] ❌ GMAIL API ERROR:`, JSON.stringify(errorDetails));
+        console.error(`[SEND] Γ¥î GMAIL API ERROR:`, JSON.stringify(errorDetails));
         console.error(`[SEND] Error status:`, gErr.response?.status);
         console.error(`[SEND] Error headers:`, JSON.stringify(gErr.response?.headers || {}));
         console.log(`${'='.repeat(60)}\n`);
@@ -300,7 +297,7 @@ async function sendGmailAPI({ rawSender, to, subject, html, pdf_url, isAttachMod
 }
 
 // ===========================================
-// 4. WORKER FLOW — DIRECT QUERIES (NO RPCs!)
+// 4. WORKER FLOW ΓÇö DIRECT QUERIES (NO RPCs!)
 // ===========================================
 const WORKER_INTERVAL = 10000;
 let isWorkerRunning = false;
@@ -312,7 +309,7 @@ async function dbPickTasks(batchSize) {
     try {
         const { data, error } = await supabase.rpc('pick_email_tasks', { batch_size: batchSize });
         if (!error && data && data.length > 0) {
-            console.log(`[DB] ✅ RPC 'pick_email_tasks' returned ${data.length} tasks.`);
+            console.log(`[DB] Γ£à RPC 'pick_email_tasks' returned ${data.length} tasks.`);
             return data;
         }
     } catch (e) {
@@ -320,7 +317,7 @@ async function dbPickTasks(batchSize) {
     }
 
     // Fallback: direct query (More reliable for custom logic)
-    console.log(`[DB] 🔍 Searching for 'pending' tasks via Direct Query (batch: ${batchSize})...`);
+    console.log(`[DB] ≡ƒöì Searching for 'pending' tasks via Direct Query (batch: ${batchSize})...`);
     const { data, error } = await supabase
         .from('email_logs')
         .select('*')
@@ -329,20 +326,20 @@ async function dbPickTasks(batchSize) {
         .limit(batchSize);
  
     if (error) {
-        console.error(`[DB] ❌ Fallback query error: ${error.message}`);
+        console.error(`[DB] Γ¥î Fallback query error: ${error.message}`);
         throw error;
     }
  
     // Mark them as processing
     if (data && data.length > 0) {
         const ids = data.map(d => d.id);
-        console.log(`[DB] 🔄 Marking ${ids.length} tasks as 'processing'...`);
+        console.log(`[DB] ≡ƒöä Marking ${ids.length} tasks as 'processing'...`);
         const { error: updErr } = await supabase
             .from('email_logs')
             .update({ status: 'processing', last_retry_time: new Date().toISOString() })
             .in('id', ids);
         
-        if (updErr) console.error(`[DB] ❌ Failed to mark tasks as processing: ${updErr.message}`);
+        if (updErr) console.error(`[DB] Γ¥î Failed to mark tasks as processing: ${updErr.message}`);
     } else {
         console.log(`[DB] No pending tasks found.`);
     }
@@ -358,7 +355,7 @@ async function dbUpdateEmailLog(logId, status, messageId, errorMessage) {
     };
     console.log(`[DB] Updating log ${logId}: status=${status}`);
     const { error } = await supabase.from('email_logs').update(updates).eq('id', logId);
-    if (error) console.error(`[DB] ⚠ Failed to update log ${logId}:`, error.message);
+    if (error) console.error(`[DB] ΓÜá Failed to update log ${logId}:`, error.message);
 }
 
 async function dbGetCampaign(campaignId) {
@@ -435,12 +432,12 @@ async function dbCheckCompletion(campaignId) {
             const campaign = await dbGetCampaign(campaignId);
             const total = (campaign?.recipients || []).length || campaign?.total_recipients || 0;
             const errCount = campaign?.error_count || 0;
-            const finalStatus = errCount > 0 ? `Hoàn thành (Lỗi ${errCount}/${total})` : 'Hoàn thành';
+            const finalStatus = errCount > 0 ? `Ho├án th├ánh (Lß╗ùi ${errCount}/${total})` : 'Ho├án th├ánh';
             await supabase.from('campaigns').update({ status: finalStatus }).eq('id', campaignId);
-            console.log(`[COMPLETION] ✅ Campaign ${campaignId}: ${finalStatus}`);
+            console.log(`[COMPLETION] Γ£à Campaign ${campaignId}: ${finalStatus}`);
         }
     } catch (e) {
-        console.error(`[COMPLETION] ⚠ Error: ${e.message}`);
+        console.error(`[COMPLETION] ΓÜá Error: ${e.message}`);
     }
 }
 
@@ -467,12 +464,12 @@ async function dbRecoverStuck() {
 
 async function processEmailTask(log) {
     setHeartbeat('START processEmailTask', log.id);
-    console.log(`\n\n${'▶'.repeat(30)}`);
-    console.log(`▶ PROCESSING TASK: ${log.id}`);
-    console.log(`▶ Email: ${log.email}`);
-    console.log(`▶ MST/customer_id: ${log.customer_id}`);
-    console.log(`▶ Campaign: ${log.campaign_id}`);
-    console.log(`${'▶'.repeat(30)}`);
+    console.log(`\n\n${'Γû╢'.repeat(30)}`);
+    console.log(`Γû╢ PROCESSING TASK: ${log.id}`);
+    console.log(`Γû╢ Email: ${log.email}`);
+    console.log(`Γû╢ MST/customer_id: ${log.customer_id}`);
+    console.log(`Γû╢ Campaign: ${log.campaign_id}`);
+    console.log(`${'Γû╢'.repeat(30)}`);
 
     try {
         // Mark as processing
@@ -481,7 +478,7 @@ async function processEmailTask(log) {
         // Step 1: Get Campaign
         setHeartbeat('Getting campaign', log.id);
         const campaign = await dbGetCampaign(log.campaign_id);
-        console.log(`[TASK:1] ✅ Campaign loaded: "${campaign.name}"`);
+        console.log(`[TASK:1] Γ£à Campaign loaded: "${campaign.name}"`);
         console.log(`[TASK:1]    sender_account_id: ${campaign.sender_account_id}`);
         console.log(`[TASK:1]    attach_cert: ${campaign.attach_cert} (type: ${typeof campaign.attach_cert})`);
         console.log(`[TASK:1]    recipients count: ${(campaign.recipients || []).length}`);
@@ -494,7 +491,7 @@ async function processEmailTask(log) {
             cleanMST(r.MST || r.taxCode || r.mst || '') === cleanMST_val
         );
         const customer = (await dbGetCustomer(cleanMST_val)) || {};
-        console.log(`[TASK:2] ✅ Customer lookup for MST "${rawMST}" (Cleaned: "${cleanMST_val}"):`);
+        console.log(`[TASK:2] Γ£à Customer lookup for MST "${rawMST}" (Cleaned: "${cleanMST_val}"):`);
         console.log(`[TASK:2]    Excel match: ${recipientInExcel ? 'YES' : 'NO'}`);
         console.log(`[TASK:2]    DB customer found: ${customer && customer.mst ? 'YES' : 'NO'}`);
         
@@ -502,19 +499,19 @@ async function processEmailTask(log) {
         
         // --- FALLBACK: Check certificates table if customers table has no PDF ---
         if (!pdfUrl) {
-            console.log(`[TASK:2] 🔍 No PDF found in customers table. Checking certificates table...`);
+            console.log(`[TASK:2] ≡ƒöì No PDF found in customers table. Checking certificates table...`);
             try {
                 const { data: certRows } = await supabase.from('certificates').select('pdf_url').eq('mst', cleanMST_val).limit(1);
                 if (certRows && certRows.length > 0 && certRows[0].pdf_url) {
                     pdfUrl = certRows[0].pdf_url;
-                    console.log(`[TASK:2] ✅ Fallback PDF found in certificates: ${pdfUrl}`);
+                    console.log(`[TASK:2] Γ£à Fallback PDF found in certificates: ${pdfUrl}`);
                 }
             } catch (certErr) {
-                console.error(`[TASK:2] ❌ Error checking certificates table: ${certErr.message}`);
+                console.error(`[TASK:2] Γ¥î Error checking certificates table: ${certErr.message}`);
             }
         }
 
-        console.log(`[TASK:2]    Final pdf_url: ${pdfUrl || '❌ NULL/EMPTY'}`);
+        console.log(`[TASK:2]    Final pdf_url: ${pdfUrl || 'Γ¥î NULL/EMPTY'}`);
         console.log(`[TASK:2]    company_name: ${customer.company_name || recipientInExcel?.TenCongTy || 'N/A'}`);
 
         // Step 3: Get Sender
@@ -522,7 +519,7 @@ async function processEmailTask(log) {
         const senderId = campaign.sender_account_id || campaign.senderAccountId;
         console.log(`[TASK:3] Looking up sender: ${senderId}`);
         const senderRaw = await dbGetSender(senderId);
-        console.log(`[TASK:3] ✅ Sender loaded: ${senderRaw.senderEmail || senderRaw.sender_email || 'unknown'}`);
+        console.log(`[TASK:3] Γ£à Sender loaded: ${senderRaw.senderEmail || senderRaw.sender_email || 'unknown'}`);
         console.log(`[TASK:3]    smtpHost: ${senderRaw.smtpHost || senderRaw.smtp_host || 'N/A'}`);
         console.log(`[TASK:3]    has refresh_token: ${!!(senderRaw.smtpPassword || senderRaw.smtp_password)}`);
 
@@ -542,7 +539,7 @@ async function processEmailTask(log) {
             }
         };
 
-        const rawExpiredDate = recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ngày hết hạn'] || customer.expired_date || '';
+        const rawExpiredDate = recipientInExcel?.NgayHetHanChuKySo || recipientInExcel?.['Ng├áy hß║┐t hß║ín'] || customer.expired_date || '';
 
         // Combine DB customer, Excel row, and log item as raw customer object
         const dataForTags = { ...customer, ...recipientInExcel, email: log.email || recipientInExcel?.Email || customer.email || '' };
@@ -550,10 +547,10 @@ async function processEmailTask(log) {
         
         console.log(`[TASK:5] TAG DATA MAP:`);
         
-        const parsedSubjectHTML = parseTemplate(campaign.subject || 'Thông báo tự động', dataForTags);
+        const parsedSubjectHTML = parseTemplate(campaign.subject || 'Th├┤ng b├ío tß╗▒ ─æß╗Öng', dataForTags);
         const parsedBodyHTML = parseTemplate(campaign.template || '', dataForTags);
 
-        console.log(`[TASK:5] ✅ Parsed subject: ${parsedSubjectHTML}`);
+        console.log(`[TASK:5] Γ£à Parsed subject: ${parsedSubjectHTML}`);
         console.log(`[TASK:5]    Parsed body length: ${parsedBodyHTML.length} chars`);
 
         // Step 6: Send with retry (3 attempts)
@@ -562,7 +559,7 @@ async function processEmailTask(log) {
         let lastError = null;
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-                console.log(`\n[TASK:6] 🚀 Send attempt ${attempt}/3 using Gmail API...`);
+                console.log(`\n[TASK:6] ≡ƒÜÇ Send attempt ${attempt}/3 using Gmail API...`);
                 successInfo = await sendGmailAPI({
                     rawSender: senderRaw,
                     to: log.email,
@@ -571,13 +568,13 @@ async function processEmailTask(log) {
                     pdf_url: pdfUrl,
                     isAttachMode: attachCertificate
                 });
-                console.log(`[TASK:6] ✅ Attempt ${attempt} succeeded!`);
+                console.log(`[TASK:6] Γ£à Attempt ${attempt} succeeded!`);
                 break;
             } catch (e) {
                 lastError = e;
-                console.error(`[TASK:6] ❌ Attempt ${attempt}/3 FAILED: ${e.message}`);
+                console.error(`[TASK:6] Γ¥î Attempt ${attempt}/3 FAILED: ${e.message}`);
                 if (attempt < 3) {
-                    console.log(`[TASK:6] ⏳ Waiting 3s before retry...`);
+                    console.log(`[TASK:6] ΓÅ│ Waiting 3s before retry...`);
                     await new Promise(r => setTimeout(r, 3000));
                 }
             }
@@ -585,19 +582,19 @@ async function processEmailTask(log) {
 
         if (!successInfo) throw lastError || new Error('All 3 send attempts failed');
 
-        // ✅ SUCCESS
+        // Γ£à SUCCESS
         let statusMsg = `OK: ${successInfo.response || 'Delivered'}`;
         if (successInfo.pdfSkipped) statusMsg += ' [PDF skipped - no URL]';
         
         await dbUpdateEmailLog(log.id, 'success', successInfo.messageId, statusMsg);
         await dbIncrementSuccess(log.campaign_id);
         await dbCheckCompletion(log.campaign_id);
-        console.log(`\n[TASK] ✅✅✅ EMAIL SENT SUCCESSFULLY to ${log.email} ✅✅✅`);
+        console.log(`\n[TASK] Γ£àΓ£àΓ£à EMAIL SENT SUCCESSFULLY to ${log.email} Γ£àΓ£àΓ£à`);
         console.log(`[TASK] messageId: ${successInfo.messageId}\n`);
 
     } catch (err) {
         setHeartbeat('ERROR', log.id, err.message);
-        console.error(`\n[TASK] ❌❌❌ TASK FAILED for ${log.email} ❌❌❌`);
+        console.error(`\n[TASK] Γ¥îΓ¥îΓ¥î TASK FAILED for ${log.email} Γ¥îΓ¥îΓ¥î`);
         console.error(`[TASK] Error: ${err.message}`);
         console.error(`[TASK] Stack: ${err.stack}\n`);
 
@@ -606,7 +603,7 @@ async function processEmailTask(log) {
             await dbIncrementError(log.campaign_id);
             await dbCheckCompletion(log.campaign_id);
         } catch (dbErr) {
-            console.error(`[TASK] ⚠ DB update after failure also failed: ${dbErr.message}`);
+            console.error(`[TASK] ΓÜá DB update after failure also failed: ${dbErr.message}`);
         }
     }
 }
@@ -623,9 +620,9 @@ async function startWorker() {
             return;
         }
 
-        console.log(`\n${'🔄'.repeat(5)} WORKER CYCLE START ${'🔄'.repeat(5)}`);
+        console.log(`\n${'≡ƒöä'.repeat(5)} WORKER CYCLE START ${'≡ƒöä'.repeat(5)}`);
         console.log(`[WORKER] Found ${tasks.length} pending task(s)`);
-        console.log(`[WORKER] Tasks: ${tasks.map(t => `${t.id.substring(0,8)}→${t.email}`).join(', ')}`);
+        console.log(`[WORKER] Tasks: ${tasks.map(t => `${t.id.substring(0,8)}ΓåÆ${t.email}`).join(', ')}`);
         
         for (let i = 0; i < tasks.length; i++) {
             const log = tasks[i];
@@ -636,22 +633,22 @@ async function startWorker() {
                 // Wrap task in a 90s timeout (Promise.race)
                 await Promise.race([
                     processEmailTask(log),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('MÔI TRƯỜNG GỬI MAIL BỊ TREO (90s)')), 90000))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('M├öI TR╞»ß╗£NG Gß╗¼I MAIL Bß╗è TREO (90s)')), 90000))
                 ]);
             } catch (taskErr) {
-                console.error(`[WORKER] ⚠ Task ${log.id} failed or timed out: ${taskErr.message}`);
+                console.error(`[WORKER] ΓÜá Task ${log.id} failed or timed out: ${taskErr.message}`);
                 setHeartbeat('Task Error', log.id, taskErr.message);
                 try {
                     await dbUpdateEmailLog(log.id, 'failed', null, `WORKER ERROR/TIMEOUT: ${taskErr.message}`);
                 } catch (dbErr) {
-                    console.error(`[WORKER] ⚠ Failed to mark task as failed in DB: ${dbErr.message}`);
+                    console.error(`[WORKER] ΓÜá Failed to mark task as failed in DB: ${dbErr.message}`);
                 }
             }
         }
         
-        console.log(`[WORKER] ✅ Cycle complete. Processed ${tasks.length} task(s).\n`);
+        console.log(`[WORKER] Γ£à Cycle complete. Processed ${tasks.length} task(s).\n`);
     } catch (err) {
-        console.error(`[WORKER] ❌ Critical Error: ${err.message}`);
+        console.error(`[WORKER] Γ¥î Critical Error: ${err.message}`);
         console.error(`[WORKER] Stack: ${err.stack}`);
         setHeartbeat('Worker error', null, err.message);
     } finally {
@@ -680,12 +677,12 @@ async function testEmailFlow(targetEmail, forcedSenderId = null, testCase = 1) {
         if (senders && senders.length > 0) {
             sender = senders[0];
         } else {
-            throw new Error('Bạn chưa có tài khoản Gmail nào được kết nối trong Cơ Sở Dữ Liệu. Vui lòng vào ứng dụng 웹 -> "Tài khoản Gmail" -> "Kết nối Gmail API" trước khi thử gửi Test.');
+            throw new Error('Bß║ín ch╞░a c├│ t├ái khoß║ún Gmail n├áo ─æ╞░ß╗úc kß║┐t nß╗æi trong C╞í Sß╗ƒ Dß╗» Liß╗çu. Vui l├▓ng v├áo ß╗⌐ng dß╗Ñng ∞¢╣ -> "T├ái khoß║ún Gmail" -> "Kß║┐t nß╗æi Gmail API" tr╞░ß╗¢c khi thß╗¡ gß╗¡i Test.');
         }
     }
 
-    const dataForTags = { company_name: 'CÔNG TY TEST CA2', mst: '0101010101', address: 'HN VN', expired_date: '31/12/2030' };
-    let rawTemplate = `<p>Xin chào <b>#TênCôngTy</b> (MST: #MST).</p><p>Đây là email test từ Automation CA2.</p>`;
+    const dataForTags = { company_name: 'C├öNG TY TEST CA2', mst: '0101010101', address: 'HN VN', expired_date: '31/12/2030' };
+    let rawTemplate = `<p>Xin ch├áo <b>#T├¬nC├┤ngTy</b> (MST: #MST).</p><p>─É├óy l├á email test tß╗½ Automation CA2.</p>`;
     let attachCertificate = false;
     let mockPdfUrl = null;
 

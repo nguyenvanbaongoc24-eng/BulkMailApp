@@ -26,14 +26,14 @@ function parseExcel(filePath) {
 
     // Find header row (usually first row with MST or Tên)
     let headerIdx = -1;
-    let colMap = { mst: 4, name: 3, address: 6, serial: 1, email: 8, expiry: 10 }; // Defaults
+    let colMap = { mst: 4, name: 3, address: 6, serial: 1, phone: 7, email: 8, expiry: 10 }; // Defaults (MST=4, Name=3, Address=6, Phone=7, Email=8)
 
     for (let i = 0; i < Math.min(rawData.length, 10); i++) {
         const row = rawData[i];
         if (!row || !Array.isArray(row)) continue;
         
         let matchCount = 0;
-        const tempMap = { mst: -1, name: -1, address: -1, email: -1, serial: -1, expiry: -1 };
+        const tempMap = { mst: -1, name: -1, address: -1, phone: -1, email: -1, serial: -1, expiry: -1 };
         
         row.forEach((cell, idx) => {
             const val = String(cell || '').toLowerCase().trim();
@@ -48,6 +48,9 @@ function parseExcel(filePath) {
             }
             if (val.includes('email')) {
                 tempMap.email = idx; matchCount++;
+            }
+            if (val.includes('điện thoại') || val.includes('phone') || val.includes('sđt') || val === 'h') {
+                tempMap.phone = idx; matchCount++;
             }
             if (val.includes('serial') || val.includes('số máy') || val.includes('số chứng thư')) {
                 tempMap.serial = idx; matchCount++;
@@ -110,6 +113,7 @@ function parseExcel(filePath) {
             MST: mst.toString().trim(),
             TenCongTy: row[colMap.name] ? String(row[colMap.name]).trim() : '',
             DiaChi: row[colMap.address] ? String(row[colMap.address]).trim() : '',
+            Phone: row[colMap.phone] ? String(row[colMap.phone]).trim() : '',
             Email: row[colMap.email] ? String(row[colMap.email]).trim() : '',
             NgayHetHanChuKySo: formatDate(row[colMap.expiry])
         };
