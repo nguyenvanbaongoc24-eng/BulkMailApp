@@ -425,7 +425,7 @@ app.get('/api/auth/google/url', authenticate, (req, res) => {
     
     const url = oauth2Client.generateAuthUrl({
         access_type: 'offline',
-        prompt: 'consent', // Force consent so we get a refresh token
+        prompt: 'consent select_account', // Force consent and account selection
         scope: [
             'https://www.googleapis.com/auth/gmail.send', 
             'https://www.googleapis.com/auth/userinfo.email',
@@ -443,12 +443,21 @@ app.get('/api/auth/google/callback', async (req, res) => {
             return res.status(400).send('Missing code or state (userId).');
         }
 
-        const { tokens } = await oauth2Client.getToken(code);
-        oauth2Client.setCredentials(tokens);
+        // Create a separate client instance to avoid global state interference
+        const localClient = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.NODE_ENV === 'production' 
+                ? 'https://automation-ca2.onrender.com/api/auth/google/callback'
+                : 'http://localhost:3000/api/auth/google/callback'
+        );
 
-        // Fetch user info (email)
+        const { tokens } = await localClient.getToken(code);
+        localClient.setCredentials(tokens);
+
+        // Fetch user info using the isolated client
         const oauth2 = google.oauth2({
-            auth: oauth2Client,
+            auth: localClient,
             version: 'v2'
         });
         const userInfo = await oauth2.userinfo.get();
@@ -953,16 +962,31 @@ app.post('/api/campaigns/:id/send', authenticate, async (req, res) => {
 // Email Logs Route
 app.get('/api/email-logs', authenticate, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        // Try fetching with join first
+        let { data, error } = await supabase
             .from('email_logs')
             .select('*, campaigns(name)')
             .eq('user_id', req.user.id)
             .order('created_at', { ascending: false })
             .limit(100);
 
-        if (error) throw error;
-        res.json(data);
+        if (error) {
+            console.error('[LOGS] Join query failed, falling back to simple select:', error.message);
+            // Fallback: Fetch without join
+            const fallback = await supabase
+                .from('email_logs')
+                .select('*')
+                .eq('user_id', req.user.id)
+                .order('created_at', { ascending: false })
+                .limit(100);
+            
+            if (fallback.error) throw fallback.error;
+            data = fallback.data;
+        }
+        
+        res.json(data || []);
     } catch (error) {
+        console.error('[LOGS] Critical Error:', error.message);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1294,21 +1318,7 @@ app.get('/api/crm/stats', authenticate, async (req, res) => {
 });
 
 // Detailed Campaign Report Route (Phase 8 Implementation)
-app.get('/api/email-logs', authenticate, async (req, res) => {
-    try {
-        // Fetch logs with campaign name join if possible, or just logs
-        const { data, error } = await supabase
-            .from('email_logs')
-            .select('*, campaigns(name)')
-            .order('created_at', { ascending: false })
-            .limit(500); // Limit to last 500 for performance
 
-        if (error) throw error;
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 app.get('/api/reports/:id', authenticate, async (req, res) => {
     try {

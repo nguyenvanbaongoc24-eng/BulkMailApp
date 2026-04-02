@@ -484,6 +484,12 @@
                                 <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center sm:text-left">
                                     🔒 Chúng tôi tuân thủ chính sách bảo mật của Google API.
                                 </p>
+                                <div class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                                    <p class="text-[10px] text-orange-400 font-bold leading-relaxed">
+                                        💡 <b>Lưu ý:</b> Nếu gặp màn hình "Google chưa xác minh", hãy nhấn <b>Nâng cao (Advanced)</b> -> <b>Đi tới automation-ca2 (Không an toàn)</b> để tiếp tục. <br>
+                                        <i>(Email ngocnguyen... xuất hiện là do tài khoản này tạo Project, bạn vẫn đăng nhập bằng mail của mình bình thường)</i>
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -671,6 +677,18 @@
                                 </div>
                             </div>
                             
+                            <div class="flex flex-wrap gap-2 pt-2 items-center mb-2">
+                                <button onclick="insertVariable('#TênCôngTy')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#TênCôngTy</button>
+                                <button onclick="insertVariable('#MST')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#MST</button>
+                                <button onclick="insertVariable('#ĐịaChỉ')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#ĐịaChỉ</button>
+                                <button onclick="insertVariable('#NgàyHếtHạn')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#NgàyHếtHạn</button>
+                                <div class="w-full mt-2 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                                    <span class="text-[10px] text-blue-400 font-bold leading-relaxed block">
+                                        💡 <b>Lưu ý:</b> Đặt con trỏ vào vị trí muốn chèn trong soạn thảo, sau đó bấm vào các nút <span class="text-orange-400">#TAG</span> phía trên. Hệ thống sẽ tự động thay thế bằng dữ liệu thực tế khi gửi mail.
+                                    </span>
+                                </div>
+                            </div>
+                            
                             <!-- Rich Text Toolbar -->
                             <div class="flex flex-wrap items-center gap-1 p-2 bg-white/5 rounded-t-2xl border-x border-t border-white/10">
                                 <button onclick="formatDoc('bold')" title="In đậm" class="p-2 hover:bg-white/10 rounded-lg text-white transition-all text-xs font-bold">B</button>
@@ -729,17 +747,7 @@
                                  data-placeholder="Chào {{TenCongTy}}, ...">
                             </div>
                             
-                            <div class="flex flex-wrap gap-2 pt-2 items-center">
-                                <button onclick="insertVariable('#TênCôngTy')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#TênCôngTy</button>
-                                <button onclick="insertVariable('#MST')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#MST</button>
-                                <button onclick="insertVariable('#ĐịaChỉ')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#ĐịaChỉ</button>
-                                <button onclick="insertVariable('#NgàyHếtHạn')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#NgàyHếtHạn</button>
-                                <div class="w-full mt-2 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
-                                    <span class="text-[10px] text-blue-400 font-bold leading-relaxed block">
-                                        💡 <b>Lưu ý:</b> Đặt con trỏ vào vị trí muốn chèn trong soạn thảo, sau đó bấm vào các nút <span class="text-orange-400">#TAG</span> phía trên. Hệ thống sẽ tự động thay thế bằng dữ liệu thực tế khi gửi mail.
-                                    </span>
-                                </div>
-                            </div>
+
                         </div>
 
                         <div class="bg-white/5 p-6 rounded-3xl">

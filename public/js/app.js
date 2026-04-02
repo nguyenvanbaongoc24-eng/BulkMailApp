@@ -479,16 +479,59 @@ async function handleCRMImportAction(mode) {
 // --- Dashboard & Campaigns ---
 async function loadDashboardStats() {
     try {
-        const res = await authedFetch('/api/dashboard/stats');
+        // Fetch Email Stats
+        const res = await authedFetch('/api/stats');
         const stats = await res.json();
-        const totalEl = document.getElementById('stat-total');
-        if (totalEl) totalEl.innerText = stats.totalSent || 0;
         
+        const totalEl = document.getElementById('stat-total');
+        const successEl = document.getElementById('stat-success');
+        const errorEl = document.getElementById('stat-error');
+        const progressBar = document.getElementById('success-progress-bar');
+        
+        const total = stats.totalSent || 0;
+        const success = stats.totalSuccess || 0;
+        const errors = stats.totalError || 0;
+        
+        if (totalEl) totalEl.innerText = total.toLocaleString();
+        
+        if (total > 0) {
+            const successRate = Math.round((success / total) * 100);
+            const errorRate = Math.round((errors / total) * 100);
+            
+            if (successEl) successEl.innerText = successRate + '%';
+            if (errorEl) errorEl.innerText = errorRate + '%';
+            if (progressBar) progressBar.style.width = successRate + '%';
+        } else {
+            if (successEl) successEl.innerText = '0%';
+            if (errorEl) errorEl.innerText = '0%';
+            if (progressBar) progressBar.style.width = '0%';
+        }
+        
+        // Fetch CRM Stats for Dashboard
         const crmRes = await authedFetch('/api/ca2-crm');
-        const { data } = await crmRes.json();
+        const { data: crmData } = await crmRes.json();
+        
+        const dashExpired = document.getElementById('dash-crm-expired');
+        const dash30 = document.getElementById('dash-crm-30');
+        const dash60 = document.getElementById('dash-crm-60');
         const dashTotal = document.getElementById('dash-crm-total');
-        if (dashTotal) dashTotal.innerText = data.length;
-    } catch (e) {}
+        
+        let expiredCnt = 0, next30Cnt = 0, next60Cnt = 0;
+        crmData.forEach(c => {
+            const days = calculateRemainingDays(c.expired_date);
+            if (days < 0) expiredCnt++;
+            else if (days <= 30) next30Cnt++;
+            else if (days <= 60) next60Cnt++;
+        });
+        
+        if (dashExpired) dashExpired.innerText = expiredCnt;
+        if (dash30) dash30.innerText = next30Cnt;
+        if (dash60) dash60.innerText = next60Cnt;
+        if (dashTotal) dashTotal.innerText = crmData.length;
+
+    } catch (e) {
+        console.error('Dashboard Stats Error:', e);
+    }
 }
 
 async function loadRecentCampaigns() {
@@ -500,14 +543,20 @@ async function loadRecentCampaigns() {
         const campaigns = await res.json();
         
         // Check if we need to continue polling
-        const hasActive = campaigns.some(c => c.status === 'Đang gửi' || c.status === 'Đang hàng đợi');
-        if (hasActive && !window.campaignInterval) {
-            console.log('Active campaigns found, starting poll...');
-            window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
+        const hasActive = campaigns.some(c => c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' || c.status === 'Đang xử lý');
+        if (hasActive) {
+            // Trigger dashboard refresh during active campaigns
+            loadDashboardStats();
+            
+            if (!window.campaignInterval) {
+                console.log('Active campaigns found, starting poll...');
+                window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
+            }
         } else if (!hasActive && window.campaignInterval) {
             console.log('No active campaigns, stopping poll.');
             clearInterval(window.campaignInterval);
             window.campaignInterval = null;
+            loadDashboardStats(); // Final refresh
         }
 
         const html = campaigns.map(c => `
@@ -1149,7 +1198,8 @@ async function loadEmailLogs() {
             `;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-red-500 font-bold">Lỗi tải dữ liệu nhật ký!</td></tr>';
+        console.error('Load Email Logs Error:', e);
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500 font-bold">Lỗi tải dữ liệu nhật ký! <br><span class="text-[10px] font-normal opacity-50">${e.message}</span></td></tr>`;
     }
 }
 
