@@ -8,16 +8,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        :root {
+            --bg-color: #050510;
+            --sidebar-bg: #0a0a1a;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(15, 15, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --input-bg: rgba(255, 255, 255, 0.03);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --input-text: #ffffff;
+            --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .light-mode {
+            --bg-color: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.05);
+            --input-bg: #ffffff;
+            --input-border: #e2e8f0;
+            --input-text: #0f172a;
+            --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #050510;
-            color: #e2e8f0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
         }
-        .bg-dark-purple { background-color: #050510; }
+        .bg-dark-purple { background-color: var(--bg-color); }
         .bg-glass { 
-            background: rgba(15, 15, 30, 0.6); 
+            background: var(--glass-bg); 
             backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255, 255, 255, 0.05); 
+            border: 1px solid var(--glass-border); 
         }
         .bg-orange-gradient { 
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%); 
@@ -31,7 +58,8 @@
         
         [contenteditable]:empty:before {
             content: attr(data-placeholder);
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--text-muted);
+            opacity: 0.5;
             font-style: italic;
             pointer-events: none;
             display: block;
@@ -40,6 +68,18 @@
             background: rgba(255, 140, 0, 0.1);
             border-right: 4px solid #ff8c00;
             color: #ff8c00;
+            font-weight: 800;
+        }
+        .light-mode .sidebar-item-active {
+            background: rgba(255, 140, 0, 0.05);
+            color: #f97316;
+        }
+        .light-mode aside nav a:not(.sidebar-item-active) {
+            color: #475569 !important;
+        }
+        .light-mode aside nav a:not(.sidebar-item-active):hover {
+            color: #0f172a !important;
+            background: #f1f5f9 !important;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -52,15 +92,19 @@
         }
         
         input, select, textarea {
-            background: rgba(255, 255, 255, 0.03) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: white !important;
-            font-weight: 700 !important; /* Bolder text for all inputs */
+            background: var(--input-bg) !important;
+            border: 1px solid var(--input-border) !important;
+            color: var(--input-text) !important;
+            font-weight: 700 !important;
         }
         input:focus, select:focus, textarea:focus {
             border-color: #ff8c00 !important;
             box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2) !important;
             outline: none !important;
+        }
+        .light-mode select option {
+            background-color: white !important;
+            color: #0f172a !important;
         }
         select option {
             background-color: #0a0a1a !important;
@@ -71,15 +115,65 @@
 
         /* Auth Screen Styles */
         #auth-screen {
-            background: radial-gradient(circle at top right, rgba(255, 140, 0, 0.15), transparent),
-                        radial-gradient(circle at bottom left, rgba(147, 51, 234, 0.15), transparent),
-                        #050510;
+            background: radial-gradient(circle at top right, rgba(255, 140, 0, 0.05), transparent),
+                        radial-gradient(circle at bottom left, rgba(147, 51, 234, 0.05), transparent),
+                        var(--bg-color);
         }
         .auth-card {
-            background: rgba(15, 15, 30, 0.8);
+            background: var(--glass-bg);
             backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Premium Modal Styles */
+        .modal-premium {
+            background: var(--glass-bg);
+            backdrop-filter: blur(32px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--card-shadow);
+        }
+        .input-group-premium {
+            position: relative;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 20px;
+            padding: 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .input-group-premium:focus-within {
+            border-color: #ff8c00;
+            box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        .input-group-premium i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ff8c00;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .input-premium {
+            width: 100%;
+            background: transparent !important;
+            border: none !important;
+            padding: 14px 14px 14px 48px !important;
+            font-size: 14px !important;
+            box-shadow: none !important;
+        }
+        .label-premium {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+            margin-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
     </style>
 </head>
@@ -131,14 +225,19 @@
     <div id="app-container" class="hidden flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-64 bg-[#0a0a1a] border-r border-white/5 flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0">
+    <aside id="sidebar" class="w-64 border-r border-white/5 flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0" style="background-color: var(--sidebar-bg);">
         <div class="p-8 text-center cursor-pointer flex items-center justify-between" onclick="showPage('dashboard')">
             <h1 class="text-xl font-extrabold tracking-tighter">
                 <span class="text-white">Automation</span> <span class="text-orange-gradient">CA2</span>
             </h1>
-            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="flex gap-2">
+                <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-orange-500 transition-all border border-white/5" title="Chuyển giao diện">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <nav class="flex-1 px-4 space-y-4 mt-4">
             <a href="javascript:void(0)" onclick="showPage('ca2-crm'); return false;" id="nav-ca2-crm" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
@@ -848,78 +947,128 @@
     <script src="js/app.js"></script>
 
     <!-- Modal: Add/Edit CA2 CRM -->
-    <div id="modal-ca2-crm" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 hidden flex items-center justify-center p-6">
-        <div class="bg-[#050510] border border-white/10 w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div class="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+    <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+        <div class="modal-premium w-full max-w-2xl rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
+            <div class="p-10 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
                 <div>
-                    <h3 id="ca2-crm-modal-title" class="text-2xl font-black text-white">Thêm khách hàng CA2 CRM</h3>
-                    <p class="text-gray-500 text-sm mt-1">Thông tin chi tiết dịch vụ khách hàng</p>
+                    <h2 id="ca2-crm-modal-title" class="text-2xl font-black text-white tracking-tighter">Thêm khách hàng CA2 CRM</h2>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Thông tin chi tiết dịch vụ khách hàng</p>
                 </div>
-                <button onclick="closeCA2CRMModal()" class="text-gray-400 hover:text-white transition-colors">
-                    <i class="fas fa-times text-xl"></i>
+                <button onclick="closeCA2CRMModal()" class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="p-10 space-y-6">
+            
+            <div class="p-10 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="ca2-crm-id">
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Mã số thuế</label>
-                        <input type="text" id="ca2-crm-mst" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all font-bold" placeholder="MST công ty">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Dịch vụ</label>
-                        <select id="ca2-crm-service" class="w-full bg-white/5 border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/50 transition-all font-bold">
-                            <option value="CKS">Chữ ký số (CKS)</option>
-                            <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
-                            <option value="EBH">BHXH điện tử (EBH)</option>
-                            <option value="HOA_DON">Hóa đơn (Khác)</option>
-                        </select>
-                    </div>
-                </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tên khách hàng / Công ty</label>
-                        <input type="text" id="ca2-crm-name" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white focus:ring-2 focus:ring-orange-500/30 transition-all font-bold placeholder:text-gray-700" placeholder="Tên đơn vị">
-                    </div>
-                </div>
                 
-                <div class="grid grid-cols-2 gap-8">
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email liên hệ</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600"><i class="fas fa-envelope"></i></span>
-                            <input type="email" id="ca2-crm-email" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pl-12 text-white focus:ring-2 focus:ring-orange-500/30 transition-all font-medium placeholder:text-gray-700" placeholder="email@congty.com">
+                <!-- Section: Thông tin định danh -->
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-500 text-xs">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-orange-500">Thông tin định danh</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="label-premium">Mã số thuế</label>
+                            <div class="input-group-premium">
+                                <i class="fas fa-hashtag"></i>
+                                <input type="text" id="ca2-crm-mst" class="input-premium" placeholder="Nhập MST công ty...">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-premium">Dịch vụ đang dùng</label>
+                            <div class="input-group-premium">
+                                <i class="fas fa-briefcase"></i>
+                                <select id="ca2-crm-service" class="input-premium">
+                                    <option value="CKS">Chữ ký số (CKS)</option>
+                                    <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
+                                    <option value="EBH">BHXH điện tử (EBH)</option>
+                                    <option value="HOA_DON">Hóa đơn (Khác)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Số điện thoại</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600"><i class="fas fa-phone"></i></span>
-                            <input type="text" id="ca2-crm-phone" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pl-12 text-white focus:ring-2 focus:ring-orange-500/30 transition-all font-medium placeholder:text-gray-700" placeholder="09xxxxxxx">
+                    <div class="space-y-1">
+                        <label class="label-premium">Tên khách hàng / Công ty</label>
+                        <div class="input-group-premium">
+                            <i class="fas fa-building"></i>
+                            <input type="text" id="ca2-crm-name" class="input-premium" placeholder="Tên đơn vị đầy đủ...">
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-8">
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Ngày bắt đầu dịch vụ</label>
-                        <input type="date" id="ca2-crm-start" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white focus:ring-2 focus:ring-orange-500/30 transition-all font-bold">
+                <div class="h-px bg-white/5"></div>
+
+                <!-- Section: Thông tin liên hệ -->
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-500 text-xs">
+                            <i class="fas fa-address-book"></i>
+                        </div>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-blue-400">Thông tin liên hệ</h3>
                     </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Thời hạn đăng ký</label>
-                        <select id="ca2-crm-duration" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white focus:ring-2 focus:ring-orange-500/30 transition-all font-bold appearance-none">
-                            <option value="1 năm">1 Năm</option>
-                            <option value="2 năm">2 Năm</option>
-                            <option value="3 năm">3 Năm</option>
-                            <option value="4 năm">4 Năm</option>
-                            <option value="5 năm">5 Năm</option>
-                        </select>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="label-premium">Email liên hệ</label>
+                            <div class="input-group-premium">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="ca2-crm-email" class="input-premium" placeholder="email@congty.com">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-premium">Số điện thoại</label>
+                            <div class="input-group-premium">
+                                <i class="fas fa-phone"></i>
+                                <input type="text" id="ca2-crm-phone" class="input-premium" placeholder="09xxxxxxxx">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex gap-4 pt-8">
-                    <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-5 rounded-2xl font-bold bg-white/5 text-gray-400 border border-white/5 hover:bg-white/10 hover:text-white transition-all">Hủy bỏ</button>
-                    <button onclick="saveCA2CRM()" class="flex-2 px-12 py-5 rounded-2xl font-black bg-orange-gradient text-white shadow-2xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-tight">Lưu & Cập nhật</button>
+                <div class="h-px bg-white/5"></div>
+
+                <!-- Section: Chi tiết đăng ký -->
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-500 text-xs">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-purple-400">Chi tiết đăng ký</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="label-premium">Ngày bắt đầu dịch vụ</label>
+                            <div class="input-group-premium">
+                                <i class="fas fa-calendar-alt"></i>
+                                <input type="date" id="ca2-crm-start" class="input-premium">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-premium">Thời hạn đăng ký</label>
+                            <div class="input-group-premium">
+                                <i class="fas fa-clock"></i>
+                                <select id="ca2-crm-duration" class="input-premium">
+                                    <option value="1 năm">1 Năm</option>
+                                    <option value="2 năm">2 Năm</option>
+                                    <option value="3 năm">3 Năm</option>
+                                    <option value="4 năm">4 Năm</option>
+                                    <option value="5 năm">5 Năm</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            
+            <div class="p-10 bg-white/2 flex gap-4">
+                <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-5 rounded-[24px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-sm transition-all uppercase tracking-widest">Hủy bỏ</button>
+                <button onclick="saveCA2CRM()" class="flex-[1.5] px-8 py-5 rounded-[24px] bg-orange-gradient text-white font-black text-sm shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Lưu & Cập nhật</button>
             </div>
         </div>
     </div>

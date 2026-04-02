@@ -26,6 +26,17 @@ function saveCurrentSession(token, user) {
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
 
+    // Theme initialization
+    const savedTheme = localStorage.getItem('ca2-theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        const icon = document.getElementById('theme-icon');
+        if (icon) {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        }
+    }
+
     // Editor Paste Cleanup - Handle dark/light theme conflicts
     const editor = document.getElementById('input-template');
     if (editor) {
@@ -54,6 +65,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-mode');
+    localStorage.setItem('ca2-theme', isLight ? 'light' : 'dark');
+    
+    const icon = document.getElementById('theme-icon');
+    if (icon) {
+        if (isLight) {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        } else {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+    }
+}
 
 // --- Authentication Logic ---
 async function checkAuth() {
