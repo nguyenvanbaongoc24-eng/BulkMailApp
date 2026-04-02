@@ -975,7 +975,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/app.js"></script>
 
     <!-- Modal: Add/Edit CA2 CRM -->
     <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
@@ -1146,34 +1145,75 @@
                 <p class="text-center text-[10px] text-gray-600 font-bold italic">Vui lòng cân nhắc trước khi chọn ghi đè dữ liệu!</p>
             </div>
         </div>
+    </div>
+
     <!-- Modal: Account Switcher -->
-    <div id="modal-account-switcher" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-6">
-        <div class="modal-premium w-full max-w-md rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
-            <div class="p-10 border-b border-white/5 flex flex-col items-center text-center bg-gradient-to-br from-blue-500/20 to-transparent">
-                <div class="w-16 h-16 rounded-[24px] bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-3xl shadow-2xl shadow-blue-900/30 mb-4 animate-bounce">
-                    <i class="fas fa-user-friends"></i>
-                </div>
-                <h3 class="text-2xl font-black text-white tracking-tighter">Switch Account</h3>
-                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em] mt-2">Duy trì và chuyển đổi phiên làm việc nhanh</p>
-                
-                <button onclick="closeAccountSwitcher()" class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all">
-                    <i class="fas fa-times"></i>
+    <div id="modal-account-switcher" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-6" style="display:none;">
+        <div class="modal-premium w-full max-w-[420px] rounded-[32px] overflow-hidden" style="animation: switcherFadeIn 0.3s ease-out;">
+            <!-- Header -->
+            <div class="p-8 pb-6 border-b border-white/5 relative bg-gradient-to-br from-blue-600/15 via-indigo-500/10 to-transparent">
+                <button onclick="closeAccountSwitcher()" class="absolute top-6 right-6 w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Đóng">
+                    <i class="fas fa-times text-sm"></i>
                 </button>
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xl shadow-xl shadow-blue-900/30">
+                        <i class="fas fa-users-cog"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-white tracking-tight">Chuyển đổi tài khoản</h3>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-0.5">Quản lý phiên đăng nhập</p>
+                    </div>
+                </div>
             </div>
-            <div class="p-8 space-y-6">
-                <div id="account-list" class="space-y-4 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+
+            <!-- Current User Info -->
+            <div class="px-8 py-6 border-b border-white/5">
+                <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.3em] mb-3">Tài khoản hiện tại</p>
+                <div class="flex items-center gap-4 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/15">
+                    <div id="switcher-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-900/20 shrink-0">U</div>
+                    <div class="overflow-hidden flex-1">
+                        <p id="switcher-user-name" class="text-sm font-black text-white truncate">User</p>
+                        <p id="switcher-user-email" class="text-[11px] text-blue-400 font-bold truncate">user@email.com</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
+                        <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saved Sessions List -->
+            <div class="px-8 pt-5 pb-2">
+                <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.3em] mb-3">Phiên đã lưu</p>
+                <div id="account-list" class="space-y-3 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
                     <!-- Accounts injected via JS -->
                 </div>
-                <div class="pt-4 border-t border-white/5">
-                    <button onclick="addNewAccount()" class="w-full py-5 rounded-[24px] bg-orange-gradient text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-plus-circle group-hover:rotate-90 transition-transform"></i> Đăng nhập tài khoản khác
-                    </button>
-                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="p-8 pt-4 space-y-3">
+                <button onclick="addNewAccount()" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group">
+                    <i class="fas fa-sign-in-alt group-hover:translate-x-1 transition-transform"></i>
+                    Đăng nhập tài khoản khác
+                </button>
+                <button onclick="handleLogout()" class="w-full py-4 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 font-black text-xs uppercase tracking-widest border border-red-500/20 hover:border-red-500/40 transition-all flex items-center justify-center gap-3 group">
+                    <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition-transform"></i>
+                    Đăng xuất
+                </button>
+                <button onclick="closeAccountSwitcher()" class="w-full py-3 rounded-2xl text-gray-500 hover:text-white font-bold text-xs uppercase tracking-widest transition-all hover:bg-white/5">
+                    Hủy
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="js/app.js?v=1.0.3"></script>
+    <style>
+        @keyframes switcherFadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
+
+    <script src="js/app.js?v=1.0.4"></script>
 </body>
 </html>
 

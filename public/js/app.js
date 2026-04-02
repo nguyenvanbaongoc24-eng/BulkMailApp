@@ -177,7 +177,9 @@ async function handleAuthSubmit() {
 }
 
 function handleLogout() {
-    // We only clear the active token, not the saved sessions in ca2_saved_sessions
+    // Close modal if open
+    closeAccountSwitcher();
+    // Clear stored session
     localStorage.removeItem('sb-token');
     currentUser = null;
     showAuthScreen(true);
@@ -193,74 +195,80 @@ function openAccountSwitcher() {
             alert('Lỗi hệ thống: Không tìm thấy khung chọn tài khoản.');
             return;
         }
+
+        // Check if any session exists
+        const token = localStorage.getItem('sb-token');
+        if (!token && !currentUser) {
+            alert('Không tìm thấy phiên đăng nhập.');
+            return;
+        }
         
+        // Populate current user info in the modal header
+        const avatarEl = document.getElementById('switcher-avatar');
+        const nameEl = document.getElementById('switcher-user-name');
+        const emailEl = document.getElementById('switcher-user-email');
+        if (currentUser) {
+            const initial = (currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase();
+            if (avatarEl) avatarEl.innerText = initial;
+            if (nameEl) nameEl.innerText = currentUser.name || 'User';
+            if (emailEl) emailEl.innerText = currentUser.email || 'N/A';
+        }
+
         list.innerHTML = '';
         
         // Sanitize savedSessions
         if (!Array.isArray(savedSessions)) {
-            console.log('Sanitizing savedSessions from localStorage...');
             savedSessions = JSON.parse(localStorage.getItem('ca2_saved_sessions') || '[]');
         }
 
         // Fallback: if list is empty but we are logged in, add current user
         if (savedSessions.length === 0 && currentUser) {
-            console.log('List empty, saving current session as fallback');
             saveCurrentSession(localStorage.getItem('sb-token'), currentUser);
         }
 
-        if (savedSessions.length === 0) {
+        // Filter out the current user — they're shown in the header section
+        const otherSessions = savedSessions.filter(s => !(currentUser && String(s.user.id) === String(currentUser.id)));
+
+        if (otherSessions.length === 0) {
             list.innerHTML = `
-                <div class="p-10 border-2 border-dashed border-white/5 rounded-[32px] text-center space-y-4">
-                    <div class="text-4xl">📭</div>
-                    <p class="text-gray-500 font-bold italic text-sm">Chưa có tài khoản nào được lưu trên trình duyệt này.</p>
+                <div class="p-6 border-2 border-dashed border-white/5 rounded-2xl text-center space-y-2">
+                    <div class="text-2xl">📭</div>
+                    <p class="text-gray-500 font-bold italic text-xs">Không có tài khoản nào khác được lưu.</p>
                 </div>
             `;
         } else {
-            console.log('Rendering', savedSessions.length, 'sessions');
-            savedSessions.forEach(s => {
-                const isCurrent = currentUser && String(s.user.id) === String(currentUser.id);
+            otherSessions.forEach(s => {
                 const div = document.createElement('div');
+                div.className = 'p-4 rounded-2xl border border-white/5 bg-white/2 hover:bg-white/5 hover:border-blue-500/30 active:scale-[0.98] transition-all cursor-pointer group relative overflow-hidden';
                 
-                // Premium Card Styling
-                div.className = `p-6 rounded-[32px] border-2 transition-all cursor-pointer group relative overflow-hidden ${isCurrent ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 active:scale-[0.98] animate-in slide-in-from-bottom-2'}`;
-                
-                // Binding click directly to avoid global scope issues
                 div.onclick = () => {
-                    console.log('Account clicked:', s.user.email);
-                    if (isCurrent) return;
                     switchAccount(s.user.id);
                 };
                 
                 const initials = (s.user.email || 'U').charAt(0).toUpperCase();
                 
                 div.innerHTML = `
-                    <div class="flex items-center gap-5 text-left relative z-10">
-                        <div class="w-14 h-14 rounded-[20px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-blue-900/20 group-hover:scale-110 transition-transform duration-300">
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-base shadow-lg shadow-blue-900/20 group-hover:scale-110 transition-transform duration-300 shrink-0">
                             ${initials}
                         </div>
                         <div class="overflow-hidden flex-1">
-                            <p class="text-base font-black text-[var(--text-main)] truncate max-w-[200px] mb-1">${s.user.email}</p>
-                            ${isCurrent ? 
-                                '<span class="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 w-fit"><span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span> Đang hoạt động</span>' : 
-                                '<span class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest group-hover:text-blue-400 transition-colors">Nhấn để chuyển sang tài khoản này</span>'
-                            }
+                            <p class="text-sm font-black text-[var(--text-main)] truncate">${s.user.name || s.user.email}</p>
+                            <p class="text-[10px] text-[var(--text-muted)] font-bold truncate">${s.user.email}</p>
                         </div>
-                        <div class="flex items-center">
-                            ${!isCurrent ? 
-                                '<div class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm"><i class="fas fa-chevron-right"></i></div>' : 
-                                '<div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/40"><i class="fas fa-check"></i></div>'
-                            }
+                        <div class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+                            <i class="fas fa-chevron-right text-xs"></i>
                         </div>
                     </div>
-                    <!-- Subtle background glow -->
-                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/5 blur-3xl rounded-full group-hover:bg-blue-500/10 transition-all"></div>
                 `;
                 list.appendChild(div);
             });
         }
 
+        // Show modal using style.display to avoid hidden/flex class conflict
+        modal.style.display = 'flex';
         modal.classList.remove('hidden');
-        console.log('Modal shown');
+        console.log('Account Switcher modal shown');
     } catch (err) {
         console.error('Error in openAccountSwitcher:', err);
         alert('Lỗi khởi tạo danh sách tài khoản: ' + err.message);
@@ -269,7 +277,10 @@ function openAccountSwitcher() {
 
 function closeAccountSwitcher() {
     const el = document.getElementById('modal-account-switcher');
-    if (el) el.classList.add('hidden');
+    if (el) {
+        el.style.display = 'none';
+        el.classList.add('hidden');
+    }
 }
 
 function switchAccount(userId) {
@@ -310,6 +321,9 @@ window.switchAccount = switchAccount;
 
 function addNewAccount() {
     closeAccountSwitcher();
+    // Clear stored session before redirecting to login
+    localStorage.removeItem('sb-token');
+    currentUser = null;
     showAuthScreen(true);
 }
 
@@ -1463,9 +1477,3 @@ function exportEmailLogs() {
     link.download = `Email_Logs_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 }
-
-function handleLogout() {
-    localStorage.removeItem('sb-token');
-    window.location.reload();
-}
-
