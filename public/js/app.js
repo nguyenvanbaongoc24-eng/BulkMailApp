@@ -180,7 +180,12 @@ function showPage(pageId) {
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.toggle('-translate-x-full');
+    if (!sidebar) return;
+    
+    // Toggle width for desktop and translation for mobile
+    sidebar.classList.toggle('w-64');
+    sidebar.classList.toggle('w-0');
+    sidebar.classList.toggle('border-r'); // Toggle border visibility
 }
 
 // --- API Helper ---
@@ -472,8 +477,33 @@ async function handleCRMImportAction(mode) {
             alert('Nhập dữ liệu thành công!');
             closeCRMImportModal();
             loadCA2CRMData();
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + (err.error || 'Server error'));
         }
     } catch (e) { alert('Lỗi nhập liệu'); }
+}
+
+function downloadCRMTemplate() {
+    // Columns from the user's screenshot
+    const headers = [
+        "Ngày", "Tên DN", "MST", "Chi cục Thuế", "điện thoại D", 
+        "Email đăng ký", "Dịch vụ", "Thời hạn", "Ngày hết hạn"
+    ];
+    
+    // Sample data
+    const sampleData = [
+        ["01/01/2024", "CÔNG TY TNHH VÍ DỤ A", "0101010101", "Cầu Giấy", "0900000000", "vi-du@email.com", "CKS", "1 năm", "01/01/2025"],
+        ["15/02/2024", "CÔNG TY CP MINH HỌA B", "0202020202", "Hai Bà Trưng", "0911111111", "minh-hoa@email.com", "HDDT", "2 năm", "15/02/2026"]
+    ];
+
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "CA2-CRM-Template");
+
+    // Write file and trigger download
+    XLSX.writeFile(wb, "CA2_CRM_Template_Mau.xlsx");
 }
 
 // --- Dashboard & Campaigns ---

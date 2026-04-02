@@ -131,7 +131,7 @@
     <div id="app-container" class="hidden flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-64 bg-[#0a0a1a] border-r border-white/5 flex flex-col z-30 transition-all duration-300 overflow-hidden">
+    <aside id="sidebar" class="w-64 bg-[#0a0a1a] border-r border-white/5 flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0">
         <div class="p-8 text-center cursor-pointer flex items-center justify-between" onclick="showPage('dashboard')">
             <h1 class="text-xl font-extrabold tracking-tighter">
                 <span class="text-white">Automation</span> <span class="text-orange-gradient">CA2</span>
@@ -913,9 +913,14 @@
                     <h3 class="text-xl font-black text-white">Lựa chọn Nhập dữ liệu</h3>
                     <p class="text-gray-500 text-xs mt-1">Dữ liệu từ file Excel vừa tải lên</p>
                 </div>
-                <button onclick="closeCRMImportModal()" class="text-gray-400 hover:text-white transition-colors">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <div class="flex items-center gap-4">
+                    <button onclick="downloadCRMTemplate()" class="text-blue-400 hover:text-blue-300 text-[10px] font-black uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-lg border border-blue-500/20 transition-all">
+                        ⬇️ Tải file mẫu
+                    </button>
+                    <button onclick="closeCRMImportModal()" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
             </div>
             <div class="p-10 space-y-6">
                 <div class="space-y-4">

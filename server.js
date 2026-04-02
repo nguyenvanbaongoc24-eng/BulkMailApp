@@ -1048,100 +1048,115 @@ app.get('/api/stats', authenticate, async (req, res) => {
     res.json(stats);
 });
 
-// CRM Routes
-app.get('/api/customers', authenticate, async (req, res) => {
-    let query = supabase.from('customers').select('*').eq('user_id', req.user.id);
-    
-    const { filter } = req.query;
-    const now = new Date().toISOString().split('T')[0];
-    const getDateNDaysAway = (n) => {
-        const d = new Date();
-        d.setDate(d.getDate() + n);
-        return d.toISOString().split('T')[0];
-    };
-
-    if (filter === 'expired') {
-        query = query.lt('expirationDate', now);
-    } else if (filter === '30') {
-        query = query.gte('expirationDate', now).lte('expirationDate', getDateNDaysAway(30));
-    } else if (filter === '60') {
-        query = query.gte('expirationDate', now).lte('expirationDate', getDateNDaysAway(60));
-    } else if (filter === '90') {
-        query = query.gte('expirationDate', now).lte('expirationDate', getDateNDaysAway(90));
-    }
-
-    const { data, error } = await query.order('expirationDate', { ascending: true });
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
-});
-
-app.post('/api/customers/import', authenticate, async (req, res) => {
-    const { data } = req.body;
-    if (!data || !Array.isArray(data)) return res.status(400).json({ error: 'Data must be an array' });
-
-    const customers = data.map(c => ({
-        id: (c.MST ? String(c.MST).trim() : Date.now().toString() + Math.random().toString(36).substr(2, 5)).toString(),
-        user_id: req.user.id,
-        taxCode: c.MST ? String(c.MST).trim() : '',
-        companyName: c.TenCongTy ? String(c.TenCongTy).trim() : '',
-        email: c.Email ? String(c.Email).trim() : '',
-        expirationDate: c.NgayHetHanChuKySo ? String(c.NgayHetHanChuKySo).trim() : '',
-        Serial: c.Serial ? String(c.Serial).trim() : '',
-        status: 'Chưa liên hệ'
-    }));
-
+// --- CA2 CRM ROUTES ---
+app.get('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        // 1. Get IDs of customers being imported
-        const ids = customers.map(c => c.id);
-
-        // 2. Fetch existing customers to preserve fields like pdf_url
-        const { data: existingCustomers } = await supabase
+        const { data, error } = await supabase
             .from('customers')
-            .select('id, pdf_url')
-            .in('id', ids)
-            .eq('user_id', req.user.id);
-
-        // 3. Map existing pdf_url back to the new objects
-        if (existingCustomers && existingCustomers.length > 0) {
-            const pdfMap = {};
-            existingCustomers.forEach(ec => { if (ec.pdf_url) pdfMap[ec.id] = ec.pdf_url; });
-            
-            customers.forEach(c => {
-                if (pdfMap[c.id]) c.pdf_url = pdfMap[c.id];
-            });
-        }
-
-        const { error } = await supabase.from('customers').upsert(customers);
+            .select('*')
+            .eq('user_id', req.user.id)
+            .order('expired_date', { ascending: true });
+        
         if (error) throw error;
-        res.json({ message: `Đã nhập ${customers.length} khách hàng.` });
+        res.json({ data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-app.patch('/api/customers/:id', authenticate, async (req, res) => {
-    const { status, notes } = req.body;
-    const { data, error } = await supabase
-        .from('customers')
-        .update({ status, notes })
-        .eq('id', req.params.id)
-        .eq('user_id', req.user.id)
-        .select();
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data[0]);
+app.post('/api/ca2-crm', authenticate, async (req, res) => {
+    try {
+        const payload = { ...req.body, user_id: req.user.id };
+        const { data, error } = await supabase.from('customers').insert([payload]).select();
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-app.get('/api/customers/:id', authenticate, async (req, res) => {
-    const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('id', req.params.id)
-        .eq('user_id', req.user.id)
-        .single();
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from('customers')
+            .update(req.body)
+            .eq('id', id)
+            .eq('user_id', req.user.id)
+            .select();
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
+app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase.from('customers').delete().eq('id', id).eq('user_id', req.user.id);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
+    try {
+        const { data: rawData, mode } = req.body;
+        if (!rawData || !Array.isArray(rawData)) return res.status(400).json({ error: 'Mảng dữ liệu không hợp lệ' });
+
+        // Helper to convert DD/MM/YYYY to ISO YYYY-MM-DD
+        const parseExcelDate = (val) => {
+            if (!val) return null;
+            if (typeof val === 'string' && val.includes('/')) {
+                const parts = val.split('/');
+                if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            try {
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+            } catch { return null; }
+        };
+
+        // Map Excel columns based on user screenshot
+        const mappedData = rawData.map(row => {
+            const getVal = (keys) => {
+                const foundKey = Object.keys(row).find(k => keys.some(target => k.trim().toLowerCase() === target.toLowerCase()));
+                return foundKey ? String(row[foundKey]).trim() : '';
+            };
+
+            return {
+                user_id: req.user.id,
+                mst: getVal(['MST', 'mã số thuế', 'Tax Code']),
+                company_name: getVal(['Tên DN', 'Công ty', 'TenCongTy', 'company_name']),
+                email: getVal(['Email đăng ký', 'Email', 'Địa chỉ email']),
+                phone: getVal(['điện thoại D', 'Phone', 'Số điện thoại', 'SĐT']),
+                service_type: getVal(['Dịch vụ', 'Loại dịch vụ', 'Service']),
+                start_date: parseExcelDate(getVal(['Ngày', 'Ngày bắt đầu', 'Start Date'])),
+                duration: getVal(['Thời hạn', 'Gói', 'Duration']),
+                expired_date: parseExcelDate(getVal(['Ngày hết hạn', 'Expiry', 'Expired Date'])),
+                notes: getVal(['Chi cục Thuế', 'Ghi chú', 'Notes'])
+            };
+        }).filter(item => item.mst && item.company_name); // Minimal requirement
+
+        if (mappedData.length === 0) throw new Error('Không có dữ liệu hợp lệ (Thiếu MST hoặc Tên công ty)');
+
+        if (mode === 'overwrite') {
+            await supabase.from('customers').delete().eq('user_id', req.user.id);
+        }
+
+        const { error } = await supabase.from('customers').upsert(mappedData, { onConflict: 'user_id,mst' });
+        if (error) throw error;
+
+        res.json({ success: true, count: mappedData.length });
+    } catch (error) {
+        console.error('[CRM IMPORT] Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // Scrape Certificate for a customer
 app.post('/api/customers/:id/scrape', authenticate, async (req, res) => {
