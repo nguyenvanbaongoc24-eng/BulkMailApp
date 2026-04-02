@@ -22,15 +22,15 @@
         }
 
         .light-mode {
-            --bg-color: #f8fafc;
+            --bg-color: #f1f5f9;
             --sidebar-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --glass-bg: rgba(255, 255, 255, 0.8);
-            --glass-border: rgba(0, 0, 0, 0.05);
+            --text-main: #000000;
+            --text-muted: #1e293b;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(0, 0, 0, 0.15);
             --input-bg: #ffffff;
-            --input-border: #e2e8f0;
-            --input-text: #0f172a;
+            --input-border: #94a3b8;
+            --input-text: #000000;
             --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
@@ -133,6 +133,9 @@
             border: 1px solid var(--glass-border);
             box-shadow: var(--card-shadow);
         }
+        .light-mode .modal-premium {
+            border: 2px solid var(--glass-border);
+        }
         .input-group-premium {
             position: relative;
             background: var(--input-bg);
@@ -225,7 +228,7 @@
     <div id="app-container" class="hidden flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-64 border-r border-white/5 flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0" style="background-color: var(--sidebar-bg);">
+    <aside id="sidebar" class="w-64 border-r flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0" style="background-color: var(--sidebar-bg); border-color: var(--glass-border); border-right-width: 2px;">
         <div class="p-8 text-center cursor-pointer flex items-center justify-between" onclick="showPage('dashboard')">
             <h1 class="text-xl font-extrabold tracking-tighter">
                 <span class="text-white">Automation</span> <span class="text-orange-gradient">CA2</span>

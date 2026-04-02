@@ -198,11 +198,11 @@ function openAccountSwitcher() {
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-900/40 group-hover:scale-110 transition-transform">${s.user.email[0].toUpperCase()}</div>
                 <div class="overflow-hidden">
-                    <p class="text-sm font-bold text-white truncate max-w-[180px]">${s.user.email}</p>
-                    \${isCurrent ? '<p class="text-[9px] text-green-500 font-black uppercase tracking-widest mt-1 animate-pulse">Đang hoạt động</p>' : '<p class="text-[9px] text-gray-500 font-bold mt-1 uppercase tracking-widest">Nhấn để chuyển đổi</p>'}
+                    <p class="text-sm font-extrabold text-[var(--text-main)] truncate max-w-[180px]">${s.user.email}</p>
+                    ${isCurrent ? '<p class="text-[9px] text-green-500 font-black uppercase tracking-widest mt-1 animate-pulse">Đang hoạt động</p>' : '<p class="text-[9px] text-[var(--text-muted)] font-bold mt-1 uppercase tracking-widest">Nhấn để chuyển đổi</p>'}
                 </div>
             </div>
-            \${!isCurrent ? '<i class="fas fa-chevron-right text-gray-700 group-hover:text-white group-hover:translate-x-1 transition-all"></i>' : '<div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-lg shadow-orange-900/50">✓</div>'}
+            ${!isCurrent ? '<i class="fas fa-chevron-right text-orange-500/50 group-hover:text-orange-500 group-hover:translate-x-1 transition-all"></i>' : '<div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-lg shadow-orange-900/50">✓</div>'}
         `;
         list.appendChild(div);
     });
