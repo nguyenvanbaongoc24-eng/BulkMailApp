@@ -526,9 +526,17 @@ async function processEmailTask(log) {
         console.log(`[TASK:3]    smtpHost: ${senderRaw.smtpHost || senderRaw.smtp_host || 'N/A'}`);
         console.log(`[TASK:3]    has refresh_token: ${!!(senderRaw.smtpPassword || senderRaw.smtp_password)}`);
 
-        // Step 4: Determine attach mode
-        const attachCertificate = campaign.attach_cert === true || campaign.attach_cert === 'true';
-        console.log(`[TASK:4] attachCertificate resolved: ${attachCertificate}`);
+        // --- Step 4: Attachment Decision ---
+        // Be more flexible: accept true (bool), 'true' (string), or 1
+        const attachCertificate = campaign.attach_cert === true || 
+                                 String(campaign.attach_cert).toLowerCase() === 'true' || 
+                                 campaign.attach_cert == 1;
+
+        console.log(`[TASK:4] PDF Attachment Enabled: ${attachCertificate} (Raw: ${campaign.attach_cert})`);
+        
+        if (attachCertificate && !pdfUrl) {
+            console.warn(`[TASK:4] ⚠ MST ${cleanMST_val} has no PDF URL. Email will be sent WITHOUT attachment.`);
+        }
 
         // Step 5: Parse Template
         const formatDateDDMMYYYY = (dateStr) => {

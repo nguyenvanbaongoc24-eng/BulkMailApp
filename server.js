@@ -821,15 +821,19 @@ app.post('/api/debug-reset-worker', async (req, res) => {
 app.post('/api/campaigns', authenticate, async (req, res) => {
     const campaignId = Date.now().toString();
     const recipients = req.body.recipients || [];
+    
+    // Support both naming versions for backward/frontend compatibility
+    const attachCertVal = req.body.attachCert !== undefined ? req.body.attachCert : (req.body.attach_cert !== undefined ? req.body.attach_cert : false);
+
     const newCampaign = {
         id: campaignId,
         user_id: req.user.id,
         name: req.body.name,
         subject: req.body.subject,
-        sender_account_id: req.body.senderAccountId,
+        sender_account_id: req.body.senderAccountId || req.body.sender_account_id,
         template: req.body.template || req.body.content,
         recipients: recipients.map(r => ({ ...r, status: 'Chờ xử lý', sentTime: null })),
-        attach_cert: req.body.attachCert || false,
+        attach_cert: attachCertVal,
         status: 'Chờ gửi',
         sent_count: 0,
         success_count: 0,

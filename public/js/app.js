@@ -403,10 +403,23 @@ async function createCampaignFromCA2CRM() {
     if (!confirm(`Tạo chiến dịch gửi mail cho ${recipients.length} khách hàng?`)) return;
 
     try {
+        const sendersRes = await authedFetch('/api/senders');
+        const senders = await sendersRes.json();
+        
+        if (!senders || senders.length === 0) {
+            alert('Vui lòng kết nối tài khoản Gmail trước khi gửi mail.');
+            showPage('senders');
+            return;
+        }
+        
+        const senderId = senders[0].id;
+        
         const campaignData = {
             name: `CRM Bulk - ${formatDate(new Date())}`,
             subject: "Thông báo về dịch vụ CA2",
             template: "Kính gửi #TênCôngTy, dịch vụ của quý khách (MST: #MST) sắp hết hạn vào ngày #NgàyHếtHạn.",
+            attachCert: true,
+            senderAccountId: senderId,
             recipients: recipients.map(c => ({
                 email: c.email,
                 company_name: c.company_name,
