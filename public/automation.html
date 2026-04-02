@@ -44,10 +44,11 @@
             if (!status) return 'status-pending';
             if (status.includes('SUCCESS')) return 'status-success';
             if (status.includes('FAILED') || status.includes('❌')) return 'status-failed';
-            if (status.includes('Uploading') || status.includes('📤')) return 'status-uploading';
+            if (status.includes('UPLOADING') || status.includes('Uploading') || status.includes('📤')) return 'status-uploading';
             if (status.includes('database') || status.includes('💾') || status.includes('Syncing')) return 'status-syncing';
             if (status.includes('RETRYING') || status.includes('🔁')) return 'status-retrying';
-            if (status.includes('Crawling') || status.includes('🌐') || status.includes('🔍') || status.includes('📥') || status.includes('📋') || status.includes('⏳')) return 'status-crawling';
+            if (status.includes('SEARCHING') || status.includes('Crawling') || status.includes('🌐') || status.includes('🔍')) return 'status-crawling';
+            if (status.includes('DOWNLOADING') || status.includes('📥') || status.includes('📋') || status.includes('⏳')) return 'status-crawling';
             if (status.includes('Pending')) return 'status-pending';
             return 'status-pending';
         }
@@ -56,10 +57,11 @@
             if (!status) return '⏳';
             if (status.includes('SUCCESS')) return '✅';
             if (status.includes('FAILED') || status.includes('❌')) return '❌';
-            if (status.includes('📤') || status.includes('Uploading')) return '📤';
+            if (status.includes('UPLOADING') || status.includes('📤') || status.includes('Uploading')) return '📤';
             if (status.includes('💾') || status.includes('Syncing')) return '💾';
             if (status.includes('🔁') || status.includes('RETRYING')) return '🔁';
-            if (status.includes('📥') || status.includes('Downloading') || status.includes('tải')) return '📥';
+            if (status.includes('DOWNLOADING') || status.includes('📥') || status.includes('Downloading') || status.includes('tải')) return '📥';
+            if (status.includes('SEARCHING') || status.includes('🔍')) return '🔍';
             return '🔄';
         }
 
@@ -256,7 +258,7 @@
                                             <div className="col-span-2 font-mono text-[10px] text-blue-400 truncate">{r.Serial}</div>
                                             <div className="col-span-5">
                                                 <div className={`text-[10px] font-bold rounded-lg py-1 px-2.5 inline-flex items-center gap-1.5 ${getStatusClass(r.status)}`}>
-                                                    {(r.status?.includes('Crawling') || r.status?.includes('Uploading') || r.status?.includes('database') || r.status?.includes('RETRYING') || r.status?.includes('🔍') || r.status?.includes('📥') || r.status?.includes('⏳ Đang')) && (
+                                                    {(r.status?.includes('SEARCHING') || r.status?.includes('DOWNLOADING') || r.status?.includes('UPLOADING') || r.status?.includes('Crawling') || r.status?.includes('Uploading') || r.status?.includes('database') || r.status?.includes('RETRYING') || r.status?.includes('🔍') || r.status?.includes('📥') || r.status?.includes('📤') || r.status?.includes('⏳ Đang') || r.status?.includes('💾')) && (
                                                         <div className="loader" style={{width: '12px', height: '12px', borderWidth: '2px'}}></div>
                                                     )}
                                                     <span className="truncate max-w-[280px]">{r.status}</span>

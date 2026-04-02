@@ -535,7 +535,7 @@ async function processEmailTask(log) {
         console.log(`[TASK:4] PDF Attachment Enabled: ${attachCertificate} (Raw: ${campaign.attach_cert})`);
         
         if (attachCertificate && !pdfUrl) {
-            console.warn(`[TASK:4] ⚠ MST ${cleanMST_val} has no PDF URL. Email will be sent WITHOUT attachment.`);
+            throw new Error(`Cần đính kèm PDF nhưng không tìm thấy link tải (PDF URL) cho MST ${cleanMST_val}. File có thể bị lỗi khi crawl hoặc chưa được tải xong bởi Desktop Tool. Vui lòng chạy lại Pipeline và bấm "Retry Failed" để gửi lại sau.`);
         }
 
         // Step 5: Parse Template

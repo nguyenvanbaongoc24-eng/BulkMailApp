@@ -5,7 +5,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 async function checkSpecific() {
     console.log('--- CHECKING SPECIFIC MSTs ---');
-    const msts = ['0310679945', '0101935049'];
+    const msts = ['0312261906', '0306288963', '4900903298', '3900244565'];
     try {
         for (const mst of msts) {
             console.log(`\n>> MST: ${mst}`);

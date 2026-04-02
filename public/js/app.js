@@ -857,19 +857,22 @@ function handleFileUpload(event) {
                         if (val.includes('@')) {
                             obj['Email'] = val;
                         } else if (/^\d{10}(\d{3})?$/.test(val.replace(/[^0-9]/g,''))) {
-                            // Check if it starts with '0' (likely a phone number) vs non-'0' (likely MST)
-                            // or if MST is already found
-                            if (val.trim().startsWith('0') && val.replace(/[^0-9]/g,'').length === 10) {
-                                obj['Phone'] = val;
-                            } else if (!obj['MST']) {
-                                obj['MST'] = val;
+                            const digits = val.replace(/[^0-9]/g,'');
+                            // Mobile phones in VN usually start with 03, 05, 07, 08, 09 (but some 03 are MSTs e.g. 031xxx)
+                            // A better heuristic: if it has spaces like 09xx xxx xxx, it's a phone. Or if MST is already filled.
+                            const isMobilePrefix = /^(03|05|07|08|09)\d{8}$/.test(digits);
+                            
+                            // If it's explicitly formatted like a phone number or MST is already found
+                            if ((isMobilePrefix && val.includes(' ')) || obj['MST']) {
+                                obj['Phone'] = digits;
+                            } else {
+                                obj['MST'] = digits;
                             }
                         } else if (isDate(val)) {
                             obj['NgayHetHanChuKySo'] = val;
                         } else if (val.length > 20 && !val.includes(' ')) {
                             obj['Serial'] = val;
                         } else if (val.length > 5 && val.includes(' ') && !isDate(val)) {
-                            // Detect if the string is an ADDRESS (contains location keywords)
                             const lowerVal = val.toLowerCase();
                             const addressKeywords = ['phường', 'quận', 'huyện', 'tỉnh', 'thành phố', 'đường', 'ngõ', 'số', 'khu phố', 'xã', 'thị trấn', 'phố', 'ward', 'district', 'city', 'street'];
                             const isAddress = addressKeywords.some(kw => lowerVal.includes(kw));
@@ -877,18 +880,16 @@ function handleFileUpload(event) {
                             if (isAddress) {
                                 obj['DiaChi'] = val;
                             } else if (!obj['TenCongTy']) {
-                                // Only set TenCongTy if not already set
                                 obj['TenCongTy'] = val;
                             }
                         }
                     });
                 } else {
                     Object.keys(obj).forEach(k => {
-                        const uk = k.toUpperCase();
+                        const uk = k.toUpperCase().trim();
                         const val = obj[k];
-                        if (uk.includes('MST') || uk.includes('TAX')) obj['MST'] = val;
+                        if (uk.includes('MST') || uk.includes('TAX') || uk.includes('MÃ SỐ THUẾ')) obj['MST'] = val;
                         if (uk.includes('CÔNG TY') || uk.includes('TÊN') || uk.includes('NAME')) {
-                            // Safety: Don't map a date column to company name even if header is ambiguous
                             if (!isDate(val)) obj['TenCongTy'] = val;
                         }
                         if (uk.includes('EMAIL')) obj['Email'] = val;
