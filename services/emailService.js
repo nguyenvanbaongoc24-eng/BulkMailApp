@@ -149,7 +149,7 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     let pdfSkipped = false;
     let pdfBase64 = null;
-    let filename = `ChungNhan_${(subject || 'CA2').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    let filename = "Giay Chung Nhan CA2.pdf";
 
     if (isAttachMode === true) {
         if (!pdfUrl) {
