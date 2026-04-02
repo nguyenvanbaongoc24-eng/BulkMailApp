@@ -5,9 +5,22 @@
 
 // --- Global State & Constants ---
 let currentUser = null;
+let savedSessions = JSON.parse(localStorage.getItem('ca2_saved_sessions') || '[]');
 let currentCRMData = [];
 let currentRecipientsData = [];
 let pendingCRMData = [];
+
+// --- Session Management ---
+function saveCurrentSession(token, user) {
+    if (!user || !token) return;
+    const existingIndex = savedSessions.findIndex(s => s.user.id === user.id);
+    if (existingIndex > -1) {
+        savedSessions[existingIndex] = { token, user, timestamp: Date.now() };
+    } else {
+        savedSessions.push({ token, user, timestamp: Date.now() });
+    }
+    localStorage.setItem('ca2_saved_sessions', JSON.stringify(savedSessions));
+}
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -56,6 +69,7 @@ async function checkAuth() {
         });
         if (res.ok) {
             currentUser = await res.json();
+            saveCurrentSession(token, currentUser); // Sync session
             updateUserUI();
             showAuthScreen(false);
             showPage('dashboard');
@@ -121,7 +135,8 @@ async function handleAuthSubmit() {
 
         if (res.ok && data.token) {
             localStorage.setItem('sb-token', data.token);
-            checkAuth();
+            saveCurrentSession(data.token, data.user);
+            await checkAuth(); 
         } else {
             errorDiv.innerText = data.error || 'Lỗi xác thực';
             errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
@@ -135,8 +150,54 @@ async function handleAuthSubmit() {
 }
 
 function handleLogout() {
+    // We only clear the active token, not the saved sessions in ca2_saved_sessions
     localStorage.removeItem('sb-token');
     currentUser = null;
+    showAuthScreen(true);
+}
+
+function openAccountSwitcher() {
+    const list = document.getElementById('account-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    savedSessions.forEach(s => {
+        const isCurrent = currentUser && s.user.id === currentUser.id;
+        const div = document.createElement('div');
+        div.className = `p-5 rounded-[24px] border mb-4 ${isCurrent ? 'border-orange-500 bg-orange-500/10' : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10'} flex items-center justify-between transition-all cursor-pointer group`;
+        div.onclick = () => isCurrent ? null : switchAccount(s.user.id);
+        
+        div.innerHTML = `
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-900/40 group-hover:scale-110 transition-transform">${s.user.email[0].toUpperCase()}</div>
+                <div class="overflow-hidden">
+                    <p class="text-sm font-bold text-white truncate max-w-[180px]">${s.user.email}</p>
+                    \${isCurrent ? '<p class="text-[9px] text-green-500 font-black uppercase tracking-widest mt-1 animate-pulse">Đang hoạt động</p>' : '<p class="text-[9px] text-gray-500 font-bold mt-1 uppercase tracking-widest">Nhấn để chuyển đổi</p>'}
+                </div>
+            </div>
+            \${!isCurrent ? '<i class="fas fa-chevron-right text-gray-700 group-hover:text-white group-hover:translate-x-1 transition-all"></i>' : '<div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-lg shadow-orange-900/50">✓</div>'}
+        `;
+        list.appendChild(div);
+    });
+
+    document.getElementById('modal-account-switcher').classList.remove('hidden');
+}
+
+function closeAccountSwitcher() {
+    const el = document.getElementById('modal-account-switcher');
+    if (el) el.classList.add('hidden');
+}
+
+function switchAccount(userId) {
+    const target = savedSessions.find(s => s.user.id === userId);
+    if (!target) return;
+
+    localStorage.setItem('sb-token', target.token);
+    window.location.reload();
+}
+
+function addNewAccount() {
+    closeAccountSwitcher();
     showAuthScreen(true);
 }
 
@@ -264,7 +325,11 @@ function renderCA2CRM() {
                     <div class="text-[10px] text-gray-400 italic">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
                 </td>
                 <td class="px-8 py-5 text-center">
-                    <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${c.service_type === 'CKS' ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 'border-blue-500/20 text-blue-400 bg-blue-400/5'}">
+                    <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border 
+                        ${c.service_type === 'CKS' ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 
+                          c.service_type === 'HDDT' ? 'border-blue-500/20 text-blue-400 bg-blue-400/5' :
+                          c.service_type === 'EBH' ? 'border-green-500/20 text-green-400 bg-green-500/5' :
+                          'border-purple-500/20 text-purple-400 bg-purple-500/5'}">
                         ${c.service_type || 'CKS'}
                     </span>
                 </td>
@@ -447,17 +512,10 @@ async function createCampaignFromCA2CRM() {
 }
 
 // --- Import Logic ---
-function openCRMImportModal(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        pendingCRMData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        document.getElementById('modal-crm-import').classList.remove('hidden');
-    };
-    reader.readAsArrayBuffer(file);
+let pendingImportMode = 'append';
+
+function openCRMImportModal() {
+    document.getElementById('modal-crm-import').classList.remove('hidden');
 }
 
 function closeCRMImportModal() {
@@ -466,22 +524,47 @@ function closeCRMImportModal() {
 }
 
 async function handleCRMImportAction(mode) {
-    if (pendingCRMData.length === 0) return;
+    pendingImportMode = mode;
+    // Trigger file selection AFTER mode is chosen
+    document.getElementById('crm-import-file').click();
+}
+
+// Fixed: This is triggered after file selection
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
     try {
-        const res = await authedFetch('/api/ca2-crm/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: pendingCRMData, mode })
-        });
-        if (res.ok) {
-            alert('Nhập dữ liệu thành công!');
-            closeCRMImportModal();
-            loadCA2CRMData();
-        } else {
-            const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Server error'));
-        }
-    } catch (e) { alert('Lỗi nhập liệu'); }
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            
+            if (json.length === 0) {
+                alert('File không có dữ liệu');
+                return;
+            }
+
+            // Directly send to server since we already have the mode
+            const res = await authedFetch('/api/ca2-crm/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: json, mode: pendingImportMode })
+            });
+
+            if (res.ok) {
+                alert('Nhập dữ liệu thành công!');
+                closeCRMImportModal();
+                loadCA2CRMData();
+            } else {
+                const err = await res.json();
+                alert('Lỗi: ' + (err.error || 'Server error'));
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } catch (e) { alert('Lỗi xử lý file'); }
 }
 
 function downloadCRMTemplate() {
