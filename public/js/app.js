@@ -225,11 +225,11 @@ function closeAccountSwitcher() {
 }
 
 function switchAccount(userId) {
-    const target = savedSessions.find(s => s.user.id === userId);
+    const target = savedSessions.find(s => String(s.user.id) === String(userId));
     if (!target) return;
 
     localStorage.setItem('sb-token', target.token);
-    window.location.reload();
+    window.location.href = window.location.origin; // Force reload to home
 }
 
 function addNewAccount() {
