@@ -188,24 +188,33 @@ function openAccountSwitcher() {
     if (!list) return;
     list.innerHTML = '';
     
-    savedSessions.forEach(s => {
-        const isCurrent = currentUser && s.user.id === currentUser.id;
-        const div = document.createElement('div');
-        div.className = `p-5 rounded-[24px] border mb-4 ${isCurrent ? 'border-orange-500 bg-orange-500/10' : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10'} flex items-center justify-between transition-all cursor-pointer group`;
-        div.onclick = () => isCurrent ? null : switchAccount(s.user.id);
-        
-        div.innerHTML = `
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-900/40 group-hover:scale-110 transition-transform">${s.user.email[0].toUpperCase()}</div>
-                <div class="overflow-hidden">
-                    <p class="text-sm font-extrabold text-[var(--text-main)] truncate max-w-[180px]">${s.user.email}</p>
-                    ${isCurrent ? '<p class="text-[9px] text-green-500 font-black uppercase tracking-widest mt-1 animate-pulse">Đang hoạt động</p>' : '<p class="text-[9px] text-[var(--text-muted)] font-bold mt-1 uppercase tracking-widest">Nhấn để chuyển đổi</p>'}
+    if (savedSessions.length === 0 && currentUser) {
+        // Fallback: if list is empty but we are logged in, add current user
+        saveCurrentSession(localStorage.getItem('sb-token'), currentUser);
+    }
+
+    if (savedSessions.length === 0) {
+        list.innerHTML = '<div class="p-8 text-center text-gray-500 font-bold italic">Chưa có tài khoản nào được lưu</div>';
+    } else {
+        savedSessions.forEach(s => {
+            const isCurrent = currentUser && String(s.user.id) === String(currentUser.id);
+            const div = document.createElement('div');
+            div.className = `p-5 rounded-[24px] border mb-4 ${isCurrent ? 'border-orange-500 bg-orange-500/10' : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10'} flex items-center justify-between transition-all cursor-pointer group`;
+            div.onclick = () => isCurrent ? null : switchAccount(s.user.id);
+            
+            div.innerHTML = `
+                <div class="flex items-center gap-4 text-left">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-900/40 group-hover:scale-110 transition-transform">${s.user.email[0].toUpperCase()}</div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-extrabold text-[var(--text-main)] truncate max-w-[180px]">${s.user.email}</p>
+                        ${isCurrent ? '<p class="text-[9px] text-green-500 font-black uppercase tracking-widest mt-1 animate-pulse">Đang hoạt động</p>' : '<p class="text-[9px] text-[var(--text-muted)] font-bold mt-1 uppercase tracking-widest">Nhấn để chuyển đổi</p>'}
+                    </div>
                 </div>
-            </div>
-            ${!isCurrent ? '<i class="fas fa-chevron-right text-orange-500/50 group-hover:text-orange-500 group-hover:translate-x-1 transition-all"></i>' : '<div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-lg shadow-orange-900/50">✓</div>'}
-        `;
-        list.appendChild(div);
-    });
+                ${!isCurrent ? '<i class="fas fa-chevron-right text-orange-500/50 group-hover:text-orange-500 group-hover:translate-x-1 transition-all"></i>' : '<div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-lg shadow-orange-900/50">✓</div>'}
+            `;
+            list.appendChild(div);
+        });
+    }
 
     document.getElementById('modal-account-switcher').classList.remove('hidden');
 }
