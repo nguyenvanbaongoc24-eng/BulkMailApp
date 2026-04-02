@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-color: #050510;
@@ -108,7 +109,8 @@
         }
         .light-mode .text-white, .light-mode h1, .light-mode h2, .light-mode h3, .light-mode h4 { color: #000000 !important; }
         .light-mode .text-gray-400, .light-mode .text-gray-500, .light-mode .text-gray-600, .light-mode p { color: #000000 !important; font-weight: 700 !important; }
-        .light-mode [id^="stat-"], .light-mode [id^="dash-crm-"] { color: #000000 !important; font-weight: 900 !important; }
+        .light-mode [id^="stat-"], .light-mode [id^="dash-crm-"], .light-mode .font-extrabold { color: #000000 !important; font-weight: 900 !important; }
+        .light-mode .tracking-wider, .light-mode .tracking-widest { color: #000000 !important; opacity: 1 !important; font-weight: 800 !important; }
         
         .light-mode .bg-glass, .light-mode .bg-glass\/40, .light-mode .bg-white\/5, .light-mode .bg-white\/2 { 
             background-color: #ffffff !important;
@@ -1171,6 +1173,7 @@
         </div>
     </div>
 
+    <script src="js/app.js"></script>
 </body>
 </html>
 

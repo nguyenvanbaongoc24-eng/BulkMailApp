@@ -196,7 +196,7 @@ function openAccountSwitcher() {
     
     // Sanitize savedSessions
     if (!Array.isArray(savedSessions)) {
-        savedSessions = [];
+        savedSessions = JSON.parse(localStorage.getItem('ca2_saved_sessions') || '[]');
     }
 
     // Fallback: if list is empty but we are logged in, add current user
@@ -217,7 +217,7 @@ function openAccountSwitcher() {
             const div = document.createElement('div');
             
             // Premium Card Styling
-            div.className = `p-6 rounded-[32px] border-2 transition-all cursor-pointer group relative overflow-hidden \${isCurrent ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 active:scale-[0.98] animate-in slide-in-from-bottom-2'}`;
+            div.className = `p-6 rounded-[32px] border-2 transition-all cursor-pointer group relative overflow-hidden ${isCurrent ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 active:scale-[0.98] animate-in slide-in-from-bottom-2'}`;
             
             div.onclick = () => isCurrent ? null : switchAccount(s.user.id);
             
@@ -226,18 +226,18 @@ function openAccountSwitcher() {
             div.innerHTML = `
                 <div class="flex items-center gap-5 text-left relative z-10">
                     <div class="w-14 h-14 rounded-[20px] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-blue-900/20 group-hover:scale-110 transition-transform duration-300">
-                        \${initials}
+                        ${initials}
                     </div>
                     <div class="overflow-hidden flex-1">
-                        <p class="text-base font-black text-[var(--text-main)] truncate max-w-[200px] mb-1">\${s.user.email}</p>
-                        \${isCurrent ? 
-                            '<span class="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest flex items-center gap-1 w-fit"><span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span> Đang hoạt động</span>' : 
-                            '<span class="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest group-hover:text-blue-400 transition-colors">Nhấn để chuyển sang tài khoản này</span>'
+                        <p class="text-base font-black text-[var(--text-main)] truncate max-w-[200px] mb-1">${s.user.email}</p>
+                        ${isCurrent ? 
+                            '<span class="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 w-fit"><span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span> Đang hoạt động</span>' : 
+                            '<span class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest group-hover:text-blue-400 transition-colors">Nhấn để chuyển sang tài khoản này</span>'
                         }
                     </div>
                     <div class="flex items-center">
-                        \${!isCurrent ? 
-                            '<div class="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center text-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-all"><i class="fas fa-chevron-right"></i></div>' : 
+                        ${!isCurrent ? 
+                            '<div class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm"><i class="fas fa-chevron-right"></i></div>' : 
                             '<div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/40"><i class="fas fa-check"></i></div>'
                         }
                     </div>
@@ -250,7 +250,6 @@ function openAccountSwitcher() {
     }
 
     modal.classList.remove('hidden');
-    console.log('Account Switcher opened successfully.');
 }
 
 function closeAccountSwitcher() {
@@ -266,16 +265,15 @@ function switchAccount(userId) {
             return;
         }
 
-        // Show a "Switching" state if possible, though location.href is fast
-        const modal = document.querySelector('#modal-account-switcher .modal-premium');
-        if (modal) {
-            modal.innerHTML = `
+        const modalCont = document.querySelector('#modal-account-switcher .modal-premium');
+        if (modalCont) {
+            modalCont.innerHTML = `
                 <div class="p-20 text-center space-y-6 animate-pulse">
-                    <div class="w-20 h-20 bg-blue-600 rounded-[30px] mx-auto flex items-center justify-center text-white text-3xl animate-spin">
+                    <div class="w-20 h-20 bg-blue-600 rounded-[30px] mx-auto flex items-center justify-center text-white text-3xl animate-spin shadow-2xl shadow-blue-600/30">
                         <i class="fas fa-sync-alt"></i>
                     </div>
                     <h3 class="text-xl font-black text-white">Đang chuyển tài khoản...</h3>
-                    <p class="text-gray-500 text-xs font-bold uppercase tracking-widest">Vui lòng đợi trong giây lát</p>
+                    <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Hệ thống đang tải lại phiên làm việc</p>
                 </div>
             `;
         }
@@ -283,12 +281,17 @@ function switchAccount(userId) {
         localStorage.setItem('sb-token', target.token);
         setTimeout(() => {
             window.location.href = window.location.origin;
-        }, 500);
+        }, 600);
     } catch (e) {
         console.error('Switch Account Error:', e);
         alert('Có lỗi xảy ra khi chuyển tài khoản.');
     }
 }
+
+// Ensure functions are globally accessible
+window.openAccountSwitcher = openAccountSwitcher;
+window.closeAccountSwitcher = closeAccountSwitcher;
+window.switchAccount = switchAccount;
 
 function addNewAccount() {
     closeAccountSwitcher();
