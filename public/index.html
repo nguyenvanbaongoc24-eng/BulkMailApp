@@ -342,6 +342,13 @@
                     <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">My Posts</span>
                 </a>
             </div>
+            
+            <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
+                <p class="px-4 uppercase-label mt-2 mb-2">Tra cứu <span class="text-blue-500 font-bold ml-2 shrink-0">PRO</span></p>
+                <a href="javascript:void(0)" onclick="showPage('lookup-tools'); return false;" id="nav-lookup-tools" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">🏛️</span> <span class="font-semibold text-sm">Cổng Tra Cứu Nghiệp Vụ</span>
+                </a>
+            </div>
             <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
                 <a href="ca2-automation://open" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
                     <span class="mr-3 text-lg group-hover:scale-110 transition-transform">⚡</span> <span class="font-bold text-sm">Mở Công cụ Local</span>
@@ -466,7 +473,7 @@
                 <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
                     <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-white uppercase tracking-tight">Chiến dịch gần đây</h3>
-                        <button class="text-sm text-orange-500 font-bold hover:underline">Xem tất cả</button>
+                        <button onclick="showPage('campaigns')" class="text-sm text-orange-500 font-bold hover:underline">Xem tất cả</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -922,6 +929,123 @@
                 </div>
             </div>
 
+            <!-- Lookup Tools / Cổng Tra Cứu Nghiệp Vụ (Added) -->
+            <div id="view-lookup-tools" class="hidden space-y-12 animate-in fade-in duration-700 pb-20">
+                <div class="text-center space-y-6 pt-16 pb-12 relative overflow-hidden rounded-[100px] bg-gradient-to-b from-blue-600/10 via-transparent to-transparent">
+                    <div class="absolute inset-0 -z-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                    <div class="inline-flex items-center gap-2 px-5 py-2 bg-blue-500/10 text-blue-400 text-xs font-black uppercase tracking-[0.2em] rounded-full border border-blue-500/20 mb-4 animate-in slide-in-from-top-4 duration-1000">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span> 🏛️ HỆ THỐNG TRA CỨU TẬP TRUNG
+                    </div>
+                    <h1 class="text-7xl font-black text-white tracking-tighter leading-none">Cổng Tra Cứu <span class="text-blue-500">Nghiệp Vụ</span></h1>
+                    <p class="text-xl text-gray-500 font-bold max-w-3xl mx-auto uppercase tracking-wide">Giải pháp hỗ trợ Kế toán chuyên sâu từ Chính phủ & Cộng đồng</p>
+                </div>
+
+                <!-- Group 1: Chính thống từ Cơ quan Nhà nước -->
+                <div class="space-y-8">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 rounded-3xl bg-red-600/20 flex items-center justify-center text-red-500 text-2xl border border-red-500/30 shadow-2xl shadow-red-900/20 card-glow">
+                            <i class="fas fa-landmark"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-black text-white tracking-tight uppercase">NHÓM 1: CƠ QUAN NHÀ NƯỚC</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Xác thực dữ liệu chính thống & Pháp lý doanh nghiệp</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <a href="https://gdt.gov.vn/wps/portal/home/tracuu" target="_blank" class="bg-glass p-10 rounded-[48px] border border-white/5 hover:border-red-500/50 hover:bg-red-500/5 transition-all group relative overflow-hidden card-glow">
+                            <div class="text-4xl mb-8 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-6">🦁</div>
+                            <h4 class="text-xl font-black text-white mb-3 uppercase leading-tight">Tổng cục Thuế</h4>
+                            <p class="text-xs text-gray-400 font-medium leading-relaxed mb-10">Tra cứu MST cá nhân/DN và tình trạng hoạt động người nộp thuế.</p>
+                            <span class="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center gap-2">TRUY CẬP <i class="fas fa-chevron-right"></i></span>
+                        </a>
+                        <a href="https://hoadondientu.gdt.gov.vn" target="_blank" class="bg-glass p-10 rounded-[48px] border border-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group relative overflow-hidden card-glow">
+                            <div class="text-4xl mb-8 transition-transform duration-500 group-hover:scale-125 group-hover:-rotate-6">🧾</div>
+                            <h4 class="text-xl font-black text-white mb-3 uppercase leading-tight">Hóa đơn điện tử</h4>
+                            <p class="text-xs text-gray-400 font-medium leading-relaxed mb-10">Kiểm tra tính hợp lệ của hóa đơn theo Nghị định 123.</p>
+                            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">KIỂM TRA <i class="fas fa-chevron-right"></i></span>
+                        </a>
+                        <a href="https://dangkykinhdoanh.gov.vn" target="_blank" class="bg-glass p-10 rounded-[48px] border border-white/5 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all group relative overflow-hidden card-glow">
+                            <div class="text-4xl mb-8 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-6">📜</div>
+                            <h4 class="text-xl font-black text-white mb-3 uppercase leading-tight">Đăng ký KD</h4>
+                            <p class="text-xs text-gray-400 font-medium leading-relaxed mb-10">Xác thực GPKD, ngành nghề và người đại diện pháp luật.</p>
+                            <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest flex items-center gap-2">TRA CỨU <i class="fas fa-chevron-right"></i></span>
+                        </a>
+                        <a href="https://baohiemxahoi.gov.vn/tracuu" target="_blank" class="bg-glass p-10 rounded-[48px] border border-white/5 hover:border-green-500/50 hover:bg-green-500/5 transition-all group relative overflow-hidden card-glow">
+                            <div class="text-4xl mb-8 transition-transform duration-500 group-hover:scale-125 group-hover:-rotate-6">🏥</div>
+                            <h4 class="text-xl font-black text-white mb-3 uppercase leading-tight">BHXH Việt Nam</h4>
+                            <p class="text-xs text-gray-400 font-medium leading-relaxed mb-10">Tra cứu quá trình đóng BHXH, BHYT và giá trị thẻ.</p>
+                            <span class="text-[10px] font-black text-green-400 uppercase tracking-widest flex items-center gap-2">XÁC THỰC <i class="fas fa-chevron-right"></i></span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Group 2: Văn bản Pháp luật & Chính sách -->
+                <div class="space-y-8">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 rounded-3xl bg-blue-600/20 flex items-center justify-center text-blue-500 text-2xl border border-blue-500/30 shadow-2xl shadow-blue-900/20 card-glow">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-black text-white tracking-tight uppercase">NHÓM 2: PHÁP LUẬT & CHÍNH SÁCH</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Cập nhật thông tư, nghị định và tra cứu văn bản pháp luật</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <a href="https://thuvienphapluat.vn" target="_blank" class="bg-gradient-to-br from-white/5 to-transparent p-12 rounded-[56px] border border-white/10 hover:border-blue-500/40 hover:shadow-2xl hover:shadow-blue-500/10 transition-all flex items-center gap-10 group relative">
+                            <div class="w-24 h-24 rounded-[32px] bg-blue-600 flex items-center justify-center text-white text-4xl shadow-2xl shadow-blue-900/40 transition-transform duration-700 group-hover:rotate-[360deg] group-hover:scale-110">📚</div>
+                            <div class="flex-1">
+                                <h4 class="text-3xl font-black text-white mb-3">Thư Viện Pháp Luật</h4>
+                                <p class="text-sm text-gray-400 font-medium leading-relaxed">Nguồn dữ liệu luật lớn nhất Việt Nam. Cập nhật chính sách mới hàng giờ cho Kế toán doanh nghiệp.</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-gray-600 group-hover:text-blue-500 group-hover:border-blue-500/50 transition-all">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                        <a href="https://luatvietnam.vn" target="_blank" class="bg-gradient-to-br from-white/5 to-transparent p-12 rounded-[56px] border border-white/10 hover:border-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/10 transition-all flex items-center gap-10 group relative">
+                            <div class="w-24 h-24 rounded-[32px] bg-orange-600 flex items-center justify-center text-white text-4xl shadow-2xl shadow-orange-900/40 transition-transform duration-700 group-hover:-rotate-[360deg] group-hover:scale-110">⚙️</div>
+                            <div class="flex-1">
+                                <h4 class="text-3xl font-black text-white mb-3">Luật Việt Nam</h4>
+                                <p class="text-sm text-gray-400 font-medium leading-relaxed">Tiện ích tính Thuế TNCN, Lương Net/Gross và so sánh các quy định pháp luật hiện hành.</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-gray-600 group-hover:text-orange-500 group-hover:border-orange-500/50 transition-all">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Group 3: Cộng đồng Nghiệp vụ -->
+                <div class="space-y-8">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 rounded-3xl bg-green-600/20 flex items-center justify-center text-green-500 text-2xl border border-green-500/30 shadow-2xl shadow-green-900/20 card-glow">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-black text-white tracking-tight uppercase">NHÓM 3: CỘNG ĐỒNG NGHIỆP VỤ</h3>
+                            <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Tải mẫu biểu Excel, xử lý tình huống thực tế và chia sẻ kinh nghiệm</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <a href="https://webketoan.com" target="_blank" class="bg-glass p-10 rounded-[48px] border border-white/5 hover:border-green-500/50 transition-all flex gap-8 items-center group card-glow">
+                            <div class="w-20 h-20 rounded-[28px] bg-green-600/10 flex items-center justify-center text-green-500 text-4xl font-black transition-all group-hover:bg-green-600 group-hover:text-white">W</div>
+                            <div>
+                                <h4 class="text-2xl font-black text-white mb-1 uppercase tracking-tight">Web Kế Toán</h4>
+                                <p class="text-gray-500 font-black text-[10px] tracking-[0.2em] uppercase">Diễn đàn kế toán lớn nhất Việt Nam</p>
+                                <p class="text-sm text-gray-400 mt-2 line-clamp-2">Kho tàng mẫu biểu, file Excel và giải đáp nghiệp vụ chuyên sâu.</p>
+                            </div>
+                        </a>
+                        <a href="https://danketoan.com" target="_blank" class="bg-glass p-10 rounded-[48px] border border-white/5 hover:border-blue-400/50 transition-all flex gap-8 items-center group card-glow">
+                            <div class="w-20 h-20 rounded-[28px] bg-blue-600/10 flex items-center justify-center text-blue-500 text-4xl font-black transition-all group-hover:bg-blue-600 group-hover:text-white">D</div>
+                            <div>
+                                <h4 class="text-2xl font-black text-white mb-1 uppercase tracking-tight">Dân Kế Toán</h4>
+                                <p class="text-gray-500 font-black text-[10px] tracking-[0.2em] uppercase">Hỗ trợ phần mềm & Chính sách mới</p>
+                                <p class="text-sm text-gray-400 mt-2 line-clamp-2">Nơi chia sẻ mẹo vặt, cập nhật nhanh các thay đổi từ góc nhìn người dùng.</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Lookup Tools View -->
             <div id="view-lookup-tools" class="hidden space-y-8 animate-in fade-in duration-500 pb-10">
                 <h2 class="text-3xl font-black text-white tracking-tight">Cổng Tra Cứu <span class="text-blue-500">Nghiệp Vụ</span></h2>
@@ -1009,6 +1133,10 @@
                         </div>
                         <div class="flex gap-3">
                             <button onclick="closeSEOModal()" class="px-8 py-3 rounded-[16px] bg-white/10 font-bold hover:bg-white/20 transition-all text-sm">Đóng</button>
+                            <button onclick="generateImageFromArticleContent()" class="px-8 py-3 rounded-[16px] bg-blue-600 hover:bg-blue-500 font-black text-white shadow-xl shadow-blue-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-2 items-center">
+                                <i class="fas fa-magic"></i>
+                                Tạo Prompt & Vẽ ảnh
+                            </button>
                             <button onclick="copySEOContent()" class="px-8 py-3 rounded-[16px] bg-orange-gradient font-black text-white shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-2 items-center">
                                 <i class="fas fa-copy"></i>
                                 Copy Toàn bộ

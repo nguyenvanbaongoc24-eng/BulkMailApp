@@ -353,16 +353,24 @@ function showPage(pageId) {
         'ca2-crm': 'CA2 CRM',
         'campaigns': 'Chiến dịch Email',
         'senders': 'Tài khoản Gmail',
-        'reports': 'Báo cáo chi tiết'
+        'reports': 'Báo cáo chi tiết',
+        'seo-news': 'Tin Tức Thuế (AI)',
+        'seo-article': 'Tạo Bài Viết SEO',
+        'seo-image': 'Tạo Ảnh AI',
+        'seo-posts': 'Kho Lưu Trữ SEO',
+        'lookup-tools': 'Cổng Tra Cứu Nghiệm Vụ'
     };
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
     
+    // Page specific loading
     if (pageId === 'ca2-crm') loadCA2CRMData();
-    if (pageId === 'dashboard') loadDashboardStats();
+    if (pageId === 'dashboard') { loadDashboardStats(); loadRecentCampaigns(); }
     if (pageId === 'senders') loadSenders();
     if (pageId === 'reports') loadEmailLogs();
     if (pageId === 'campaigns') loadRecentCampaigns();
+    if (pageId === 'seo-news') loadTaxNews();
+    if (pageId === 'seo-posts') loadMySavedPosts();
 }
 
 function toggleSidebar() {
@@ -833,12 +841,17 @@ async function loadRecentCampaigns() {
                     </div>
                 </td>
                 <td class="px-8 py-6 text-right">
-                     ${c.status === 'Hoàn thành' ? 
-                        `<span class="text-green-500 font-bold"><i class="fas fa-check-circle mr-1"></i> Xong</span>` :
-                        `<button onclick="startCampaign('${c.id}')" class="bg-orange-gradient text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-orange-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 float-right">
-                            <i class="fas fa-play"></i> CHẠY
-                        </button>`
-                     }
+                    <div class="flex items-center justify-end gap-2">
+                        ${c.status === 'Hoàn thành' ? 
+                            `<span class="text-green-500 font-bold"><i class="fas fa-check-circle mr-1"></i> Xong</span>` :
+                            `<button onclick="startCampaign('${c.id}')" class="bg-orange-gradient text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-orange-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                                <i class="fas fa-play"></i> CHẠY
+                            </button>`
+                        }
+                        <button onclick="deleteCampaign('${c.id}')" class="w-10 h-10 flex items-center justify-center bg-red-500/5 text-red-400 hover:text-white hover:bg-red-500 transition-all rounded-xl shadow-lg shadow-red-900/0 hover:shadow-red-900/40" title="Xóa chiến dịch">
+                            <i class="fas fa-trash-alt text-[10px]"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -858,6 +871,22 @@ async function startCampaign(id) {
             loadRecentCampaigns(); 
         } else {
             alert('Lỗi: ' + (data.error || 'Không rõ'));
+        }
+    } catch (e) {
+        alert('Lỗi kết nối server');
+    }
+}
+
+async function deleteCampaign(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa chiến dịch này? Hành động này không thể hoàn tác.')) return;
+    try {
+        const res = await authedFetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            loadRecentCampaigns();
+            loadDashboardStats();
+        } else {
+            const err = await res.json();
+            alert('Lỗi khi xóa: ' + (err.error || 'Không rõ'));
         }
     } catch (e) {
         alert('Lỗi kết nối server');
