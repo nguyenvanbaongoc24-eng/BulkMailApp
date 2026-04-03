@@ -1421,8 +1421,8 @@ async function saveTemplate() {
             alert('Lỗi khi lưu mẫu: ' + (err.error || 'Không rõ'));
         }
     } catch (e) { 
-        console.error(e); 
-        alert('Lỗi kết nối server khi lưu mẫu');
+        console.error('[TEMPLATE_SAVE_ERROR]', e); 
+        alert('Lỗi kết nối server khi lưu mẫu: ' + e.message);
     }
 }
 

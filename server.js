@@ -1820,6 +1820,8 @@ app.get('/api/templates/:id', authenticate, async (req, res) => {
 app.post('/api/templates', authenticate, async (req, res) => {
     try {
         const { name, content } = req.body;
+        console.log(`[TEMPLATE_DEBUG] User ${req.user.id} saving template: ${name}`);
+        
         const { data, error } = await getClient(req.token)
             .from('templates')
             .upsert({ 
@@ -1829,9 +1831,22 @@ app.post('/api/templates', authenticate, async (req, res) => {
                 updated_at: new Date().toISOString() 
             })
             .select();
-        if (error) throw error;
+
+        if (error) {
+            console.error('[TEMPLATE_DB_ERROR]', error);
+            throw error;
+        }
+        
+        if (!data || data.length === 0) {
+            console.warn('[TEMPLATE_SAVE_WARNING] Save succeeded but no data returned via RLS. Returning generic success.');
+            return res.json({ success: true });
+        }
+        
         res.json(data[0]);
-    } catch (error) { res.status(500).json({ error: error.message }); }
+    } catch (error) { 
+        console.error('[TEMPLATE_SERVER_ERROR]', error.message);
+        res.status(500).json({ error: error.message }); 
+    }
 });
 
 app.delete('/api/templates/:id', authenticate, async (req, res) => {
