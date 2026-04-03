@@ -1901,65 +1901,37 @@ app.post('/api/seo/generate-image', authenticate, async (req, res) => {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
-        const imageUrl = await seoService.generateImageUrl(prompt);
+        console.log('[IMAGE_GENERATION_START] Requesting image for prompt:', prompt.substring(0, 50) + '...');
 
-        // Server-side validation: actually fetch the image to ensure it loads
-        console.log('[AI IMAGE] Validating image URL:', imageUrl.substring(0, 100) + '...');
-        let validatedUrl = imageUrl;
-        let imageOk = false;
-        
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                const imgRes = await axios.get(validatedUrl, { 
-                    timeout: 30000,
-                    maxRedirects: 5,
-                    validateStatus: (status) => status < 400,
-                    // Only fetch headers + first chunk to validate, not the full image
-                    responseType: 'stream'
-                });
-                
-                const contentType = imgRes.headers['content-type'] || '';
-                if (contentType.startsWith('image/')) {
-                    imageOk = true;
-                    console.log(`[AI IMAGE] ✅ Image validated on attempt ${attempt} (${contentType})`);
-                    imgRes.data.destroy(); // close the stream
-                    break;
-                } else {
-                    console.warn(`[AI IMAGE] ⚠ Attempt ${attempt}: Response is not an image (${contentType})`);
-                    imgRes.data.destroy();
-                    // Generate a new seed for retry
-                    const newSeed = Math.floor(Math.random() * 1000000);
-                    validatedUrl = validatedUrl.replace(/seed=\d+/, `seed=${newSeed}`);
-                }
-            } catch (fetchErr) {
-                console.warn(`[AI IMAGE] ⚠ Attempt ${attempt} failed:`, fetchErr.message);
-                // Generate a new seed for retry
-                const newSeed = Math.floor(Math.random() * 1000000);
-                validatedUrl = validatedUrl.replace(/seed=\d+/, `seed=${newSeed}`);
-            }
+        // 1. Check cache using exact prompt text
+        const { data: cached, error: cacheErr } = await supabase
+            .from('seo_images')
+            .select('*')
+            .eq('prompt', prompt)
+            .limit(1);
+
+        if (!cacheErr && cached && cached.length > 0) {
+            console.log('[IMAGE_GENERATION_SUCCESS] Returned cached image URL.');
+            return res.json(cached[0]);
         }
 
-        if (!imageOk) {
-            // Final fallback: use a simpler prompt
-            console.log('[AI IMAGE] All attempts failed. Using simplified fallback prompt...');
-            const fallbackPrompt = encodeURIComponent('professional business office modern design 8k photorealistic');
-            const fallbackSeed = Math.floor(Math.random() * 1000000);
-            validatedUrl = `https://image.pollinations.ai/prompt/${fallbackPrompt}?width=1024&height=1024&nologo=true&seed=${fallbackSeed}&model=flux`;
-        }
+        // 2. Generate and upload using HuggingFace
+        const imageUrl = await seoService.generateImageUrl(prompt, supabase, req.user.id);
 
         const newImage = {
             user_id: req.user.id,
             prompt: prompt,
-            image_url: validatedUrl,
+            image_url: imageUrl,
             created_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase.from('seo_images').insert([newImage]).select();
         if (error) throw error;
 
+        console.log('[IMAGE_GENERATION_SUCCESS] Image generated and saved to DB.');
         res.json(data[0]);
     } catch (err) {
-        console.error('[AI IMAGE] Error:', err.message);
+        console.error('[IMAGE_GENERATION_FAILED] Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

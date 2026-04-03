@@ -1,3 +1,4 @@
+let globalSEONews = [];
 let isSEONewsLoaded = false;
 let isSEOPostsLoaded = false;
 let g_seoPosts = {};
@@ -25,38 +26,84 @@ async function loadSEONews() {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         
-        if (data.length === 0) {
-            grid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 italic font-bold">Bot Crawler đang lấy dữ liệu hoặc chưa có tin mới hôm nay.</div>';
-            return;
-        }
-        
-        let html = '';
-        data.forEach((news, idx) => {
-            const d = new Date(news.publish_date).toLocaleString('vi-VN');
-            const delay = idx * 100;
-            
-            let colorClass = 'bg-orange-600 shadow-orange-900/50';
-            if (news.source === 'LuatVietnam') colorClass = 'bg-blue-600 shadow-blue-900/50';
-            else if (news.source === 'WebKetoan') colorClass = 'bg-green-600 shadow-green-900/50';
-            
-            html += `
-                <div class="bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 rounded-[24px] hover:bg-white/10 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-white/5 group animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-[10px] text-white ${colorClass} px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg">${news.source}</div>
-                        <div class="text-[10px] text-gray-500 font-bold">${d}</div>
-                    </div>
-                    <h3 class="text-lg font-black text-white mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors leading-tight">${news.title}</h3>
-                    <p class="text-sm text-gray-400 line-clamp-3 mb-6 font-medium leading-relaxed">${news.summary}</p>
-                    <a href="${news.url}" target="_blank" class="inline-flex items-center text-orange-500 font-black text-sm hover:underline group-hover:translate-x-1 transition-transform">
-                        Đọc chi tiết <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
-                    </a>
-                </div>
-            `;
-        });
-        grid.innerHTML = html;
+        globalSEONews = data;
+        renderSEONews(globalSEONews);
     } catch (e) {
         grid.innerHTML = `<div class="col-span-full p-10 text-red-500 font-bold bg-red-500/10 rounded-2xl border border-red-500/20">Lỗi tải tin tức: ${e.message}</div>`;
     }
+}
+
+function renderSEONews(data) {
+    const grid = document.getElementById('seo-news-grid');
+    if (!data || data.length === 0) {
+        grid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 italic font-bold">Không tìm thấy tin tức nào. Thử tải lại trang hoặc đổi bộ lọc.</div>';
+        return;
+    }
+    
+    let html = '';
+    data.forEach((news, idx) => {
+        const d = new Date(news.publish_date).toLocaleString('vi-VN');
+        const delay = (idx % 10) * 50;
+        
+        let colorClass = 'bg-orange-600 shadow-orange-900/50';
+        if (news.source === 'Luật Việt Nam') colorClass = 'bg-blue-600 shadow-blue-900/50';
+        else if (news.source === 'WebKetoan') colorClass = 'bg-green-600 shadow-green-900/50';
+        else if (news.source === 'Tổng cục Thuế' || news.source === 'Bộ Tài Chính') colorClass = 'bg-red-600 shadow-red-900/50';
+        
+        html += `
+            <div class="bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 rounded-[24px] hover:bg-white/10 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-white/5 group animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="text-[10px] text-white ${colorClass} px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg">${news.source}</div>
+                    <div class="text-[10px] text-gray-500 font-bold">${d}</div>
+                </div>
+                <h3 class="text-lg font-black text-white mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors leading-tight">${news.title}</h3>
+                <p class="text-sm text-gray-400 line-clamp-3 mb-6 font-medium leading-relaxed">${news.summary}</p>
+                <a href="${news.url}" target="_blank" class="inline-flex items-center text-orange-500 font-black text-sm hover:underline group-hover:translate-x-1 transition-transform">
+                    Đọc chi tiết <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
+                </a>
+            </div>
+        `;
+    });
+    grid.innerHTML = html;
+}
+
+function filterSEONews(category) {
+    document.querySelectorAll('#seo-news-filters button').forEach(btn => {
+        if (btn.innerText.toLowerCase() === category.toLowerCase() || (category === 'all' && btn.innerText === 'Tất cả')) {
+            btn.classList.replace('bg-white/5', 'bg-orange-500/20');
+            btn.classList.replace('text-gray-400', 'text-orange-400');
+            btn.classList.add('border-orange-500/30');
+            btn.classList.remove('border-transparent', 'hover:text-white');
+        } else {
+            btn.classList.replace('bg-orange-500/20', 'bg-white/5');
+            btn.classList.replace('text-orange-400', 'text-gray-400');
+            btn.classList.remove('border-orange-500/30');
+            btn.classList.add('border-transparent', 'hover:text-white');
+        }
+    });
+
+    const keyword = document.getElementById('seo-news-search').value.toLowerCase();
+    
+    let filtered = globalSEONews;
+    if (category !== 'all') {
+        filtered = filtered.filter(n => (n.title + ' ' + n.summary + ' ' + (n.content || '')).toLowerCase().includes(category.toLowerCase()));
+    }
+    if (keyword) {
+        filtered = filtered.filter(n => (n.title + ' ' + n.summary + ' ' + (n.source || '')).toLowerCase().includes(keyword));
+    }
+    
+    renderSEONews(filtered);
+}
+
+function searchSEONews(keyword) {
+    let activeCat = 'all';
+    document.querySelectorAll('#seo-news-filters button').forEach(btn => {
+        if (btn.classList.contains('text-orange-400')) {
+            activeCat = btn.innerText === 'Tất cả' ? 'all' : btn.innerText.toLowerCase();
+        }
+    });
+    
+    filterSEONews(activeCat);
 }
 
 async function generateSEOArticle() {

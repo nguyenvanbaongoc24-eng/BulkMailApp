@@ -797,6 +797,21 @@
                         <i class="fas fa-sync text-orange-500"></i> Làm mới
                     </button>
                 </div>
+
+                <!-- SEO News Filter & Search UI -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <div class="flex flex-wrap gap-2" id="seo-news-filters">
+                        <button onclick="filterSEONews('all')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all bg-orange-500/20 text-orange-400 border border-orange-500/30">Tất cả</button>
+                        <button onclick="filterSEONews('thuế')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all bg-white/5 text-gray-400 hover:text-white border border-transparent">Thuế</button>
+                        <button onclick="filterSEONews('kế toán')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all bg-white/5 text-gray-400 hover:text-white border border-transparent">Kế toán</button>
+                        <button onclick="filterSEONews('hóa đơn điện tử')" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all bg-white/5 text-gray-400 hover:text-white border border-transparent">Hóa đơn điện tử</button>
+                    </div>
+                    <div class="relative w-full md:w-64">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="seo-news-search" placeholder="Tìm kiếm tin bài..." class="w-full bg-black/20 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-orange-500/50 transition-colors" oninput="searchSEONews(this.value)">
+                    </div>
+                </div>
+
                 <div id="seo-news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <!-- News rendered here -->
                 </div>
