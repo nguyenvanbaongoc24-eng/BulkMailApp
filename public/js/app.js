@@ -1408,14 +1408,22 @@ async function saveTemplate() {
     if (!name) return;
     const content = document.getElementById('input-template').innerHTML;
     try {
-        await authedFetch('/api/templates', {
+        const res = await authedFetch('/api/templates', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, content })
         });
-        alert('Đã lưu mẫu!');
-        loadTemplates();
-    } catch (e) { console.error(e); }
+        if (res.ok) {
+            alert('Đã lưu mẫu thành công!');
+            loadTemplates();
+        } else {
+            const err = await res.json();
+            alert('Lỗi khi lưu mẫu: ' + (err.error || 'Không rõ'));
+        }
+    } catch (e) { 
+        console.error(e); 
+        alert('Lỗi kết nối server khi lưu mẫu');
+    }
 }
 
 async function loadTemplates() {
@@ -1455,14 +1463,18 @@ async function applyTemplate() {
     if (!id) return;
     try {
         const res = await authedFetch(`/api/templates/${id}`);
-        // Note: GET /api/templates/:id usually returns an object if implemented, 
-        // but often the SELECT * from /api/templates already has content.
-        // Let's check how templates are stored.
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to fetch template');
+        }
         const data = await res.json();
         if (data && data.content) {
             document.getElementById('input-template').innerHTML = data.content;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error(e);
+        alert('Lỗi khi tải mẫu: ' + e.message);
+    }
 }
 
 // --- Reports & Logs ---

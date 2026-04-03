@@ -1794,7 +1794,7 @@ app.post('/api/automation/cleanup', (req, res) => {
 // --- Templates API ---
 app.get('/api/templates', authenticate, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await getClient(req.token)
             .from('templates')
             .select('*')
             .eq('user_id', req.user.id)
@@ -1806,7 +1806,7 @@ app.get('/api/templates', authenticate, async (req, res) => {
 
 app.get('/api/templates/:id', authenticate, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await getClient(req.token)
             .from('templates')
             .select('*')
             .eq('id', req.params.id)
@@ -1820,7 +1820,7 @@ app.get('/api/templates/:id', authenticate, async (req, res) => {
 app.post('/api/templates', authenticate, async (req, res) => {
     try {
         const { name, content } = req.body;
-        const { data, error } = await supabase
+        const { data, error } = await getClient(req.token)
             .from('templates')
             .upsert({ 
                 name, 
