@@ -287,8 +287,23 @@
                 <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
             </a>
             <div class="pt-4 border-t border-white/5 space-y-2">
+                <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2 mb-2">SEO Tools <span class="text-orange-500 font-bold ml-2 shrink-0">AI</span></p>
+                <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">📰</span> <span class="font-semibold text-sm">Tin Tức Thuế</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showPage('seo-article'); return false;" id="nav-seo-article" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">✍️</span> <span class="font-semibold text-sm">Tạo Bài Viết SEO</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showPage('seo-image'); return false;" id="nav-seo-image" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">🎨</span> <span class="font-semibold text-sm">Tạo Ảnh AI</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showPage('seo-posts'); return false;" id="nav-seo-posts" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">My Posts</span>
+                </a>
+            </div>
+            <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
                 <a href="ca2-automation://open" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
-                    <span class="mr-3 text-lg group-hover:scale-110 transition-transform">⚡</span> <span class="font-bold">Mở Công cụ Local</span>
+                    <span class="mr-3 text-lg group-hover:scale-110 transition-transform">⚡</span> <span class="font-bold text-sm">Mở Công cụ Local</span>
                 </a>
                 <button onclick="downloadLocalTool()" class="w-full flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                     <span class="mr-3 text-lg">⬇️</span> <span class="font-semibold text-[10px] uppercase tracking-widest text-blue-400">Tải Tool trực tiếp (.zip)</span>
@@ -713,6 +728,171 @@
                                 <!-- Data injected via JS -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO UI Injection -->
+            <!-- SEO News View -->
+            <div id="view-seo-news" class="hidden space-y-8 animate-in fade-in duration-500 pb-10">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-black text-white tracking-tight">Tin tức Thuế <span class="text-orange-gradient">Tự động</span></h2>
+                        <p class="text-gray-400 font-medium text-sm mt-1">Cập nhật mỗi 12 tiếng từ báo uy tín (vnexpress)</p>
+                    </div>
+                    <button onclick="loadSEONews()" class="bg-white/5 border border-white/10 px-6 py-3 rounded-xl hover:bg-white/10 transition-all font-bold text-sm active:scale-95 shadow-lg shadow-black/20 flex items-center gap-2">
+                        <i class="fas fa-sync text-orange-500"></i> Làm mới
+                    </button>
+                </div>
+                <div id="seo-news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- News rendered here -->
+                </div>
+            </div>
+
+            <!-- SEO Article View -->
+            <div id="view-seo-article" class="hidden space-y-8 animate-in fade-in duration-500 pb-10">
+                <h2 class="text-3xl font-black text-white tracking-tight">Tạo <span class="text-orange-gradient">Bài Viết Chuẩn SEO</span></h2>
+                <div class="bg-glass p-10 rounded-[40px] border border-white/5 max-w-4xl shadow-2xl shadow-orange-900/10">
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Từ khóa chính</label>
+                            <input id="seo-keyword" type="text" placeholder="Ví dụ: Dịch vụ chữ ký số doanh nghiệp giá rẻ" class="w-full px-6 py-5 rounded-[20px] outline-none border border-white/5 focus:border-orange-500 transition-colors shadow-inner">
+                        </div>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Tông giọng bài viết</label>
+                                <select id="seo-tone" class="w-full px-6 py-5 rounded-[20px] outline-none border-0 font-bold bg-white/5 border-white/5 focus:ring-2 focus:ring-orange-500 cursor-pointer">
+                                    <option value="chuyên nghiệp, đáng tin cậy, khách quan">Chuyên nghiệp / Cố vấn</option>
+                                    <option value="quảng cáo, marketing hấp dẫn, kêu gọi hành động">Marketing / Sale</option>
+                                    <option value="gần gũi, chia sẻ kiến thức, dễ hiểu">Gần gũi / Blog</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Độ dài dự kiến</label>
+                                <select id="seo-length" class="w-full px-6 py-5 rounded-[20px] outline-none border-0 font-bold bg-white/5 border-white/5 focus:ring-2 focus:ring-orange-500 cursor-pointer">
+                                    <option value="short">Ngắn gọn (300-500 từ)</option>
+                                    <option value="medium" selected>Tầm trung (600-900 từ)</option>
+                                    <option value="long">Chi tiết (1000+ từ)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button id="btn-generate-article" onclick="generateSEOArticle()" class="w-full bg-orange-gradient py-5 rounded-[20px] font-black text-lg text-white shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                            <span class="text-2xl">✨</span> Viết bài ngay bằng Llama3-70b
+                        </button>
+                        <div id="seo-article-loading" class="hidden text-center mt-4">
+                            <p class="text-orange-400 font-bold text-sm animate-pulse">Đang liên kết AI và thả hồn vào chữ viết (vui lòng đợi 15-30s)...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO Image View -->
+            <div id="view-seo-image" class="hidden space-y-8 animate-in fade-in duration-500 pb-10">
+                <h2 class="text-3xl font-black text-white tracking-tight">Sinh Hình Ảnh <span class="text-orange-gradient">Bằng AI</span></h2>
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Input -->
+                    <div class="bg-glass p-8 rounded-[40px] border border-white/5 shadow-2xl relative overflow-hidden h-fit">
+                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full"></div>
+                        <div class="space-y-6 relative z-10">
+                            <div>
+                                <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2">Mô tả bức ảnh (Dùng tiếng Anh sẽ nét hơn) 🇺🇸</label>
+                                <textarea id="seo-image-prompt" rows="5" placeholder="A futuristic office with diverse people working on holograms, photorealistic, 8k resolution, cinematic lighting..." class="w-full px-6 py-5 rounded-[20px] outline-none resize-none border border-white/5 bg-black/20 focus:border-blue-500/50 shadow-inner"></textarea>
+                            </div>
+                            <button id="btn-generate-image" onclick="generateSEOImage()" class="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-[20px] font-black text-lg text-white shadow-xl shadow-blue-900/40 hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3">
+                                <span class="text-2xl">🎨</span> Vẽ ảnh AI
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Output -->
+                    <div class="bg-white/5 p-8 rounded-[40px] border border-white/10 flex flex-col items-center justify-center min-h-[400px]">
+                        <div id="seo-image-placeholder" class="text-center text-gray-500">
+                            <i class="fas fa-image text-5xl mb-4 opacity-50"></i>
+                            <p class="font-bold text-sm">Ảnh của bạn sẽ xuất hiện ở đây.</p>
+                        </div>
+                        <div id="seo-image-loading" class="hidden text-center text-blue-400">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                            <p class="font-bold text-sm">Đang vẽ... (có thể mất 5-10s)</p>
+                        </div>
+                        <div id="seo-image-preview" class="hidden w-full flex-col items-center">
+                            <img id="seo-image-result" src="" class="w-full rounded-[24px] shadow-2xl border border-white/10 object-cover" />
+                            <div class="mt-6 flex gap-4">
+                                <button onclick="downloadSEOImage()" class="px-8 py-3 bg-white hover:bg-gray-200 text-black rounded-[14px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all flex gap-2 items-center">
+                                    <i class="fas fa-download"></i> Tải xuống
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO My Posts View -->
+            <div id="view-seo-posts" class="hidden space-y-10 animate-in fade-in duration-500 pb-10">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-3xl font-black text-white tracking-tight">Kho Content <span class="text-orange-gradient">Đã Tạo</span></h2>
+                </div>
+                
+                <!-- Bài viết -->
+                <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                    <div class="px-10 py-8 border-b border-white/5 bg-white/5">
+                        <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-3">
+                            <i class="fas fa-file-alt text-orange-500"></i> Quản lý Bài Viết
+                        </h3>
+                    </div>
+                    <div id="seo-my-posts-list" class="divide-y divide-white/5 min-h-[200px]">
+                        <!-- Post items -->
+                        <div class="p-10 text-center text-gray-500 italic font-bold">Đang tải dữ liệu...</div>
+                    </div>
+                </div>
+
+                <!-- Hình ảnh -->
+                <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                    <div class="px-10 py-8 border-b border-white/5 bg-white/5">
+                        <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-3">
+                            <i class="fas fa-images text-blue-500"></i> Thư viện Hình Ảnh
+                        </h3>
+                    </div>
+                    <div id="seo-my-images-grid" class="p-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px]">
+                        <!-- Image items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Edit Post -->
+            <div id="modal-seo-edit" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 hidden">
+                <div class="modal-premium w-full max-w-5xl h-[85vh] flex flex-col rounded-[40px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10">
+                    <!-- Header -->
+                    <div class="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-orange-500/10 to-transparent relative">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white text-xl shadow-lg shadow-orange-900/30">
+                                <i class="fas fa-pen-nib"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black tracking-tight text-white mb-1" id="seo-modal-title">Nội dung bài viết</h3>
+                                <p class="text-[10px] text-orange-400 font-bold uppercase tracking-widest" id="seo-modal-subtitle">Markdown Format</p>
+                            </div>
+                        </div>
+                        <button onclick="closeSEOModal()" class="w-10 h-10 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 rounded-2xl transition-all flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="flex-1 bg-black/40 overflow-hidden relative">
+                        <!-- Raw Markdown Textarea -->
+                        <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-8 bg-transparent text-sm font-medium text-gray-200 resize-none font-mono leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="p-6 border-t border-white/5 flex justify-between gap-4 bg-white/5">
+                        <div class="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest gap-2">
+                            <i class="fas fa-info-circle"></i> Bạn có thể copy toàn bộ nội dung để dán vào Web.
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="closeSEOModal()" class="px-8 py-3 rounded-[16px] bg-white/10 font-bold hover:bg-white/20 transition-all text-sm">Đóng</button>
+                            <button onclick="copySEOContent()" class="px-8 py-3 rounded-[16px] bg-orange-gradient font-black text-white shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-2 items-center">
+                                <i class="fas fa-copy"></i>
+                                Copy Toàn bộ
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1214,6 +1394,7 @@
     </style>
 
     <script src="js/app.js?v=1.0.4"></script>
+    <script src="js/seo.js"></script>
 </body>
 </html>
 

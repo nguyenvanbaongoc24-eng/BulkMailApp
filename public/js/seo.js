@@ -1,0 +1,296 @@
+let isSEONewsLoaded = false;
+let isSEOPostsLoaded = false;
+let g_seoPosts = {};
+
+// Hook into app.js showPage
+const originalShowPage = window.showPage;
+window.showPage = function(pageId) {
+    if (originalShowPage) originalShowPage(pageId);
+    
+    // Auto load data on tab switch
+    if (pageId === 'seo-news' && !isSEONewsLoaded) {
+        loadSEONews();
+    }
+    if (pageId === 'seo-posts' && !isSEOPostsLoaded) {
+        loadSEOPosts();
+    }
+};
+
+async function loadSEONews() {
+    isSEONewsLoaded = true;
+    const grid = document.getElementById('seo-news-grid');
+    grid.innerHTML = '<div class="col-span-full text-center text-orange-400 font-bold p-10"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải bản tin Thuế cập nhật nhất...</div>';
+    try {
+        const data = await authedFetch('/api/seo/news');
+        if (data.error) throw new Error(data.error);
+        
+        if (data.length === 0) {
+            grid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 italic font-bold">Bot Crawler đang lấy dữ liệu hoặc chưa có tin mới hôm nay.</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach((news, idx) => {
+            const d = new Date(news.publish_date).toLocaleString('vi-VN');
+            const delay = idx * 100;
+            html += `
+                <div class="bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 rounded-[24px] hover:bg-white/10 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-orange-900/20 group animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-[10px] text-white bg-orange-600 px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg shadow-orange-900/50">${news.source}</div>
+                        <div class="text-[10px] text-gray-500 font-bold">${d}</div>
+                    </div>
+                    <h3 class="text-lg font-black text-white mb-3 line-clamp-2 group-hover:text-orange-400 transition-colors leading-tight">${news.title}</h3>
+                    <p class="text-sm text-gray-400 line-clamp-3 mb-6 font-medium leading-relaxed">${news.summary}</p>
+                    <a href="${news.url}" target="_blank" class="inline-flex items-center text-orange-500 font-black text-sm hover:underline group-hover:translate-x-1 transition-transform">
+                        Đọc chi tiết <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
+                    </a>
+                </div>
+            `;
+        });
+        grid.innerHTML = html;
+    } catch (e) {
+        grid.innerHTML = `<div class="col-span-full p-10 text-red-500 font-bold bg-red-500/10 rounded-2xl border border-red-500/20">Lỗi tải tin tức: ${e.message}</div>`;
+    }
+}
+
+async function generateSEOArticle() {
+    const keyword = document.getElementById('seo-keyword').value.trim();
+    const tone = document.getElementById('seo-tone').value;
+    const length = document.getElementById('seo-length').value;
+    
+    if (!keyword) {
+        alert('Vui lòng nhập từ khóa');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-generate-article');
+    const loading = document.getElementById('seo-article-loading');
+    
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    loading.classList.remove('hidden');
+    
+    try {
+        const data = await authedFetch('/api/seo/generate-article', {
+            method: 'POST',
+            body: JSON.stringify({ keyword, tone, length })
+        });
+        
+        if (data.error) {
+           const msg = typeof data.error === 'string' ? data.error : (data.error.error?.message || JSON.stringify(data.error));
+           throw new Error(msg);
+        }
+        
+        isSEOPostsLoaded = false; // force reload next time user clicks tab
+        
+        // Show result directly
+        document.getElementById('seo-modal-title').innerText = "Kết quả bài viết: " + data.title;
+        document.getElementById('seo-modal-content').value = data.content;
+        document.getElementById('modal-seo-edit').classList.remove('hidden');
+        
+    } catch (e) {
+        alert('Lỗi tạo bài bằng AI: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        loading.classList.add('hidden');
+    }
+}
+
+function copySEOContent() {
+    const el = document.getElementById('seo-modal-content');
+    el.select();
+    document.execCommand('copy');
+    
+    // Smooth button feedback
+    const btn = event.target.closest('button');
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Đã Copy!';
+    btn.classList.replace('bg-orange-gradient', 'bg-green-600');
+    
+    setTimeout(() => {
+        btn.innerHTML = oldHtml;
+        btn.classList.replace('bg-green-600', 'bg-orange-gradient');
+    }, 2000);
+}
+
+function closeSEOModal() {
+    document.getElementById('modal-seo-edit').classList.add('hidden');
+}
+
+
+async function generateSEOImage() {
+    const prompt = document.getElementById('seo-image-prompt').value.trim();
+    if (!prompt) {
+        alert('Vui lòng nhập mô tả để AI vẽ ảnh');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-generate-image');
+    const loading = document.getElementById('seo-image-loading');
+    const preview = document.getElementById('seo-image-preview');
+    const imgEl = document.getElementById('seo-image-result');
+    const placeholder = document.getElementById('seo-image-placeholder');
+    
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    placeholder.classList.add('hidden');
+    preview.classList.add('hidden');
+    preview.classList.remove('flex');
+    loading.classList.remove('hidden');
+    
+    try {
+        const data = await authedFetch('/api/seo/generate-image', {
+            method: 'POST',
+            body: JSON.stringify({ prompt })
+        });
+        
+        if (data.error) throw new Error(data.error);
+        
+        // Create a new image to cache and bind load event
+        const tempImg = new Image();
+        tempImg.onload = () => {
+            imgEl.src = tempImg.src;
+            loading.classList.add('hidden');
+            preview.classList.remove('hidden');
+            preview.classList.add('flex');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            isSEOPostsLoaded = false; // force reload next time
+        };
+        tempImg.onerror = () => {
+            alert('Lỗi: Hình ảnh chứa nội dung không an toàn hoặc API đang tải trọng. Hãy thử prompt khác!');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            loading.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        };
+        tempImg.src = data.image_url;
+        
+    } catch (e) {
+        alert('Lỗi gọi API vẽ ảnh: ' + e.message);
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        loading.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+    }
+}
+
+async function downloadSEOImage() {
+    const url = document.getElementById('seo-image-result').src;
+    if (!url) return;
+    
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `SEO_AI_Image_${Date.now()}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+       // fallback if fetch fails (cors)
+       const a = document.createElement('a');
+       a.href = url;
+       a.target = '_blank';
+       a.download = `SEO_AI_Image_${Date.now()}.jpg`;
+       document.body.appendChild(a);
+       a.click();
+       document.body.removeChild(a);
+    }
+}
+
+async function loadSEOPosts() {
+    isSEOPostsLoaded = true;
+    const postList = document.getElementById('seo-my-posts-list');
+    const imgGrid = document.getElementById('seo-my-images-grid');
+    g_seoPosts = {}; // Reset cache
+    
+    postList.innerHTML = '<div class="p-10 text-center text-orange-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu Cloud...</div>';
+    imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-blue-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải hình ảnh...</div>';
+    
+    try {
+        const data = await authedFetch('/api/seo/posts');
+        if (data.error) throw new Error(data.error);
+        
+        // Render Posts
+        if (data.posts.length === 0) {
+            postList.innerHTML = '<div class="p-10 text-center text-gray-500 italic font-bold">Chưa có bài viết nào được tạo. Nhấn <a href="#" onclick="showPage(\'seo-article\')" class="text-orange-500 hover:underline">Tạo Bài Viết SEO</a> ngay!</div>';
+        } else {
+            let html = '';
+            data.posts.forEach(p => {
+                g_seoPosts[p.id] = p; // cache
+                const d = new Date(p.created_at).toLocaleString('vi-VN');
+                html += `
+                    <div class="px-10 py-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-white/5 transition-colors group">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="bg-green-500/20 text-green-400 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-green-500/20">${p.status}</span>
+                                <span class="text-[10px] text-gray-500 font-bold uppercase">${d}</span>
+                            </div>
+                            <h4 class="text-white font-black text-lg mb-1 group-hover:text-orange-400 transition-colors">${p.title}</h4>
+                            <p class="text-gray-400 text-sm font-medium">Keywords: <span class="text-gray-300 font-bold">${p.keyword}</span></p>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <button onclick="viewSEOContent('${p.id}')" class="px-5 py-2.5 bg-white/10 hover:bg-orange-gradient text-white rounded-xl font-bold text-sm transition-all hover:shadow-lg hover:-translate-y-0.5">
+                                <i class="fas fa-eye mr-1"></i> Xem / Copy
+                            </button>
+                            <button onclick="deleteSEOPost('${p.id}')" class="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-red-500 text-gray-400 hover:text-white rounded-xl transition-all">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            postList.innerHTML = html;
+        }
+        
+        // Render Images
+        if (data.images.length === 0) {
+            imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 italic font-bold">Chưa có hình ảnh nào.</div>';
+        } else {
+            let html = '';
+            data.images.forEach((img, idx) => {
+                const delay = idx * 50;
+                html += `
+                    <div class="rounded-3xl border border-white/5 flex flex-col bg-white/5 group relative hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/20 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
+                        <img src="${img.image_url}" class="w-full h-48 object-cover rounded-t-3xl" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 rounded-3xl">
+                            <p class="text-[10px] text-white/80 line-clamp-3 mb-4 font-medium leading-relaxed">${img.prompt}</p>
+                            <a href="${img.image_url}" download target="_blank" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors">
+                                <i class="fas fa-download mr-1"></i> Full HD
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+            imgGrid.innerHTML = html;
+        }
+        
+    } catch (e) {
+        postList.innerHTML = `<div class="p-10 text-red-500 font-bold bg-red-500/10 m-6 rounded-2xl">Lỗi tải dữ liệu: ${e.message}</div>`;
+        imgGrid.innerHTML = '';
+    }
+}
+
+function viewSEOContent(id) {
+    const p = g_seoPosts[id];
+    if (!p) return;
+    document.getElementById('seo-modal-title').innerText = p.title;
+    document.getElementById('seo-modal-content').value = p.content;
+    document.getElementById('modal-seo-edit').classList.remove('hidden');
+}
+
+async function deleteSEOPost(id) {
+    if (!confirm('Bạn có chắc muốn xóa bài viết này vĩnh viễn khỏi Cloud?')) return;
+    try {
+        const data = await authedFetch(`/api/seo/posts/${id}`, { method: 'DELETE' });
+        if (data.error) throw new Error(data.error);
+        loadSEOPosts(); // Reload
+    } catch (e) {
+        alert('Lỗi xóa: ' + e.message);
+    }
+}

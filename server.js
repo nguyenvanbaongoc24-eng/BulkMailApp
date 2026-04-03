@@ -14,6 +14,7 @@ require('dotenv').config();
 
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
+const seoService = require('./services/seoService');
 // const scraperService = require('./services/scraperService'); // Moved to dynamic require for Render compatibility
 let scraperService = null;
 try {
@@ -1850,9 +1851,122 @@ app.get('/api/download-tool', (req, res) => {
     res.download(filePath, 'CA2_Automation_Tool.zip');
 });
 
+// --- SEO Content AI Routes ---
+
+app.get('/api/seo/news', authenticate, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('tax_news')
+            .select('*')
+            .order('publish_date', { ascending: false })
+            .limit(20);
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/seo/generate-article', authenticate, async (req, res) => {
+    try {
+        const { keyword, tone, length } = req.body;
+        if (!keyword) return res.status(400).json({ error: 'Keyword is required' });
+
+        const content = await seoService.generateSEOArticle(keyword, tone, length);
+        
+        // Return without saving (let frontend handle save) OR save directly
+        const newPost = {
+            id: Date.now().toString() + '-' + Math.floor(Math.random()*1000), // Simple UUID fallback or use uuid in DB
+            user_id: req.user.id,
+            title: keyword,
+            content: content,
+            keyword: keyword,
+            status: 'draft',
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('seo_posts').insert([newPost]).select();
+        if (error) throw error;
+
+        res.json(data[0]);
+    } catch (err) {
+        if (err.response) {
+            return res.status(err.response.status).json({ error: err.response.data });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/seo/generate-image', authenticate, async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+
+        const imageUrl = await seoService.generateImageUrl(prompt);
+
+        const newImage = {
+            id: Date.now().toString() + '-' + Math.floor(Math.random()*1000),
+            user_id: req.user.id,
+            prompt: prompt,
+            image_url: imageUrl,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('seo_images').insert([newImage]).select();
+        if (error) throw error;
+
+        res.json(data[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/seo/posts', authenticate, async (req, res) => {
+    try {
+        const { data: posts, error: error1 } = await supabase
+            .from('seo_posts')
+            .select('*')
+            .eq('user_id', req.user.id)
+            .order('created_at', { ascending: false });
+        if (error1) throw error1;
+
+        const { data: images, error: error2 } = await supabase
+            .from('seo_images')
+            .select('*')
+            .eq('user_id', req.user.id)
+            .order('created_at', { ascending: false });
+        if (error2) throw error2;
+
+        res.json({ posts, images });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/seo/posts/:id', authenticate, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('seo_posts')
+            .delete()
+            .eq('id', req.params.id)
+            .eq('user_id', req.user.id);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
     console.log(`Automation Tool: http://localhost:${port}/automation.html`);
     // Start the background worker
     emailService.startWorker();
+
+    // Start the SEO Crawler every 12 hours (12 * 60 * 60 * 1000 ms)
+    console.log('[SEO] Khởi động bộ đếm Crawler 12h/lần...');
+    seoService.crawlTaxNews(supabase); // run once on startup
+    setInterval(() => {
+        seoService.crawlTaxNews(supabase);
+    }, 12 * 60 * 60 * 1000);
 });
