@@ -1361,8 +1361,29 @@ function handleEditorImage(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-        document.getElementById('input-template').focus();
-        document.execCommand('insertImage', false, e.target.result);
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.margin = '10px 0';
+        img.style.borderRadius = '16px';
+        
+        const editor = document.getElementById('input-template');
+        editor.focus();
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(img);
+            // Move cursor after the image
+            range.setStartAfter(img);
+            range.setEndAfter(img);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } else {
+            editor.appendChild(img);
+        }
     };
     reader.readAsDataURL(file);
 }

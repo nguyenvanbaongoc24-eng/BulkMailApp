@@ -75,6 +75,17 @@ function parseTemplate(template, customer) {
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         try {
+            // Handle DD/MM/YYYY format explicitly
+            if (typeof dateStr === 'string' && dateStr.includes('/')) {
+                const parts = dateStr.split(' ')[0].split('/');
+                if (parts.length === 3) {
+                    const day = parts[0].padStart(2, '0');
+                    const month = parts[1].padStart(2, '0');
+                    const year = parts[2];
+                    if (year.length === 4) return `${day}/${month}/${year}`;
+                }
+            }
+            
             const d = new Date(dateStr);
             if (isNaN(d.getTime())) return dateStr;
             return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -113,6 +124,8 @@ function parseTemplate(template, customer) {
         ['#ngayhethan', formatDate(norm.expired_date)],
         ['#Ngày Hết Hạn', formatDate(norm.expired_date)],
         ['#Ngay Het Han', formatDate(norm.expired_date)],
+        ['#Ngàyhếthạn', formatDate(norm.expired_date)],
+        ['#Ngày hết hạn', formatDate(norm.expired_date)],
     ];
 
     // Step 3: Replace each tag (case-insensitive)
@@ -145,6 +158,15 @@ const makeBase64Url = (str) => {
 };
 
 const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMode) => {
+    // Inject responsive image CSS to prevent oversized images in email clients
+    const responsiveStyles = `
+        <style>
+            img { max-width: 100% !important; height: auto !important; display: block; margin: 10px 0; }
+            table { width: 100% !important; border-collapse: collapse; }
+        </style>
+    `;
+    const finalHtml = responsiveStyles + htmlBody;
+    
     const boundary = `====boundary_${Date.now()}====`;
     const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     let pdfSkipped = false;
@@ -182,7 +204,7 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
     
     // Part 1: HTML Body (Base64 Encoded to prevent UTF-8 boundary corruption in Gmail)
-    const htmlBase64 = Buffer.from(htmlBody, 'utf8').toString('base64');
+    const htmlBase64 = Buffer.from(finalHtml, 'utf8').toString('base64');
     message += `--${boundary}\r\n`;
     message += `Content-Type: text/html; charset="UTF-8"\r\n`;
     message += `Content-Transfer-Encoding: base64\r\n\r\n`;
