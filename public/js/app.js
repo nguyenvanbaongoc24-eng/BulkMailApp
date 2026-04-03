@@ -382,7 +382,18 @@ async function authedFetch(url, options = {}) {
         ...options.headers,
         'Authorization': `Bearer ${token}`
     };
-    return fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers });
+    
+    // Tự động xử lý khi phiên đăng nhập hết hạn (401 Unauthorized)
+    if (res.status === 401) {
+        console.warn('[AUTH] Phiên đăng nhập hết hạn (401).');
+        localStorage.removeItem('sb-token');
+        alert('Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại để tiếp tục!');
+        window.location.reload(); // Tải lại trang sẽ tự động hiện màn hình Login
+        return new Promise(() => {}); // Chặn tiến trình tiếp theo để tránh lỗi logic
+    }
+    
+    return res;
 }
 
 // --- CA2 CRM LOGIC ---
