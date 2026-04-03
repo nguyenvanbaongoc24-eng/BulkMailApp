@@ -1399,7 +1399,7 @@ async function saveCampaign(event) {
             showPage('campaigns');
         } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Không rõ'));
+            alert(`Lỗi: ${err.error || 'N/A'}\nChi tiết: ${err.message || 'Không rõ'}\nGợi ý: ${err.suggestion || 'Liên hệ kỹ thuật'}`);
         } else {
             const html = await res.text();
             alert('Lỗi hệ thống khi tạo chiến dịch (HTML): ' + html.substring(0, 200));
@@ -1425,7 +1425,7 @@ async function saveTemplate() {
             loadTemplates();
         } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
-            alert('Lỗi khi lưu mẫu: ' + (err.error || 'Không rõ'));
+            alert(`Lỗi khi lưu mẫu: ${err.error || 'N/A'}\nChi tiết: ${err.message || 'Không rõ'}\nGợi ý: ${err.suggestion || 'Liên hệ kỹ thuật'}`);
         } else {
             const html = await res.text();
             alert('Lỗi hệ thống (HTML): ' + html.substring(0, 200));

@@ -39,7 +39,8 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 
 // --- EMERGENCY DIAGNOSTICS ---
@@ -2000,10 +2001,12 @@ app.delete('/api/seo/posts/:id', authenticate, async (req, res) => {
 // --- Final Catch-all Global Error Handler (ENSURE JSON) ---
 app.use((err, req, res, next) => {
     console.error('[GLOBAL_ERROR_HANDLER]', err);
-    res.status(err.status || 500).json({
-        error: 'Lỗi hệ thống nghiêm trọng',
+    const status = err.status || 500;
+    res.status(status).json({
+        error: status === 413 ? 'Dung lượng mẫu quá lớn' : 'Lỗi hệ thống nghiêm trọng',
         message: err.message,
-        path: req.path
+        path: req.path,
+        suggestion: status === 413 ? 'Vui lòng giảm dung lượng hình ảnh hoặc text trong mẫu email.' : 'Vui lòng thử lại sau hoặc báo cáo kỹ thuật.'
     });
 });
 
