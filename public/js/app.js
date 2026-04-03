@@ -1391,15 +1391,20 @@ async function saveCampaign(event) {
                 attachCert
             })
         });
+        
+        const contentType = res.headers.get("content-type");
         if (res.ok) {
             alert('Tạo chiến dịch thành công!');
             closeCreateModal();
             showPage('campaigns');
-        } else {
+        } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
             alert('Lỗi: ' + (err.error || 'Không rõ'));
+        } else {
+            const html = await res.text();
+            alert('Lỗi hệ thống khi tạo chiến dịch (HTML): ' + html.substring(0, 200));
         }
-    } catch (e) { alert('Lỗi kết nối server'); }
+    } catch (e) { alert('Lỗi kết nối server: ' + e.message); }
 }
 
 // --- Template Save/Load ---
@@ -1413,12 +1418,17 @@ async function saveTemplate() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, content })
         });
+        
+        const contentType = res.headers.get("content-type");
         if (res.ok) {
             alert('Đã lưu mẫu thành công!');
             loadTemplates();
-        } else {
+        } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
             alert('Lỗi khi lưu mẫu: ' + (err.error || 'Không rõ'));
+        } else {
+            const html = await res.text();
+            alert('Lỗi hệ thống (HTML): ' + html.substring(0, 200));
         }
     } catch (e) { 
         console.error('[TEMPLATE_SAVE_ERROR]', e); 

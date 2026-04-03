@@ -854,7 +854,14 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
 
     try {
         const { data, error } = await getClient(req.token).from('campaigns').insert([newCampaign]).select();
-        if (error) throw error;
+        if (error) {
+            console.error('[CAMPAIGN_DB_ERROR]', error);
+            return res.status(500).json({ error: error.message });
+        }
+
+        if (!data || data.length === 0) {
+            console.warn('[CAMPAIGN_SAVE_WARNING] Campaign insert succeeded but no data returned via RLS.');
+        }
 
         // Create initial logs in email_logs table for the worker
         const logs = recipients.map(r => {
@@ -877,11 +884,13 @@ app.post('/api/campaigns', authenticate, async (req, res) => {
 
         if (logs.length > 0) {
             const { error: logsError } = await getClient(req.token).from('email_logs').insert(logs);
-            if (logsError) console.error('Error creating email_logs:', logsError);
+            if (logsError) {
+                console.error('Error creating email_logs:', logsError);
+            }
         }
-
-        res.json(data[0]);
+        res.json({ success: true, id: campaignId });
     } catch (error) {
+        console.error('[CAMPAIGN_CRASH]', error.message);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1986,6 +1995,16 @@ app.delete('/api/seo/posts/:id', authenticate, async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// --- Final Catch-all Global Error Handler (ENSURE JSON) ---
+app.use((err, req, res, next) => {
+    console.error('[GLOBAL_ERROR_HANDLER]', err);
+    res.status(err.status || 500).json({
+        error: 'Lỗi hệ thống nghiêm trọng',
+        message: err.message,
+        path: req.path
+    });
 });
 
 app.listen(port, () => {
