@@ -270,7 +270,7 @@
                 </button>
             </div>
         </div>
-        <nav class="flex-1 px-4 space-y-4 mt-4">
+        <nav class="flex-1 px-4 space-y-4 mt-4 overflow-y-auto pb-10" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;">
             <a href="javascript:void(0)" onclick="showPage('ca2-crm'); return false;" id="nav-ca2-crm" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
                 <span class="mr-3 text-lg group-hover:scale-110 transition-transform">👥</span> <span class="font-bold">CA2 CRM</span>
             </a>
@@ -286,6 +286,13 @@
             <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
             </a>
+            <div class="pt-4 border-t border-white/5 space-y-2">
+                <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2 mb-2">Trợ Lý Phân Tích <span class="text-blue-500 font-bold ml-2 shrink-0">PRO</span></p>
+                <a href="javascript:void(0)" onclick="showPage('lookup-tools'); return false;" id="nav-lookup-tools" class="flex items-center px-4 py-3 text-cyan-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">🔍</span> <span class="font-semibold text-sm">Tra Cứu Kế Toán</span>
+                </a>
+            </div>
+            
             <div class="pt-4 border-t border-white/5 space-y-2">
                 <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2 mb-2">SEO Tools <span class="text-orange-500 font-bold ml-2 shrink-0">AI</span></p>
                 <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
@@ -854,6 +861,63 @@
                     </div>
                     <div id="seo-my-images-grid" class="p-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px]">
                         <!-- Image items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lookup Tools View -->
+            <div id="view-lookup-tools" class="hidden space-y-8 animate-in fade-in duration-500 pb-10">
+                <h2 class="text-3xl font-black text-white tracking-tight">Cổng Tra Cứu <span class="text-blue-500">Nghiệp Vụ</span></h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Tool 1: Tra cứu Đăng ký kinh doanh (API) -->
+                    <div class="bg-glass p-8 rounded-[40px] border border-white/5 shadow-2xl relative overflow-hidden h-fit">
+                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full"></div>
+                        <h3 class="text-xl font-black text-white mb-6 relative z-10 flex items-center justify-between">
+                            <span>🔍 Thông tin Doanh nghiệp</span>
+                            <span class="text-[10px] bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/20 font-bold uppercase tracking-widest">Live API</span>
+                        </h3>
+                        <div class="space-y-4 relative z-10">
+                            <div>
+                                <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Nhập Mã Số Thuế / Tên Công Ty</label>
+                                <div class="flex gap-3">
+                                    <input id="lookup-mst" type="text" placeholder="Ví dụ: 0101243150" class="flex-1 px-6 py-4 rounded-[20px] outline-none border border-white/5 bg-black/20 focus:border-blue-500/50 shadow-inner font-bold text-white transition-all">
+                                    <button onclick="lookupCompany()" class="px-8 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-[20px] shadow-xl shadow-blue-900/40 transition-all font-black shrink-0 hover:scale-[1.02] active:scale-95">Tra Cứu</button>
+                                </div>
+                            </div>
+                            <div id="lookup-result" class="hidden mt-6 p-6 bg-white/5 rounded-[24px] border border-white/10 text-sm space-y-4 shadow-inner">
+                                <!-- Kết quả trả về đây -->
+                            </div>
+                            <div id="lookup-loading" class="hidden text-center text-blue-400 py-6">
+                                <i class="fas fa-spinner fa-spin text-3xl mb-3 mt-2"></i>
+                                <p class="font-bold text-sm tracking-wide">Đang truy vấn CSDL Quốc gia...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tool 2: Hóa đơn điện tử & Cổng Nhà Nước -->
+                    <div class="space-y-6">
+                        <!-- Box Hóa đơn điện tử -->
+                        <div class="bg-glass p-8 rounded-[32px] border border-white/5 shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
+                            <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="flex items-center justify-between mb-4 relative z-10">
+                                <h3 class="text-lg font-black text-white">📑 Hóa Đơn Điện Tử (GDT)</h3>
+                                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-cyan-900/20"><i class="fas fa-file-invoice"></i></div>
+                            </div>
+                            <p class="text-[13px] text-gray-400 font-medium mb-6 line-clamp-2 leading-relaxed relative z-10">Truy cập Cổng thông tin của Tổng Cục Thuế để tra cứu trạng thái và tính hợp lệ của hóa đơn điện tử mua vào/bán ra theo Nghị định 123.</p>
+                            <a href="https://hoadondientu.gdt.gov.vn/" target="_blank" class="block w-full text-center py-3.5 bg-white/5 hover:bg-cyan-600 text-white rounded-xl font-black text-sm transition-all border border-white/5 hover:border-cyan-500 relative z-10 shadow-lg">Mở Cổng Tra Cứu ↗</a>
+                        </div>
+                        
+                        <!-- Box Bảo hiểm xã hội -->
+                        <div class="bg-glass p-8 rounded-[32px] border border-white/5 shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
+                            <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="flex items-center justify-between mb-4 relative z-10">
+                                <h3 class="text-lg font-black text-white">🏥 Bảo Hiểm Xã Hội VN</h3>
+                                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shadow-lg shadow-emerald-900/20"><i class="fas fa-shield-alt"></i></div>
+                            </div>
+                            <p class="text-[13px] text-gray-400 font-medium mb-6 line-clamp-2 leading-relaxed relative z-10">Tra cứu mã số BHXH, quá trình tham gia BHXH, BHYT, BHTN và giá trị sử dụng thẻ BHYT của người lao động.</p>
+                            <a href="https://baohiemxahoi.gov.vn/tracuu/" target="_blank" class="block w-full text-center py-3.5 bg-white/5 hover:bg-emerald-600 text-white rounded-xl font-black text-sm transition-all border border-white/5 hover:border-emerald-500 relative z-10 shadow-lg">Mở Trình Tra Cứu ↗</a>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -34,13 +34,18 @@ async function loadSEONews() {
         data.forEach((news, idx) => {
             const d = new Date(news.publish_date).toLocaleString('vi-VN');
             const delay = idx * 100;
+            
+            let colorClass = 'bg-orange-600 shadow-orange-900/50';
+            if (news.source === 'LuatVietnam') colorClass = 'bg-blue-600 shadow-blue-900/50';
+            else if (news.source === 'WebKetoan') colorClass = 'bg-green-600 shadow-green-900/50';
+            
             html += `
-                <div class="bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 rounded-[24px] hover:bg-white/10 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-orange-900/20 group animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
+                <div class="bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 rounded-[24px] hover:bg-white/10 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-white/5 group animate-in fade-in slide-in-from-bottom-4 duration-500" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
                     <div class="flex justify-between items-start mb-4">
-                        <div class="text-[10px] text-white bg-orange-600 px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg shadow-orange-900/50">${news.source}</div>
+                        <div class="text-[10px] text-white ${colorClass} px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg">${news.source}</div>
                         <div class="text-[10px] text-gray-500 font-bold">${d}</div>
                     </div>
-                    <h3 class="text-lg font-black text-white mb-3 line-clamp-2 group-hover:text-orange-400 transition-colors leading-tight">${news.title}</h3>
+                    <h3 class="text-lg font-black text-white mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors leading-tight">${news.title}</h3>
                     <p class="text-sm text-gray-400 line-clamp-3 mb-6 font-medium leading-relaxed">${news.summary}</p>
                     <a href="${news.url}" target="_blank" class="inline-flex items-center text-orange-500 font-black text-sm hover:underline group-hover:translate-x-1 transition-transform">
                         Đọc chi tiết <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
@@ -299,5 +304,38 @@ async function deleteSEOPost(id) {
         loadSEOPosts(); // Reload
     } catch (e) {
         alert('Lỗi xóa: ' + e.message);
+    }
+}
+
+async function lookupCompany() {
+    const mst = document.getElementById('lookup-mst').value.trim();
+    if (!mst) {
+        alert('Vui lòng nhập Mã số thuế hoặc Tên công ty');
+        return;
+    }
+    
+    const loading = document.getElementById('lookup-loading');
+    const result = document.getElementById('lookup-result');
+    
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
+    
+    try {
+        // Fallback or shortcut: Just redirect to Masothue.com securely
+        window.open(`https://masothue.com/Search/?q=${encodeURIComponent(mst)}`, '_blank');
+        
+        loading.classList.add('hidden');
+        result.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
+                <p class="text-white font-bold">Đã mở trang tra cứu thành công!</p>
+                <p class="text-xs text-gray-400 mt-1">Hệ thống đã tự động mở sang tab mới để đảm bảo tính an toàn do Cloudflare bảo vệ truy cập.</p>
+            </div>
+        `;
+        result.classList.remove('hidden');
+        
+    } catch (e) {
+        alert('Lỗi tra cứu: ' + e.message);
+        loading.classList.add('hidden');
     }
 }

@@ -81,49 +81,82 @@ async function generateImageUrl(prompt) {
 }
 
 async function crawlTaxNews(supabaseAdmin) {
-    console.log('[SEO CRAWLER] Bắt đầu lấy tin tức thuế...');
-    try {
-        const url = 'https://vnexpress.net/tag/thue-129668';
-        const response = await axios.get(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
-        });
-        
-        const $ = cheerio.load(response.data);
-        const newsItems = [];
-        
-        $('.item-news').each((i, el) => {
-            if (i >= 10) return; // Lấy 10 bài
-            
-            const titleEl = $(el).find('.title-news a');
-            const descEl = $(el).find('.description a');
-            
-            const link = titleEl.attr('href');
-            const title = titleEl.text().trim();
-            const summary = descEl.text().trim();
-            
-            if (title && link) {
-                newsItems.push({
-                    title,
-                    url: link,
-                    summary: summary || title,
-                    source: 'VnExpress',
-                    publish_date: new Date().toISOString() // Fallback current time
-                });
-            }
-        });
-        
-        console.log(`[SEO CRAWLER] Tìm thấy ${newsItems.length} tin tức.`);
-        
-        let upserted = 0;
-        for (const item of newsItems) {
-            // Upsert directly, depends on unique constraint on "url"
-            const { error } = await supabaseAdmin.from('tax_news').upsert(item, { onConflict: 'url' });
-            if (!error) upserted++;
+    console.log('[SEO CRAWLER] Bắt đầu lấy tin tức đa nguồn...');
+    const sources = [
+        { 
+            name: 'VnExpress', 
+            url: 'https://vnexpress.net/tag/thue-129668', 
+            titleSelector: '.title-news a', 
+            descSelector: '.description a',
+            baseUrl: ''
+        },
+        { 
+            name: 'LuatVietnam', 
+            url: 'https://luatvietnam.vn/thue-phi-le-phi.html', 
+            titleSelector: 'h3 a', 
+            descSelector: '.sapo, .desc',
+            baseUrl: 'https://luatvietnam.vn'
+        },
+        { 
+            name: 'WebKetoan', 
+            url: 'https://webketoan.com/categories/thue.3/', 
+            titleSelector: '.structItem-title a', 
+            descSelector: '.structItem-minor',
+            baseUrl: 'https://webketoan.com'
         }
-        console.log(`[SEO CRAWLER] Đã cập nhật ${upserted} tin tức mới.`);
-    } catch (e) {
-        console.error('[SEO CRAWLER] Lỗi:', e.message);
+    ];
+
+    let totalUpserted = 0;
+
+    for (const source of sources) {
+        try {
+            console.log(`[SEO CRAWLER] Đang quét nguồn: ${source.name}...`);
+            const response = await axios.get(source.url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                timeout: 8000
+            });
+            
+            const $ = cheerio.load(response.data);
+            const newsItems = [];
+            
+            // Try to find articles based on title selector
+            $(source.titleSelector).each((i, el) => {
+                if (i >= 8) return; // Lấy 8 bài mỗi trang
+                
+                let link = $(el).attr('href');
+                if (link && !link.startsWith('http')) {
+                    if (link.startsWith('/')) link = source.baseUrl + link;
+                    else link = source.baseUrl + '/' + link;
+                }
+                
+                const title = $(el).text().trim();
+                let summary = $(el).parent().parent().find(source.descSelector).first().text().trim();
+                if (!summary) summary = title; // fallback
+                
+                if (title && link && title.length > 15) {
+                    newsItems.push({
+                        title,
+                        url: link,
+                        summary: summary,
+                        source: source.name,
+                        publish_date: new Date().toISOString()
+                    });
+                }
+            });
+
+            let upserted = 0;
+            for (const item of newsItems) {
+                const { error } = await supabaseAdmin.from('tax_news').upsert(item, { onConflict: 'url' });
+                if (!error) upserted++;
+            }
+            console.log(`[SEO CRAWLER] ${source.name}: Cập nhật ${upserted} tin tức`);
+            totalUpserted += upserted;
+        } catch (e) {
+            console.error(`[SEO CRAWLER] Lỗi tải ${source.name}:`, e.message);
+        }
     }
+    
+    console.log(`[SEO CRAWLER] Quá trình hoàn tất. Tổng tin mới: ${totalUpserted}`);
 }
 
 module.exports = {
