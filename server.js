@@ -1903,10 +1903,54 @@ app.post('/api/seo/generate-image', authenticate, async (req, res) => {
 
         const imageUrl = await seoService.generateImageUrl(prompt);
 
+        // Server-side validation: actually fetch the image to ensure it loads
+        console.log('[AI IMAGE] Validating image URL:', imageUrl.substring(0, 100) + '...');
+        let validatedUrl = imageUrl;
+        let imageOk = false;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const imgRes = await axios.get(validatedUrl, { 
+                    timeout: 30000,
+                    maxRedirects: 5,
+                    validateStatus: (status) => status < 400,
+                    // Only fetch headers + first chunk to validate, not the full image
+                    responseType: 'stream'
+                });
+                
+                const contentType = imgRes.headers['content-type'] || '';
+                if (contentType.startsWith('image/')) {
+                    imageOk = true;
+                    console.log(`[AI IMAGE] ✅ Image validated on attempt ${attempt} (${contentType})`);
+                    imgRes.data.destroy(); // close the stream
+                    break;
+                } else {
+                    console.warn(`[AI IMAGE] ⚠ Attempt ${attempt}: Response is not an image (${contentType})`);
+                    imgRes.data.destroy();
+                    // Generate a new seed for retry
+                    const newSeed = Math.floor(Math.random() * 1000000);
+                    validatedUrl = validatedUrl.replace(/seed=\d+/, `seed=${newSeed}`);
+                }
+            } catch (fetchErr) {
+                console.warn(`[AI IMAGE] ⚠ Attempt ${attempt} failed:`, fetchErr.message);
+                // Generate a new seed for retry
+                const newSeed = Math.floor(Math.random() * 1000000);
+                validatedUrl = validatedUrl.replace(/seed=\d+/, `seed=${newSeed}`);
+            }
+        }
+
+        if (!imageOk) {
+            // Final fallback: use a simpler prompt
+            console.log('[AI IMAGE] All attempts failed. Using simplified fallback prompt...');
+            const fallbackPrompt = encodeURIComponent('professional business office modern design 8k photorealistic');
+            const fallbackSeed = Math.floor(Math.random() * 1000000);
+            validatedUrl = `https://image.pollinations.ai/prompt/${fallbackPrompt}?width=1024&height=1024&nologo=true&seed=${fallbackSeed}&model=flux`;
+        }
+
         const newImage = {
             user_id: req.user.id,
             prompt: prompt,
-            image_url: imageUrl,
+            image_url: validatedUrl,
             created_at: new Date().toISOString()
         };
 
@@ -1915,9 +1959,11 @@ app.post('/api/seo/generate-image', authenticate, async (req, res) => {
 
         res.json(data[0]);
     } catch (err) {
+        console.error('[AI IMAGE] Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
+
 
 app.get('/api/seo/posts', authenticate, async (req, res) => {
     try {

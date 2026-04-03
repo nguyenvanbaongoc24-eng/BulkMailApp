@@ -126,6 +126,39 @@ function closeSEOModal() {
     document.getElementById('modal-seo-edit').classList.add('hidden');
 }
 
+async function generateImageFromArticleContent() {
+    const title = document.getElementById('seo-modal-title').innerText.replace('Kết quả bài viết: ', '').trim();
+    const content = document.getElementById('seo-modal-content').value;
+    
+    // Close current modal
+    closeSEOModal();
+    
+    // Switch to Image Gen Tab
+    if (window.showPage) {
+        window.showPage('seo-image');
+    }
+    
+    // Generate an optimized English prompt based on the title
+    // Simplified translation/format for better AI results
+    const prompt = `A professional, high-quality editorial illustration for a blog post about: "${title}". Cinematic lighting, photorealistic, business office style, 8k resolution, clean composition.`;
+    
+    const promptInput = document.getElementById('seo-image-prompt');
+    if (promptInput) {
+        promptInput.value = prompt;
+        // Scroll to the top of the view
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Short delay to let the tab switch animation finish
+        setTimeout(() => {
+            // Find and click the generate button
+            const genBtn = document.querySelector('button[onclick="generateSEOImage()"]');
+            if (genBtn) {
+                genBtn.click();
+            }
+        }, 800);
+    }
+}
+
 
 async function generateSEOImage() {
     const prompt = document.getElementById('seo-image-prompt').value.trim();
@@ -149,12 +182,21 @@ async function generateSEOImage() {
     preview.classList.add('hidden');
     preview.classList.remove('flex');
     loading.classList.remove('hidden');
+    // Update loading text to be more descriptive
+    const loadingText = loading.querySelector('p');
+    if (loadingText) loadingText.innerText = 'Đang tinh chỉnh mô tả & Vẽ ảnh... (Có thể mất 10-15s)';
     
     try {
+        // Basic client-side sanitization: strip Markdown headers and bullet points
+        const cleanPrompt = prompt
+            .replace(/[#*_~`>]/g, '') // Remove Markdown special characters
+            .replace(/\n+/g, ' ')    // Replace newlines with spaces for a single-line prompt
+            .trim();
+
         const res = await authedFetch('/api/seo/generate-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt: cleanPrompt })
         });
         const data = await res.json();
         
@@ -162,7 +204,19 @@ async function generateSEOImage() {
         
         // Create a new image to cache and bind load event
         const tempImg = new Image();
+        
+        // Add timeout fallback - if image doesn't load in 45s, show error
+        const imgTimeout = setTimeout(() => {
+            tempImg.src = ''; // Cancel loading
+            alert('Ảnh tải quá lâu (timeout). Pollinations.ai có thể đang quá tải. Vui lòng thử lại sau ít phút.');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            loading.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }, 45000);
+        
         tempImg.onload = async () => {
+            clearTimeout(imgTimeout);
             if (useLogo) {
                 try {
                     const watermarkedBase64 = await applyLogoToImage(tempImg, logoUrl);
@@ -182,11 +236,53 @@ async function generateSEOImage() {
             isSEOPostsLoaded = false; // force reload next time
         };
         tempImg.onerror = () => {
-            alert('Lỗi: Hình ảnh chứa nội dung không an toàn hoặc API đang tải trọng. Hãy thử prompt khác!');
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            loading.classList.add('hidden');
-            placeholder.classList.remove('hidden');
+            clearTimeout(imgTimeout);
+            console.error('[AI Image] Image failed to load from URL:', data.image_url);
+            // Update loading text to show retry status
+            const loadingText = loading.querySelector('p');
+            if (loadingText) loadingText.innerText = 'Ảnh không tải được, đang thử lại lần cuối...';
+            
+            // Auto-retry once with a different seed
+            const retryUrl = data.image_url.replace(/seed=\d+/, `seed=${Math.floor(Math.random() * 999999)}`);
+            const retryImg = new Image();
+            const retryTimeout = setTimeout(() => {
+                retryImg.src = '';
+                alert('Không thể tải ảnh từ Pollinations.ai sau nhiều lần thử. Vui lòng thử một prompt khác hoặc thử lại sau.');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                loading.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }, 30000);
+            
+            retryImg.onload = async () => {
+                clearTimeout(retryTimeout);
+                if (useLogo) {
+                    try {
+                        const watermarkedBase64 = await applyLogoToImage(retryImg, logoUrl);
+                        imgEl.src = watermarkedBase64;
+                    } catch (err) {
+                        imgEl.src = retryImg.src;
+                    }
+                } else {
+                    imgEl.src = retryImg.src;
+                }
+                loading.classList.add('hidden');
+                preview.classList.remove('hidden');
+                preview.classList.add('flex');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                isSEOPostsLoaded = false;
+            };
+            retryImg.onerror = () => {
+                clearTimeout(retryTimeout);
+                alert('Không thể tải ảnh từ Pollinations.ai. Nguyên nhân có thể do prompt chứa từ nhạy cảm hoặc API đang quá tải.\n\nGợi ý:\n• Thử prompt bằng tiếng Anh\n• Dùng mô tả đơn giản hơn\n• Đợi vài phút rồi thử lại');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                loading.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            };
+            retryImg.crossOrigin = "anonymous";
+            retryImg.src = retryUrl;
         };
         tempImg.crossOrigin = "anonymous"; // Crucial for canvas
         tempImg.src = data.image_url;
