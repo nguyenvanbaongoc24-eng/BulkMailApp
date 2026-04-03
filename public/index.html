@@ -286,13 +286,7 @@
             <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
             </a>
-            <div class="pt-4 border-t border-white/5 space-y-2">
-                <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2 mb-2">Trợ Lý Phân Tích <span class="text-blue-500 font-bold ml-2 shrink-0">PRO</span></p>
-                <a href="javascript:void(0)" onclick="showPage('lookup-tools'); return false;" id="nav-lookup-tools" class="flex items-center px-4 py-3 text-cyan-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">🔍</span> <span class="font-semibold text-sm">Tra Cứu Kế Toán</span>
-                </a>
-            </div>
-            
+
             <div class="pt-4 border-t border-white/5 space-y-2">
                 <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2 mb-2">SEO Tools <span class="text-orange-500 font-bold ml-2 shrink-0">AI</span></p>
                 <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
@@ -350,9 +344,14 @@
                 </button>
                 <h2 id="page-title" class="text-2xl font-bold text-white tracking-tight">Bảng điều khiển</h2>
             </div>
-            <button onclick="openCreateModal()" class="bg-orange-gradient px-6 py-2.5 text-white rounded-xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/30 flex items-center gap-2">
-                <span>+</span> Tạo chiến dịch mới
-            </button>
+            <div class="flex items-center gap-3">
+                <button onclick="showPage('lookup-tools')" class="bg-blue-600/20 text-blue-400 border border-blue-500/20 px-6 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white hover:scale-105 transition-all font-bold shadow-xl flex items-center gap-2">
+                    <span class="text-lg">🔍</span> Tra cứu kế toán
+                </button>
+                <button onclick="openCreateModal()" class="bg-orange-gradient px-6 py-2.5 text-white rounded-xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/30 flex items-center gap-2">
+                    <span>+</span> Tạo chiến dịch mới
+                </button>
+            </div>
         </header>
 
         <!-- Content Area -->
