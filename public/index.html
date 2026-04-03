@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation CA2 - Giải pháp automation gửi email hàng loạt</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-color: #050510;
             --sidebar-bg: #0a0a1a;
-            --text-main: #e2e8f0;
+            --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --glass-bg: rgba(15, 15, 30, 0.6);
             --glass-border: rgba(255, 255, 255, 0.05);
@@ -20,26 +20,58 @@
             --input-border: rgba(255, 255, 255, 0.1);
             --input-text: #ffffff;
             --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            --brand-orange: #f97316;
+            --line-height: 1.6;
         }
 
         .light-mode {
-            --bg-color: #f1f5f9;
+            --bg-color: #f8fafc;
             --sidebar-bg: #ffffff;
-            --text-main: #000000;
-            --text-muted: #1e293b;
-            --glass-bg: rgba(255, 255, 255, 0.9);
-            --glass-border: rgba(0, 0, 0, 0.15);
+            --text-main: #1e293b; /* Dark Slate for better reading */
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(0, 0, 0, 0.1);
             --input-bg: #ffffff;
-            --input-border: #94a3b8;
-            --input-text: #000000;
-            --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --input-border: #cbd5e1;
+            --input-text: #0f172a;
+            --brand-orange: #ea580c; /* High contrast orange for light mode */
+            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
         }
 
         body { 
-            font-family: 'Montserrat', 'Plus Jakarta Sans', sans-serif; 
+            font-family: 'Be Vietnam Pro', sans-serif; 
             background-color: var(--bg-color);
             color: var(--text-main);
+            line-height: var(--line-height);
             transition: background-color 0.3s, color 0.3s;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Hierarchy & Typography Rules */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+
+        .uppercase-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        /* Tabular Numbers for Data */
+        .tabular-nums, 
+        [id^="stat-"], 
+        [id^="dash-crm-"], 
+        table td,
+        .font-mono {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
         }
         .bg-dark-purple { background-color: var(--bg-color); }
         .bg-glass { 
@@ -113,10 +145,12 @@
             background-color: white !important;
             color: #0f172a !important;
         }
-        .light-mode .text-white, .light-mode h1, .light-mode h2, .light-mode h3, .light-mode h4 { color: #000000 !important; }
-        .light-mode .text-gray-400, .light-mode .text-gray-500, .light-mode .text-gray-600, .light-mode p { color: #000000 !important; font-weight: 700 !important; }
-        .light-mode [id^="stat-"], .light-mode [id^="dash-crm-"], .light-mode .font-extrabold { color: #000000 !important; font-weight: 900 !important; }
-        .light-mode .tracking-wider, .light-mode .tracking-widest { color: #000000 !important; opacity: 1 !important; font-weight: 800 !important; }
+        .light-mode .text-white, .light-mode h1, .light-mode h2, .light-mode h3, .light-mode h4 { color: #0f172a !important; }
+        .light-mode .text-gray-400, .light-mode .text-gray-500, .light-mode .text-gray-600, .light-mode p { color: #334155 !important; font-weight: 500 !important; }
+        .light-mode [id^="stat-"], .light-mode [id^="dash-crm-"], .light-mode .font-extrabold { color: #0f172a !important; font-weight: 800 !important; }
+        .light-mode .uppercase-label, .light-mode .tracking-wider, .light-mode .tracking-widest { color: #64748b !important; opacity: 1 !important; font-weight: 700 !important; }
+        .light-mode .text-orange-500 { color: var(--brand-orange) !important; }
+        .light-mode .bg-orange-gradient { background: var(--brand-orange) !important; }
         
         .light-mode .bg-glass, .light-mode .bg-glass\/40, .light-mode .bg-white\/5, .light-mode .bg-white\/2 { 
             background-color: #ffffff !important;
@@ -229,16 +263,16 @@
             <div class="space-y-4">
                 <div id="register-fields" class="hidden space-y-4 animate-in slide-in-from-top-4 duration-300">
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Họ và tên</label>
+                        <label class="uppercase-label mb-2 ml-1 block">Họ và tên</label>
                         <input id="auth-name" type="text" placeholder="Nguyễn Văn A" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Email của bạn</label>
+                    <label class="uppercase-label mb-2 ml-1 block">Email của bạn</label>
                     <input id="auth-email" type="email" placeholder="name@company.com" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Mật khẩu</label>
+                    <label class="uppercase-label mb-2 ml-1 block">Mật khẩu</label>
                     <input id="auth-password" type="password" placeholder="••••••••" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
                 </div>
             </div>
@@ -294,7 +328,7 @@
             </a>
 
             <div class="pt-4 border-t border-white/5 space-y-2">
-                <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2 mb-2">SEO Tools <span class="text-orange-500 font-bold ml-2 shrink-0">AI</span></p>
+                <p class="px-4 uppercase-label mt-2 mb-2">SEO Tools <span class="text-orange-500 font-bold ml-2 shrink-0">AI</span></p>
                 <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                     <span class="mr-3 text-lg">📰</span> <span class="font-semibold text-sm">Tin Tức Thuế</span>
                 </a>
@@ -368,7 +402,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div class="bg-glass p-8 rounded-[32px] card-glow">
                         <div class="flex items-baseline justify-between">
-                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tổng email gửi</p>
+                            <p class="uppercase-label">Tổng email gửi</p>
                             <span class="text-orange-500">📊</span>
                         </div>
                         <h3 id="stat-total" class="text-5xl font-extrabold text-white mt-4 tracking-tighter">0</h3>
@@ -379,7 +413,7 @@
                     </div>
                     <div class="bg-glass p-8 rounded-[32px] card-glow">
                         <div class="flex items-baseline justify-between">
-                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tỷ lệ thành công</p>
+                            <p class="uppercase-label">Tỷ lệ thành công</p>
                             <span class="text-green-500">✅</span>
                         </div>
                         <h3 id="stat-success" class="text-5xl font-extrabold text-white mt-4 tracking-tighter">0%</h3>
@@ -389,7 +423,7 @@
                     </div>
                     <div class="bg-glass p-8 rounded-[32px] card-glow">
                         <div class="flex items-baseline justify-between">
-                            <p class="text-sm text-gray-400 font-bold uppercase tracking-wider">Tỷ lệ lỗi</p>
+                            <p class="uppercase-label">Tỷ lệ lỗi</p>
                             <span class="text-red-500">⚠️</span>
                         </div>
                         <h3 id="stat-error" class="text-5xl font-extrabold text-red-500 mt-4 tracking-tighter">0%</h3>
@@ -402,28 +436,28 @@
                     <div class="bg-glass/40 p-6 rounded-3xl border border-red-500/10 flex items-center gap-4">
                         <div class="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 text-xl font-bold">🚫</div>
                         <div>
-                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Đã hết hạn</p>
+                            <p class="uppercase-label">Đã hết hạn</p>
                             <h4 id="dash-crm-expired" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
                     <div class="bg-glass/40 p-6 rounded-3xl border border-orange-500/10 flex items-center gap-4">
                         <div class="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-500 text-xl font-bold">⏳</div>
                         <div>
-                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Sắp hết hạn (30d)</p>
+                            <p class="uppercase-label">Sắp hết hạn (30d)</p>
                             <h4 id="dash-crm-30" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
                     <div class="bg-glass/40 p-6 rounded-3xl border border-yellow-500/10 flex items-center gap-4">
                         <div class="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center text-yellow-500 text-xl font-bold">⚠️</div>
                         <div>
-                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Sắp hết hạn (60d)</p>
+                            <p class="uppercase-label">Sắp hết hạn (60d)</p>
                             <h4 id="dash-crm-60" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
                     <div class="bg-glass/40 p-6 rounded-3xl border border-blue-500/10 flex items-center gap-4">
                         <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-500 text-xl font-bold">💎</div>
                         <div>
-                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Tổng khách hàng</p>
+                            <p class="uppercase-label">Tổng khách hàng</p>
                             <h4 id="dash-crm-total" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
@@ -807,7 +841,7 @@
                         <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full"></div>
                         <div class="space-y-6 relative z-10">
                             <div>
-                                <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2">Mô tả bức ảnh (Dùng tiếng Anh sẽ nét hơn) 🇺🇸</label>
+                                <label class="uppercase-label mb-3 ml-1 block flex items-center gap-2">Mô tả bức ảnh (Dùng tiếng Anh sẽ nét hơn) 🇺🇸</label>
                                 <textarea id="seo-image-prompt" rows="5" placeholder="A futuristic office with diverse people working on holograms, photorealistic, 8k resolution, cinematic lighting..." class="w-full px-6 py-5 rounded-[20px] outline-none resize-none border border-white/5 bg-black/20 focus:border-blue-500/50 shadow-inner"></textarea>
                             </div>
                             <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
@@ -902,7 +936,7 @@
                         </h3>
                         <div class="space-y-4 relative z-10">
                             <div>
-                                <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Nhập Mã Số Thuế / Tên Công Ty</label>
+                                <label class="uppercase-label mb-3 ml-1 block">Nhập Mã Số Thuế / Tên Công Ty</label>
                                 <div class="flex gap-3">
                                     <input id="lookup-mst" type="text" placeholder="Ví dụ: 0101243150" class="flex-1 px-6 py-4 rounded-[20px] outline-none border border-white/5 bg-black/20 focus:border-blue-500/50 shadow-inner font-bold text-white transition-all">
                                     <button onclick="lookupCompany()" class="px-8 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-[20px] shadow-xl shadow-blue-900/40 transition-all font-black shrink-0 hover:scale-[1.02] active:scale-95">Tra Cứu</button>
@@ -965,7 +999,7 @@
                     <!-- Content -->
                     <div class="flex-1 bg-black/40 overflow-hidden relative">
                         <!-- Raw Markdown Textarea -->
-                        <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-8 bg-transparent text-sm font-medium text-gray-200 resize-none font-['Montserrat'] leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
+                        <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-8 bg-transparent text-sm font-medium text-gray-200 resize-none leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
                     </div>
                     
                     <!-- Footer -->
@@ -1003,21 +1037,21 @@
                     <div class="lg:col-span-5 space-y-8">
                         <div class="bg-white/5 p-6 rounded-3xl space-y-6">
                             <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tên chiến dịch</label>
+                                <label class="uppercase-label mb-2 block">Tên chiến dịch</label>
                                 <input id="input-name" type="text" placeholder="VD: Tri ân khách hàng thân thiết" class="w-full px-5 py-4 rounded-2xl outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tiêu đề email gửi đi</label>
+                                <label class="uppercase-label mb-2 block">Tiêu đề email gửi đi</label>
                                 <input id="input-subject" type="text" placeholder="Nhập tiêu đề mail của khách hàng" class="w-full px-5 py-4 rounded-2xl outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tài khoản gửi mail (Sender)</label>
+                                <label class="uppercase-label mb-2 block">Tài khoản gửi mail (Sender)</label>
                                 <select id="select-sender" class="w-full px-5 py-4 rounded-2xl outline-none cursor-pointer font-bold bg-white/5 border border-white/10 text-white">
                                     <option value="">-- Chọn tài khoản gửi --</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Sử dụng mẫu email (Template)</label>
+                                <label class="uppercase-label mb-2 block">Sử dụng mẫu email (Template)</label>
                                 <div class="flex gap-2">
                                     <select id="select-template" onchange="applyTemplate()" class="flex-1 px-5 py-4 rounded-2xl outline-none cursor-pointer font-bold bg-white/5 border border-white/10 text-white">
                                         <option value="">-- Mẫu đã lưu --</option>
@@ -1072,7 +1106,7 @@
                     <div class="lg:col-span-7 space-y-8">
                         <div class="space-y-4">
                             <div class="flex justify-between items-center">
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Nội dung Email (Biên tập trực quan)</label>
+                                <label class="uppercase-label block">Nội dung Email (Biên tập trực quan)</label>
                                 <div class="flex items-center gap-2">
                                     <select id="select-template" onchange="applyTemplate()" class="text-xs font-black py-1 px-3 border-0 bg-white/10 rounded-lg cursor-pointer">
                                         <option value="">-- Mẫu đã lưu --</option>
