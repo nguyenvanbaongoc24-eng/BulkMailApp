@@ -47,7 +47,7 @@ async function generateImageUrl(prompt) {
 
     // Call HuggingFace Inference API for Stable Diffusion or FLUX
     // (We use a fast and high quality model that is free on Inference API)
-    const MODEL_URL = 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1';
+    const MODEL_URL = 'https://router.huggingface.co/hf-inference/v1/models/black-forest-labs/FLUX.1-schnell';
     
     const enrichedPrompt = prompt + ", highly detailed, photorealistic, 8k resolution, cinematic lighting, masterpiece";
     
