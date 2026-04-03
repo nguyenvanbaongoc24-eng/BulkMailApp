@@ -39,47 +39,13 @@ Yêu cầu:
 }
 
 async function generateImageUrl(prompt) {
-    if (!process.env.HF_API_KEY) {
-        // Fallback if no HF key is actually present (though user provided it)
-        const encodedPrompt = encodeURIComponent(prompt + ' highly detailed, photorealistic, 4k, trending on artstation');
-        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1200&height=630&nologo=true`;
-    }
-
-    // Call HuggingFace Inference API for Stable Diffusion or FLUX
-    // (We use a fast and high quality model that is free on Inference API)
-    const MODEL_URL = 'https://router.huggingface.co/hf-inference/v1/models/black-forest-labs/FLUX.1-schnell';
+    // Switching to Pollinations.ai for 100% stability and speed
+    // This avoids the persistent Hugging Face Generic API 410/404 errors
+    const encodedPrompt = encodeURIComponent(prompt + ' highly detailed, photorealistic, 8k resolution, cinematic lighting, masterpiece');
+    const randomSeed = Math.floor(Math.random() * 1000000);
     
-    const enrichedPrompt = prompt + ", highly detailed, photorealistic, 8k resolution, cinematic lighting, masterpiece";
-    
-    let retries = 3;
-    while (retries > 0) {
-        try {
-            const response = await axios.post(
-                MODEL_URL,
-                { inputs: enrichedPrompt },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.HF_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    responseType: 'arraybuffer'
-                }
-            );
-            
-            const base64Image = Buffer.from(response.data, 'binary').toString('base64');
-            return `data:image/jpeg;base64,${base64Image}`;
-        } catch (error) {
-            if (error.response && error.response.status === 503) {
-                // Model is loading
-                console.log('[HuggingFace] Model is loading, retrying in 5 seconds...');
-                await new Promise(r => setTimeout(r, 5000));
-                retries--;
-            } else {
-                throw error;
-            }
-        }
-    }
-    throw new Error('HuggingFace API timeout: Model might be taking too long to load.');
+    // Using Flux model via Pollinations for high quality
+    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${randomSeed}&model=flux`;
 }
 
 async function crawlTaxNews(supabaseAdmin) {
