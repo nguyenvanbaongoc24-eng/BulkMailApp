@@ -19,7 +19,9 @@ Yêu cầu:
 - Tông giọng: ${tone}.
 - Độ dài: ${lengthMap[length] || lengthMap['medium']}.
 - Cấu trúc bài viết rõ ràng, có Tiêu đề (H1), Meta Description, H2, H3, Kết luận.
+- SỬ DỤNG NHIỀU ICON/EMOJI để bài viết sinh động, thu hút người đọc (Dùng icon ở đầu mỗi mục, hoặc trong văn cảnh).
 - Phải có 1 đoạn caption ngắn để đăng bài lên Facebook ở cuối cùng (tách biệt bởi header Facebook Caption).
+- Viết bằng font chữ Montserrat nếu có thể (Output vẫn là Markdown).
 - Viết thân thiện, chuẩn SEO, cấu trúc bằng ngôn ngữ Markdown.`;
 
     const response = await axios.post(GROQ_API_URL, {
@@ -45,7 +47,7 @@ async function generateImageUrl(prompt) {
 
     // Call HuggingFace Inference API for Stable Diffusion or FLUX
     // (We use a fast and high quality model that is free on Inference API)
-    const MODEL_URL = 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0';
+    const MODEL_URL = 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1';
     
     const enrichedPrompt = prompt + ", highly detailed, photorealistic, 8k resolution, cinematic lighting, masterpiece";
     

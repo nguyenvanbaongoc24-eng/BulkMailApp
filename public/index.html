@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation CA2 - Giải pháp automation gửi email hàng loạt</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -36,7 +36,7 @@
         }
 
         body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
+            font-family: 'Montserrat', 'Plus Jakarta Sans', sans-serif; 
             background-color: var(--bg-color);
             color: var(--text-main);
             transition: background-color 0.3s, color 0.3s;
@@ -47,6 +47,12 @@
             backdrop-filter: blur(12px); 
             border: 1px solid var(--glass-border); 
         }
+        .logo-selector-active {
+            background: rgba(37, 99, 235, 0.2) !important;
+            border-color: rgba(59, 130, 246, 0.5) !important;
+            color: white !important;
+        }
+
         .bg-orange-gradient { 
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%); 
         }
@@ -804,6 +810,24 @@
                                 <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2">Mô tả bức ảnh (Dùng tiếng Anh sẽ nét hơn) 🇺🇸</label>
                                 <textarea id="seo-image-prompt" rows="5" placeholder="A futuristic office with diverse people working on holograms, photorealistic, 8k resolution, cinematic lighting..." class="w-full px-6 py-5 rounded-[20px] outline-none resize-none border border-white/5 bg-black/20 focus:border-blue-500/50 shadow-inner"></textarea>
                             </div>
+                            <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-lg">🏷️</span>
+                                    <div>
+                                        <p class="text-[11px] font-black text-white uppercase tracking-widest">Chèn Logo CA2</p>
+                                        <p class="text-[9px] text-gray-500 font-bold uppercase">Tự động chèn bản quyền ảnh</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="seo-image-logo" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button onclick="selectLogo(1)" id="logo-btn-1" class="logo-selector-active py-3 px-4 rounded-xl border border-white/10 text-xs font-bold text-white transition-all bg-white/5 hover:bg-white/10">Mẫu Logo 1</button>
+                                <button onclick="selectLogo(2)" id="logo-btn-2" class="py-3 px-4 rounded-xl border border-white/10 text-xs font-bold text-gray-400 transition-all hover:bg-white/5">Mẫu Logo 2</button>
+                                <input type="hidden" id="selected-logo-idx" value="1">
+                            </div>
                             <button id="btn-generate-image" onclick="generateSEOImage()" class="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-[20px] font-black text-lg text-white shadow-xl shadow-blue-900/40 hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3">
                                 <span class="text-2xl">🎨</span> Vẽ ảnh AI
                             </button>
@@ -941,7 +965,7 @@
                     <!-- Content -->
                     <div class="flex-1 bg-black/40 overflow-hidden relative">
                         <!-- Raw Markdown Textarea -->
-                        <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-8 bg-transparent text-sm font-medium text-gray-200 resize-none font-mono leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
+                        <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-8 bg-transparent text-sm font-medium text-gray-200 resize-none font-['Montserrat'] leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
                     </div>
                     
                     <!-- Footer -->

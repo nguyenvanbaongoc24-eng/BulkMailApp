@@ -139,6 +139,9 @@ async function generateSEOImage() {
     const preview = document.getElementById('seo-image-preview');
     const imgEl = document.getElementById('seo-image-result');
     const placeholder = document.getElementById('seo-image-placeholder');
+    const useLogo = document.getElementById('seo-image-logo').checked;
+    const logoIdx = document.getElementById('selected-logo-idx').value;
+    const logoUrl = `/logo-ca2-${logoIdx}.png`;
     
     btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -159,8 +162,18 @@ async function generateSEOImage() {
         
         // Create a new image to cache and bind load event
         const tempImg = new Image();
-        tempImg.onload = () => {
-            imgEl.src = tempImg.src;
+        tempImg.onload = async () => {
+            if (useLogo) {
+                try {
+                    const watermarkedBase64 = await applyLogoToImage(tempImg, logoUrl);
+                    imgEl.src = watermarkedBase64;
+                } catch (err) {
+                    console.error('Lỗi chèn logo:', err);
+                    imgEl.src = tempImg.src; // fallback to original
+                }
+            } else {
+                imgEl.src = tempImg.src;
+            }
             loading.classList.add('hidden');
             preview.classList.remove('hidden');
             preview.classList.add('flex');
@@ -175,6 +188,7 @@ async function generateSEOImage() {
             loading.classList.add('hidden');
             placeholder.classList.remove('hidden');
         };
+        tempImg.crossOrigin = "anonymous"; // Crucial for canvas
         tempImg.src = data.image_url;
         
     } catch (e) {
@@ -338,4 +352,45 @@ async function lookupCompany() {
         alert('Lỗi tra cứu: ' + e.message);
         loading.classList.add('hidden');
     }
+}
+
+
+function selectLogo(idx) {
+    document.getElementById('selected-logo-idx').value = idx;
+    const btn1 = document.getElementById('logo-btn-1');
+    const btn2 = document.getElementById('logo-btn-2');
+    if (idx === 1) {
+        btn1.classList.add('logo-selector-active', 'bg-blue-600/20', 'border-blue-500/50', 'text-white');
+        btn1.classList.remove('bg-white/5', 'text-gray-400');
+        btn2.classList.remove('logo-selector-active', 'bg-blue-600/20', 'border-blue-500/50', 'text-white');
+        btn2.classList.add('bg-white/5', 'text-gray-400');
+    } else {
+        btn2.classList.add('logo-selector-active', 'bg-blue-600/20', 'border-blue-500/50', 'text-white');
+        btn2.classList.remove('bg-white/5', 'text-gray-400');
+        btn1.classList.remove('logo-selector-active', 'bg-blue-600/20', 'border-blue-500/50', 'text-white');
+        btn1.classList.add('bg-white/5', 'text-gray-400');
+    }
+}
+
+async function applyLogoToImage(mainImg, logoUrl) {
+    return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const logo = new Image();
+        logo.crossOrigin = 'anonymous';
+        logo.onload = () => {
+            canvas.width = mainImg.naturalWidth;
+            canvas.height = mainImg.naturalHeight;
+            ctx.drawImage(mainImg, 0, 0);
+            const logoW = canvas.width * 0.25;
+            const logoH = (logo.naturalHeight / logo.naturalWidth) * logoW;
+            const padding = 20;
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(logo, canvas.width - logoW - padding, canvas.height - logoH - padding, logoW, logoH);
+            ctx.globalAlpha = 1.0;
+            resolve(canvas.toDataURL('image/jpeg', 0.95));
+        };
+        logo.onerror = reject;
+        logo.src = logoUrl;
+    });
 }
