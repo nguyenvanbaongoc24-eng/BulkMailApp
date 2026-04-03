@@ -1876,7 +1876,6 @@ app.post('/api/seo/generate-article', authenticate, async (req, res) => {
         
         // Return without saving (let frontend handle save) OR save directly
         const newPost = {
-            id: Date.now().toString() + '-' + Math.floor(Math.random()*1000), // Simple UUID fallback or use uuid in DB
             user_id: req.user.id,
             title: keyword,
             content: content,
@@ -1905,7 +1904,6 @@ app.post('/api/seo/generate-image', authenticate, async (req, res) => {
         const imageUrl = await seoService.generateImageUrl(prompt);
 
         const newImage = {
-            id: Date.now().toString() + '-' + Math.floor(Math.random()*1000),
             user_id: req.user.id,
             prompt: prompt,
             image_url: imageUrl,
