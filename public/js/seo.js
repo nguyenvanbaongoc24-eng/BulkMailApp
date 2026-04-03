@@ -3,19 +3,31 @@ let isSEONewsLoaded = false;
 let isSEOPostsLoaded = false;
 let g_seoPosts = {};
 
-// Hook into app.js showPage
-const originalShowPage = window.showPage;
-window.showPage = function(pageId) {
-    if (originalShowPage) originalShowPage(pageId);
-    
-    // Auto load data on tab switch
-    if (pageId === 'seo-news' && !isSEONewsLoaded) {
-        loadSEONews();
+// Hook into app.js showPage using a more robust method
+(function() {
+    const checkPage = (pageId) => {
+        console.log('[SEO] Tab switched to:', pageId);
+        if (pageId === 'seo-news' && !isSEONewsLoaded) {
+            loadSEONews();
+        }
+        if (pageId === 'seo-posts' && !isSEOPostsLoaded) {
+            loadSEOPosts();
+        }
+    };
+
+    const originalShowPage = window.showPage;
+    window.showPage = function(pageId) {
+        if (typeof originalShowPage === 'function') originalShowPage(pageId);
+        checkPage(pageId);
+    };
+
+    // If already on the page (initial load)
+    const currentView = document.querySelector('[id^="view-"]:not(.hidden)');
+    if (currentView) {
+        const id = currentView.id.replace('view-', '');
+        checkPage(id);
     }
-    if (pageId === 'seo-posts' && !isSEOPostsLoaded) {
-        loadSEOPosts();
-    }
-};
+})();
 
 async function loadSEONews() {
     isSEONewsLoaded = true;

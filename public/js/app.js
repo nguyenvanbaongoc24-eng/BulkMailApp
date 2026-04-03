@@ -31,7 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (startInput && window.flatpickr) {
         flatpickr(startInput, {
             dateFormat: "Y-m-d",
-            locale: "vn"
+            locale: "vn",
+            monthSelectorType: "static",
+            static: true,
+            theme: "dark"
         });
     }
 
