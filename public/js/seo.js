@@ -21,7 +21,8 @@ async function loadSEONews() {
     const grid = document.getElementById('seo-news-grid');
     grid.innerHTML = '<div class="col-span-full text-center text-orange-400 font-bold p-10"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải bản tin Thuế cập nhật nhất...</div>';
     try {
-        const data = await authedFetch('/api/seo/news');
+        const res = await authedFetch('/api/seo/news');
+        const data = await res.json();
         if (data.error) throw new Error(data.error);
         
         if (data.length === 0) {
@@ -71,10 +72,11 @@ async function generateSEOArticle() {
     loading.classList.remove('hidden');
     
     try {
-        const data = await authedFetch('/api/seo/generate-article', {
+        const res = await authedFetch('/api/seo/generate-article', {
             method: 'POST',
             body: JSON.stringify({ keyword, tone, length })
         });
+        const data = await res.json();
         
         if (data.error) {
            const msg = typeof data.error === 'string' ? data.error : (data.error.error?.message || JSON.stringify(data.error));
@@ -140,10 +142,11 @@ async function generateSEOImage() {
     loading.classList.remove('hidden');
     
     try {
-        const data = await authedFetch('/api/seo/generate-image', {
+        const res = await authedFetch('/api/seo/generate-image', {
             method: 'POST',
             body: JSON.stringify({ prompt })
         });
+        const data = await res.json();
         
         if (data.error) throw new Error(data.error);
         
@@ -213,7 +216,8 @@ async function loadSEOPosts() {
     imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-blue-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải hình ảnh...</div>';
     
     try {
-        const data = await authedFetch('/api/seo/posts');
+        const res = await authedFetch('/api/seo/posts');
+        const data = await res.json();
         if (data.error) throw new Error(data.error);
         
         // Render Posts
@@ -287,7 +291,8 @@ function viewSEOContent(id) {
 async function deleteSEOPost(id) {
     if (!confirm('Bạn có chắc muốn xóa bài viết này vĩnh viễn khỏi Cloud?')) return;
     try {
-        const data = await authedFetch(`/api/seo/posts/${id}`, { method: 'DELETE' });
+        const res = await authedFetch(`/api/seo/posts/${id}`, { method: 'DELETE' });
+        const data = await res.json();
         if (data.error) throw new Error(data.error);
         loadSEOPosts(); // Reload
     } catch (e) {
