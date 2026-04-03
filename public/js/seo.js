@@ -74,6 +74,7 @@ async function generateSEOArticle() {
     try {
         const res = await authedFetch('/api/seo/generate-article', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ keyword, tone, length })
         });
         const data = await res.json();
@@ -144,6 +145,7 @@ async function generateSEOImage() {
     try {
         const res = await authedFetch('/api/seo/generate-image', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt })
         });
         const data = await res.json();
