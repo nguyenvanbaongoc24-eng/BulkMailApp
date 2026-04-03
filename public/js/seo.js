@@ -376,8 +376,8 @@ async function loadSEOPosts() {
     const imgGrid = document.getElementById('seo-my-images-grid');
     g_seoPosts = {}; // Reset cache
     
-    postList.innerHTML = '<div class="p-10 text-center text-orange-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu Cloud...</div>';
-    imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-blue-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải hình ảnh...</div>';
+    if (postList) postList.innerHTML = '<div class="p-10 text-center text-orange-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu Cloud...</div>';
+    if (imgGrid) imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-blue-400 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải hình ảnh...</div>';
     
     try {
         const res = await authedFetch('/api/seo/posts');
@@ -417,30 +417,32 @@ async function loadSEOPosts() {
         }
         
         // Render Images
-        if (data.images.length === 0) {
-            imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 italic font-bold">Chưa có hình ảnh nào.</div>';
-        } else {
-            let html = '';
-            data.images.forEach((img, idx) => {
-                const delay = idx * 50;
-                html += `
-                    <div class="rounded-3xl border border-white/5 flex flex-col bg-white/5 group relative hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/20 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
-                        <img src="${img.image_url}" class="w-full h-48 object-cover rounded-t-3xl" />
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 rounded-3xl">
-                            <p class="text-[10px] text-white/80 line-clamp-3 mb-4 font-medium leading-relaxed">${img.prompt}</p>
-                            <a href="${img.image_url}" download target="_blank" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors">
-                                <i class="fas fa-download mr-1"></i> Full HD
-                            </a>
+        if (imgGrid) {
+            if (data.images.length === 0) {
+                imgGrid.innerHTML = '<div class="col-span-full p-10 text-center text-gray-500 italic font-bold">Chưa có hình ảnh nào.</div>';
+            } else {
+                let html = '';
+                data.images.forEach((img, idx) => {
+                    const delay = idx * 50;
+                    html += `
+                        <div class="rounded-3xl border border-white/5 flex flex-col bg-white/5 group relative hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/20 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
+                            <img src="${img.image_url}" class="w-full h-48 object-cover rounded-t-3xl" />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 rounded-3xl">
+                                <p class="text-[10px] text-white/80 line-clamp-3 mb-4 font-medium leading-relaxed">${img.prompt}</p>
+                                <a href="${img.image_url}" download target="_blank" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors">
+                                    <i class="fas fa-download mr-1"></i> Full HD
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
-            imgGrid.innerHTML = html;
+                    `;
+                });
+                imgGrid.innerHTML = html;
+            }
         }
         
     } catch (e) {
-        postList.innerHTML = `<div class="p-10 text-red-500 font-bold bg-red-500/10 m-6 rounded-2xl">Lỗi tải dữ liệu: ${e.message}</div>`;
-        imgGrid.innerHTML = '';
+        if (postList) postList.innerHTML = `<div class="p-10 text-red-500 font-bold bg-red-500/10 m-6 rounded-2xl">Lỗi tải dữ liệu: ${e.message}</div>`;
+        if (imgGrid) imgGrid.innerHTML = '';
     }
 }
 

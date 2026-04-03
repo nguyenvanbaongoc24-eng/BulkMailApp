@@ -26,6 +26,15 @@ function saveCurrentSession(token, user) {
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
 
+    // Initialize premium date picker
+    const startInput = document.getElementById('ca2-crm-start');
+    if (startInput && window.flatpickr) {
+        flatpickr(startInput, {
+            dateFormat: "Y-m-d",
+            locale: "vn"
+        });
+    }
+
     // Theme initialization
     const savedTheme = localStorage.getItem('ca2-theme') || 'dark';
     if (savedTheme === 'light') {
@@ -557,6 +566,28 @@ async function saveCA2CRM() {
     } catch (e) { alert('Lỗi kết nối server'); }
 }
 
+function updateCRMDurationOptions(defaultVal = '') {
+    const serviceSelect = document.getElementById('ca2-crm-service');
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (!serviceSelect || !durationSelect) return;
+    
+    const serviceVal = serviceSelect.value;
+    durationSelect.innerHTML = '';
+    
+    if (serviceVal === 'HDDT') {
+        ['300 số', '500 số', '1000 số', '2000 số', '5000 số', '10000 số'].forEach(v => {
+            durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
+        });
+        if (!defaultVal || !defaultVal.includes('số')) defaultVal = '500 số';
+    } else {
+        ['1 năm', '2 năm', '3 năm', '4 năm', '5 năm'].forEach(v => {
+            durationSelect.innerHTML += `<option value="${v}">${v.replace('năm', 'Năm')}</option>`;
+        });
+        if (!defaultVal || defaultVal.includes('số')) defaultVal = '1 năm';
+    }
+    durationSelect.value = defaultVal;
+}
+
 function openAddCRMModal() {
     document.getElementById('ca2-crm-modal-title').innerText = 'Thêm khách hàng CA2 CRM';
     document.getElementById('ca2-crm-id').value = '';
@@ -566,7 +597,8 @@ function openAddCRMModal() {
     document.getElementById('ca2-crm-phone').value = '';
     document.getElementById('ca2-crm-service').value = 'CKS';
     document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
-    document.getElementById('ca2-crm-duration').value = '1 năm';
+    
+    updateCRMDurationOptions('1 năm');
     
     document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }
@@ -583,7 +615,8 @@ function editCRM(id) {
     document.getElementById('ca2-crm-phone').value = c.phone || '';
     document.getElementById('ca2-crm-service').value = c.service_type || 'CKS';
     document.getElementById('ca2-crm-start').value = c.start_date || '';
-    document.getElementById('ca2-crm-duration').value = c.duration || '1 năm';
+    
+    updateCRMDurationOptions(c.duration || '1 năm');
     
     document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }

@@ -8,6 +8,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
     <style>
         :root {
             --bg-color: #050510;
@@ -1422,7 +1426,7 @@
 
     <!-- Modal: Add/Edit CA2 CRM -->
     <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-        <div class="modal-premium w-full max-w-2xl rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
+        <div class="modal-premium w-full max-w-4xl rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
             <div class="p-10 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
                 <div>
                     <h2 id="ca2-crm-modal-title" class="text-2xl font-black text-white tracking-tighter">Thêm khách hàng CA2 CRM</h2>
@@ -1457,7 +1461,7 @@
                             <label class="label-premium">Dịch vụ đang dùng</label>
                             <div class="input-group-premium">
                                 <i class="fas fa-briefcase"></i>
-                                <select id="ca2-crm-service" class="input-premium">
+                                <select id="ca2-crm-service" class="input-premium" onchange="updateCRMDurationOptions()">
                                     <option value="CKS">Chữ ký số (CKS)</option>
                                     <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
                                     <option value="EBH">BHXH điện tử (EBH)</option>
@@ -1520,7 +1524,7 @@
                             <label class="label-premium">Ngày bắt đầu dịch vụ</label>
                             <div class="input-group-premium">
                                 <i class="fas fa-calendar-alt"></i>
-                                <input type="date" id="ca2-crm-start" class="input-premium">
+                                <input type="text" id="ca2-crm-start" class="input-premium" placeholder="Chọn ngày...">
                             </div>
                         </div>
                         <div class="space-y-1">
