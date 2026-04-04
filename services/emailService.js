@@ -167,21 +167,54 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     // Inject responsive image CSS and strictly enforce BOLD rendering for Gmail Web
     const responsiveStyles = `
         <style>
-            img { max-width: 600px !important; width: auto !important; height: auto !important; display: block; margin: 10px auto; }
+            img { max-width: 600px !important; width: 100% !important; height: auto !important; display: block; margin: 10px auto; }
             @media only screen and (max-width: 620px) {
                 img { max-width: 100% !important; }
             }
             table { width: 100% !important; border-collapse: collapse; }
             /* Force all email clients to respect bold text regardless of inherited spans */
-            b, strong { font-weight: bold !important; }
+            b, strong { font-weight: bold !important; font-family: inherit !important; }
         </style>
     `;
     
     // Proactively upgrade weak font-weights (500, 600) to "bold" because Gmail completely ignores them
     let upgradedHtml = htmlBody.replace(/font-weight\s*:\s*[56]00/gi, 'font-weight: bold');
     
-    // Wrap the entire email in an Arial container to guarantee standard rendering weights
-    const finalHtml = `${responsiveStyles}<div style="font-family: Arial, Helvetica, sans-serif; color: #222222; line-height: 1.6;">${upgradedHtml}</div>`;
+    // FORCE inline image sizing for Gmail (stray width:auto often overrides HTML width=600 attribute)
+    upgradedHtml = upgradedHtml.replace(/<img([^>]+)>/gi, (match, attrs) => {
+        let newAttrs = attrs.replace(/style=(['"])(.*?)\1/gi, (styleMatch, quote, styleContent) => {
+            let cleanStyle = styleContent.replace(/(max-)?width\s*:\s*auto\s*;?/gi, '');
+            // append bulletproof sizing rules to inline style
+            return `style=${quote}max-width: 100% !important; height: auto !important; ${cleanStyle}${quote}`;
+        });
+        
+        if (!newAttrs.match(/style=/i)) {
+            newAttrs += ` style="max-width: 100% !important; height: auto !important;"`;
+        }
+        
+        // Ensure HTML 'width' attribute exists and is max 600 to constrain native bounding box 
+        if (newAttrs.match(/width=(['"]?)[^\s>]+(['"]?)/i)) {
+            newAttrs = newAttrs.replace(/width=(['"]?)[^\s>]+(['"]?)/i, 'width=$1600$2');
+        } else {
+            newAttrs += ' width="600"';
+        }
+        return `<img${newAttrs}>`;
+    });
+    
+    // ALWAYS USE A PROPER HTML DOCUMENT STRUCTURE FOR GMAIL TO RELIABLY PARSE <STYLE> BLOCKS
+    const finalHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+${responsiveStyles}
+</head>
+<body style="margin: 0; padding: 0;">
+    <div style="font-family: Arial, Helvetica, sans-serif; color: #222222; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 10px;">
+        ${upgradedHtml}
+    </div>
+</body>
+</html>`;
     
     const boundary = `====boundary_${Date.now()}====`;
     const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
