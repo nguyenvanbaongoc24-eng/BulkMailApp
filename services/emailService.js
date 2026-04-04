@@ -164,7 +164,7 @@ const makeBase64Url = (str) => {
 };
 
 const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMode) => {
-    // Inject responsive image CSS to prevent oversized images in email clients
+    // Inject responsive image CSS and strictly enforce BOLD rendering for Gmail Web
     const responsiveStyles = `
         <style>
             img { max-width: 600px !important; width: auto !important; height: auto !important; display: block; margin: 10px auto; }
@@ -172,9 +172,16 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
                 img { max-width: 100% !important; }
             }
             table { width: 100% !important; border-collapse: collapse; }
+            /* Force all email clients to respect bold text regardless of inherited spans */
+            b, strong { font-weight: bold !important; }
         </style>
     `;
-    const finalHtml = responsiveStyles + htmlBody;
+    
+    // Proactively upgrade weak font-weights (500, 600) to "bold" because Gmail completely ignores them
+    let upgradedHtml = htmlBody.replace(/font-weight\s*:\s*[56]00/gi, 'font-weight: bold');
+    
+    // Wrap the entire email in an Arial container to guarantee standard rendering weights
+    const finalHtml = `${responsiveStyles}<div style="font-family: Arial, Helvetica, sans-serif; color: #222222; line-height: 1.6;">${upgradedHtml}</div>`;
     
     const boundary = `====boundary_${Date.now()}====`;
     const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
