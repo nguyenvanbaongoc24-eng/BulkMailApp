@@ -1271,7 +1271,7 @@ function handleFileUpload(event) {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, dateNF: 'dd/mm/yyyy' });
             
             if (!rawRows || rawRows.length === 0) {
                 statusEl.innerText = 'File rỗng!';
@@ -1494,6 +1494,7 @@ function handleEditorImage(event) {
         img.src = e.target.result;
         img.style.maxWidth = '600px';
         img.style.width = 'auto';
+        img.setAttribute('width', '600');
         img.style.height = 'auto';
         img.style.display = 'block';
         img.style.margin = '10px auto';
@@ -1571,9 +1572,11 @@ function showImageResizeToolbar(imgEl) {
             if (s.w === '100%') {
                 imgEl.style.maxWidth = '100%';
                 imgEl.style.width = '100%';
+                imgEl.setAttribute('width', '100%');
             } else {
                 imgEl.style.maxWidth = s.w;
                 imgEl.style.width = 'auto';
+                imgEl.setAttribute('width', s.w.replace('px', ''));
             }
             removeImageResizeToolbar();
         };
