@@ -55,7 +55,7 @@ function parseExcel(filePath) {
             if (val.includes('serial') || val.includes('số máy') || val.includes('số chứng thư')) {
                 tempMap.serial = idx; matchCount++;
             }
-            if (val.includes('hết hạn') || val.includes('ngày hết hạn')) {
+            if (val.includes('hết hạn') || val.includes('ngày hết hạn') || val.includes('hạn gcn') || val.includes('hạn dùng') || val.includes('hạn sử dụng') || val.includes('expired')) {
                 tempMap.expiry = idx; matchCount++;
             }
         });
@@ -108,6 +108,7 @@ function parseExcel(filePath) {
             serial = row[2] ? String(row[2]).trim() : ''; // Try index 2 if index 1 empty
         }
 
+        const expDate = formatDate(row[colMap.expiry]);
         return {
             Serial: serial,
             MST: mst.toString().trim(),
@@ -115,7 +116,8 @@ function parseExcel(filePath) {
             DiaChi: row[colMap.address] ? String(row[colMap.address]).trim() : '',
             Phone: row[colMap.phone] ? String(row[colMap.phone]).trim() : '',
             Email: row[colMap.email] ? String(row[colMap.email]).trim() : '',
-            NgayHetHanChuKySo: formatDate(row[colMap.expiry])
+            NgayHetHanChuKySo: expDate,
+            expired_date: expDate
         };
     }).filter(row => row !== null);
 }

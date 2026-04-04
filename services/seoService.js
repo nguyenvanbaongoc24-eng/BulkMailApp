@@ -91,7 +91,8 @@ User input: "${rawPrompt}"`;
 
     const models = [
         'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
-        'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5'
+        'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
+        'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1'
     ];
 
     let imageBuffer = null;
@@ -146,8 +147,40 @@ User input: "${rawPrompt}"`;
         }
     }
 
+    if (!imageBuffer && process.env.DEEPAI_API_KEY) {
+        console.log('[AI IMAGE] HuggingFace models failed. Trying fallback: DeepAI...');
+        try {
+            const formData = new URLSearchParams();
+            formData.append('text', safePrompt);
+            
+            const deepRes = await axios.post('https://api.deepai.org/api/text2img', formData, {
+                headers: { 'api-key': process.env.DEEPAI_API_KEY },
+                timeout: 30000
+            });
+            
+            if (deepRes.data && deepRes.data.output_url) {
+                console.log('[AI IMAGE] DeepAI generated output URL:', deepRes.data.output_url);
+                const imgFetch = await axios.get(deepRes.data.output_url, { responseType: 'arraybuffer' });
+                imageBuffer = imgFetch.data;
+                console.log('[AI IMAGE] Successfully generated image via DeepAI Fallback');
+            }
+        } catch (deepErr) {
+            console.error('[AI IMAGE] DeepAI fallback failed:', deepErr.message);
+        }
+    }
+
     if (!imageBuffer) {
-        throw new Error('All models failed after multiple retries.');
+        console.log('[AI IMAGE] Previous models failed. Trying final fallback: Pollinations (Flux)...');
+        try {
+            const seed = Math.floor(Math.random() * 1000000);
+            const pollinationsUrl = `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
+            const pollRes = await axios.get(pollinationsUrl, { responseType: 'arraybuffer', timeout: 40000 });
+            imageBuffer = pollRes.data;
+            console.log('[AI IMAGE] Successfully generated image via Pollinations.ai Fallback');
+        } catch (pollErr) {
+            console.error('[AI IMAGE] Pollinations fallback also failed:', pollErr.message);
+            throw new Error('Tất cả các dịch vụ vẽ ảnh AI đều đang bận (HuggingFace, DeepAI & Pollinations). Vui lòng thử lại sau.');
+        }
     }
 
     // Upload to Supabase Storage

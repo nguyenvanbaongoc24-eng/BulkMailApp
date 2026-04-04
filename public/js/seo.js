@@ -144,8 +144,8 @@ async function generateSEOArticle() {
         const data = await res.json();
         
         if (data.error) {
-           const msg = typeof data.error === 'string' ? data.error : (data.error.error?.message || JSON.stringify(data.error));
-           throw new Error(msg);
+            const msg = typeof data.error === 'string' ? data.error : (data.error.message || data.error.error?.message || JSON.stringify(data.error));
+            throw new Error(msg);
         }
         
         isSEOPostsLoaded = false; // force reload next time user clicks tab
@@ -267,7 +267,7 @@ async function generateSEOImage() {
         // Add timeout fallback - if image doesn't load in 45s, show error
         const imgTimeout = setTimeout(() => {
             tempImg.src = ''; // Cancel loading
-            alert('Ảnh tải quá lâu (timeout). Pollinations.ai có thể đang quá tải. Vui lòng thử lại sau ít phút.');
+            alert('Ảnh tải quá lâu (timeout). Dịch vụ AI (HuggingFace) có thể đang bận hoặc quá tải. Vui lòng thử lại sau ít phút.');
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
             loading.classList.add('hidden');
@@ -334,7 +334,7 @@ async function generateSEOImage() {
             };
             retryImg.onerror = () => {
                 clearTimeout(retryTimeout);
-                alert('Không thể tải ảnh từ Pollinations.ai. Nguyên nhân có thể do prompt chứa từ nhạy cảm hoặc API đang quá tải.\n\nGợi ý:\n• Thử prompt bằng tiếng Anh\n• Dùng mô tả đơn giản hơn\n• Đợi vài phút rồi thử lại');
+                alert('Không thể tải ảnh từ dịch vụ AI. Nguyên nhân có thể do prompt chứa từ nhạy cảm hoặc bộ phận xử lý đang quá tải.\n\nGợi ý:\n• Thử mô tả bằng tiếng Anh\n• Dùng mô tả đơn giản hơn\n• Đợi vài phút rồi thử lại');
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 loading.classList.add('hidden');

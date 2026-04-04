@@ -43,7 +43,7 @@ function normalizeCustomer(row) {
         mst: row.mst || row.MST || row.tax_code || row.taxCode || "",
         address: row.address || row.DiaChi || row.dia_chi || row['Địa chỉ'] || row.notes || "",
         email: row.email || row.Email || "",
-        expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ngày hết hạn'] || ""
+        expired_date: row.expired_date || row.expiry || row.NgayHetHanChuKySo || row['Ngày hết hạn'] || row['Hạn GCN'] || row['Hạn dùng'] || row['Hạn sử dụng'] || ""
     };
 }
 
@@ -76,8 +76,10 @@ function parseTemplate(template, customer) {
         if (!dateStr) return '';
         try {
             // Handle DD/MM/YYYY format explicitly
-            if (typeof dateStr === 'string' && dateStr.includes('/')) {
-                const parts = dateStr.split(' ')[0].split('/');
+            const dateVal = String(dateStr || '');
+            // Handle DD/MM/YYYY format explicitly
+            if (dateVal.includes('/')) {
+                const parts = dateVal.split(' ')[0].split('/');
                 if (parts.length === 3) {
                     const day = parts[0].padStart(2, '0');
                     const month = parts[1].padStart(2, '0');
@@ -86,10 +88,10 @@ function parseTemplate(template, customer) {
                 }
             }
             
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
+            const d = new Date(dateVal);
+            if (isNaN(d.getTime())) return dateVal;
             return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-        } catch { return dateStr; }
+        } catch { return String(dateStr || ''); }
     };
 
     console.log("NORMALIZED:", JSON.stringify(norm));
@@ -119,13 +121,13 @@ function parseTemplate(template, customer) {
         ['#Email', norm.email],
         ['#email', norm.email],
         // Expiry date variants
-        ['#NgàyHếtHạn', formatDate(norm.expired_date)],
-        ['#NgayHetHan', formatDate(norm.expired_date)],
-        ['#ngayhethan', formatDate(norm.expired_date)],
-        ['#Ngày Hết Hạn', formatDate(norm.expired_date)],
-        ['#Ngay Het Han', formatDate(norm.expired_date)],
         ['#Ngàyhếthạn', formatDate(norm.expired_date)],
+        ['#ngayhethan', formatDate(norm.expired_date)],
         ['#Ngày hết hạn', formatDate(norm.expired_date)],
+        ['#HạnGCN', formatDate(norm.expired_date)],
+        ['#HanGCN', formatDate(norm.expired_date)],
+        ['#Hạn GCN', formatDate(norm.expired_date)],
+        ['#Han GCN', formatDate(norm.expired_date)],
     ];
 
     // Step 3: Replace each tag (case-insensitive)

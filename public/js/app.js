@@ -1257,7 +1257,9 @@ function handleFileUpload(event) {
                             if (!isDate(val)) obj['TenCongTy'] = val;
                         }
                         if (uk.includes('EMAIL')) obj['Email'] = val;
-                        if (uk.includes('HẾT HẠN') || uk.includes('EXPIRATION') || uk.includes('HẠN')) obj['NgayHetHanChuKySo'] = val;
+                        if ((uk.includes('HẾT HẠN') || uk.includes('HẠN GCN') || uk.includes('EXPIRATION') || uk.includes('HẠN')) && !uk.includes('THỜI HẠN')) {
+                            obj['NgayHetHanChuKySo'] = val;
+                        }
                         if (uk.includes('ĐỊA CHỈ') || uk.includes('ADDRESS')) obj['DiaChi'] = val;
                     });
                 }

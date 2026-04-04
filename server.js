@@ -638,24 +638,23 @@ function calculateExpirationDate(startDate, duration) {
         const start = new Date(startDate);
         let daysToAdd = 0;
         
-        // Exact formula from user:
-        // Gia hạn 1 năm: +365 + 90
-        // Gia hạn 2 năm: +365*2 + 180
-        // Gia hạn 3 năm: +365*3 + 270
-        // Cấp mới X năm: +365*X
-        
-        if (duration.includes('Gia hạn')) {
-            if (duration.includes('1 năm')) daysToAdd = 365 + 90;
-            else if (duration.includes('2 năm')) daysToAdd = (365 * 2) + 180;
-            else if (duration.includes('3 năm')) daysToAdd = (365 * 3) + 270;
-        } else if (duration.includes('Cấp mới')) {
-            if (duration.includes('1 năm')) daysToAdd = 365;
-            else if (duration.includes('2 năm')) daysToAdd = 365 * 2;
-            else if (duration.includes('3 năm')) daysToAdd = 365 * 3;
+        let years = 0;
+        const durStr = String(duration || '');
+        const yearsMatch = durStr.match(/(\d+)\s*(năm|year|y|n)/i);
+        if (yearsMatch) {
+            years = parseInt(yearsMatch[1]);
         } else {
-            // Fallback for old simple "1 năm" etc.
-            const years = parseInt(duration);
-            if (!isNaN(years)) daysToAdd = years * 365;
+            years = parseInt(durStr);
+        }
+
+        if (!isNaN(years) && years > 0) {
+            if (duration.toLowerCase().includes('gia hạn')) {
+                // Formula: +365*X + 90*X
+                daysToAdd = years * 365 + (years * 90);
+            } else {
+                // Formula: +365*X
+                daysToAdd = years * 365;
+            }
         }
 
         if (daysToAdd === 0) return null;
@@ -762,12 +761,18 @@ app.post('/api/ca2-crm/bulk', authenticate, async (req, res) => {
             await supabase.from('customers').delete().eq('user_id', req.user.id);
         }
 
-        // Process each row to calculate expiration
-        const processedData = data.map(item => ({
-            ...item,
-            NgayHetHanChuKySo: calculateExpirationDate(item.start_date, item.duration),
-            user_id: req.user.id
-        }));
+        // Process each row to calculate expiration if missing
+        const processedData = data.map(item => {
+            const startDate = item.start_date;
+            const duration = item.duration;
+            const existingExpiry = item.expired_date || item.NgayHetHanChuKySo;
+            
+            return {
+                ...item,
+                expired_date: existingExpiry || calculateExpirationDate(startDate, duration),
+                user_id: req.user.id
+            };
+        });
 
         // Batch insert/upsert
         const { error } = await supabase.from('customers').upsert(processedData);
@@ -1138,6 +1143,10 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
                 return foundKey ? String(row[foundKey]).trim() : '';
             };
 
+            const sDate = parseExcelDate(getVal(['Ngày', 'Ngày bắt đầu', 'Start Date']));
+            const dur = getVal(['Thời hạn', 'Gói', 'Duration']);
+            const expDate = parseExcelDate(getVal(['Ngày hết hạn', 'Hạn GCN', 'Hạn dùng', 'Hạn sử dụng', 'Expiry', 'Expired Date', 'Expired']));
+
             return {
                 user_id: req.user.id,
                 mst: getVal(['MST', 'mã số thuế', 'Tax Code']),
@@ -1145,9 +1154,9 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
                 email: getVal(['Email đăng ký', 'Email', 'Địa chỉ email']),
                 phone: getVal(['điện thoại D', 'Phone', 'Số điện thoại', 'SĐT']),
                 service_type: getVal(['Dịch vụ', 'Loại dịch vụ', 'Service']),
-                start_date: parseExcelDate(getVal(['Ngày', 'Ngày bắt đầu', 'Start Date'])),
-                duration: getVal(['Thời hạn', 'Gói', 'Duration']),
-                expired_date: parseExcelDate(getVal(['Ngày hết hạn', 'Expiry', 'Expired Date'])),
+                start_date: sDate,
+                duration: dur,
+                expired_date: expDate || calculateExpirationDate(sDate, dur),
                 notes: getVal(['Chi cục Thuế', 'Ghi chú', 'Notes'])
             };
         }).filter(item => item.mst && item.company_name); // Minimal requirement
