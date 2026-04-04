@@ -121,9 +121,13 @@ function parseTemplate(template, customer) {
         ['#Email', norm.email],
         ['#email', norm.email],
         // Expiry date variants
+        ['#NgàyHếtHạn', formatDate(norm.expired_date)],
+        ['#NgayHetHan', formatDate(norm.expired_date)],
         ['#Ngàyhếthạn', formatDate(norm.expired_date)],
+        ['#ngàyhếthạn', formatDate(norm.expired_date)],
         ['#ngayhethan', formatDate(norm.expired_date)],
         ['#Ngày hết hạn', formatDate(norm.expired_date)],
+        ['#Ngày Hết Hạn', formatDate(norm.expired_date)],
         ['#HạnGCN', formatDate(norm.expired_date)],
         ['#HanGCN', formatDate(norm.expired_date)],
         ['#Hạn GCN', formatDate(norm.expired_date)],
@@ -163,7 +167,10 @@ const buildMimeMessage = async (from, to, subject, htmlBody, pdfUrl, isAttachMod
     // Inject responsive image CSS to prevent oversized images in email clients
     const responsiveStyles = `
         <style>
-            img { max-width: 100% !important; height: auto !important; display: block; margin: 10px 0; }
+            img { max-width: 600px !important; width: auto !important; height: auto !important; display: block; margin: 10px auto; }
+            @media only screen and (max-width: 620px) {
+                img { max-width: 100% !important; }
+            }
             table { width: 100% !important; border-collapse: collapse; }
         </style>
     `;

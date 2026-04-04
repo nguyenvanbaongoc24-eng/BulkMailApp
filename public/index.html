@@ -396,6 +396,11 @@
                 <h2 id="page-title" class="text-2xl font-bold text-white tracking-tight">Bảng điều khiển</h2>
             </div>
             <div class="flex items-center gap-3">
+                <!-- Background Mail Indicator -->
+                <div id="bg-mail-indicator" style="display: none;" class="px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-black uppercase tracking-widest items-center gap-2 animate-pulse mr-2 shadow-lg shadow-orange-900/20" title="Hệ thống đang gửi mail ngầm">
+                    <i class="fas fa-paper-plane fa-bounce"></i> Đang gửi mail ngầm
+                </div>
+                
                 <button onclick="showPage('lookup-tools')" class="bg-blue-600/20 text-blue-400 border border-blue-500/20 px-6 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white hover:scale-105 transition-all font-bold shadow-xl flex items-center gap-2">
                     <span class="text-lg">🔍</span> Tra cứu kế toán
                 </button>
@@ -1660,6 +1665,30 @@
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
     </style>
+
+    <!-- Session Timeout Warning Modal -->
+    <div id="modal-session-timeout" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="modal-premium w-full max-w-sm rounded-[30px] overflow-hidden animate-in zoom-in duration-300">
+            <div class="p-8 text-center space-y-6">
+                <div class="w-20 h-20 bg-orange-500/20 rounded-full mx-auto flex items-center justify-center text-4xl text-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.3)] animate-pulse">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-black text-white mb-2">Cảnh báo hết phiên</h3>
+                    <p class="text-gray-400 text-sm">Do bạn không có thao tác trong thời gian dài, phiên làm việc sẽ tự động đăng xuất sau:</p>
+                    <div class="text-4xl font-black text-orange-gradient my-4"><span id="session-timeout-countdown">60</span>s</div>
+                </div>
+                
+                <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div id="session-timeout-bar" class="h-full bg-orange-gradient transition-all duration-1000 w-full" style="width: 100%"></div>
+                </div>
+                
+                <button onclick="dismissSessionWarning()" class="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition-all shadow-lg text-sm uppercase tracking-widest active:scale-95 border border-white/10">
+                    Tiếp tục làm việc
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/app.js?v=1.1.0"></script>
     <script src="js/seo.js?v=1.1.0"></script>

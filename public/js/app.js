@@ -10,6 +10,133 @@ let currentCRMData = [];
 let currentRecipientsData = [];
 let pendingCRMData = [];
 
+// --- INACTIVITY AUTO-LOGOUT (10 min) ---
+// Exception: Skip logout if email campaigns are actively running in background
+const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const SESSION_WARNING_MS = 60 * 1000; // Show warning 60 seconds before logout
+let _lastActivity = Date.now();
+let _sessionWarningShown = false;
+let _sessionCountdownInterval = null;
+let _isBackgroundMailRunning = false;
+
+function resetActivityTimer() {
+    _lastActivity = Date.now();
+    // If warning modal is showing, dismiss it
+    if (_sessionWarningShown) {
+        _sessionWarningShown = false;
+        const modal = document.getElementById('modal-session-timeout');
+        if (modal) modal.classList.add('hidden');
+        if (_sessionCountdownInterval) {
+            clearInterval(_sessionCountdownInterval);
+            _sessionCountdownInterval = null;
+        }
+    }
+}
+
+// Track user activity
+['mousemove', 'mousedown', 'keypress', 'keydown', 'scroll', 'touchstart', 'click', 'wheel'].forEach(evt => {
+    document.addEventListener(evt, resetActivityTimer, { passive: true });
+});
+
+// Check for active campaigns to set _isBackgroundMailRunning
+async function checkBackgroundMailStatus() {
+    try {
+        const token = localStorage.getItem('sb-token');
+        if (!token) return false;
+        const res = await fetch('/api/campaigns', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return false;
+        const campaigns = await res.json();
+        const running = campaigns.some(c => 
+            c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' || c.status === 'Đang xử lý'
+        );
+        _isBackgroundMailRunning = running;
+        // Update indicator
+        const indicator = document.getElementById('bg-mail-indicator');
+        if (indicator) {
+            indicator.style.display = running ? 'flex' : 'none';
+        }
+        return running;
+    } catch {
+        return false;
+    }
+}
+
+// Session timeout checker (runs every 30s)
+setInterval(async () => {
+    // Don't check if not logged in
+    if (!localStorage.getItem('sb-token')) return;
+    
+    const elapsed = Date.now() - _lastActivity;
+    
+    // Check if campaigns are actively running
+    if (elapsed > (SESSION_TIMEOUT_MS - SESSION_WARNING_MS - 5000)) {
+        // Only check background mail when we're close to timeout
+        await checkBackgroundMailStatus();
+    }
+    
+    // If background mail is running, reset timer and skip
+    if (_isBackgroundMailRunning) {
+        _lastActivity = Date.now(); // extend session
+        return;
+    }
+    
+    // Show warning 60s before timeout
+    if (elapsed >= (SESSION_TIMEOUT_MS - SESSION_WARNING_MS) && !_sessionWarningShown) {
+        _sessionWarningShown = true;
+        showSessionTimeoutWarning();
+    }
+    
+    // Auto logout
+    if (elapsed >= SESSION_TIMEOUT_MS) {
+        performSessionTimeout();
+    }
+}, 30000);
+
+function showSessionTimeoutWarning() {
+    let modal = document.getElementById('modal-session-timeout');
+    if (!modal) return; // Modal not in DOM yet
+    
+    modal.classList.remove('hidden');
+    
+    let remaining = Math.ceil((SESSION_TIMEOUT_MS - (Date.now() - _lastActivity)) / 1000);
+    const countdownEl = document.getElementById('session-timeout-countdown');
+    const barEl = document.getElementById('session-timeout-bar');
+    
+    if (_sessionCountdownInterval) clearInterval(_sessionCountdownInterval);
+    _sessionCountdownInterval = setInterval(() => {
+        remaining = Math.ceil((SESSION_TIMEOUT_MS - (Date.now() - _lastActivity)) / 1000);
+        if (remaining <= 0) {
+            clearInterval(_sessionCountdownInterval);
+            performSessionTimeout();
+            return;
+        }
+        if (countdownEl) countdownEl.textContent = remaining;
+        if (barEl) barEl.style.width = (remaining / 60 * 100) + '%';
+    }, 1000);
+}
+
+function dismissSessionWarning() {
+    resetActivityTimer();
+    const modal = document.getElementById('modal-session-timeout');
+    if (modal) modal.classList.add('hidden');
+}
+
+function performSessionTimeout() {
+    if (_sessionCountdownInterval) clearInterval(_sessionCountdownInterval);
+    localStorage.removeItem('sb-token');
+    currentUser = null;
+    // Show login screen
+    const authScreen = document.getElementById('auth-screen');
+    const appContainer = document.getElementById('app-container');
+    const timeoutModal = document.getElementById('modal-session-timeout');
+    if (timeoutModal) timeoutModal.classList.add('hidden');
+    if (authScreen) authScreen.classList.toggle('hidden', false);
+    if (appContainer) appContainer.classList.toggle('hidden', true);
+    alert('Phiên làm việc đã hết hạn do không hoạt động trong 10 phút. Vui lòng đăng nhập lại.');
+}
+
 // --- Session Management ---
 function saveCurrentSession(token, user) {
     if (!user || !token) return;
@@ -1365,11 +1492,22 @@ function handleEditorImage(event) {
     reader.onload = (e) => {
         const img = document.createElement('img');
         img.src = e.target.result;
-        img.style.maxWidth = '100%';
+        img.style.maxWidth = '600px';
+        img.style.width = 'auto';
         img.style.height = 'auto';
         img.style.display = 'block';
-        img.style.margin = '10px 0';
-        img.style.borderRadius = '16px';
+        img.style.margin = '10px auto';
+        img.style.borderRadius = '8px';
+        img.style.cursor = 'pointer';
+        img.className = 'email-editor-img';
+        img.title = 'Click để chỉnh kích thước';
+        
+        // Click to select and show resize toolbar
+        img.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            showImageResizeToolbar(this);
+        });
         
         const editor = document.getElementById('input-template');
         editor.focus();
@@ -1378,7 +1516,6 @@ function handleEditorImage(event) {
             const range = selection.getRangeAt(0);
             range.deleteContents();
             range.insertNode(img);
-            // Move cursor after the image
             range.setStartAfter(img);
             range.setEndAfter(img);
             selection.removeAllRanges();
@@ -1388,7 +1525,144 @@ function handleEditorImage(event) {
         }
     };
     reader.readAsDataURL(file);
+    // Reset file input to allow re-upload of same file
+    event.target.value = '';
 }
+
+// --- Image Resize Toolbar ---
+function showImageResizeToolbar(imgEl) {
+    // Remove any existing toolbar
+    removeImageResizeToolbar();
+    
+    // Mark selected image
+    document.querySelectorAll('.email-editor-img').forEach(i => i.style.outline = '');
+    imgEl.style.outline = '3px solid #f97316';
+    imgEl.style.outlineOffset = '2px';
+    window._selectedEditorImage = imgEl;
+    
+    // Create toolbar
+    const toolbar = document.createElement('div');
+    toolbar.id = 'img-resize-toolbar';
+    toolbar.style.cssText = 'position:fixed;z-index:9999;display:flex;gap:6px;padding:8px 12px;background:rgba(10,10,30,0.95);border:1px solid rgba(249,115,22,0.4);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.6);backdrop-filter:blur(12px);align-items:center;';
+    
+    const sizes = [
+        { label: '📐 Nhỏ', w: '300px', desc: '300px' },
+        { label: '📏 Vừa', w: '450px', desc: '450px' },
+        { label: '🖥️ Lớn', w: '600px', desc: '600px' },
+        { label: '🔳 Full', w: '100%', desc: '100%' },
+    ];
+    
+    // Title
+    const title = document.createElement('span');
+    title.textContent = 'Kích thước:';
+    title.style.cssText = 'font-size:10px;font-weight:900;color:#f97316;text-transform:uppercase;letter-spacing:0.1em;margin-right:4px;white-space:nowrap;';
+    toolbar.appendChild(title);
+    
+    sizes.forEach(s => {
+        const btn = document.createElement('button');
+        btn.textContent = s.label;
+        btn.title = s.desc;
+        btn.style.cssText = 'padding:5px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all 0.15s;';
+        btn.onmouseenter = () => { btn.style.background = 'rgba(249,115,22,0.3)'; btn.style.borderColor = 'rgba(249,115,22,0.5)'; };
+        btn.onmouseleave = () => { btn.style.background = 'rgba(255,255,255,0.05)'; btn.style.borderColor = 'rgba(255,255,255,0.1)'; };
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (s.w === '100%') {
+                imgEl.style.maxWidth = '100%';
+                imgEl.style.width = '100%';
+            } else {
+                imgEl.style.maxWidth = s.w;
+                imgEl.style.width = 'auto';
+            }
+            removeImageResizeToolbar();
+        };
+        toolbar.appendChild(btn);
+    });
+    
+    // Delete button
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑️';
+    delBtn.title = 'Xóa ảnh';
+    delBtn.style.cssText = 'padding:5px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#ef4444;font-size:12px;cursor:pointer;transition:all 0.15s;margin-left:4px;';
+    delBtn.onmouseenter = () => { delBtn.style.background = 'rgba(239,68,68,0.3)'; };
+    delBtn.onmouseleave = () => { delBtn.style.background = 'rgba(239,68,68,0.1)'; };
+    delBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        imgEl.remove();
+        removeImageResizeToolbar();
+    };
+    toolbar.appendChild(delBtn);
+    
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.title = 'Đóng';
+    closeBtn.style.cssText = 'padding:4px 8px;border-radius:8px;border:none;background:transparent;color:#666;font-size:14px;cursor:pointer;font-weight:900;transition:all 0.15s;';
+    closeBtn.onmouseenter = () => { closeBtn.style.color = '#fff'; };
+    closeBtn.onmouseleave = () => { closeBtn.style.color = '#666'; };
+    closeBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        removeImageResizeToolbar();
+    };
+    toolbar.appendChild(closeBtn);
+    
+    document.body.appendChild(toolbar);
+    
+    // Position toolbar above the image
+    const rect = imgEl.getBoundingClientRect();
+    const tbRect = toolbar.getBoundingClientRect();
+    let top = rect.top - tbRect.height - 8;
+    if (top < 8) top = rect.bottom + 8;
+    let left = rect.left + (rect.width / 2) - (tbRect.width / 2);
+    if (left < 8) left = 8;
+    if (left + tbRect.width > window.innerWidth - 8) left = window.innerWidth - tbRect.width - 8;
+    toolbar.style.top = top + 'px';
+    toolbar.style.left = left + 'px';
+}
+
+function removeImageResizeToolbar() {
+    const tb = document.getElementById('img-resize-toolbar');
+    if (tb) tb.remove();
+    if (window._selectedEditorImage) {
+        window._selectedEditorImage.style.outline = '';
+        window._selectedEditorImage.style.outlineOffset = '';
+        window._selectedEditorImage = null;
+    }
+}
+
+// Close resize toolbar when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#img-resize-toolbar')) return;
+    if (e.target.classList && e.target.classList.contains('email-editor-img')) return;
+    removeImageResizeToolbar();
+});
+
+// Also handle images pasted or from saved templates - make them clickable
+document.addEventListener('DOMContentLoaded', function() {
+    const editor = document.getElementById('input-template');
+    if (editor) {
+        // Observe for new images added to editor (from paste, template load, etc.)
+        const observer = new MutationObserver(() => {
+            editor.querySelectorAll('img:not(.email-editor-img)').forEach(img => {
+                img.className = 'email-editor-img';
+                img.style.maxWidth = img.style.maxWidth || '600px';
+                img.style.height = 'auto';
+                img.style.display = 'block';
+                img.style.cursor = 'pointer';
+                img.title = 'Click để chỉnh kích thước';
+                img.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    showImageResizeToolbar(this);
+                });
+            });
+        });
+        observer.observe(editor, { childList: true, subtree: true });
+    }
+});
 
 async function saveCampaign(event) {
     const name = document.getElementById('input-name').value;
