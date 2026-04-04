@@ -648,7 +648,7 @@ function calculateExpirationDate(startDate, duration) {
         }
 
         if (!isNaN(years) && years > 0) {
-            if (duration.toLowerCase().includes('gia hạn')) {
+            if (durStr.toLowerCase().includes('gia hạn')) {
                 // Formula: +365*X + 90*X
                 daysToAdd = years * 365 + (years * 90);
             } else {

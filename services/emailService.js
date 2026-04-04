@@ -345,6 +345,9 @@ async function dbPickTasks(batchSize) {
 
     // Fallback: direct query (More reliable for custom logic)
     console.log(`[DB] 🔍 Searching for 'pending' tasks via Direct Query (batch: ${batchSize})...`);
+    // Diagnostic: Check if we are using Service Role Key
+    const serviceKeyAvailable = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
     const { data, error } = await supabase
         .from('email_logs')
         .select('*')
@@ -353,22 +356,22 @@ async function dbPickTasks(batchSize) {
         .limit(batchSize);
  
     if (error) {
-        console.error(`[DB] ❌ Fallback query error: ${error.message}`);
+        console.error(`[WORKER:DB] ❌ Fetch Error: ${error.message}`);
         throw error;
     }
  
-    // Mark them as processing
     if (data && data.length > 0) {
+        console.log(`[WORKER:DB] ✅ Found ${data.length} pending tasks (ServiceRole: ${serviceKeyAvailable})`);
         const ids = data.map(d => d.id);
-        console.log(`[DB] 🔄 Marking ${ids.length} tasks as 'processing'...`);
         const { error: updErr } = await supabase
             .from('email_logs')
             .update({ status: 'processing', last_retry_time: new Date().toISOString() })
             .in('id', ids);
         
-        if (updErr) console.error(`[DB] ❌ Failed to mark tasks as processing: ${updErr.message}`);
+        if (updErr) console.error(`[WORKER:DB] ❌ Update Error: ${updErr.message}`);
     } else {
-        console.log(`[DB] No pending tasks found.`);
+        // Only log this once in a while to avoid noise, or when explicitly debugged
+        // console.log(`[WORKER:DB] No pending tasks found.`);
     }
     return data || [];
 }
