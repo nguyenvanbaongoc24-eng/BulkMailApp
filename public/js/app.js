@@ -635,7 +635,7 @@ function renderCA2CRM() {
                 <td class="px-6 py-4 text-center">
                     <select onchange="updatePaymentStatus('${c.id}', this.value)" 
                             class="text-[10px] font-black py-1.5 px-2 border-0 rounded-lg cursor-pointer uppercase tracking-wider transition-all
-                            ${isPaid ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'}">
+                            ${isPaid ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/20'}">
                         <option value="unpaid" ${!isPaid ? 'selected' : ''}>Chưa thanh toán</option>
                         <option value="paid" ${isPaid ? 'selected' : ''}>Đã thanh toán</option>
                     </select>
