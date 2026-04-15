@@ -634,10 +634,10 @@ function renderCA2CRM() {
                 </td>
                 <td class="px-6 py-4 text-center">
                     <select onchange="updatePaymentStatus('${c.id}', this.value)" 
-                            class="text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer uppercase tracking-wider transition-all
-                            ${isPaid ? 'bg-green-500/30 text-green-400 border border-green-500/50' : 'bg-amber-500/30 text-amber-400 border border-amber-500/50'}">
-                        <option value="unpaid" ${!isPaid ? 'selected' : ''}>Chưa thanh toán</option>
-                        <option value="paid" ${isPaid ? 'selected' : ''}>Đã thanh toán</option>
+                            style="background-color: ${isPaid ? 'rgba(34, 197, 94, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isPaid ? '#4ade80' : '#fbbf24'}; border: 1px solid ${isPaid ? 'rgba(34, 197, 94, 0.3)' : 'rgba(245, 158, 11, 0.3)'};"
+                            class="text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer uppercase tracking-wider transition-all">
+                        <option value="unpaid" ${!isPaid ? 'selected' : ''} style="background: #0f172a; color: white;">Chưa thanh toán</option>
+                        <option value="paid" ${isPaid ? 'selected' : ''} style="background: #0f172a; color: white;">Đã thanh toán</option>
                     </select>
                 </td>
                 <td class="px-8 py-5 text-right">
@@ -679,7 +679,8 @@ async function saveCA2CRM() {
         phone: document.getElementById('ca2-crm-phone').value,
         service_type: serviceType,
         start_date: document.getElementById('ca2-crm-start').value,
-        duration: document.getElementById('ca2-crm-duration').value
+        duration: document.getElementById('ca2-crm-duration').value,
+        compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
     };
 
     // Include CKS type if service is CKS
@@ -843,6 +844,7 @@ function openAddCRMModal() {
     document.getElementById('ca2-crm-service').value = 'CKS';
     document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
     document.getElementById('ca2-crm-cks-type').value = 'cap_moi';
+    document.getElementById('ca2-crm-compensate').value = 0;
     
     // Reset CKS type buttons
     document.querySelectorAll('.cks-type-btn').forEach(btn => {
@@ -876,6 +878,7 @@ function editCRM(id) {
     document.getElementById('ca2-crm-phone').value = c.phone || '';
     document.getElementById('ca2-crm-service').value = c.service_type || 'CKS';
     document.getElementById('ca2-crm-start').value = c.start_date || '';
+    document.getElementById('ca2-crm-compensate').value = c.compensate_months || 0;
     
     // Restore CKS type
     const cksType = c.cks_type || 'cap_moi';
