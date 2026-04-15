@@ -1162,12 +1162,27 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
         const { data: rawData, mode } = req.body;
         if (!rawData || !Array.isArray(rawData)) return res.status(400).json({ error: 'Mảng dữ liệu không hợp lệ' });
 
-        // Helper to convert DD/MM/YYYY to ISO YYYY-MM-DD
+        // Helper to convert Excel formats to ISO YYYY-MM-DD
         const parseExcelDate = (val) => {
             if (!val) return null;
-            if (typeof val === 'string' && val.includes('/')) {
-                const parts = val.split('/');
-                if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            if (typeof val === 'string') {
+                if (val.includes('/')) {
+                    const parts = val.split('/');
+                    if (parts.length === 3) {
+                        let year = parts[2];
+                        if (year.length === 2) {
+                            year = parseInt(year) > 50 ? '19' + year : '20' + year;
+                        }
+                        return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    }
+                }
+                
+                // If the value is a number string (Excel serial date like "44929")
+                if (/^\d{4,5}(\.\d+)?$/.test(val)) {
+                    const excelSerial = parseFloat(val);
+                    const d = new Date(Math.round((excelSerial - 25569) * 86400 * 1000));
+                    return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+                }
             }
             try {
                 const d = new Date(val);
