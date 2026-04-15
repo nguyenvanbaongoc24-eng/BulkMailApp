@@ -1173,7 +1173,17 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
                         if (year.length === 2) {
                             year = parseInt(year) > 50 ? '19' + year : '20' + year;
                         }
-                        return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        
+                        let month = parts[1];
+                        let day = parts[0];
+                        
+                        // Detect MM/DD/YYYY if the middle part is > 12
+                        if (parseInt(month) > 12 && parseInt(day) <= 12) {
+                            month = parts[0];
+                            day = parts[1];
+                        }
+                        
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                     }
                 }
                 
