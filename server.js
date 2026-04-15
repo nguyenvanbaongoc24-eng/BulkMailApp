@@ -640,26 +640,22 @@ function calculateExpirationDate(startDate, duration, cksType = '') {
         
         // Handle CKS service types with bonus months
         if (cksType) {
+            const yearsMatch = durStr.match(/(\d+)/);
+            const years = yearsMatch ? parseInt(yearsMatch[1]) : 1;
+            
+            let bonusMonths = 0;
             if (cksType === 'gia_han_thu') {
-                // Trial renewal: direct month durations (6, 9, 12 months)
-                const monthsMatch = durStr.match(/(\d+)/);
-                const months = monthsMatch ? parseInt(monthsMatch[1]) : 6;
-                const result = new Date(start);
-                result.setMonth(result.getMonth() + months);
-                return result.toISOString().split('T')[0];
+                // 1 year -> +6, 2 years -> +9, 3 years -> +12
+                bonusMonths = 3 + (years * 3);
+            } else {
+                // cap_moi, gia_han: 1 year -> +3, 2 years -> +6, 3 years -> +9
+                bonusMonths = years * 3;
             }
             
-            if (cksType === 'cap_moi' || cksType === 'gia_han') {
-                // New issuance or Renewal: years + bonus months
-                // 1yr → +3mo, 2yr → +6mo, 3yr → +9mo
-                const yearsMatch = durStr.match(/(\d+)/);
-                const years = yearsMatch ? parseInt(yearsMatch[1]) : 1;
-                const bonusMonths = years * 3; // 3 months per year
-                const result = new Date(start);
-                result.setFullYear(result.getFullYear() + years);
-                result.setMonth(result.getMonth() + bonusMonths);
-                return result.toISOString().split('T')[0];
-            }
+            const result = new Date(start);
+            result.setFullYear(result.getFullYear() + years);
+            result.setMonth(result.getMonth() + bonusMonths);
+            return result.toISOString().split('T')[0];
         }
         
         // Default calculation for non-CKS services

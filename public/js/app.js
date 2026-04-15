@@ -795,9 +795,9 @@ function selectCKSType(type) {
     if (infoBox && infoText) {
         infoBox.classList.remove('hidden');
         const infoMap = {
-            'cap_moi': '💡 Cấp mới: KH đăng ký 1 năm → +3 tháng, 2 năm → +6 tháng, 3 năm → +9 tháng bonus thời hạn.',
-            'gia_han_thu': '💡 Gia hạn dùng thử: Chọn trực tiếp thời hạn 6, 9 hoặc 12 tháng.',
-            'gia_han': '💡 Gia hạn: KH gia hạn 1 năm → +3 tháng, 2 năm → +6 tháng, 3 năm → +9 tháng bonus thời hạn.'
+            'cap_moi': '💡 Cấp mới: 1 năm (+3 tháng), 2 năm (+6 tháng), 3 năm (+9 tháng bonus).',
+            'gia_han_thu': '💡 Gia hạn dùng thử: 1 năm (+6 tháng), 2 năm (+9 tháng), 3 năm (+12 tháng bonus).',
+            'gia_han': '💡 Gia hạn: 1 năm (+3 tháng), 2 năm (+6 tháng), 3 năm (+9 tháng bonus).'
         };
         infoText.innerText = infoMap[type] || '';
     }
@@ -808,18 +808,27 @@ function updateCKSDurationByType(cksType, defaultVal = '') {
     if (!durationSelect) return;
     durationSelect.innerHTML = '';
     
+    let options = [];
     if (cksType === 'gia_han_thu') {
-        // Trial: 6, 9, 12 months
-        ['6 tháng', '9 tháng', '12 tháng'].forEach(v => {
-            durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
-        });
-        if (!defaultVal || !defaultVal.includes('tháng')) defaultVal = '6 tháng';
+        options = [
+            { val: '1 năm', text: '1 Năm (+6 tháng)' },
+            { val: '2 năm', text: '2 Năm (+9 tháng)' },
+            { val: '3 năm', text: '3 Năm (+12 tháng)' }
+        ];
     } else {
-        // Cấp mới or Gia hạn: 1, 2, 3 years
-        ['1 năm', '2 năm', '3 năm'].forEach(v => {
-            durationSelect.innerHTML += `<option value="${v}">${v.replace('năm', 'Năm')}</option>`;
-        });
-        if (!defaultVal || defaultVal.includes('tháng') || defaultVal.includes('số')) defaultVal = '1 năm';
+        options = [
+            { val: '1 năm', text: '1 Năm (+3 tháng)' },
+            { val: '2 năm', text: '2 Năm (+6 tháng)' },
+            { val: '3 năm', text: '3 Năm (+9 tháng)' }
+        ];
+    }
+    
+    options.forEach(opt => {
+        durationSelect.innerHTML += `<option value="${opt.val}">${opt.text}</option>`;
+    });
+    
+    if (!defaultVal || defaultVal.includes('tháng') || defaultVal.includes('số')) {
+        defaultVal = '1 năm';
     }
     durationSelect.value = defaultVal;
 }
