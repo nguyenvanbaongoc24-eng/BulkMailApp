@@ -632,14 +632,39 @@ app.delete('/api/templates/:id', authenticate, async (req, res) => {
 /**
  * Helper to calculate expiration date based on start date and duration string
  */
-function calculateExpirationDate(startDate, duration) {
+function calculateExpirationDate(startDate, duration, cksType = '') {
     if (!startDate || !duration) return null;
     try {
         const start = new Date(startDate);
-        let daysToAdd = 0;
+        const durStr = String(duration || '').toLowerCase();
         
+        // Handle CKS service types with bonus months
+        if (cksType) {
+            if (cksType === 'gia_han_thu') {
+                // Trial renewal: direct month durations (6, 9, 12 months)
+                const monthsMatch = durStr.match(/(\d+)/);
+                const months = monthsMatch ? parseInt(monthsMatch[1]) : 6;
+                const result = new Date(start);
+                result.setMonth(result.getMonth() + months);
+                return result.toISOString().split('T')[0];
+            }
+            
+            if (cksType === 'cap_moi' || cksType === 'gia_han') {
+                // New issuance or Renewal: years + bonus months
+                // 1yr → +3mo, 2yr → +6mo, 3yr → +9mo
+                const yearsMatch = durStr.match(/(\d+)/);
+                const years = yearsMatch ? parseInt(yearsMatch[1]) : 1;
+                const bonusMonths = years * 3; // 3 months per year
+                const result = new Date(start);
+                result.setFullYear(result.getFullYear() + years);
+                result.setMonth(result.getMonth() + bonusMonths);
+                return result.toISOString().split('T')[0];
+            }
+        }
+        
+        // Default calculation for non-CKS services
+        let daysToAdd = 0;
         let years = 0;
-        const durStr = String(duration || '');
         const yearsMatch = durStr.match(/(\d+)\s*(năm|year|y|n)/i);
         if (yearsMatch) {
             years = parseInt(yearsMatch[1]);
@@ -648,11 +673,9 @@ function calculateExpirationDate(startDate, duration) {
         }
 
         if (!isNaN(years) && years > 0) {
-            if (durStr.toLowerCase().includes('gia hạn')) {
-                // Formula: +365*X + 90*X
+            if (durStr.includes('gia hạn')) {
                 daysToAdd = years * 365 + (years * 90);
             } else {
-                // Formula: +365*X
                 daysToAdd = years * 365;
             }
         }
@@ -702,12 +725,12 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
 
 app.post('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        const { mst, company_name, email, phone, service_type, start_date, duration } = req.body;
+        const { mst, company_name, email, phone, service_type, start_date, duration, cks_type } = req.body;
         
-        // Auto-calculate expiration if not provided
-        const expirationDate = calculateExpirationDate(start_date, duration);
+        // Auto-calculate expiration with CKS type support
+        const expirationDate = calculateExpirationDate(start_date, duration, service_type === 'CKS' ? (cks_type || '') : '');
 
-        const { data, error } = await getClient(req.token).from('customers').upsert({
+        const insertData = {
             mst, 
             company_name, 
             email, 
@@ -717,7 +740,13 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
             duration,
             expired_date: expirationDate,
             user_id: req.user.id
-        }).select();
+        };
+        
+        // Include CKS type and payment_status if provided
+        if (cks_type) insertData.cks_type = cks_type;
+        if (req.body.payment_status) insertData.payment_status = req.body.payment_status;
+
+        const { data, error } = await getClient(req.token).from('customers').upsert(insertData).select();
 
         if (error) throw error;
         res.json({ success: true, data: data[0] });
@@ -731,12 +760,14 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
 
-        if (updates.start_date || updates.duration) {
+        if (updates.start_date || updates.duration || updates.cks_type) {
             // Need to fetch current values if one is missing to recalculate
             const { data: current } = await getClient(req.token).from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
             const sDate = updates.start_date || current.start_date;
             const dur = updates.duration || current.duration;
-            updates.expired_date = calculateExpirationDate(sDate, dur);
+            const svcType = updates.service_type || current.service_type;
+            const cksType = updates.cks_type || current.cks_type || '';
+            updates.expired_date = calculateExpirationDate(sDate, dur, svcType === 'CKS' ? cksType : '');
         }
 
         const { data, error } = await getClient(req.token).from('customers')

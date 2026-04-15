@@ -600,6 +600,7 @@ function renderCA2CRM() {
         const isExpired = daysLeft < 0;
         const statusClass = isExpired ? 'text-purple-500' : (daysLeft <= 30 ? 'text-red-500' : (daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'));
         const barClass = isExpired ? 'bg-purple-600' : (daysLeft <= 30 ? 'bg-red-500' : (daysLeft <= 60 ? 'bg-orange-500' : 'bg-green-500'));
+        const isPaid = c.payment_status === 'paid';
 
         return `
             <tr class="hover:bg-white/2 transition-colors group">
@@ -631,6 +632,14 @@ function renderCA2CRM() {
                         </div>
                     </div>
                 </td>
+                <td class="px-6 py-4 text-center">
+                    <select onchange="updatePaymentStatus('${c.id}', this.value)" 
+                            class="text-[10px] font-black py-1.5 px-2 border-0 rounded-lg cursor-pointer uppercase tracking-wider transition-all
+                            ${isPaid ? 'bg-green-500/20 text-green-400 border border-green-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'}">
+                        <option value="unpaid" ${!isPaid ? 'selected' : ''}>Chưa thanh toán</option>
+                        <option value="paid" ${isPaid ? 'selected' : ''}>Đã thanh toán</option>
+                    </select>
+                </td>
                 <td class="px-8 py-5 text-right">
                     <div class="flex justify-end gap-2 transition-all">
                         <button onclick="editCRM('${c.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
@@ -639,7 +648,7 @@ function renderCA2CRM() {
                 </td>
             </tr>
         `;
-    }).join('') || `<tr><td colspan="7" class="px-8 py-10 text-center text-gray-500 italic">Không có dữ liệu khách hàng</td></tr>`;
+    }).join('') || `<tr><td colspan="8" class="px-8 py-10 text-center text-gray-500 italic">Không có dữ liệu khách hàng</td></tr>`;
 }
 
 function calculateRemainingDays(dateStr) {
@@ -662,15 +671,21 @@ function formatDate(dateStr) {
 
 async function saveCA2CRM() {
     const id = document.getElementById('ca2-crm-id').value;
+    const serviceType = document.getElementById('ca2-crm-service').value;
     const body = {
         mst: document.getElementById('ca2-crm-mst').value,
         company_name: document.getElementById('ca2-crm-name').value,
         email: document.getElementById('ca2-crm-email').value,
         phone: document.getElementById('ca2-crm-phone').value,
-        service_type: document.getElementById('ca2-crm-service').value,
+        service_type: serviceType,
         start_date: document.getElementById('ca2-crm-start').value,
         duration: document.getElementById('ca2-crm-duration').value
     };
+
+    // Include CKS type if service is CKS
+    if (serviceType === 'CKS') {
+        body.cks_type = document.getElementById('ca2-crm-cks-type').value || '';
+    }
 
     if (!body.mst || !body.company_name) {
         alert('Vui lòng nhập Mã số thuế và Tên công ty');
@@ -696,24 +711,115 @@ async function saveCA2CRM() {
     } catch (e) { alert('Lỗi kết nối server'); }
 }
 
+// Mission 2: Update payment status directly from table dropdown
+async function updatePaymentStatus(id, status) {
+    try {
+        const res = await authedFetch(`/api/ca2-crm/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_status: status })
+        });
+        if (res.ok) {
+            // Update local data to avoid full reload
+            const item = currentCRMData.find(c => c.id === id);
+            if (item) item.payment_status = status;
+            renderCA2CRM();
+        } else {
+            alert('Lỗi cập nhật trạng thái thanh toán');
+        }
+    } catch (e) { alert('Lỗi kết nối'); }
+}
+
 function updateCRMDurationOptions(defaultVal = '') {
     const serviceSelect = document.getElementById('ca2-crm-service');
     const durationSelect = document.getElementById('ca2-crm-duration');
+    const cksSection = document.getElementById('cks-type-section');
     if (!serviceSelect || !durationSelect) return;
     
     const serviceVal = serviceSelect.value;
     durationSelect.innerHTML = '';
+    
+    // Show/hide CKS type section
+    if (cksSection) {
+        cksSection.style.display = serviceVal === 'CKS' ? 'block' : 'none';
+    }
     
     if (serviceVal === 'HDDT') {
         ['300 số', '500 số', '1000 số', '2000 số', '5000 số', '10000 số'].forEach(v => {
             durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
         });
         if (!defaultVal || !defaultVal.includes('số')) defaultVal = '500 số';
+    } else if (serviceVal === 'CKS') {
+        // Duration depends on CKS type
+        const cksType = document.getElementById('ca2-crm-cks-type')?.value || 'cap_moi';
+        updateCKSDurationByType(cksType, defaultVal);
+        return; // updateCKSDurationByType handles setting value
     } else {
         ['1 năm', '2 năm', '3 năm', '4 năm', '5 năm'].forEach(v => {
             durationSelect.innerHTML += `<option value="${v}">${v.replace('năm', 'Năm')}</option>`;
         });
         if (!defaultVal || defaultVal.includes('số')) defaultVal = '1 năm';
+    }
+    durationSelect.value = defaultVal;
+}
+
+// Mission 1: CKS type selection
+function selectCKSType(type) {
+    document.getElementById('ca2-crm-cks-type').value = type;
+    
+    // Update button styles
+    document.querySelectorAll('.cks-type-btn').forEach(btn => {
+        btn.classList.remove('border-green-500', 'bg-green-500/10', 'border-blue-500', 'bg-blue-500/10', 'border-orange-500', 'bg-orange-500/10', 'ring-2', 'ring-green-500/30', 'ring-blue-500/30', 'ring-orange-500/30');
+        btn.classList.add('border-white/10', 'bg-white/5');
+    });
+    
+    const btnMap = {
+        'cap_moi': { id: 'cks-btn-cap-moi', color: 'green' },
+        'gia_han_thu': { id: 'cks-btn-gia-han-thu', color: 'blue' },
+        'gia_han': { id: 'cks-btn-gia-han', color: 'orange' }
+    };
+    
+    const selected = btnMap[type];
+    if (selected) {
+        const btn = document.getElementById(selected.id);
+        btn.classList.remove('border-white/10', 'bg-white/5');
+        btn.classList.add(`border-${selected.color}-500`, `bg-${selected.color}-500/10`, 'ring-2', `ring-${selected.color}-500/30`);
+    }
+    
+    // Update duration options based on CKS type
+    updateCKSDurationByType(type);
+    
+    // Show info box
+    const infoBox = document.getElementById('cks-type-info');
+    const infoText = document.getElementById('cks-type-info-text');
+    if (infoBox && infoText) {
+        infoBox.classList.remove('hidden');
+        const infoMap = {
+            'cap_moi': '💡 Cấp mới: KH đăng ký 1 năm → +3 tháng, 2 năm → +6 tháng, 3 năm → +9 tháng bonus thời hạn.',
+            'gia_han_thu': '💡 Gia hạn dùng thử: Chọn trực tiếp thời hạn 6, 9 hoặc 12 tháng.',
+            'gia_han': '💡 Gia hạn: KH gia hạn 1 năm → +3 tháng, 2 năm → +6 tháng, 3 năm → +9 tháng bonus thời hạn.'
+        };
+        infoText.innerText = infoMap[type] || '';
+    }
+}
+
+function updateCKSDurationByType(cksType, defaultVal = '') {
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (!durationSelect) return;
+    durationSelect.innerHTML = '';
+    
+    if (cksType === 'gia_han_thu') {
+        // Trial: 6, 9, 12 months
+        ['6 tháng', '9 tháng', '12 tháng'].forEach(v => {
+            durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
+        });
+        if (!defaultVal || !defaultVal.includes('tháng')) defaultVal = '6 tháng';
+    } else {
+        // Cấp mới or Gia hạn: 1, 2, 3 years
+        ['1 năm', '2 năm', '3 năm'].forEach(v => {
+            durationSelect.innerHTML += `<option value="${v}">${v.replace('năm', 'Năm')}</option>`;
+        });
+        if (!defaultVal || defaultVal.includes('tháng') || defaultVal.includes('số')) defaultVal = '1 năm';
     }
     durationSelect.value = defaultVal;
 }
@@ -727,6 +833,22 @@ function openAddCRMModal() {
     document.getElementById('ca2-crm-phone').value = '';
     document.getElementById('ca2-crm-service').value = 'CKS';
     document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
+    document.getElementById('ca2-crm-cks-type').value = 'cap_moi';
+    
+    // Reset CKS type buttons
+    document.querySelectorAll('.cks-type-btn').forEach(btn => {
+        btn.classList.remove('border-green-500', 'bg-green-500/10', 'border-blue-500', 'bg-blue-500/10', 'border-orange-500', 'bg-orange-500/10', 'ring-2', 'ring-green-500/30', 'ring-blue-500/30', 'ring-orange-500/30');
+        btn.classList.add('border-white/10', 'bg-white/5');
+    });
+    const defaultBtn = document.getElementById('cks-btn-cap-moi');
+    if (defaultBtn) {
+        defaultBtn.classList.remove('border-white/10', 'bg-white/5');
+        defaultBtn.classList.add('border-green-500', 'bg-green-500/10', 'ring-2', 'ring-green-500/30');
+    }
+    
+    // Hide CKS info
+    const infoBox = document.getElementById('cks-type-info');
+    if (infoBox) infoBox.classList.add('hidden');
     
     updateCRMDurationOptions('1 năm');
     
@@ -745,6 +867,13 @@ function editCRM(id) {
     document.getElementById('ca2-crm-phone').value = c.phone || '';
     document.getElementById('ca2-crm-service').value = c.service_type || 'CKS';
     document.getElementById('ca2-crm-start').value = c.start_date || '';
+    
+    // Restore CKS type
+    const cksType = c.cks_type || 'cap_moi';
+    document.getElementById('ca2-crm-cks-type').value = cksType;
+    if (c.service_type === 'CKS') {
+        selectCKSType(cksType);
+    }
     
     updateCRMDurationOptions(c.duration || '1 năm');
     

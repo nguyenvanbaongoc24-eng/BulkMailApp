@@ -624,6 +624,7 @@
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời hạn</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hết hạn</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Còn lại</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Thanh toán</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
                                 </tr>
                             </thead>
@@ -1431,8 +1432,8 @@
 
     <!-- Modal: Add/Edit CA2 CRM -->
     <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-        <div class="modal-premium w-full max-w-4xl rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
-            <div class="p-10 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
+        <div class="modal-premium w-full max-w-6xl rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
+            <div class="px-10 py-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
                 <div>
                     <h2 id="ca2-crm-modal-title" class="text-2xl font-black text-white tracking-tighter">Thêm khách hàng CA2 CRM</h2>
                     <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Thông tin chi tiết dịch vụ khách hàng</p>
@@ -1442,116 +1443,153 @@
                 </button>
             </div>
             
-            <div class="p-10 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <div class="p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="ca2-crm-id">
+                <input type="hidden" id="ca2-crm-cks-type" value="">
                 
-                <!-- Section: Thông tin định danh -->
-                <div class="space-y-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-500 text-xs">
-                            <i class="fas fa-id-card"></i>
-                        </div>
-                        <h3 class="text-xs font-black uppercase tracking-widest text-orange-500">Thông tin định danh</h3>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-1">
-                            <label class="label-premium">Mã số thuế</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-hashtag"></i>
-                                <input type="text" id="ca2-crm-mst" class="input-premium" placeholder="Nhập MST công ty...">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- LEFT COLUMN -->
+                    <div class="space-y-6">
+                        <!-- Section: Thông tin định danh -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-500 text-xs">
+                                    <i class="fas fa-id-card"></i>
+                                </div>
+                                <h3 class="text-xs font-black uppercase tracking-widest text-orange-500">Thông tin định danh</h3>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="label-premium">Mã số thuế</label>
+                                    <div class="input-group-premium">
+                                        <i class="fas fa-hashtag"></i>
+                                        <input type="text" id="ca2-crm-mst" class="input-premium" placeholder="Nhập MST công ty...">
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="label-premium">Dịch vụ đang dùng</label>
+                                    <div class="input-group-premium">
+                                        <i class="fas fa-briefcase"></i>
+                                        <select id="ca2-crm-service" class="input-premium" onchange="updateCRMDurationOptions()">
+                                            <option value="CKS">Chữ ký số (CKS)</option>
+                                            <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
+                                            <option value="EBH">BHXH điện tử (EBH)</option>
+                                            <option value="HOA_DON">Hóa đơn (Khác)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="label-premium">Tên khách hàng / Công ty</label>
+                                <div class="input-group-premium">
+                                    <i class="fas fa-building"></i>
+                                    <input type="text" id="ca2-crm-name" class="input-premium" placeholder="Tên đơn vị đầy đủ...">
+                                </div>
                             </div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="label-premium">Dịch vụ đang dùng</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-briefcase"></i>
-                                <select id="ca2-crm-service" class="input-premium" onchange="updateCRMDurationOptions()">
-                                    <option value="CKS">Chữ ký số (CKS)</option>
-                                    <option value="HDDT">Hóa đơn điện tử (HDDT)</option>
-                                    <option value="EBH">BHXH điện tử (EBH)</option>
-                                    <option value="HOA_DON">Hóa đơn (Khác)</option>
-                                </select>
+
+                        <div class="h-px bg-white/5"></div>
+
+                        <!-- Section: Thông tin liên hệ -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500 text-xs">
+                                    <i class="fas fa-address-book"></i>
+                                </div>
+                                <h3 class="text-xs font-black uppercase tracking-widest text-blue-400">Thông tin liên hệ</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="label-premium">Email liên hệ</label>
+                                    <div class="input-group-premium">
+                                        <i class="fas fa-envelope"></i>
+                                        <input type="email" id="ca2-crm-email" class="input-premium" placeholder="email@congty.com">
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="label-premium">Số điện thoại</label>
+                                    <div class="input-group-premium">
+                                        <i class="fas fa-phone"></i>
+                                        <input type="text" id="ca2-crm-phone" class="input-premium" placeholder="09xxxxxxxx">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="md:col-span-2 space-y-1">
-                            <label class="label-premium">Tên khách hàng / Công ty</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-building"></i>
-                                <input type="text" id="ca2-crm-name" class="input-premium" placeholder="Tên đơn vị đầy đủ...">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <!-- Section: Thông tin liên hệ -->
-                <div class="space-y-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-500 text-xs">
-                            <i class="fas fa-address-book"></i>
-                        </div>
-                        <h3 class="text-xs font-black uppercase tracking-widest text-blue-400">Thông tin liên hệ</h3>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-1">
-                            <label class="label-premium">Email liên hệ</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" id="ca2-crm-email" class="input-premium" placeholder="email@congty.com">
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="label-premium">Số điện thoại</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-phone"></i>
-                                <input type="text" id="ca2-crm-phone" class="input-premium" placeholder="09xxxxxxxx">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <!-- Section: Chi tiết đăng ký -->
-                <div class="space-y-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-500 text-xs">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <h3 class="text-xs font-black uppercase tracking-widest text-purple-400">Chi tiết đăng ký</h3>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-1">
-                            <label class="label-premium">Ngày bắt đầu dịch vụ</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-calendar-alt"></i>
-                                <input type="text" id="ca2-crm-start" class="input-premium" placeholder="Chọn ngày...">
+                    <!-- RIGHT COLUMN -->
+                    <div class="space-y-6">
+                        <!-- Section: Chi tiết đăng ký -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500 text-xs">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <h3 class="text-xs font-black uppercase tracking-widest text-purple-400">Chi tiết đăng ký</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="label-premium">Ngày bắt đầu dịch vụ</label>
+                                    <div class="input-group-premium">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <input type="text" id="ca2-crm-start" class="input-premium" placeholder="Chọn ngày...">
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="label-premium">Thời hạn đăng ký</label>
+                                    <div class="input-group-premium">
+                                        <i class="fas fa-clock"></i>
+                                        <select id="ca2-crm-duration" class="input-premium">
+                                            <option value="1 năm">1 Năm</option>
+                                            <option value="2 năm">2 Năm</option>
+                                            <option value="3 năm">3 Năm</option>
+                                            <option value="4 năm">4 Năm</option>
+                                            <option value="5 năm">5 Năm</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="label-premium">Thời hạn đăng ký</label>
-                            <div class="input-group-premium">
-                                <i class="fas fa-clock"></i>
-                                <select id="ca2-crm-duration" class="input-premium">
-                                    <option value="1 năm">1 Năm</option>
-                                    <option value="2 năm">2 Năm</option>
-                                    <option value="3 năm">3 Năm</option>
-                                    <option value="4 năm">4 Năm</option>
-                                    <option value="5 năm">5 Năm</option>
-                                </select>
+
+                        <div class="h-px bg-white/5"></div>
+
+                        <!-- Section: Loại dịch vụ CKS (Mission 1) -->
+                        <div id="cks-type-section" class="space-y-4" style="display:none;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500 text-xs">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <h3 class="text-xs font-black uppercase tracking-widest text-green-400">Loại dịch vụ chữ ký số</h3>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <button type="button" onclick="selectCKSType('cap_moi')" id="cks-btn-cap-moi" class="cks-type-btn p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-green-500/10 hover:border-green-500/30 transition-all text-center group">
+                                    <div class="text-2xl mb-2">🆕</div>
+                                    <div class="text-xs font-black text-white group-hover:text-green-400 transition-colors">Cấp mới</div>
+                                    <div class="text-[9px] text-gray-500 mt-1 font-bold">+3/6/9 tháng bonus</div>
+                                </button>
+                                <button type="button" onclick="selectCKSType('gia_han_thu')" id="cks-btn-gia-han-thu" class="cks-type-btn p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all text-center group">
+                                    <div class="text-2xl mb-2">🔄</div>
+                                    <div class="text-xs font-black text-white group-hover:text-blue-400 transition-colors">Gia hạn dùng thử</div>
+                                    <div class="text-[9px] text-gray-500 mt-1 font-bold">6/9/12 tháng</div>
+                                </button>
+                                <button type="button" onclick="selectCKSType('gia_han')" id="cks-btn-gia-han" class="cks-type-btn p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-500/10 hover:border-orange-500/30 transition-all text-center group">
+                                    <div class="text-2xl mb-2">🔁</div>
+                                    <div class="text-xs font-black text-white group-hover:text-orange-400 transition-colors">Gia hạn</div>
+                                    <div class="text-[9px] text-gray-500 mt-1 font-bold">+3/6/9 tháng bonus</div>
+                                </button>
+                            </div>
+                            <div id="cks-type-info" class="hidden p-3 bg-green-500/5 border border-green-500/10 rounded-xl">
+                                <p id="cks-type-info-text" class="text-[10px] text-green-400 font-bold"></p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="p-10 bg-white/2 flex gap-4">
-                <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-5 rounded-[24px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-sm transition-all uppercase tracking-widest">Hủy bỏ</button>
-                <button onclick="saveCA2CRM()" class="flex-[1.5] px-8 py-5 rounded-[24px] bg-orange-gradient text-white font-black text-sm shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Lưu & Cập nhật</button>
+            <div class="px-8 py-6 bg-white/2 flex gap-4">
+                <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-4 rounded-[24px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-sm transition-all uppercase tracking-widest">Hủy bỏ</button>
+                <button onclick="saveCA2CRM()" class="flex-[1.5] px-8 py-4 rounded-[24px] bg-orange-gradient text-white font-black text-sm shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Lưu & Cập nhật</button>
             </div>
         </div>
     </div>
