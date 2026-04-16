@@ -1166,32 +1166,44 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
         const parseExcelDate = (val) => {
             if (!val) return null;
             if (typeof val === 'string') {
-                if (val.includes('/')) {
-                    const parts = val.split('/');
-                    if (parts.length === 3) {
-                        let year = parts[2];
-                        if (year.length === 2) {
-                            year = parseInt(year) > 50 ? '19' + year : '20' + year;
-                        }
-                        
-                        let month = parts[1];
-                        let day = parts[0];
-                        
-                        // Detect MM/DD/YYYY if the middle part is > 12
-                        if (parseInt(month) > 12 && parseInt(day) <= 12) {
-                            month = parts[0];
-                            day = parts[1];
-                        }
-                        
-                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    }
-                }
+                val = val.trim();
                 
                 // If the value is a number string (Excel serial date like "44929")
                 if (/^\d{4,5}(\.\d+)?$/.test(val)) {
                     const excelSerial = parseFloat(val);
                     const d = new Date(Math.round((excelSerial - 25569) * 86400 * 1000));
                     return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+                }
+
+                let parts = [];
+                if (val.includes('/')) parts = val.split('/');
+                else if (val.includes('-')) parts = val.split('-');
+                
+                if (parts.length === 3) {
+                    let year, month, day;
+                    
+                    if (parts[0].length === 4) {
+                        year = parts[0];
+                        month = parts[1];
+                        day = parts[2];
+                    } else {
+                        year = parts[2];
+                        if (year.length === 2) {
+                            year = parseInt(year) > 50 ? '19' + year : '20' + year;
+                        }
+                        month = parts[1];
+                        day = parts[0];
+                    }
+                    
+                    if (parseInt(month) > 12 && parseInt(day) <= 12) {
+                        let tmp = month;
+                        month = day;
+                        day = tmp;
+                    }
+                    
+                    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    }
                 }
             }
             try {
