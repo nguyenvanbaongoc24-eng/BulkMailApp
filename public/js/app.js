@@ -600,7 +600,7 @@ function renderCA2CRM() {
         const isExpired = daysLeft < 0;
         const statusClass = isExpired ? 'text-purple-500' : (daysLeft <= 30 ? 'text-red-500' : (daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'));
         const barClass = isExpired ? 'bg-purple-600' : (daysLeft <= 30 ? 'bg-red-500' : (daysLeft <= 60 ? 'bg-orange-500' : 'bg-green-500'));
-        const isPaid = c.payment_status === 'paid';
+        const isPaid = String(c.payment_status || '').toLowerCase() === 'paid';
 
         return `
             <tr class="hover:bg-white/2 transition-colors group">
@@ -634,7 +634,7 @@ function renderCA2CRM() {
                 </td>
                 <td class="px-6 py-4 text-center">
                     <select onchange="updatePaymentStatus('${c.id}', this.value)" 
-                            class="text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer uppercase tracking-wider transition-all outline-none border ${isPaid ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}">
+                            class="text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer uppercase tracking-wider transition-all outline-none border-2 ${isPaid ? 'bg-green-500/10 text-green-400 border-green-500/40' : 'bg-orange-500/10 text-orange-400 border-orange-500/40'}">
                         <option value="unpaid" ${!isPaid ? 'selected' : ''} style="background: #0f172a; color: white;">Chưa thanh toán</option>
                         <option value="paid" ${isPaid ? 'selected' : ''} style="background: #0f172a; color: white;">Đã thanh toán</option>
                     </select>

@@ -1212,20 +1212,31 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
             } catch { return null; }
         };
 
-        // Map Excel columns based on user screenshot
-        const mappedData = rawData.map(row => {
+        const normalizePaymentStatus = (val) => {
+            if (!val) return 'unpaid';
+            const s = String(val).toLowerCase().trim();
+            if (s.includes('đã') || s.includes('paid') || s === 'x' || s === '1' || s === 'yes' || s === 'ok') return 'paid';
+            return 'unpaid';
+        };
+
+        // Map and deduplicate by MST to avoid "ON CONFLICT" errors in single batch
+        const uniqueDataMap = new Map();
+        rawData.forEach(row => {
             const getVal = (keys) => {
                 const foundKey = Object.keys(row).find(k => keys.some(target => k.trim().toLowerCase() === target.toLowerCase()));
                 return foundKey ? String(row[foundKey]).trim() : '';
             };
 
+            const mst = getVal(['MST', 'mã số thuế', 'Tax Code']);
+            if (!mst) return;
+
             const sDate = parseExcelDate(getVal(['Ngày', 'Ngày bắt đầu', 'Start Date']));
             const dur = getVal(['Thời hạn', 'Gói', 'Duration']);
             const expDate = parseExcelDate(getVal(['Ngày hết hạn', 'Hạn GCN', 'Hạn dùng', 'Hạn sử dụng', 'Expiry', 'Expired Date', 'Expired']));
-
-            return {
+            
+            const item = {
                 user_id: req.user.id,
-                mst: getVal(['MST', 'mã số thuế', 'Tax Code']),
+                mst: mst,
                 company_name: getVal(['Tên DN', 'Công ty', 'TenCongTy', 'company_name']),
                 email: getVal(['Email đăng ký', 'Email', 'Địa chỉ email']),
                 phone: getVal(['điện thoại D', 'Phone', 'Số điện thoại', 'SĐT']),
@@ -1233,9 +1244,16 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
                 start_date: sDate,
                 duration: dur,
                 expired_date: expDate || calculateExpirationDate(sDate, dur),
+                payment_status: normalizePaymentStatus(getVal(['Thanh toán', 'Payment', 'Trạng thái', 'Payment Status'])),
                 notes: getVal(['Chi cục Thuế', 'Ghi chú', 'Notes'])
             };
-        }).filter(item => item.mst && item.company_name); // Minimal requirement
+
+            if (item.company_name) {
+                uniqueDataMap.set(mst, item);
+            }
+        });
+
+        const mappedData = Array.from(uniqueDataMap.values());
 
         if (mappedData.length === 0) throw new Error('Không có dữ liệu hợp lệ (Thiếu MST hoặc Tên công ty)');
 
