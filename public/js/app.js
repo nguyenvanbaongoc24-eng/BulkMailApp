@@ -10,6 +10,7 @@ let currentCRMData = [];
 let currentRecipientsData = [];
 let pendingCRMData = [];
 let currentCRMTab = 'active'; // 'active' or 'expired'
+let currentCRMSort = { field: 'created_at', order: 'desc' }; // Default sorting
 
 // --- INACTIVITY AUTO-LOGOUT (10 min) ---
 // Exception: Skip logout if email campaigns are actively running in background
@@ -559,6 +560,16 @@ function switchCRMTab(tab) {
     renderCA2CRM();
 }
 
+function handleCRMSort(field) {
+    if (currentCRMSort.field === field) {
+        currentCRMSort.order = currentCRMSort.order === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentCRMSort.field = field;
+        currentCRMSort.order = 'asc';
+    }
+    renderCA2CRM();
+}
+
 function renderCA2CRM() {
     const tableBody = document.getElementById('ca2-crm-table-body');
     if (!tableBody) return;
@@ -584,9 +595,48 @@ function renderCA2CRM() {
     }
 
     filtered.sort((a, b) => {
-        if (sortBy === 'soonest') return new Date(a.expired_date) - new Date(b.expired_date);
-        if (sortBy === 'latest') return new Date(b.expired_date) - new Date(a.expired_date);
-        return new Date(b.created_at) - new Date(a.created_at);
+        let valA, valB;
+        const field = currentCRMSort.field;
+
+        if (field === 'created_at') {
+            valA = new Date(a.created_at || 0);
+            valB = new Date(b.created_at || 0);
+        } else if (field === 'service_type') {
+            valA = String(a.service_type || '').toLowerCase();
+            valB = String(b.service_type || '').toLowerCase();
+        } else if (field === 'company_name') {
+            valA = String(a.company_name || '').toLowerCase();
+            valB = String(b.company_name || '').toLowerCase();
+        } else if (field === 'start_date') {
+            valA = new Date(a.start_date || 0);
+            valB = new Date(b.start_date || 0);
+        } else if (field === 'expired_date') {
+            valA = new Date(a.expired_date || 0);
+            valB = new Date(b.expired_date || 0);
+        } else {
+            // Fallback to select box logic if still using it
+            if (sortBy === 'soonest') return new Date(a.expired_date) - new Date(b.expired_date);
+            if (sortBy === 'latest') return new Date(b.expired_date) - new Date(a.expired_date);
+            return new Date(b.created_at) - new Date(a.created_at);
+        }
+
+        if (currentCRMSort.order === 'asc') {
+            return valA > valB ? 1 : -1;
+        } else {
+            return valA < valB ? 1 : -1;
+        }
+    });
+
+    // Update Header Icons
+    const fields = ['company_name', 'service_type', 'start_date', 'expired_date'];
+    fields.forEach(f => {
+        const icon = document.getElementById(`sort-icon-${f}`);
+        if (!icon) return;
+        if (currentCRMSort.field === f) {
+            icon.className = `fas fa-sort-${currentCRMSort.order === 'asc' ? 'up' : 'down'} ml-1 text-orange-500`;
+        } else {
+            icon.className = `fas fa-sort ml-1 text-gray-600 opacity-30`;
+        }
     });
 
     // Count for tabs (independent of current tab)

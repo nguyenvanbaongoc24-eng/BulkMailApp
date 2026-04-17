@@ -629,11 +629,19 @@
                         <table class="w-full text-left">
                             <thead class="bg-white/2 border-b border-white/5">
                                 <tr>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Khách hàng / MST</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Dịch vụ</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày cấp</th>
+                                    <th onclick="handleCRMSort('company_name')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:bg-white/5 transition-colors">
+                                        Khách hàng / MST <i id="sort-icon-company_name" class="fas fa-sort ml-1 opacity-30"></i>
+                                    </th>
+                                    <th onclick="handleCRMSort('service_type')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center cursor-pointer hover:bg-white/5 transition-colors">
+                                        Dịch vụ <i id="sort-icon-service_type" class="fas fa-sort ml-1 opacity-30"></i>
+                                    </th>
+                                    <th onclick="handleCRMSort('start_date')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:bg-white/5 transition-colors">
+                                        Ngày cấp <i id="sort-icon-start_date" class="fas fa-sort ml-1 opacity-30"></i>
+                                    </th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời hạn</th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hết hạn</th>
+                                    <th onclick="handleCRMSort('expired_date')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:bg-white/5 transition-colors">
+                                        Hết hạn <i id="sort-icon-expired_date" class="fas fa-sort ml-1 opacity-30"></i>
+                                    </th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Còn lại</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Thanh toán</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
@@ -1746,7 +1754,7 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=1.1.4"></script>
+    <script src="js/app.js?v=1.1.5"></script>
     <script src="js/seo.js?v=1.1.0"></script>
 </body>
 </html>
