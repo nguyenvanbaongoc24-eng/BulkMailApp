@@ -611,6 +611,42 @@
                                 <option value="soonest">Hạn gần nhất</option>
                                 <option value="latest">Hạn xa nhất</option>
                             </select>
+
+                            <!-- Chronological Filters -->
+                            <div class="flex items-center gap-2 border-l border-white/10 pl-4">
+                                <select id="crm-filter-year" onchange="renderCA2CRM()" class="text-[10px] font-black py-2 px-3 border-0 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                                    <option value="all">Tất cả năm</option>
+                                    <option value="2024">Năm 2024</option>
+                                    <option value="2025">Năm 2025</option>
+                                    <option value="2026">Năm 2026</option>
+                                    <option value="2027">Năm 2027</option>
+                                    <option value="2028">Năm 2028</option>
+                                    <option value="2029">Năm 2029</option>
+                                    <option value="2030">Năm 2030</option>
+                                </select>
+                                <select id="crm-filter-quarter" onchange="renderCA2CRM()" class="text-[10px] font-black py-2 px-3 border-0 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                                    <option value="all">Tất cả quý</option>
+                                    <option value="1">Quý 1</option>
+                                    <option value="2">Quý 2</option>
+                                    <option value="3">Quý 3</option>
+                                    <option value="4">Quý 4</option>
+                                </select>
+                                <select id="crm-filter-month" onchange="renderCA2CRM()" class="text-[10px] font-black py-2 px-3 border-0 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors hidden md:block">
+                                    <option value="all">Tất cả tháng</option>
+                                    <option value="1">Tháng 1</option>
+                                    <option value="2">Tháng 2</option>
+                                    <option value="3">Tháng 3</option>
+                                    <option value="4">Tháng 4</option>
+                                    <option value="5">Tháng 5</option>
+                                    <option value="6">Tháng 6</option>
+                                    <option value="7">Tháng 7</option>
+                                    <option value="8">Tháng 8</option>
+                                    <option value="9">Tháng 9</option>
+                                    <option value="10">Tháng 10</option>
+                                    <option value="11">Tháng 11</option>
+                                    <option value="12">Tháng 12</option>
+                                </select>
+                            </div>
                             <div class="relative">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"><i class="fas fa-search"></i></span>
                                 <input type="text" id="ca2-crm-search" onkeyup="renderCA2CRM()" placeholder="Tìm MST hoặc Tên..." class="pl-10 pr-4 py-2 bg-white/5 border-white/10 rounded-xl text-xs w-64 outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-bold">
@@ -1754,7 +1790,7 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=1.1.6"></script>
+    <script src="js/app.js?v=1.1.7"></script>
     <script src="js/seo.js?v=1.1.0"></script>
 </body>
 </html>

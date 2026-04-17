@@ -575,16 +575,43 @@ function renderCA2CRM() {
     if (!tableBody) return;
     
     const filterType = document.getElementById('crm-filter-service').value;
+    const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
+    const filterQuarter = document.getElementById('crm-filter-quarter')?.value || 'all';
+    const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
     const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
     const sortBy = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
 
     let filtered = [...currentCRMData];
+
+    // Service Type Filter
     if (filterType !== 'all') {
         if (filterType === 'CKS') {
             filtered = filtered.filter(c => ['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()));
         } else {
             filtered = filtered.filter(c => c.service_type === filterType);
         }
+    }
+
+    // Chronological Filters (based on expired_date)
+    if (filterYear !== 'all') {
+        filtered = filtered.filter(c => c.expired_date && new Date(c.expired_date).getFullYear() === parseInt(filterYear));
+    }
+    
+    if (filterQuarter !== 'all') {
+        const q = parseInt(filterQuarter);
+        filtered = filtered.filter(c => {
+            if (!c.expired_date) return false;
+            const month = new Date(c.expired_date).getMonth() + 1; // 1-indexed
+            if (q === 1) return month >= 1 && month <= 3;
+            if (q === 2) return month >= 4 && month <= 6;
+            if (q === 3) return month >= 7 && month <= 9;
+            if (q === 4) return month >= 10 && month <= 12;
+            return true;
+        });
+    }
+
+    if (filterMonth !== 'all') {
+        filtered = filtered.filter(c => c.expired_date && (new Date(c.expired_date).getMonth() + 1) === parseInt(filterMonth));
     }
 
     if (search) {
