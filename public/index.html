@@ -718,10 +718,9 @@
                                         Ngày cấp <i id="sort-icon-start_date" class="fas fa-sort ml-1 opacity-30"></i>
                                     </th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời hạn</th>
-                                    <th onclick="handleCRMSort('expired_date')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:bg-white/5 transition-colors">
-                                        Hết hạn <i id="sort-icon-expired_date" class="fas fa-sort ml-1 opacity-30"></i>
-                                    </th>
-                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Còn lại</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Hết hạn <i id="sort-icon-expired_date" class="fas fa-sort ml-1 opacity-30"></i></th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Thời gian còn lại</th>
+                                    <th class="px-6 py-4 text-[10px] font-bold text-emerald-400 uppercase tracking-widest text-center">Thành tiền</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Thanh toán</th>
                                     <th class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
                                 </tr>
@@ -1531,7 +1530,7 @@
 
     <!-- Modal: Add/Edit CA2 CRM -->
     <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-        <div class="modal-premium w-full max-w-6xl rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
+        <div class="modal-premium w-full max-w-[95%] rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
             <div class="px-10 py-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
                 <div>
                     <h2 id="ca2-crm-modal-title" class="text-2xl font-black text-white tracking-tighter">Thêm khách hàng CA2 CRM</h2>
@@ -1597,7 +1596,8 @@
                                         <option value="CKS – Gia hạn">CKS – Gia hạn</option>
                                         <option value="CKS - Gia hạn dùng thử">CKS - Gia hạn dùng thử</option>
                                         <option value="CA2 Remote Signing">CA2 Remote Signing</option>
-                                        <option value="Hóa đơn điện tử">Hóa đơn điện tử</option>
+                                        <option value="Hóa đơn điện tử">Hóa đơn điện tử – Cấp mới</option>
+                                    <option value="Hóa đơn điện tử – Gia hạn">Hóa đơn điện tử – Gia hạn</option>
                                         <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
                                         <option value="CA2 Sign Platform">CA2 Sign Platform</option>
                                     </select>

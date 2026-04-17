@@ -768,6 +768,11 @@ function renderCA2CRM() {
                     </div>
                 </td>
                 <td class="px-6 py-4 text-center">
+                    <span class="text-emerald-400 font-extrabold text-sm">
+                        ${new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name))}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-center">
                     <select onchange="updatePaymentStatus('${c.id}', this.value)" 
                             class="text-[10px] font-black py-1.5 px-3 rounded-xl cursor-pointer uppercase tracking-widest transition-all outline-none border-2 shadow-lg ${isPaid ? 'bg-green-500/10 text-green-400 border-green-500 shadow-green-500/10 focus:text-green-400 focus:border-green-500' : 'bg-orange-500/10 text-orange-400 border-orange-500 shadow-orange-500/10 focus:text-orange-400 focus:border-orange-500'}">
                         <option value="unpaid" ${!isPaid ? 'selected' : ''} class="font-black text-orange-400" style="background: #0f172a; color: #fb923c;">Chưa thanh toán</option>
@@ -823,6 +828,9 @@ const CRM_PRICE_LIST = {
     "Hóa đơn điện tử": {
         "Tất cả": { "300 tờ": 800000, "500 tờ": 925000, "1000 tờ": 1175000, "2000 tờ": 1600000, "5000 tờ": 2750000, "10000 tờ": 4000000 }
     },
+    "Hóa đơn điện tử – Gia hạn": {
+        "Tất cả": { "300 tờ": 300000, "500 tờ": 425000, "1000 tờ": 675000, "2000 tờ": 1100000, "5000 tờ": 2250000, "10000 tờ": 3500000 }
+    },
     "Phần mềm bảo hiểm EBH": {
         "Tất cả": { "1 năm": 500000, "2 năm": 880000, "3 năm": 1100000 }
     },
@@ -830,6 +838,15 @@ const CRM_PRICE_LIST = {
         "Tất cả": { "SP-Lite (10 HĐ)": 0, "SP-100 (100 HĐ)": 250000, "SP-300 (300 HĐ)": 690000, "SP-500 (500 HĐ)": 1110000, "SP-1000 (1000 HĐ)": 2100000, "SP-2000 (2000 HĐ)": 4000000, "SP-5000 (5000 HĐ)": 9500000, "SP-MAX": 0 }
     }
 };
+
+function getCRMPrice(service, type, pkg) {
+    if (!CRM_PRICE_LIST[service]) return 0;
+    let targetType = type;
+    if (CRM_PRICE_LIST[service]["Tất cả"]) targetType = "Tất cả";
+    else if (!CRM_PRICE_LIST[service][type]) targetType = Object.keys(CRM_PRICE_LIST[service])[0];
+    
+    return CRM_PRICE_LIST[service][targetType][pkg] || 0;
+}
 
 function updateCRMPackages() {
     const service = document.getElementById('ca2-crm-service').value;
@@ -877,11 +894,7 @@ function calculatePrice() {
     const pkg = document.getElementById('ca2-crm-package').value;
     const amountInput = document.getElementById('ca2-crm-amount');
 
-    let targetType = type;
-    if (CRM_PRICE_LIST[service]["Tất cả"]) targetType = "Tất cả";
-    else if (!CRM_PRICE_LIST[service][type]) targetType = Object.keys(CRM_PRICE_LIST[service])[0];
-
-    const price = CRM_PRICE_LIST[service][targetType][pkg] || 0;
+    const price = getCRMPrice(service, type, pkg);
     amountInput.value = new Intl.NumberFormat('vi-VN').format(price);
     
     // Sync Duration based on Package (Smart Sync)
@@ -917,7 +930,7 @@ async function saveCA2CRM() {
         service_type: serviceType,
         customer_type: document.getElementById('ca2-crm-customer-type').value,
         package_name: document.getElementById('ca2-crm-package').value,
-        amount: parseInt(document.getElementById('ca2-crm-amount').value.replace(/[^0-9]/g, '')) || 0,
+        // Remove amount to prevent schema error
         start_date: document.getElementById('ca2-crm-start').value,
         duration: document.getElementById('ca2-crm-duration').value,
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
@@ -1086,9 +1099,9 @@ function editCRM(id) {
     // Initialize packages list first
     updateCRMPackages();
     
-    // Set package and amount
-    if (c.package_name) document.getElementById('ca2-crm-package').value = c.package_name;
-    if (c.amount !== undefined) document.getElementById('ca2-crm-amount').value = new Intl.NumberFormat('vi-VN').format(c.amount);
+    // Set package and amount (Recalculate on the fly)
+    const price = getCRMPrice(c.service_type, c.customer_type, c.package_name);
+    document.getElementById('ca2-crm-amount').value = new Intl.NumberFormat('vi-VN').format(price);
     
     // Restore CKS type if applicable
     const cksType = c.cks_type || 'cap_moi';
@@ -1679,8 +1692,8 @@ async function exportMonthlyReport() {
             c.phone || '',
             c.email || '',
             c.service_type || '',
-            c.duration || '',
-            new Intl.NumberFormat('vi-VN').format(c.amount || 0),
+            c.package_name || '',
+            new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name)),
             currentUser?.full_name || 'Ngọc',
             '', // Tỷ lệ
             '', // CK KH
