@@ -717,7 +717,16 @@ function renderCA2CRM() {
                     </span>
                 </td>
                 <td class="px-8 py-5 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.start_date)}</td>
-                <td class="px-8 py-5 font-black text-white text-sm">${c.duration || '-'}</td>
+                <td class="px-8 py-5 font-black text-white text-sm">
+                    ${(() => {
+                        if (c.duration && c.duration !== '-') return c.duration;
+                        if (!c.start_date || !c.expired_date) return '-';
+                        const start = new Date(c.start_date);
+                        const end = new Date(c.expired_date);
+                        const diffYears = Math.round((end - start) / (1000 * 60 * 60 * 24 * 365.25));
+                        return diffYears > 0 ? `${diffYears} năm` : '-';
+                    })()}
+                </td>
                 <td class="px-6 py-4 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.expired_date)}</td>
                 <td class="px-6 py-4">
                     <div class="flex flex-col items-start text-sm">
