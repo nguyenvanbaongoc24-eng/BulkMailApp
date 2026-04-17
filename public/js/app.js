@@ -885,7 +885,6 @@ function calculatePrice() {
     amountInput.value = new Intl.NumberFormat('vi-VN').format(price);
     
     // Simplified: Focus only on registration type for bonus logic
-    const service = document.getElementById('ca2-crm-service').value;
     let regType = 'cap_moi';
     if (service.includes('Gia hạn dùng thử')) regType = 'gia_han_thu';
     else if (service.includes('Gia hạn')) regType = 'gia_han';
@@ -989,9 +988,6 @@ function updateCRMDurationOptions(defaultVal = '') {
         });
         if (!defaultVal || defaultVal.includes('số')) defaultVal = '1 năm';
     }
-    durationSelect.value = defaultVal;
-}
-
     durationSelect.value = defaultVal;
 }
 
