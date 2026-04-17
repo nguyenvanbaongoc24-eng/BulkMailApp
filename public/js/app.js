@@ -884,26 +884,14 @@ function calculatePrice() {
     const price = CRM_PRICE_LIST[service][targetType][pkg] || 0;
     amountInput.value = new Intl.NumberFormat('vi-VN').format(price);
     
-    // Show/hide CKS section and set hardware type
-    const cksSection = document.getElementById('cks-type-section');
-    if (cksSection) {
-        const isCKS = service.includes('CKS');
-        cksSection.style.display = isCKS ? 'block' : 'none';
-        
-        if (isCKS) {
-            // Detect registration type for bonus logic
-            let regType = 'cap_moi';
-            if (service.includes('Gia hạn dùng thử')) regType = 'gia_han_thu';
-            else if (service.includes('Gia hạn')) regType = 'gia_han';
-            
-            updateCKSDurationByType(regType);
-
-            // Default hardware if none selected
-            if (!document.getElementById('ca2-crm-cks-type').value) {
-                selectCKSType('Token');
-            }
-        }
-    }
+    // Simplified: Focus only on registration type for bonus logic
+    const service = document.getElementById('ca2-crm-service').value;
+    let regType = 'cap_moi';
+    if (service.includes('Gia hạn dùng thử')) regType = 'gia_han_thu';
+    else if (service.includes('Gia hạn')) regType = 'gia_han';
+    
+    // Update labels/options for duration based on type
+    updateCKSDurationByType(regType);
 }
 
 async function saveCA2CRM() {
@@ -1004,41 +992,7 @@ function updateCRMDurationOptions(defaultVal = '') {
     durationSelect.value = defaultVal;
 }
 
-// Refined CKS hardware selection
-function selectCKSType(hardware) {
-    document.getElementById('ca2-crm-cks-type').value = hardware;
-    
-    // Update button styles (all buttons are blue when selected for consistency)
-    document.querySelectorAll('.cks-type-btn').forEach(btn => {
-        btn.classList.remove('border-blue-500', 'bg-blue-500/10', 'ring-2', 'ring-blue-500/30');
-        btn.classList.add('border-white/10', 'bg-white/5');
-        const text = btn.querySelector('.text-white');
-        if (text) text.classList.remove('text-blue-400');
-    });
-    
-    const idMap = {
-        'Token': 'cks-btn-token',
-        'HSM': 'cks-btn-hsm',
-        'File': 'cks-btn-file',
-        'Cloud': 'cks-btn-cloud'
-    };
-    
-    const btnId = idMap[hardware];
-    if (btnId) {
-        const btn = document.getElementById(btnId);
-        btn.classList.remove('border-white/10', 'bg-white/5');
-        btn.classList.add('border-blue-500', 'bg-blue-500/10', 'ring-2', 'ring-blue-500/30');
-        const text = btn.querySelector('.text-white');
-        if (text) text.classList.add('text-blue-400');
-    }
-    
-    // Update info box text
-    const infoBox = document.getElementById('cks-type-info');
-    const infoText = document.getElementById('cks-type-info-text');
-    if (infoBox && infoText) {
-        infoBox.classList.remove('hidden');
-        infoText.innerText = `💡 Bạn đang chọn thiết bị: ${hardware}. Hàng chính hãng CA2, bảo hành trọn đời theo gói cước.`;
-    }
+    durationSelect.value = defaultVal;
 }
 
 function updateCKSDurationByType(cksType, defaultVal = '') {
