@@ -884,13 +884,26 @@ function calculatePrice() {
     const price = CRM_PRICE_LIST[service][targetType][pkg] || 0;
     amountInput.value = new Intl.NumberFormat('vi-VN').format(price);
     
+    // Sync Duration based on Package (Smart Sync)
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (durationSelect && pkg) {
+        if (pkg.includes('12 tháng')) durationSelect.value = '1 năm';
+        else if (pkg.includes('24 tháng')) durationSelect.value = '2 năm';
+        else if (pkg.includes('36 tháng')) durationSelect.value = '3 năm';
+        else if (pkg.includes('48 tháng')) durationSelect.value = '4 năm';
+        else if (pkg.includes('60 tháng')) durationSelect.value = '5 năm';
+        else if (pkg.includes('06 tháng')) durationSelect.value = '6 tháng';
+        // For HDDT, the package name often contains the quantity like "300", "500"
+        else if (service === 'Hóa đơn điện tử') durationSelect.value = pkg;
+    }
+
     // Simplified: Focus only on registration type for bonus logic
     let regType = 'cap_moi';
     if (service.includes('Gia hạn dùng thử')) regType = 'gia_han_thu';
     else if (service.includes('Gia hạn')) regType = 'gia_han';
     
     // Update labels/options for duration based on type
-    updateCKSDurationByType(regType);
+    updateCKSDurationByType(regType, durationSelect.value);
 }
 
 async function saveCA2CRM() {
@@ -1585,187 +1598,111 @@ function exportCA2CRMToExcel() {
 }
 
 async function exportMonthlyReport() {
-    if (!currentCRMData || currentCRMData.length === 0) {
-        alert('Không có dữ liệu');
-        return;
+    const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
+    const filterQuarter = document.getElementById('crm-filter-quarter')?.value || 'all';
+    const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
+
+    let filteredData = [...currentCRMData];
+    if (filterYear !== 'all') {
+        filteredData = filteredData.filter(c => c.start_date && new Date(c.start_date).getFullYear() === parseInt(filterYear));
+    }
+    if (filterMonth !== 'all') {
+        filteredData = filteredData.filter(c => c.start_date && (new Date(c.start_date).getMonth() + 1) === parseInt(filterMonth));
+    }
+    if (filterQuarter !== 'all') {
+        const q = parseInt(filterQuarter);
+        filteredData = filteredData.filter(c => {
+            if (!c.start_date) return false;
+            const month = new Date(c.start_date).getMonth() + 1;
+            if (q === 1) return month >= 1 && month <= 3;
+            if (q === 2) return month >= 4 && month <= 6;
+            if (q === 3) return month >= 7 && month <= 9;
+            if (q === 4) return month >= 10 && month <= 12;
+            return true;
+        });
     }
 
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    // Filter data for the current month
-    const monthlyData = currentCRMData.filter(c => {
-        const d = new Date(c.created_at);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
-
-    if (monthlyData.length === 0) {
-        alert('Không có dữ liệu phát sinh trong tháng này.');
+    if (filteredData.length === 0) {
+        alert('Không có dữ liệu phù hợp với bộ lọc hiện tại để xuất.');
         return;
     }
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(`DSKH ${currentYear}`);
+    const worksheet = workbook.addWorksheet('DSKH CA2');
 
-    // Set Column Widths
+    // Add main title
+    worksheet.mergeCells('A1:N1');
+    const title = worksheet.getCell('A1');
+    title.value = `DANH SÁCH KHÁCH HÀNG ${filterYear !== 'all' ? filterYear : new Date().getFullYear()}`;
+    title.font = { name: 'Times New Roman', size: 16, bold: true };
+    title.alignment = { horizontal: 'center' };
+
+    // Column Widths
     worksheet.columns = [
-        { width: 5 },  // A: STT
-        { width: 15 }, // B: Ngày
-        { width: 35 }, // C: Tên DN
-        { width: 15 }, // D: MST
-        { width: 20 }, // E: Cục Thuế
-        { width: 15 }, // F: Điện thoại DN
-        { width: 25 }, // G: Email đăng ký
-        { width: 20 }, // H: DỊCH VỤ
-        { width: 15 }, // I: Thời hạn/Số lượng
-        { width: 15 }, // J: Ngày hết hạn
-        { width: 10 }, // K: Số ngày còn lại
-        { width: 15 }, // L: Thành tiền
-        { width: 10 }, // M: KM
-        { width: 10 }, // N: Số lượng còn
-        { width: 20 }, // O: Khách hàng (Staff)
-        { width: 15 }, // P: ĐT người làm
-        { width: 10 }, // Q: Tỷ lệ
-        { width: 10 }, // R: CK KH
-        { width: 15 }  // S: Tình trạng TT
+        { header: 'STT', width: 5 },
+        { header: 'Ngày', width: 15 },
+        { header: 'Tên DN', width: 45 },
+        { header: 'MST', width: 15 },
+        { header: 'Cục Thuế', width: 15 },
+        { header: 'Điện thoại DN', width: 15 },
+        { header: 'Email đăng ký', width: 30 },
+        { header: 'DỊCH VỤ', width: 15 },
+        { header: 'Thời hạn/Số lượng', width: 20 },
+        { header: 'Thành tiền', width: 15 },
+        { header: 'ĐT người làm', width: 15 },
+        { header: 'Tỷ lệ', width: 10 },
+        { header: 'CK KH', width: 10 },
+        { header: 'Tình trạng thanh toán', width: 20 }
     ];
 
-    // DÒNG 1: Tiêu đề chính
-    worksheet.mergeCells('A1:S1');
-    const titleCell = worksheet.getCell('A1');
-    titleCell.value = `DANH SÁCH KHÁCH HÀNG ${currentYear}`;
-    titleCell.font = { name: 'Times New Roman', size: 14, bold: true };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-
-    // DÒNG 2-4: Chú thích (Legend)
-    worksheet.getCell('J2').value = 'Ghi chú ngày Mail gia hạn cho khách hàng';
-    worksheet.getCell('J2').alignment = { wrapText: true, vertical: 'middle' };
-    
-    worksheet.getCell('L2').value = 'Hạn còn từ 31-60 ngày';
-    worksheet.getCell('L2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-    
-    worksheet.getCell('L3').value = 'Hạn còn từ 1-30 ngày';
-    worksheet.getCell('L3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
-    
-    worksheet.getCell('L4').value = 'Hết hạn';
-    worksheet.getCell('L4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
-    worksheet.getCell('L4').font = { color: { argb: 'FFFFFFFF' } };
-
-    // DÒNG 5: Header cột
-    const headerRow = worksheet.getRow(5);
-    const headers = [
-        'STT', 'Ngày', 'Tên DN', 'MST', 'Cục Thuế', 'Điện thoại DN', 'Email', 
-        'DỊCH VỤ', 'Thời hạn', 'Ngày hết hạn', 'Số ngày', 'Thành tiền', 
-        'Km', 'Số lượng còn', 'Khách hàng', 'ĐT người làm', 'Tỷ lệ', 'CK KH', 'Tình trạng TT'
+    // Format Header Row
+    const hr = worksheet.getRow(2);
+    hr.values = [
+        'STT', 'Ngày', 'Tên DN', 'MST', 'Cục Thuế', 'Điện thoại DN', 'Email đăng ký',
+        'DỊCH VỤ', 'Thời hạn/Số lượng', 'Thành tiền', 'ĐT người làm', 'Tỷ lệ', 'CK KH', 'Tình trạng thanh toán'
     ];
-    headerRow.values = headers;
-    headerRow.font = { bold: true, name: 'Times New Roman' };
-    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-    headerRow.eachCell((cell, colNumber) => {
-        if (colNumber === 18) { // Column R (CK KH)
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-        } else {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D050' } };
-        }
-        cell.border = {
-            top: { style: 'thin' }, left: { style: 'thin' },
-            bottom: { style: 'thin' }, right: { style: 'thin' }
-        };
+    hr.eachCell((cell) => {
+        cell.font = { name: 'Times New Roman', size: 11, bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D050' } };
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
 
-    // DÒNG 6+: Dữ liệu
-    let currentRow = 6;
-    monthlyData.forEach((c, index) => {
-        const remainingDays = calculateRemainingDays(c.expired_date);
-        const row = worksheet.getRow(currentRow);
-        
-        row.values = [
+    // Add Data Rows
+    filteredData.forEach((c, index) => {
+        const row = worksheet.addRow([
             index + 1,
-            formatDate(c.created_at),
+            formatDate(c.start_date),
             c.company_name,
             c.mst,
-            '', // Cục Thuế (Placeholder)
-            c.phone,
-            c.email,
-            c.service_type,
-            c.package_name || c.duration,
-            formatDate(c.expired_date),
-            remainingDays,
-            c.amount,
-            '', // KMS
-            '', // Số lượng còn
-            currentUser?.name || 'Nguyen Van Bao Ngoc',
-            '', // ĐT người làm
+            c.tax_region || '',
+            c.phone || '',
+            c.email || '',
+            c.service_type || '',
+            c.duration || '',
+            new Intl.NumberFormat('vi-VN').format(c.amount || 0),
+            currentUser?.full_name || 'Ngọc',
             '', // Tỷ lệ
             '', // CK KH
-            c.payment_status || 'Chưa TT'
-        ];
-
-        // Styling based on remaining days
-        let rowFill = null;
-        let fontColor = { argb: 'FF000000' };
-
-        if (remainingDays <= 0) {
-            rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
-            fontColor = { argb: 'FFFFFFFF' };
-        } else if (remainingDays <= 30) {
-            rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
-        } else if (remainingDays <= 60) {
-            rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-        }
-
+            c.payment_status === 'paid' ? 'Đã TT' : 'Chưa TT'
+        ]);
         row.eachCell((cell) => {
-            if (rowFill) cell.fill = rowFill;
-            cell.font = { color: fontColor, name: 'Times New Roman' };
-            cell.border = {
-                top: { style: 'thin' }, left: { style: 'thin' },
-                bottom: { style: 'thin' }, right: { style: 'thin' }
-            };
-        });
-
-        // Specific formatting for currency column
-        row.getCell(12).numFmt = '#,##0';
-
-        currentRow++;
-    });
-
-    // DÒNG CUỐI: Tổng kết
-    const uniqueDns = new Set(monthlyData.map(c => c.company_name)).size;
-    const totalAmount = monthlyData.reduce((sum, c) => sum + (c.amount || 0), 0);
-
-    // Tổng số khách hàng
-    const sumRow1 = worksheet.getRow(currentRow);
-    sumRow1.getCell(3).value = 'Tổng số khách hàng:';
-    sumRow1.getCell(4).value = uniqueDns;
-    
-    // Tổng doanh thu
-    const sumRow2 = worksheet.getRow(currentRow + 1);
-    sumRow2.getCell(3).value = `Tổng doanh thu tháng ${currentMonth + 1}/${currentYear}:`;
-    sumRow2.getCell(12).value = totalAmount;
-    sumRow2.getCell(12).numFmt = '#,##0';
-
-    [sumRow1, sumRow2].forEach(row => {
-        row.font = { bold: true, name: 'Times New Roman' };
-        row.eachCell(cell => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+            cell.font = { name: 'Times New Roman', size: 11 };
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
     });
 
-    // Filename: {NamNV}_{Thang}_{Nam}.xlsx
-    const staffNameSlug = (currentUser?.name || 'Nguyen_Van_Bao_Ngoc').replace(/\s+/g, '_');
-    const fileName = `${staffNameSlug}_Thang_${currentMonth + 1}_${currentYear}.xlsx`;
-
-    // Export to file
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = fileName;
+    anchor.download = `Bao_Cao_CRM_DSKH.xlsx`;
     anchor.click();
     window.URL.revokeObjectURL(url);
 }
+
+
 
 
 // --- Utils & Modals ---
