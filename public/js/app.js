@@ -9,6 +9,7 @@ let savedSessions = JSON.parse(localStorage.getItem('ca2_saved_sessions') || '[]
 let currentCRMData = [];
 let currentRecipientsData = [];
 let pendingCRMData = [];
+let currentCRMTab = 'active'; // 'active' or 'expired'
 
 // --- INACTIVITY AUTO-LOGOUT (10 min) ---
 // Exception: Skip logout if email campaigns are actively running in background
@@ -553,6 +554,11 @@ async function loadCA2CRMData() {
     } catch (e) { console.error('Load CRM Error:', e); }
 }
 
+function switchCRMTab(tab) {
+    currentCRMTab = tab;
+    renderCA2CRM();
+}
+
 function renderCA2CRM() {
     const tableBody = document.getElementById('ca2-crm-table-body');
     if (!tableBody) return;
@@ -583,14 +589,48 @@ function renderCA2CRM() {
         return new Date(b.created_at) - new Date(a.created_at);
     });
 
-    // Stats
+    // Count for tabs (independent of current tab)
+    let activeTotal = 0;
+    let expiredTotal = 0;
+    currentCRMData.forEach(c => {
+        const days = calculateRemainingDays(c.expired_date);
+        if (days < 0) expiredTotal++;
+        else activeTotal++;
+    });
+
+    // Apply tab filter
+    if (currentCRMTab === 'active') {
+        filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) >= 0);
+    } else {
+        filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) < 0);
+    }
+
+    // Stats (Filtered view for dashboard counters)
     const totalEl = document.getElementById('ca2-crm-total');
     const activeEl = document.getElementById('ca2-crm-active');
     const expiringEl = document.getElementById('ca2-crm-expiring');
     const expiredEl = document.getElementById('ca2-crm-expired');
     
+    // Update Tab UI
+    const tabActive = document.getElementById('tab-crm-active');
+    const tabExpired = document.getElementById('tab-crm-expired');
+    const countActive = document.getElementById('count-crm-active-tab');
+    const countExpired = document.getElementById('count-crm-expired-tab');
+
+    if (tabActive && tabExpired) {
+        if (currentCRMTab === 'active') {
+            tabActive.className = "px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-2 bg-green-500 text-white shadow-lg shadow-green-900/20";
+            tabExpired.className = "px-8 py-3 rounded-xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2";
+        } else {
+            tabActive.className = "px-8 py-3 rounded-xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2";
+            tabExpired.className = "px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-2 bg-purple-600 text-white shadow-lg shadow-purple-900/20";
+        }
+    }
+    if (countActive) countActive.innerText = activeTotal;
+    if (countExpired) countExpired.innerText = expiredTotal;
+    
     let activeCnt = 0, expiringCnt = 0, expiredCnt = 0;
-    filtered.forEach(c => {
+    currentCRMData.forEach(c => {
         const days = calculateRemainingDays(c.expired_date);
         if (days < 0) expiredCnt++;
         else if (days <= 60) expiringCnt++;
@@ -630,14 +670,15 @@ function renderCA2CRM() {
                 <td class="px-8 py-5 font-black text-white text-sm">${c.duration || '-'}</td>
                 <td class="px-6 py-4 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.expired_date)}</td>
                 <td class="px-6 py-4">
-                    <div class="flex flex-col items-start">
+                    <div class="flex flex-col items-start text-sm">
                         <span class="font-black ${statusClass}">
                             ${isExpired ? 'Hết hạn' : (daysLeft + ' ngày')}
                         </span>
+                        ${!isExpired ? '' : `
                         <div class="w-16 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
                             <div class="h-full ${barClass}" 
                                  style="width: ${isExpired ? '0%' : (daysLeft > 60 ? '100%' : (daysLeft / 60 * 100) + '%')}"></div>
-                        </div>
+                        </div>`}
                     </div>
                 </td>
                 <td class="px-6 py-4 text-center">
