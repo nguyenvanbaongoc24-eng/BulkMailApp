@@ -768,11 +768,6 @@ function renderCA2CRM() {
                     </div>
                 </td>
                 <td class="px-6 py-4 text-center">
-                    <span class="text-emerald-400 font-extrabold text-sm">
-                        ${new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name))}
-                    </span>
-                </td>
-                <td class="px-6 py-4 text-center">
                     <select onchange="updatePaymentStatus('${c.id}', this.value)" 
                             class="text-[10px] font-black py-1.5 px-3 rounded-xl cursor-pointer uppercase tracking-widest transition-all outline-none border-2 shadow-lg ${isPaid ? 'bg-green-500/10 text-green-400 border-green-500 shadow-green-500/10 focus:text-green-400 focus:border-green-500' : 'bg-orange-500/10 text-orange-400 border-orange-500 shadow-orange-500/10 focus:text-orange-400 focus:border-orange-500'}">
                         <option value="unpaid" ${!isPaid ? 'selected' : ''} class="font-black text-orange-400" style="background: #0f172a; color: #fb923c;">Chưa thanh toán</option>
@@ -840,12 +835,24 @@ const CRM_PRICE_LIST = {
 };
 
 function getCRMPrice(service, type, pkg) {
-    if (!CRM_PRICE_LIST[service]) return 0;
-    let targetType = type;
-    if (CRM_PRICE_LIST[service]["Tất cả"]) targetType = "Tất cả";
-    else if (!CRM_PRICE_LIST[service][type]) targetType = Object.keys(CRM_PRICE_LIST[service])[0];
+    if (!service) return 0;
     
-    return CRM_PRICE_LIST[service][targetType][pkg] || 0;
+    // Normalize service name (handling various dashes and extra spaces)
+    let s = service.replace(/[\u2010-\u2015-]/g, '-').replace(/\s+/g, ' ').trim();
+    
+    // Try to find a matching key in CRM_PRICE_LIST by normalizing its keys too
+    let foundKey = Object.keys(CRM_PRICE_LIST).find(k => {
+        let normK = k.replace(/[\u2010-\u2015-]/g, '-').replace(/\s+/g, ' ').trim();
+        return normK === s;
+    });
+
+    if (!foundKey) return 0;
+    
+    let targetType = type;
+    if (CRM_PRICE_LIST[foundKey]["Tất cả"]) targetType = "Tất cả";
+    else if (!CRM_PRICE_LIST[foundKey][type]) targetType = Object.keys(CRM_PRICE_LIST[foundKey])[0];
+    
+    return CRM_PRICE_LIST[foundKey][targetType][pkg] || 0;
 }
 
 function updateCRMPackages() {
