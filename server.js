@@ -752,7 +752,7 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
         if (cks_type) insertData.cks_type = cks_type;
         if (req.body.payment_status) insertData.payment_status = req.body.payment_status;
 
-        const { data, error } = await getClient(req.token).from('customers').upsert(insertData).select();
+        const { data, error } = await getClient(req.token).from('customers').upsert(insertData, { onConflict: 'mst,user_id' }).select();
 
         if (error) throw error;
         res.json({ success: true, data: data[0] });
