@@ -562,7 +562,14 @@ function renderCA2CRM() {
     const sortBy = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
 
     let filtered = [...currentCRMData];
-    if (filterType !== 'all') filtered = filtered.filter(c => c.service_type === filterType);
+    if (filterType !== 'all') {
+        if (filterType === 'CKS') {
+            filtered = filtered.filter(c => ['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()));
+        } else {
+            filtered = filtered.filter(c => c.service_type === filterType);
+        }
+    }
+
     if (search) {
         filtered = filtered.filter(c => 
             (c.mst && c.mst.toLowerCase().includes(search)) || 
@@ -583,7 +590,7 @@ function renderCA2CRM() {
     const expiredEl = document.getElementById('ca2-crm-expired');
     
     let activeCnt = 0, expiringCnt = 0, expiredCnt = 0;
-    currentCRMData.forEach(c => {
+    filtered.forEach(c => {
         const days = calculateRemainingDays(c.expired_date);
         if (days < 0) expiredCnt++;
         else if (days <= 60) expiringCnt++;
@@ -612,11 +619,11 @@ function renderCA2CRM() {
                 </td>
                 <td class="px-8 py-5 text-center">
                     <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border 
-                        ${c.service_type === 'CKS' ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 
+                        ${['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()) ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 
                           c.service_type === 'HDDT' ? 'border-blue-500/20 text-blue-400 bg-blue-400/5' :
                           c.service_type === 'EBH' ? 'border-green-500/20 text-green-400 bg-green-500/5' :
                           'border-purple-500/20 text-purple-400 bg-purple-500/5'}">
-                        ${c.service_type || 'CKS'}
+                        ${['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()) ? 'CHỮ KÝ SỐ' : (c.service_type || 'CHỮ KÝ SỐ')}
                     </span>
                 </td>
                 <td class="px-8 py-5 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.start_date)}</td>
@@ -635,9 +642,9 @@ function renderCA2CRM() {
                 </td>
                 <td class="px-6 py-4 text-center">
                     <select onchange="updatePaymentStatus('${c.id}', this.value)" 
-                            class="text-[10px] font-black py-1.5 px-3 rounded-xl cursor-pointer uppercase tracking-widest transition-all outline-none border-2 shadow-lg ${isPaid ? 'bg-green-500/10 text-green-400 border-green-500 shadow-green-500/10' : 'bg-orange-500/10 text-orange-400 border-orange-500 shadow-orange-500/10'}">
-                        <option value="unpaid" ${!isPaid ? 'selected' : ''} style="background: #0f172a; color: white;">Chưa thanh toán</option>
-                        <option value="paid" ${isPaid ? 'selected' : ''} style="background: #0f172a; color: white;">Đã thanh toán</option>
+                            class="text-[10px] font-black py-1.5 px-3 rounded-xl cursor-pointer uppercase tracking-widest transition-all outline-none border-2 shadow-lg ${isPaid ? 'bg-green-500/10 text-green-400 border-green-500 shadow-green-500/10 focus:text-green-400 focus:border-green-500' : 'bg-orange-500/10 text-orange-400 border-orange-500 shadow-orange-500/10 focus:text-orange-400 focus:border-orange-500'}">
+                        <option value="unpaid" ${!isPaid ? 'selected' : ''} class="font-black text-orange-400" style="background: #0f172a; color: #fb923c;">Chưa thanh toán</option>
+                        <option value="paid" ${isPaid ? 'selected' : ''} class="font-black text-green-400" style="background: #0f172a; color: #4ade80;">Đã thanh toán</option>
                     </select>
                 </td>
                 <td class="px-8 py-5 text-right">
@@ -876,14 +883,15 @@ function editCRM(id) {
     document.getElementById('ca2-crm-name').value = c.company_name;
     document.getElementById('ca2-crm-email').value = c.email || '';
     document.getElementById('ca2-crm-phone').value = c.phone || '';
-    document.getElementById('ca2-crm-service').value = c.service_type || 'CKS';
+    const normalizedServiceType = ['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()) ? 'CKS' : (c.service_type || 'CKS');
+    document.getElementById('ca2-crm-service').value = normalizedServiceType;
     document.getElementById('ca2-crm-start').value = c.start_date || '';
     document.getElementById('ca2-crm-compensate').value = c.compensate_months || 0;
     
     // Restore CKS type
     const cksType = c.cks_type || 'cap_moi';
     document.getElementById('ca2-crm-cks-type').value = cksType;
-    if (c.service_type === 'CKS') {
+    if (normalizedServiceType === 'CKS') {
         selectCKSType(cksType);
     }
     
