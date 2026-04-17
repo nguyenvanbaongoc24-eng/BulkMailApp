@@ -576,7 +576,8 @@ function renderCA2CRM() {
     
     const filterType = document.getElementById('crm-filter-service').value;
     const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
-    const filterQuarter = document.getElementById('crm-filter-quarter')?.value || 'all';
+    const filterFrom = document.getElementById('crm-filter-from-date')?.value || '';
+    const filterTo = document.getElementById('crm-filter-to-date')?.value || '';
     const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
     const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
     const sortBy = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
@@ -592,22 +593,21 @@ function renderCA2CRM() {
         }
     }
 
+    // Date Range Filter (New)
+    if (filterFrom) {
+        const fromDate = new Date(filterFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        filtered = filtered.filter(c => c.start_date && new Date(c.start_date) >= fromDate);
+    }
+    if (filterTo) {
+        const toDate = new Date(filterTo);
+        toDate.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(c => c.start_date && new Date(c.start_date) <= toDate);
+    }
+
     // Chronological Filters (based on start_date as requested)
     if (filterYear !== 'all') {
         filtered = filtered.filter(c => c.start_date && new Date(c.start_date).getFullYear() === parseInt(filterYear));
-    }
-    
-    if (filterQuarter !== 'all') {
-        const q = parseInt(filterQuarter);
-        filtered = filtered.filter(c => {
-            if (!c.start_date) return false;
-            const month = new Date(c.start_date).getMonth() + 1; // 1-indexed
-            if (q === 1) return month >= 1 && month <= 3;
-            if (q === 2) return month >= 4 && month <= 6;
-            if (q === 3) return month >= 7 && month <= 9;
-            if (q === 4) return month >= 10 && month <= 12;
-            return true;
-        });
     }
 
     if (filterMonth !== 'all') {
