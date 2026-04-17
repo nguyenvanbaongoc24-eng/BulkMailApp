@@ -802,6 +802,97 @@ function formatDate(dateStr) {
         return `${day}/${month}/${year}`;
     } catch (e) { return dateStr; }
 }
+// --- ENHANCED CRM PRICING ENGINE ---
+const CRM_PRICE_LIST = {
+    "CKS – Cấp mới": {
+        "Công ty": { "12 tháng": 1793880, "24 tháng": 2691360, "36 tháng": 3054240 },
+        "Cá nhân / Hộ KD": { "12 tháng": 1069200, "24 tháng": 1501200, "36 tháng": 1944000 }
+    },
+    "CKS – Gia hạn": {
+        "Công ty": { "12 tháng": 1253880, "24 tháng": 2151360, "36 tháng": 2854440 },
+        "Cá nhân / Hộ KD": { "12 tháng": 529200, "24 tháng": 961200, "36 tháng": 1404000 }
+    },
+    "CKS - Gia hạn dùng thử": {
+        "Công ty": { "12 tháng": 1253880, "24 tháng": 2151360, "36 tháng": 2854440 },
+        "Cá nhân / Hộ KD": { "12 tháng": 529200, "24 tháng": 961200, "36 tháng": 1404000 }
+    },
+    "CA2 Remote Signing": {
+        "Cá nhân / Hộ KD": { "1 tháng": 34344, "3 tháng": 63720, "6 tháng": 108000, "1 năm": 196344, "2 năm": 373140, "3 năm": 530280 },
+        "Công ty": { "1 năm": 1226880, "2 năm": 2160000, "3 năm": 2847960 }
+    },
+    "Hóa đơn điện tử": {
+        "Tất cả": { "300 tờ": 800000, "500 tờ": 925000, "1000 tờ": 1175000, "2000 tờ": 1600000, "5000 tờ": 2750000, "10000 tờ": 4000000 }
+    },
+    "Phần mềm bảo hiểm EBH": {
+        "Tất cả": { "1 năm": 500000, "2 năm": 880000, "3 năm": 1100000 }
+    },
+    "CA2 Sign Platform": {
+        "Tất cả": { "SP-Lite (10 HĐ)": 0, "SP-100 (100 HĐ)": 250000, "SP-300 (300 HĐ)": 690000, "SP-500 (500 HĐ)": 1110000, "SP-1000 (1000 HĐ)": 2100000, "SP-2000 (2000 HĐ)": 4000000, "SP-5000 (5000 HĐ)": 9500000, "SP-MAX": 0 }
+    }
+};
+
+function updateCRMPackages() {
+    const service = document.getElementById('ca2-crm-service').value;
+    const type = document.getElementById('ca2-crm-customer-type').value;
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    if (!CRM_PRICE_LIST[service]) return;
+
+    let targetType = type;
+    if (CRM_PRICE_LIST[service]["Tất cả"]) targetType = "Tất cả";
+    else if (!CRM_PRICE_LIST[service][type]) {
+        // Fallback for Remote Signing which has specific split
+        targetType = Object.keys(CRM_PRICE_LIST[service])[0];
+    }
+
+    const packages = CRM_PRICE_LIST[service][targetType];
+    pkgSelect.innerHTML = Object.keys(packages).map(p => `<option value="${p}">${p}</option>`).join('');
+    
+    // Auto sync duration field if it's a "year" package
+    syncDurationFromPackage();
+    calculatePrice();
+}
+
+function syncDurationFromPackage() {
+    const pkg = document.getElementById('ca2-crm-package').value;
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (pkg.includes('tháng') || pkg.includes('năm')) {
+        let norm = pkg.replace('tháng', 'tháng').replace('năm', 'năm').toLowerCase();
+        if (norm === '12 tháng') norm = '1 năm';
+        if (norm === '24 tháng') norm = '2 năm';
+        if (norm === '36 tháng') norm = '3 năm';
+        
+        // Match existing duration options if possible
+        for (let i = 0; i < durationSelect.options.length; i++) {
+            if (durationSelect.options[i].value.toLowerCase().includes(norm)) {
+                durationSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+}
+
+function calculatePrice() {
+    const service = document.getElementById('ca2-crm-service').value;
+    const type = document.getElementById('ca2-crm-customer-type').value;
+    const pkg = document.getElementById('ca2-crm-package').value;
+    const amountInput = document.getElementById('ca2-crm-amount');
+
+    let targetType = type;
+    if (CRM_PRICE_LIST[service]["Tất cả"]) targetType = "Tất cả";
+    else if (!CRM_PRICE_LIST[service][type]) targetType = Object.keys(CRM_PRICE_LIST[service])[0];
+
+    const price = CRM_PRICE_LIST[service][targetType][pkg] || 0;
+    amountInput.value = new Intl.NumberFormat('vi-VN').format(price);
+    
+    // Also show/hide CKS section if needed (though service name is now more specific)
+    const cksSection = document.getElementById('cks-type-section');
+    if (cksSection) {
+        cksSection.style.display = service.includes('CKS') ? 'block' : 'none';
+        if (service.includes('Gia hạn dùng thử')) selectCKSType('gia_han_thu');
+        else if (service.includes('Gia hạn')) selectCKSType('gia_han');
+        else if (service.includes('Cấp mới')) selectCKSType('cap_moi');
+    }
+}
 
 async function saveCA2CRM() {
     const id = document.getElementById('ca2-crm-id').value;
@@ -812,6 +903,9 @@ async function saveCA2CRM() {
         email: document.getElementById('ca2-crm-email').value,
         phone: document.getElementById('ca2-crm-phone').value,
         service_type: serviceType,
+        customer_type: document.getElementById('ca2-crm-customer-type').value,
+        package_name: document.getElementById('ca2-crm-package').value,
+        amount: parseInt(document.getElementById('ca2-crm-amount').value.replace(/[^0-9]/g, '')) || 0,
         start_date: document.getElementById('ca2-crm-start').value,
         duration: document.getElementById('ca2-crm-duration').value,
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
@@ -975,7 +1069,8 @@ function openAddCRMModal() {
     document.getElementById('ca2-crm-name').value = '';
     document.getElementById('ca2-crm-email').value = '';
     document.getElementById('ca2-crm-phone').value = '';
-    document.getElementById('ca2-crm-service').value = 'CKS';
+    document.getElementById('ca2-crm-service').value = 'CKS – Cấp mới';
+    document.getElementById('ca2-crm-customer-type').value = 'Công ty';
     document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
     document.getElementById('ca2-crm-cks-type').value = 'cap_moi';
     document.getElementById('ca2-crm-compensate').value = 0;
@@ -995,7 +1090,7 @@ function openAddCRMModal() {
     const infoBox = document.getElementById('cks-type-info');
     if (infoBox) infoBox.classList.add('hidden');
     
-    updateCRMDurationOptions('1 năm');
+    updateCRMPackages();
     
     document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }
@@ -1010,19 +1105,25 @@ function editCRM(id) {
     document.getElementById('ca2-crm-name').value = c.company_name;
     document.getElementById('ca2-crm-email').value = c.email || '';
     document.getElementById('ca2-crm-phone').value = c.phone || '';
-    const normalizedServiceType = ['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()) ? 'CKS' : (c.service_type || 'CKS');
+    const normalizedServiceType = c.service_type || 'CKS – Cấp mới';
     document.getElementById('ca2-crm-service').value = normalizedServiceType;
+    document.getElementById('ca2-crm-customer-type').value = c.customer_type || 'Công ty';
     document.getElementById('ca2-crm-start').value = c.start_date || '';
     document.getElementById('ca2-crm-compensate').value = c.compensate_months || 0;
     
-    // Restore CKS type
+    // Initialize packages list first
+    updateCRMPackages();
+    
+    // Set package and amount
+    if (c.package_name) document.getElementById('ca2-crm-package').value = c.package_name;
+    if (c.amount !== undefined) document.getElementById('ca2-crm-amount').value = new Intl.NumberFormat('vi-VN').format(c.amount);
+    
+    // Restore CKS type if applicable
     const cksType = c.cks_type || 'cap_moi';
     document.getElementById('ca2-crm-cks-type').value = cksType;
-    if (normalizedServiceType === 'CKS') {
+    if (normalizedServiceType.includes('CKS')) {
         selectCKSType(cksType);
     }
-    
-    updateCRMDurationOptions(c.duration || '1 năm');
     
     document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }
@@ -1522,6 +1623,53 @@ function exportCA2CRMToExcel() {
     const ws = XLSX.utils.json_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "CA2_CRM_Data");
     XLSX.writeFile(wb, "CA2_CRM_Data.xlsx");
+}
+
+function exportMonthlyReport() {
+    if (!currentCRMData || currentCRMData.length === 0) {
+        alert('Không có dữ liệu');
+        return;
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const monthlyData = currentCRMData.filter(c => {
+        const d = new Date(c.created_at);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    if (monthlyData.length === 0) {
+        alert('Không có dữ liệu phát sinh trong tháng này.');
+        return;
+    }
+
+    const wsData = monthlyData.map(c => ({
+        'Ngày tạo': formatDate(c.created_at),
+        'MST': c.mst,
+        'Tên khách hàng': c.company_name,
+        'Loại đối tượng': c.customer_type || 'N/A',
+        'Dịch vụ': c.service_type,
+        'Gói cước': c.package_name || 'N/A',
+        'Thành tiền': c.amount || 0,
+        'Email': c.email,
+        'SĐT': c.phone,
+        'Ngày cấp': formatDate(c.start_date),
+        'Ngày hết hạn': formatDate(c.expired_date)
+    }));
+
+    // Add summary row
+    const total = monthlyData.reduce((sum, c) => sum + (c.amount || 0), 0);
+    wsData.push({});
+    wsData.push({ 'Tên khách hàng': 'TỔNG CỘNG DOANH THU:', 'Thành tiền': total });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    
+    // Formatting can be added here if needed
+    XLSX.utils.book_append_sheet(wb, ws, `Bao_Cao_Thang_${currentMonth + 1}`);
+    XLSX.writeFile(wb, `Bao_Cao_CA2_Thang_${currentMonth + 1}_${currentYear}.xlsx`);
 }
 
 

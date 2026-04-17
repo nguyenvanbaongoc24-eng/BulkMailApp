@@ -730,7 +730,7 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
 
 app.post('/api/ca2-crm', authenticate, async (req, res) => {
     try {
-        const { mst, company_name, email, phone, service_type, start_date, duration, cks_type, compensate_months } = req.body;
+        const { mst, company_name, email, phone, service_type, start_date, duration, cks_type, compensate_months, customer_type, package_name, amount } = req.body;
         
         // Auto-calculate expiration with CKS type and compensation support
         const expirationDate = calculateExpirationDate(start_date, duration, service_type === 'CKS' ? (cks_type || '') : '', compensate_months || 0);
@@ -745,6 +745,9 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
             duration,
             expired_date: expirationDate,
             compensate_months: compensate_months || 0,
+            customer_type: customer_type || '',
+            package_name: package_name || '',
+            amount: amount || 0,
             user_id: req.user.id
         };
         
