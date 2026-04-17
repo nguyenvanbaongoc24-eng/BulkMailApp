@@ -592,16 +592,16 @@ function renderCA2CRM() {
         }
     }
 
-    // Chronological Filters (based on expired_date)
+    // Chronological Filters (based on start_date as requested)
     if (filterYear !== 'all') {
-        filtered = filtered.filter(c => c.expired_date && new Date(c.expired_date).getFullYear() === parseInt(filterYear));
+        filtered = filtered.filter(c => c.start_date && new Date(c.start_date).getFullYear() === parseInt(filterYear));
     }
     
     if (filterQuarter !== 'all') {
         const q = parseInt(filterQuarter);
         filtered = filtered.filter(c => {
-            if (!c.expired_date) return false;
-            const month = new Date(c.expired_date).getMonth() + 1; // 1-indexed
+            if (!c.start_date) return false;
+            const month = new Date(c.start_date).getMonth() + 1; // 1-indexed
             if (q === 1) return month >= 1 && month <= 3;
             if (q === 2) return month >= 4 && month <= 6;
             if (q === 3) return month >= 7 && month <= 9;
@@ -611,7 +611,7 @@ function renderCA2CRM() {
     }
 
     if (filterMonth !== 'all') {
-        filtered = filtered.filter(c => c.expired_date && (new Date(c.expired_date).getMonth() + 1) === parseInt(filterMonth));
+        filtered = filtered.filter(c => c.start_date && (new Date(c.start_date).getMonth() + 1) === parseInt(filterMonth));
     }
 
     if (search) {
