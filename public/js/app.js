@@ -1625,7 +1625,7 @@ function exportCA2CRMToExcel() {
     XLSX.writeFile(wb, "CA2_CRM_Data.xlsx");
 }
 
-function exportMonthlyReport() {
+async function exportMonthlyReport() {
     if (!currentCRMData || currentCRMData.length === 0) {
         alert('Không có dữ liệu');
         return;
@@ -1635,6 +1635,7 @@ function exportMonthlyReport() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
+    // Filter data for the current month
     const monthlyData = currentCRMData.filter(c => {
         const d = new Date(c.created_at);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -1645,31 +1646,166 @@ function exportMonthlyReport() {
         return;
     }
 
-    const wsData = monthlyData.map(c => ({
-        'Ngày tạo': formatDate(c.created_at),
-        'MST': c.mst,
-        'Tên khách hàng': c.company_name,
-        'Loại đối tượng': c.customer_type || 'N/A',
-        'Dịch vụ': c.service_type,
-        'Gói cước': c.package_name || 'N/A',
-        'Thành tiền': c.amount || 0,
-        'Email': c.email,
-        'SĐT': c.phone,
-        'Ngày cấp': formatDate(c.start_date),
-        'Ngày hết hạn': formatDate(c.expired_date)
-    }));
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`DSKH ${currentYear}`);
 
-    // Add summary row
-    const total = monthlyData.reduce((sum, c) => sum + (c.amount || 0), 0);
-    wsData.push({});
-    wsData.push({ 'Tên khách hàng': 'TỔNG CỘNG DOANH THU:', 'Thành tiền': total });
+    // Set Column Widths
+    worksheet.columns = [
+        { width: 5 },  // A: STT
+        { width: 15 }, // B: Ngày
+        { width: 35 }, // C: Tên DN
+        { width: 15 }, // D: MST
+        { width: 20 }, // E: Cục Thuế
+        { width: 15 }, // F: Điện thoại DN
+        { width: 25 }, // G: Email đăng ký
+        { width: 20 }, // H: DỊCH VỤ
+        { width: 15 }, // I: Thời hạn/Số lượng
+        { width: 15 }, // J: Ngày hết hạn
+        { width: 10 }, // K: Số ngày còn lại
+        { width: 15 }, // L: Thành tiền
+        { width: 10 }, // M: KM
+        { width: 10 }, // N: Số lượng còn
+        { width: 20 }, // O: Khách hàng (Staff)
+        { width: 15 }, // P: ĐT người làm
+        { width: 10 }, // Q: Tỷ lệ
+        { width: 10 }, // R: CK KH
+        { width: 15 }  // S: Tình trạng TT
+    ];
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(wsData);
+    // DÒNG 1: Tiêu đề chính
+    worksheet.mergeCells('A1:S1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = `DANH SÁCH KHÁCH HÀNG ${currentYear}`;
+    titleCell.font = { name: 'Times New Roman', size: 14, bold: true };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // DÒNG 2-4: Chú thích (Legend)
+    worksheet.getCell('J2').value = 'Ghi chú ngày Mail gia hạn cho khách hàng';
+    worksheet.getCell('J2').alignment = { wrapText: true, vertical: 'middle' };
     
-    // Formatting can be added here if needed
-    XLSX.utils.book_append_sheet(wb, ws, `Bao_Cao_Thang_${currentMonth + 1}`);
-    XLSX.writeFile(wb, `Bao_Cao_CA2_Thang_${currentMonth + 1}_${currentYear}.xlsx`);
+    worksheet.getCell('L2').value = 'Hạn còn từ 31-60 ngày';
+    worksheet.getCell('L2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+    
+    worksheet.getCell('L3').value = 'Hạn còn từ 1-30 ngày';
+    worksheet.getCell('L3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
+    
+    worksheet.getCell('L4').value = 'Hết hạn';
+    worksheet.getCell('L4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+    worksheet.getCell('L4').font = { color: { argb: 'FFFFFFFF' } };
+
+    // DÒNG 5: Header cột
+    const headerRow = worksheet.getRow(5);
+    const headers = [
+        'STT', 'Ngày', 'Tên DN', 'MST', 'Cục Thuế', 'Điện thoại DN', 'Email', 
+        'DỊCH VỤ', 'Thời hạn', 'Ngày hết hạn', 'Số ngày', 'Thành tiền', 
+        'Km', 'Số lượng còn', 'Khách hàng', 'ĐT người làm', 'Tỷ lệ', 'CK KH', 'Tình trạng TT'
+    ];
+    headerRow.values = headers;
+    headerRow.font = { bold: true, name: 'Times New Roman' };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+    headerRow.eachCell((cell, colNumber) => {
+        if (colNumber === 18) { // Column R (CK KH)
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+        } else {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D050' } };
+        }
+        cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+    });
+
+    // DÒNG 6+: Dữ liệu
+    let currentRow = 6;
+    monthlyData.forEach((c, index) => {
+        const remainingDays = calculateRemainingDays(c.expired_date);
+        const row = worksheet.getRow(currentRow);
+        
+        row.values = [
+            index + 1,
+            formatDate(c.created_at),
+            c.company_name,
+            c.mst,
+            '', // Cục Thuế (Placeholder)
+            c.phone,
+            c.email,
+            c.service_type,
+            c.package_name || c.duration,
+            formatDate(c.expired_date),
+            remainingDays,
+            c.amount,
+            '', // KMS
+            '', // Số lượng còn
+            currentUser?.name || 'Nguyen Van Bao Ngoc',
+            '', // ĐT người làm
+            '', // Tỷ lệ
+            '', // CK KH
+            c.payment_status || 'Chưa TT'
+        ];
+
+        // Styling based on remaining days
+        let rowFill = null;
+        let fontColor = { argb: 'FF000000' };
+
+        if (remainingDays <= 0) {
+            rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+            fontColor = { argb: 'FFFFFFFF' };
+        } else if (remainingDays <= 30) {
+            rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
+        } else if (remainingDays <= 60) {
+            rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+        }
+
+        row.eachCell((cell) => {
+            if (rowFill) cell.fill = rowFill;
+            cell.font = { color: fontColor, name: 'Times New Roman' };
+            cell.border = {
+                top: { style: 'thin' }, left: { style: 'thin' },
+                bottom: { style: 'thin' }, right: { style: 'thin' }
+            };
+        });
+
+        // Specific formatting for currency column
+        row.getCell(12).numFmt = '#,##0';
+
+        currentRow++;
+    });
+
+    // DÒNG CUỐI: Tổng kết
+    const uniqueDns = new Set(monthlyData.map(c => c.company_name)).size;
+    const totalAmount = monthlyData.reduce((sum, c) => sum + (c.amount || 0), 0);
+
+    // Tổng số khách hàng
+    const sumRow1 = worksheet.getRow(currentRow);
+    sumRow1.getCell(3).value = 'Tổng số khách hàng:';
+    sumRow1.getCell(4).value = uniqueDns;
+    
+    // Tổng doanh thu
+    const sumRow2 = worksheet.getRow(currentRow + 1);
+    sumRow2.getCell(3).value = `Tổng doanh thu tháng ${currentMonth + 1}/${currentYear}:`;
+    sumRow2.getCell(12).value = totalAmount;
+    sumRow2.getCell(12).numFmt = '#,##0';
+
+    [sumRow1, sumRow2].forEach(row => {
+        row.font = { bold: true, name: 'Times New Roman' };
+        row.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+        });
+    });
+
+    // Filename: {NamNV}_{Thang}_{Nam}.xlsx
+    const staffNameSlug = (currentUser?.name || 'Nguyen_Van_Bao_Ngoc').replace(/\s+/g, '_');
+    const fileName = `${staffNameSlug}_Thang_${currentMonth + 1}_${currentYear}.xlsx`;
+
+    // Export to file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
 }
 
 
