@@ -210,24 +210,35 @@
             border: 2px solid var(--glass-border);
         }
         .input-group-premium {
-            position: relative;
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 12px;
-            padding: 6px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding: 4px;
+            /* NO overflow:hidden — dropdown menus must be able to escape */
         }
+
+        .input-group-premium:focus-within {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.03);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+        }
+
+        /* Custom select wrapper — set by PremiumSelect JS */
         .custom-select-wrapper {
             position: relative;
             width: 100%;
             max-width: 100%;
         }
 
-        /* Compact style for filter bars */
-        .flex-wrap .custom-select-wrapper {
+        /* Compact mode for filter bars (selects inside flex-wrap containers) */
+        .flex-wrap .custom-select-wrapper,
+        .flex .custom-select-wrapper {
             width: auto !important;
-            min-width: 180px;
+            min-width: 160px;
         }
+
         .custom-select-trigger {
             display: flex;
             align-items: center;
@@ -236,71 +247,13 @@
             cursor: pointer;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            padding: 0 16px;
+            border-radius: 10px;
+            padding: 0 14px;
             color: #f8fafc;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             user-select: none;
         }
-        .input-group-premium:focus-within {
-            border-color: #ff8c00;
-            box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.1);
-            transform: translateY(-1px);
-        }
-        .input-group-premium i {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #ff8c00;
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        .input-premium {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #f8fafc;
-            padding: 12px 18px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            outline: none;
-            border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
 
-        .input-premium:focus {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.02);
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-        }
-
-        .label-premium {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .input-group-premium {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
-            overflow: hidden;
-            transition: all 0.3s;
-        }
-
-        .input-group-premium:focus-within {
-            border-color: rgba(59, 130, 246, 0.5);
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        /* --- CRM Modal Input Rhythm --- */
         .label-premium {
             display: block;
             margin-bottom: 8px;
@@ -308,43 +261,19 @@
             font-weight: 700;
             color: rgba(255, 255, 255, 0.45);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
         }
 
-        .input-group-premium {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+        .input-premium {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #f8fafc;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            outline: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            /* overflow: hidden; -- REMOVED to allow dropdown menus to pop out */
-        }
-
-        .input-group-premium:focus-within {
-            border-color: rgba(59, 130, 246, 0.4);
-            background: rgba(59, 130, 246, 0.03);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.05);
-        }
-
-        }
-
-        .input-group-premium {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1.5px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .input-group-premium:focus-within {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(249, 115, 22, 0.5);
-            box-shadow: 0 0 30px rgba(249, 115, 22, 0.15), inset 0 0 10px rgba(249, 115, 22, 0.05);
-            transform: translateY(-2px);
-        }
-
-        .input-group-premium:focus-within .label-premium {
-            color: #f97316;
         }
 
         .input-premium::placeholder {
@@ -366,7 +295,7 @@
             border-color: rgba(255, 255, 255, 0.1);
         }
 
-        /* Fix for Flatpickr inner border and width from screenshot */
+        /* Fix for Flatpickr inner border and width */
         .input-group-premium .flatpickr {
             width: 100% !important;
             display: flex !important;
@@ -377,6 +306,7 @@
             background: transparent !important;
             box-shadow: none !important;
         }
+
 
     </style>
 </head>
