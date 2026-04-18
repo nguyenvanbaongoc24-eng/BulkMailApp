@@ -1,0 +1,517 @@
+/* ============================================================
+   PREMIUM UI/UX – SaaS-Grade Animations & Interactions
+   Version: 1.0.0
+   NOTE: This file is PURELY visual. No backend logic is modified.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   0. PERFORMANCE & GLOBAL DEFAULTS
+   ---------------------------------------------------------- */
+*, *::before, *::after {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scroll for the entire app */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Global transition baseline — everything gets a subtle ease */
+button, a, input, select, textarea,
+.bg-glass, .card-glow, .glass-card-premium,
+.input-group-premium, .modal-premium,
+th, td, tr, aside nav a, [class*="rounded-"] {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ----------------------------------------------------------
+   1. CUSTOM SCROLLBAR (Premium, Thin)
+   ---------------------------------------------------------- */
+*::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    transition: background 0.3s;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* ----------------------------------------------------------
+   2. BUTTON EFFECTS (Hover glow + Click scale)
+   ---------------------------------------------------------- */
+button, [role="button"], a[onclick] {
+    cursor: pointer;
+    will-change: transform;
+}
+
+/* Hover: lift + glow */
+button:hover, [role="button"]:hover {
+    transform: translateY(-1px);
+}
+
+/* Active: press down */
+button:active, [role="button"]:active {
+    transform: scale(0.97) translateY(0);
+    transition-duration: 0.1s;
+}
+
+/* Primary gradient buttons — enhanced glow on hover */
+.bg-orange-gradient:hover {
+    box-shadow: 0 8px 30px -4px rgba(249, 115, 22, 0.45),
+                0 0 20px rgba(249, 115, 22, 0.15);
+    transform: translateY(-2px) scale(1.01);
+}
+.bg-orange-gradient:active {
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+    transform: scale(0.97);
+}
+
+/* Ripple effect */
+button, [role="button"] {
+    position: relative;
+    overflow: hidden;
+}
+.ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(0);
+    animation: ripple-anim 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 10;
+}
+
+@keyframes ripple-anim {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* ----------------------------------------------------------
+   3. CARD / GLASS PANEL HOVER
+   ---------------------------------------------------------- */
+.bg-glass,
+.bg-glass\/40,
+[class*="bg-glass"] {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bg-glass:hover,
+.bg-glass\/40:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.card-glow {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-glow:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px rgba(255, 140, 0, 0.12),
+                0 12px 40px -8px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 140, 0, 0.25);
+}
+
+/* ----------------------------------------------------------
+   4. TABLE ROW HOVER (SaaS-style)
+   ---------------------------------------------------------- */
+tbody tr {
+    transition: all 0.15s ease;
+    position: relative;
+}
+tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 0 rgba(249, 115, 22, 0.6);
+}
+tbody tr:active {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Sortable header hover */
+th[onclick] {
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+th[onclick]:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #f8fafc;
+}
+
+/* ----------------------------------------------------------
+   5. SIDEBAR NAV HOVER (iOS-like feel)
+   ---------------------------------------------------------- */
+aside nav a {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+aside nav a:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.04);
+}
+aside nav a:active {
+    transform: translateX(2px) scale(0.98);
+}
+
+/* Active sidebar indicator pulse */
+.sidebar-item-active {
+    position: relative;
+}
+.sidebar-item-active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: #ff8c00;
+    border-radius: 4px;
+    box-shadow: 0 0 12px rgba(255, 140, 0, 0.5);
+}
+
+/* ----------------------------------------------------------
+   6. DROPDOWN / SELECT (iOS-style open animation)
+   ---------------------------------------------------------- */
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px !important;
+    cursor: pointer;
+}
+
+select:hover {
+    border-color: rgba(255, 140, 0, 0.4);
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+select:focus {
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15),
+                0 4px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+/* ----------------------------------------------------------
+   7. INPUT FOCUS STATES (Premium glow)
+   ---------------------------------------------------------- */
+input:focus, textarea:focus {
+    border-color: rgba(249, 115, 22, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12),
+                0 0 20px rgba(249, 115, 22, 0.08),
+                inset 0 0 8px rgba(249, 115, 22, 0.03) !important;
+    outline: none !important;
+    transform: translateY(-1px);
+}
+
+input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Input group premium — enhanced */
+.input-group-premium:hover:not(:focus-within) {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* ----------------------------------------------------------
+   8. MODAL ANIMATIONS
+   ---------------------------------------------------------- */
+/* Modal backdrop fade-in */
+[id^="modal-"] {
+    transition: opacity 0.25s ease, backdrop-filter 0.3s ease;
+}
+
+/* Modal content — zoom + slide in */
+.modal-premium,
+[id^="modal-"] > div:first-child {
+    animation: modal-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modal-enter {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ----------------------------------------------------------
+   9. PAGE TRANSITION ANIMATIONS
+   ---------------------------------------------------------- */
+@keyframes page-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-enter {
+    animation: page-fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Staggered child entrance for cards/grid items */
+@keyframes stagger-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-enter > .grid > * {
+    opacity: 0;
+    animation: stagger-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.page-enter > .grid > *:nth-child(1) { animation-delay: 0.05s; }
+.page-enter > .grid > *:nth-child(2) { animation-delay: 0.1s; }
+.page-enter > .grid > *:nth-child(3) { animation-delay: 0.15s; }
+.page-enter > .grid > *:nth-child(4) { animation-delay: 0.2s; }
+.page-enter > .grid > *:nth-child(5) { animation-delay: 0.25s; }
+.page-enter > .grid > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ----------------------------------------------------------
+   10. SKELETON / LOADING SHIMMER
+   ---------------------------------------------------------- */
+.skeleton {
+    background: linear-gradient(
+        110deg,
+        rgba(255, 255, 255, 0.03) 30%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 70%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Skeleton variations */
+.skeleton-text {
+    height: 14px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+}
+.skeleton-text.short { width: 40%; }
+.skeleton-text.medium { width: 70%; }
+.skeleton-text.long { width: 100%; }
+
+.skeleton-card {
+    height: 120px;
+    border-radius: 24px;
+}
+
+.skeleton-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+}
+
+/* ----------------------------------------------------------
+   11. MICRO INTERACTIONS
+   ---------------------------------------------------------- */
+/* Icon hover scale */
+i.fas, i.far, i.fab, .fa-solid, .fa-regular {
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+button:hover i.fas,
+button:hover i.far,
+a:hover i.fas,
+a:hover i.far {
+    transform: scale(1.15);
+}
+
+/* Emoji hover */
+span[class*="text-lg"]:hover,
+span[class*="text-xl"]:hover,
+span[class*="text-2xl"]:hover {
+    transform: scale(1.2) rotate(-5deg);
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+/* Badge / Pill pulse on hover */
+[class*="animate-pulse"]:hover {
+    animation-play-state: paused;
+}
+
+/* ----------------------------------------------------------
+   12. TOOLTIP ANIMATION
+   ---------------------------------------------------------- */
+[title] {
+    position: relative;
+}
+
+/* ----------------------------------------------------------
+   13. DARK MODE POLISH
+   ---------------------------------------------------------- */
+/* Gradient background overlay for depth */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at top right, rgba(249, 115, 22, 0.03) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom left, rgba(147, 51, 234, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Better text contrast in dark mode */
+.text-gray-400 {
+    color: #a1a1aa !important;
+}
+
+/* Stat numbers — subtle glow */
+[id^="stat-"], [id^="dash-crm-"], [id^="ca2-crm-"] {
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+}
+
+/* ----------------------------------------------------------
+   14. HEADER BLUR ENHANCEMENT
+   ---------------------------------------------------------- */
+header {
+    transition: all 0.3s ease;
+}
+header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.15), transparent);
+}
+
+/* ----------------------------------------------------------
+   15. NOTIFICATION / TOAST ANIMATION
+   ---------------------------------------------------------- */
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+}
+
+.toast-enter {
+    animation: toast-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast-exit {
+    animation: toast-out 0.2s ease-in forwards;
+}
+
+/* ----------------------------------------------------------
+   16. PROGRESS BAR SMOOTH
+   ---------------------------------------------------------- */
+[id*="progress-bar"] {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ----------------------------------------------------------
+   17. LIGHT MODE ADJUSTMENTS
+   ---------------------------------------------------------- */
+.light-mode tbody tr:hover {
+    background: rgba(0, 0, 0, 0.02) !important;
+}
+.light-mode tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 0 rgba(249, 115, 22, 0.8);
+}
+
+.light-mode .bg-glass:hover,
+.light-mode .bg-glass\/40:hover {
+    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.12),
+                0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.light-mode .card-glow:hover {
+    box-shadow: 0 0 30px rgba(255, 140, 0, 0.08),
+                0 12px 40px -8px rgba(0, 0, 0, 0.15);
+}
+
+.light-mode aside nav a:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.light-mode body::before {
+    background:
+        radial-gradient(ellipse at top right, rgba(249, 115, 22, 0.02) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom left, rgba(59, 130, 246, 0.02) 0%, transparent 60%);
+}
+
+.light-mode .skeleton {
+    background: linear-gradient(
+        110deg,
+        rgba(0, 0, 0, 0.04) 30%,
+        rgba(0, 0, 0, 0.08) 50%,
+        rgba(0, 0, 0, 0.04) 70%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.light-mode select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* ----------------------------------------------------------
+   18. REDUCED MOTION ACCESSIBILITY
+   ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    html {
+        scroll-behavior: auto;
+    }
+}
