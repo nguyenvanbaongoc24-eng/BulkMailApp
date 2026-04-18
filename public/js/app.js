@@ -991,8 +991,8 @@ async function saveCA2CRM() {
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
     };
 
-    // Include CKS type if service is CKS
-    if (serviceType === 'CKS') {
+    // Include CKS type if service contains 'CKS' (flexible match)
+    if (serviceType.toUpperCase().includes('CKS')) {
         body.cks_type = document.getElementById('ca2-crm-cks-type').value || '';
     }
 
