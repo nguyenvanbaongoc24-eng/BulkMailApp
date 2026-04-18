@@ -253,17 +253,23 @@
 
         open() {
             // Close all others first
-            document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+            document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
+                w.classList.remove('open');
+                w.style.zIndex = '';
+            });
             this.wrapper.classList.add('open');
+            this.wrapper.style.zIndex = '1000'; // Ensure it's above other fields
         }
 
         close() {
             this.wrapper.classList.remove('open');
+            this.wrapper.style.zIndex = '';
         }
 
         addEvents() {
             this.trigger.addEventListener('click', (e) => {
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 if (this.wrapper.classList.contains('open')) this.close();
                 else this.open();
             });
