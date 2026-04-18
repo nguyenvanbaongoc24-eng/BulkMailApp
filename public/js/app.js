@@ -924,11 +924,11 @@ function syncDurationFromPackage() {
     let targetVal = '';
     const normPkg = pkg.toLowerCase();
     
-    if (normPkg.includes('12 tháng') || normPkg.includes('1 năm')) targetVal = '1 nam';
-    else if (normPkg.includes('24 tháng') || normPkg.includes('2 năm')) targetVal = '2 nam';
-    else if (normPkg.includes('36 tháng') || normPkg.includes('3 năm')) targetVal = '3 nam';
-    else if (normPkg.includes('48 tháng') || normPkg.includes('4 năm')) targetVal = '4 nam';
-    else if (normPkg.includes('60 tháng') || normPkg.includes('5 năm')) targetVal = '5 nam';
+    if (normPkg.includes('12 tháng') || normPkg.includes('1 năm')) targetVal = '1 năm';
+    else if (normPkg.includes('24 tháng') || normPkg.includes('2 năm')) targetVal = '2 năm';
+    else if (normPkg.includes('36 tháng') || normPkg.includes('3 năm')) targetVal = '3 năm';
+    else if (normPkg.includes('48 tháng') || normPkg.includes('4 năm')) targetVal = '4 năm';
+    else if (normPkg.includes('60 tháng') || normPkg.includes('5 năm')) targetVal = '5 năm';
     else if (normPkg.includes('06 tháng') || normPkg.includes('6 tháng')) targetVal = '6 tháng';
     
     if (targetVal) {
@@ -951,11 +951,11 @@ function calculatePrice() {
         let targetVal = '';
         const normPkg = pkg.toLowerCase();
         
-        if (normPkg.includes('12 tháng') || normPkg.includes('1 năm')) targetVal = '1 nam';
-        else if (normPkg.includes('24 tháng') || normPkg.includes('2 năm')) targetVal = '2 nam';
-        else if (normPkg.includes('36 tháng') || normPkg.includes('3 năm')) targetVal = '3 nam';
-        else if (normPkg.includes('48 tháng') || normPkg.includes('4 năm')) targetVal = '4 nam';
-        else if (normPkg.includes('60 tháng') || normPkg.includes('5 năm')) targetVal = '5 nam';
+        if (normPkg.includes('12 tháng') || normPkg.includes('1 năm')) targetVal = '1 năm';
+        else if (normPkg.includes('24 tháng') || normPkg.includes('2 năm')) targetVal = '2 năm';
+        else if (normPkg.includes('36 tháng') || normPkg.includes('3 năm')) targetVal = '3 năm';
+        else if (normPkg.includes('48 tháng') || normPkg.includes('4 năm')) targetVal = '4 năm';
+        else if (normPkg.includes('60 tháng') || normPkg.includes('5 năm')) targetVal = '5 năm';
         else if (normPkg.includes('06 tháng') || normPkg.includes('6 tháng')) targetVal = '6 tháng';
         
         if (targetVal) {

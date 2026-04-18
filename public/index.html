@@ -136,7 +136,7 @@
         }
         
         input, select, textarea {
-            background: var(--input-bg);
+            background-color: var(--input-bg);
             border: 1px solid var(--input-border);
             color: var(--input-text);
             font-weight: 700;
@@ -241,6 +241,16 @@
             font-weight: 700;
             outline: none;
             transition: all 0.3s;
+        }
+        select.input-premium {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fb923c' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 18px center !important;
+            background-size: 14px !important;
+            padding-right: 52px !important;
+            cursor: pointer;
         }
 
         .label-premium {
