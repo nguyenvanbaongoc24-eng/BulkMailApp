@@ -216,22 +216,44 @@ select:focus {
    ---------------------------------------------------------- */
 .custom-select-wrapper {
     position: relative;
-    width: 100%;
 }
 
 .custom-select-trigger {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    width: 100%;
+    gap: 8px;
+    height: 42px;
     cursor: pointer;
-    background: transparent;
-    border: none;
-    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0 16px;
     color: white;
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.85rem;
+    font-weight: 600;
     line-height: normal;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.custom-select-trigger:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+.custom-select-trigger:active {
+    transform: scale(0.97);
+}
+
+.custom-select-wrapper.open .custom-select-trigger {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05));
+    border-color: rgba(249, 115, 22, 0.5);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
 }
 
 .custom-select-trigger span {
@@ -240,13 +262,11 @@ select:focus {
     text-overflow: ellipsis;
 }
 
-.custom-select-trigger i {
-    transition: transform 0.2s ease;
-    font-size: 10px;
-    opacity: 0.6;
+.custom-select-trigger i.fa-chevron-down {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.custom-select-wrapper.open .custom-select-trigger i {
+.custom-select-wrapper.open .custom-select-trigger i.fa-chevron-down {
     transform: rotate(180deg);
 }
 
@@ -254,34 +274,36 @@ select:focus {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    right: 0;
-    min-width: max-content;
-    background: #111116; /* Deep dark background */
+    min-width: 100%;
+    width: max-content;
+    background: #111116;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0,0,0,0.5);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     z-index: 9999;
+    padding: 0;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
+    transform: scale(0.95);
+    transform-origin: top;
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0.15s;
     max-height: 250px;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 6px;
 }
 
 .custom-select-wrapper.open .custom-select-menu {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: scale(1);
 }
 
 .custom-select-option {
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.15s ease;
     font-size: 0.85rem;
@@ -294,13 +316,13 @@ select:focus {
 .custom-select-option.focused {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
-    transform: translateX(2px);
 }
 
 .custom-select-option.selected {
-    background: rgba(249, 115, 22, 0.15);
-    color: #f97316;
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.2), transparent);
+    color: #fff;
     font-weight: bold;
+    border-left: 2px solid #f97316;
 }
 
 /* Special scrollbar for custom select */

@@ -203,7 +203,9 @@
 
             this.trigger = document.createElement('div');
             this.trigger.className = 'custom-select-trigger';
-            this.trigger.innerHTML = `<span></span><i class="fas fa-chevron-down"></i>`;
+            const iconClass = this.select.dataset.icon || '';
+            const iconHtml = iconClass ? `<i class="${iconClass} mr-2"></i>` : '';
+            this.trigger.innerHTML = `${iconHtml}<span></span><i class="fas fa-chevron-down opacity-50 ml-2 text-[10px]"></i>`;
             
             this.menu = document.createElement('div');
             this.menu.className = 'custom-select-menu';
