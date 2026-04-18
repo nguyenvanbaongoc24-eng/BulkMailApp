@@ -712,11 +712,9 @@ header::after {
 .flatpickr-calendar {
     width: 336px !important; 
     background: #0f172a !important; 
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 16px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
     overflow: hidden !important; 
     padding: 16px !important;
     margin-top: 10px !important;
@@ -803,17 +801,20 @@ header::after {
     outline: none !important;
 }
 
-/* WEEKDAYS */
+/* WEEKDAYS - Fixed Layering & Clarity */
 .flatpickr-weekdays {
     background: transparent !important;
-    height: 32px !important;
+    height: 36px !important;
+    position: relative !important;
+    z-index: 10 !important;
 }
 span.flatpickr-weekday {
-    color: rgba(255, 255, 255, 0.4) !important;
-    font-weight: 600 !important;
-    font-size: 12px !important;
+    color: rgba(255, 255, 255, 0.65) !important; /* Sharp, high-contrast text */
+    font-weight: 500 !important;
+    font-size: 11px !important;
     letter-spacing: 1px !important;
     text-transform: uppercase !important;
+    opacity: 1 !important; /* Ensure no opacity is inherited */
 }
 
 /* GRID & DAY ITEMS */

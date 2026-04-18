@@ -242,15 +242,39 @@
             outline: none;
             transition: all 0.3s;
         }
-        select.input-premium {
+
+        /* --- Standard Select Wrapper Fix --- */
+        .select-premium-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .select-premium-wrapper select {
             appearance: none !important;
             -webkit-appearance: none !important;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fb923c' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-            background-repeat: no-repeat !important;
-            background-position: right 18px center !important;
-            background-size: 14px !important;
-            padding-right: 52px !important;
+            padding-right: 48px !important;
             cursor: pointer;
+            z-index: 1;
+            background-image: none !important; /* Remove background icon */
+        }
+
+        .select-icon {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ff8c00;
+            font-size: 14px;
+            pointer-events: none;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 2;
+        }
+
+        .select-premium-wrapper:focus-within .select-icon {
+            transform: translateY(-50%) rotate(180deg);
+            color: #fb923c;
         }
 
         .label-premium {
@@ -1620,10 +1644,13 @@
                             <div class="space-y-3">
                                 <label class="label-premium flex items-center gap-2"><i class="fas fa-user-tag"></i> Loại đối tượng</label>
                                 <div class="input-group-premium">
-                                    <select id="ca2-crm-customer-type" class="input-premium" onchange="updateCRMPackages()">
-                                        <option value="Công ty">Công ty</option>
-                                        <option value="Cá nhân / Hộ KD">Cá nhân / Hộ KD</option>
-                                    </select>
+                                    <div class="select-premium-wrapper">
+                                        <select id="ca2-crm-customer-type" class="input-premium" onchange="updateCRMPackages()">
+                                            <option value="Công ty">Công ty</option>
+                                            <option value="Cá nhân / Hộ KD">Cá nhân / Hộ KD</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-icon"></i>
+                                    </div>
                                 </div>
                             </div>
                             <div class="space-y-3">
@@ -1647,24 +1674,30 @@
                             <div class="space-y-3">
                                 <label class="label-premium flex items-center gap-2"><i class="fas fa-satellite-dish"></i> Dịch vụ đăng ký</label>
                                 <div class="input-group-premium">
-                                    <select id="ca2-crm-service" class="input-premium" onchange="updateCRMPackages()">
-                                        <option value="CKS – Cấp mới">CKS – Cấp mới</option>
-                                        <option value="CKS – Gia hạn">CKS – Gia hạn</option>
-                                        <option value="CKS - Gia hạn dùng thử">CKS - Gia hạn dùng thử</option>
-                                        <option value="CA2 Remote Signing">CA2 Remote Signing</option>
-                                        <option value="Hóa đơn điện tử">Hóa đơn điện tử – Cấp mới</option>
-                                    <option value="Hóa đơn điện tử – Gia hạn">Hóa đơn điện tử – Gia hạn</option>
-                                        <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
-                                        <option value="CA2 Sign Platform">CA2 Sign Platform</option>
-                                    </select>
+                                    <div class="select-premium-wrapper">
+                                        <select id="ca2-crm-service" class="input-premium" onchange="updateCRMPackages()">
+                                            <option value="CKS – Cấp mới">CKS – Cấp mới</option>
+                                            <option value="CKS – Gia hạn">CKS – Gia hạn</option>
+                                            <option value="CKS - Gia hạn dùng thử">CKS - Gia hạn dùng thử</option>
+                                            <option value="CA2 Remote Signing">CA2 Remote Signing</option>
+                                            <option value="Hóa đơn điện tử">Hóa đơn điện tử – Cấp mới</option>
+                                            <option value="Hóa đơn điện tử – Gia hạn">Hóa đơn điện tử – Gia hạn</option>
+                                            <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
+                                            <option value="CA2 Sign Platform">CA2 Sign Platform</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-icon"></i>
+                                    </div>
                                 </div>
                             </div>
                             <div class="space-y-3">
                                 <label class="label-premium flex items-center gap-2"><i class="fas fa-box"></i> Gói cước (Hợp đồng)</label>
                                 <div class="input-group-premium">
-                                    <select id="ca2-crm-package" class="input-premium" onchange="calculatePrice()">
-                                        <!-- Dynamic -->
-                                    </select>
+                                    <div class="select-premium-wrapper">
+                                        <select id="ca2-crm-package" class="input-premium" onchange="calculatePrice()">
+                                            <!-- Dynamic -->
+                                        </select>
+                                        <i class="fas fa-chevron-down select-icon"></i>
+                                    </div>
                                 </div>
                             </div>
                             <div class="space-y-3">
@@ -1706,13 +1739,16 @@
                             <div class="space-y-3">
                                 <label class="label-premium flex items-center gap-2"><i class="fas fa-history"></i> Thời hạn thực tế</label>
                                 <div class="input-group-premium">
-                                    <select id="ca2-crm-duration" class="input-premium">
-                                        <option value="1 năm">1 Năm</option>
-                                        <option value="2 năm">2 Năm</option>
-                                        <option value="3 năm">3 Năm</option>
-                                        <option value="4 năm">4 Năm</option>
-                                        <option value="5 năm">5 Năm</option>
-                                    </select>
+                                    <div class="select-premium-wrapper">
+                                        <select id="ca2-crm-duration" class="input-premium">
+                                            <option value="1 năm">1 Năm</option>
+                                            <option value="2 năm">2 Năm</option>
+                                            <option value="3 năm">3 Năm</option>
+                                            <option value="4 năm">4 Năm</option>
+                                            <option value="5 năm">5 Năm</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down select-icon"></i>
+                                    </div>
                                 </div>
                             </div>
                             <div class="space-y-3">
