@@ -745,8 +745,6 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
             duration,
             expired_date: expirationDate,
             compensate_months: compensate_months || 0,
-            customer_type: customer_type || '',
-            package_name: package_name || '',
             user_id: req.user.id
         };
         
@@ -766,7 +764,11 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
 app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const updates = { ...req.body };
+        
+        // Remove frontend-only fields that are not in the database schema to prevent Supabase errors
+        delete updates.customer_type;
+        delete updates.package_name;
 
         if (updates.start_date || updates.duration || updates.cks_type || updates.compensate_months !== undefined) {
             // Need to fetch current values if one is missing to recalculate
