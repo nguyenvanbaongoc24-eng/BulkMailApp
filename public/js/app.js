@@ -1604,10 +1604,12 @@ function exportCA2CRMToExcel() {
         'Tên công ty': c.company_name,
         'Email': c.email,
         'Số điện thoại': c.phone,
-        'Dịch vụ': c.service_type,
+        'Dịch vụ': c.service_type || '',
         'Ngày cấp': formatDate(c.start_date),
-        'Thời hạn': c.duration,
+        'Thời hạn/Số lượng': c.package_name || c.duration || '',
+        'Thành tiền': getCRMPrice(c.service_type, c.customer_type, c.package_name) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name)) : '0',
         'Ngày hết hạn': formatDate(c.expired_date),
+        'Tình trạng thanh toán': c.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán',
         'Ghi chú': c.status_note || ''
     }));
     
@@ -1699,8 +1701,8 @@ async function exportMonthlyReport() {
             c.phone || '',
             c.email || '',
             c.service_type || '',
-            c.package_name || '',
-            new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name)),
+            c.package_name || c.duration || '',
+            getCRMPrice(c.service_type, c.customer_type, c.package_name) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name)) : '0',
             currentUser?.full_name || 'Ngọc',
             '', // Tỷ lệ
             '', // CK KH
