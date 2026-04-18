@@ -187,13 +187,111 @@
     };
 
     // ----------------------------------------------------------
-    // 9. INITIAL SETUP
+    // 9. CUSTOM SELECT ENHANCER (SaaS Style Dropdown)
+    // ----------------------------------------------------------
+    class PremiumSelect {
+        constructor(selectElement) {
+            this.select = selectElement;
+            if (this.select.dataset.customInit || this.select.classList.contains('no-custom')) return;
+            this.select.dataset.customInit = 'true';
+            
+            // Hide original select completely
+            this.select.style.display = 'none';
+
+            this.wrapper = document.createElement('div');
+            this.wrapper.className = 'custom-select-wrapper';
+
+            this.trigger = document.createElement('div');
+            this.trigger.className = 'custom-select-trigger';
+            this.trigger.innerHTML = `<span></span><i class="fas fa-chevron-down"></i>`;
+            
+            this.menu = document.createElement('div');
+            this.menu.className = 'custom-select-menu';
+
+            this.wrapper.appendChild(this.trigger);
+            this.wrapper.appendChild(this.menu);
+            this.select.parentNode.insertBefore(this.wrapper, this.select.nextSibling);
+
+            this.setupOptions();
+            this.addEvents();
+
+            // Setup observer to watch for dynamic option changes (e.g., from updateCRMPackages)
+            this.observer = new MutationObserver(() => this.setupOptions());
+            this.observer.observe(this.select, { childList: true, characterData: true, subtree: true });
+        }
+
+        setupOptions() {
+            this.menu.innerHTML = '';
+            let selectedText = '';
+            
+            Array.from(this.select.options).forEach((option) => {
+                const item = document.createElement('div');
+                item.className = 'custom-select-option';
+                if (option.selected) {
+                    item.classList.add('selected');
+                    selectedText = option.text;
+                }
+                item.textContent = option.text;
+                item.dataset.value = option.value;
+                
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.select.value = option.value;
+                    // Trigger native change event so app.js logic runs
+                    this.select.dispatchEvent(new Event('change', { bubbles: true }));
+                    this.close();
+                    this.setupOptions(); // Re-render to update selected state
+                });
+                
+                this.menu.appendChild(item);
+            });
+
+            this.trigger.querySelector('span').textContent = selectedText || 'Chọn...';
+        }
+
+        open() {
+            // Close all others first
+            document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+            this.wrapper.classList.add('open');
+        }
+
+        close() {
+            this.wrapper.classList.remove('open');
+        }
+
+        addEvents() {
+            this.trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.wrapper.classList.contains('open')) this.close();
+                else this.open();
+            });
+        }
+    }
+
+    // Close select menus when clicking outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+    });
+
+    // Initialize custom selects globally
+    function initAllCustomSelects() {
+        document.querySelectorAll('select').forEach(select => {
+            new PremiumSelect(select);
+        });
+    }
+
+    // ----------------------------------------------------------
+    // 10. INITIAL SETUP
     // ----------------------------------------------------------
     // Wait for DOM to be fully ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', observeRevealElements);
+        document.addEventListener('DOMContentLoaded', () => {
+            observeRevealElements();
+            initAllCustomSelects();
+        });
     } else {
         observeRevealElements();
+        initAllCustomSelects();
     }
 
     // Log that premium UI is loaded
