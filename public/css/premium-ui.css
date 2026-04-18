@@ -279,9 +279,9 @@ select:focus {
     justify-content: space-between;
     height: 44px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
+    border-radius: 12px;
     padding: 0 16px;
     color: #f8fafc;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
