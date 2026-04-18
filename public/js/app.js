@@ -586,11 +586,14 @@ function renderCA2CRM() {
 
     // Service Type Filter
     if (filterType !== 'all') {
-        if (filterType === 'CKS') {
-            filtered = filtered.filter(c => ['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()));
-        } else {
-            filtered = filtered.filter(c => c.service_type === filterType);
-        }
+        filtered = filtered.filter(c => {
+            const svc = (c.service_type || '').toUpperCase();
+            if (filterType === 'CKS') return svc.includes('CKS') || svc.includes('CHỮ KÝ SỐ');
+            if (filterType === 'HDDT') return svc.includes('HDDT') || svc.includes('HÓA ĐƠN ĐIỆN TỬ');
+            if (filterType === 'EBH') return svc.includes('EBH') || svc.includes('BẢO HIỂM');
+            if (filterType === 'HOA_DON') return svc.includes('HOA DON') || svc.includes('HÓA ĐƠN');
+            return svc === filterType.toUpperCase();
+        });
     }
 
     // Date Range Filter (New)
