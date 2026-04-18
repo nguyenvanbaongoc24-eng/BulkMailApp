@@ -161,9 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
         flatpickr(startInput, {
             dateFormat: "Y-m-d",
             locale: "vn",
-            monthSelectorType: "static",
-            static: true,
-            theme: "dark"
+            appendTo: document.body,
+            theme: "dark",
+            disableMobile: true
         });
     }
 
