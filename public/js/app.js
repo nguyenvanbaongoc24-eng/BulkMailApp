@@ -735,13 +735,27 @@ function renderCA2CRM() {
                     <div class="text-[10px] text-gray-400 italic">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
                 </td>
                 <td class="px-8 py-5 text-center">
-                    <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border 
-                        ${['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()) ? 'border-orange-500/20 text-orange-500 bg-orange-500/5' : 
-                          c.service_type === 'HDDT' ? 'border-blue-500/20 text-blue-400 bg-blue-400/5' :
-                          c.service_type === 'EBH' ? 'border-green-500/20 text-green-400 bg-green-500/5' :
-                          'border-purple-500/20 text-purple-400 bg-purple-500/5'}">
-                        ${['CKS', 'CHỮ KÝ SỐ'].includes((c.service_type || '').toUpperCase()) ? 'CHỮ KÝ SỐ' : (c.service_type || 'CHỮ KÝ SỐ')}
-                    </span>
+                    ${(() => {
+                        const svc = (c.service_type || '').toUpperCase();
+                        let badgeClass = 'badge-other';
+                        let label = svc || 'KHÁC';
+                        
+                        if (svc.includes('CKS') || svc.includes('CHỮ KÝ SỐ')) {
+                            badgeClass = 'badge-cks';
+                            label = 'CHỮ KÝ SỐ';
+                        } else if (svc.includes('HDDT') || svc.includes('HÓA ĐƠN ĐIỆN TỬ')) {
+                            badgeClass = 'badge-hddt';
+                            label = 'H.ĐƠN ĐIỆN TỬ';
+                        } else if (svc.includes('EBH') || svc.includes('BẢO HIỂM')) {
+                            badgeClass = 'badge-ebh';
+                            label = 'BẢO HIỂM';
+                        } else if (svc.includes('HOA DON') || svc.includes('HÓA ĐƠN')) {
+                            badgeClass = 'badge-invoice';
+                            label = 'HÓA ĐƠN';
+                        }
+
+                        return `<span class="badge-service ${badgeClass}">${label}</span>`;
+                    })()}
                 </td>
                 <td class="px-8 py-5 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.start_date)}</td>
                 <td class="px-8 py-5 font-black text-white text-sm">

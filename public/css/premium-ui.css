@@ -154,6 +154,60 @@ th[onclick]:hover {
     color: #f8fafc;
 }
 
+/* Service Badge Styling */
+.badge-service {
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-width: 1px;
+    display: inline-block;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.badge-service:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    filter: brightness(1.1);
+}
+
+.badge-cks {
+    border-color: rgba(249, 115, 22, 0.3);
+    color: #fb923c;
+    background: rgba(249, 115, 22, 0.1);
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.05);
+}
+
+.badge-hddt {
+    border-color: rgba(14, 165, 233, 0.3);
+    color: #38bdf8;
+    background: rgba(14, 165, 233, 0.1);
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.05);
+}
+
+.badge-ebh {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.05);
+}
+
+.badge-invoice {
+    border-color: rgba(168, 85, 247, 0.3);
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.1);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.05);
+}
+
+.badge-other {
+    border-color: rgba(244, 63, 94, 0.3);
+    color: #fb7185;
+    background: rgba(244, 63, 94, 0.1);
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.05);
+}
+
 /* ----------------------------------------------------------
    5. SIDEBAR NAV HOVER (iOS-like feel)
    ---------------------------------------------------------- */
@@ -348,6 +402,17 @@ input:focus, textarea:focus {
 
 input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) {
     border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Fix for "White Box" autofill issue in dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0b0b0f inset !important; /* Deep dark background */
+    -webkit-text-fill-color: #f8fafc !important;
+    transition: background-color 5000s ease-in-out 0s;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Input group premium — enhanced */
