@@ -194,6 +194,7 @@
             this.select = selectElement;
             if (this.select.dataset.customInit || this.select.classList.contains('no-custom')) return;
             this.select.dataset.customInit = 'true';
+            this.select.customSelectInstance = this; // Store instance for syncing
             
             // Hide original select completely
             this.select.style.display = 'none';
@@ -274,7 +275,20 @@
                 else this.open();
             });
         }
+
+        sync() {
+            this.setupOptions();
+        }
     }
+
+    // Global helper to refresh custom selects when native select value is changed via JS
+    window.refreshCustomSelects = function() {
+        document.querySelectorAll('select').forEach(select => {
+            if (select.customSelectInstance) {
+                select.customSelectInstance.sync();
+            }
+        });
+    };
 
     // Close select menus when clicking outside
     document.addEventListener('click', () => {

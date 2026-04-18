@@ -1173,6 +1173,11 @@ function editCRM(id) {
         selectCKSType(cksType);
     }
     
+    // SYNC PREMIUM UI
+    if (typeof refreshCustomSelects === 'function') {
+        refreshCustomSelects();
+    }
+    
     document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }
 
