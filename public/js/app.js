@@ -852,7 +852,21 @@ function getCRMPrice(service, type, pkg) {
     if (CRM_PRICE_LIST[foundKey]["Tất cả"]) targetType = "Tất cả";
     else if (!CRM_PRICE_LIST[foundKey][type]) targetType = Object.keys(CRM_PRICE_LIST[foundKey])[0];
     
-    return CRM_PRICE_LIST[foundKey][targetType][pkg] || 0;
+    let targetPkg = pkg || '';
+    if (!targetPkg) return 0;
+    
+    let availablePkgs = Object.keys(CRM_PRICE_LIST[foundKey][targetType] || {});
+    if (!availablePkgs.includes(targetPkg)) {
+        let norm = targetPkg.toLowerCase();
+        if (norm.includes('1 năm') && availablePkgs.includes('12 tháng')) targetPkg = '12 tháng';
+        else if (norm.includes('2 năm') && availablePkgs.includes('24 tháng')) targetPkg = '24 tháng';
+        else if (norm.includes('3 năm') && availablePkgs.includes('36 tháng')) targetPkg = '36 tháng';
+        else if (norm.includes('12 tháng') && availablePkgs.includes('1 năm')) targetPkg = '1 năm';
+        else if (norm.includes('24 tháng') && availablePkgs.includes('2 năm')) targetPkg = '2 năm';
+        else if (norm.includes('36 tháng') && availablePkgs.includes('3 năm')) targetPkg = '3 năm';
+    }
+
+    return CRM_PRICE_LIST[foundKey][targetType][targetPkg] || 0;
 }
 
 function updateCRMPackages() {
@@ -1607,7 +1621,7 @@ function exportCA2CRMToExcel() {
         'Dịch vụ': c.service_type || '',
         'Ngày cấp': formatDate(c.start_date),
         'Thời hạn/Số lượng': c.package_name || c.duration || '',
-        'Thành tiền': getCRMPrice(c.service_type, c.customer_type, c.package_name) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name)) : '0',
+        'Thành tiền': getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
         'Ngày hết hạn': formatDate(c.expired_date),
         'Tình trạng thanh toán': c.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán',
         'Ghi chú': c.status_note || ''
@@ -1702,7 +1716,7 @@ async function exportMonthlyReport() {
             c.email || '',
             c.service_type || '',
             c.package_name || c.duration || '',
-            getCRMPrice(c.service_type, c.customer_type, c.package_name) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name)) : '0',
+            getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
             currentUser?.full_name || 'Ngọc',
             '', // Tỷ lệ
             '', // CK KH
