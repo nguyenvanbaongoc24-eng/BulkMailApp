@@ -1146,14 +1146,22 @@ function editCRM(id) {
     // Initialize packages list first
     updateCRMPackages();
     
-    // Set package and amount (Recalculate on the fly)
-    const price = getCRMPrice(c.service_type, c.customer_type, c.package_name);
+    // RESTORE SAVED PACKAGE AND DURATION
+    if (c.package_name) {
+        document.getElementById('ca2-crm-package').value = c.package_name;
+    }
+    if (c.duration) {
+        document.getElementById('ca2-crm-duration').value = c.duration;
+    }
+    
+    // Set amount (Recalculate with restored package)
+    const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || document.getElementById('ca2-crm-package').value);
     document.getElementById('ca2-crm-amount').value = new Intl.NumberFormat('vi-VN').format(price);
     
     // Restore CKS type if applicable
     const cksType = c.cks_type || 'cap_moi';
     document.getElementById('ca2-crm-cks-type').value = cksType;
-    if (normalizedServiceType.includes('CKS')) {
+    if (normalizedServiceType.toUpperCase().includes('CKS')) {
         selectCKSType(cksType);
     }
     
