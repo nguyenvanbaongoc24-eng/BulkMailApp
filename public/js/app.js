@@ -843,8 +843,17 @@ function getCRMPrice(service, type, pkg) {
     // Try to find a matching key in CRM_PRICE_LIST by normalizing its keys too
     let foundKey = Object.keys(CRM_PRICE_LIST).find(k => {
         let normK = k.replace(/[\u2010-\u2015-]/g, '-').replace(/\s+/g, ' ').trim();
-        return normK === s;
+        return normK === s || normK.toLowerCase() === s.toLowerCase();
     });
+
+    if (!foundKey) {
+        let lowerS = s.toLowerCase();
+        if (lowerS === 'cks' || lowerS === 'chữ ký số') foundKey = "CKS – Cấp mới";
+        else if (lowerS === 'hddt' || lowerS === 'hóa đơn điện tử') foundKey = "Hóa đơn điện tử";
+        else if (lowerS === 'ebh' || lowerS === 'bảo hiểm' || lowerS === 'bhxh' || lowerS === 'phần mềm bảo hiểm ebh') foundKey = "Phần mềm bảo hiểm EBH";
+        else if (lowerS.includes('remote signing') || lowerS === 'rs') foundKey = "CA2 Remote Signing";
+        else if (lowerS.includes('sign platform') || lowerS === 'sp') foundKey = "CA2 Sign Platform";
+    }
 
     if (!foundKey) return 0;
     
