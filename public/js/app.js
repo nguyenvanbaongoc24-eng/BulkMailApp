@@ -919,19 +919,20 @@ function updateCRMPackages() {
 function syncDurationFromPackage() {
     const pkg = document.getElementById('ca2-crm-package').value;
     const durationSelect = document.getElementById('ca2-crm-duration');
-    if (pkg.includes('tháng') || pkg.includes('năm')) {
-        let norm = pkg.replace('tháng', 'tháng').replace('năm', 'năm').toLowerCase();
-        if (norm === '12 tháng') norm = '1 năm';
-        if (norm === '24 tháng') norm = '2 năm';
-        if (norm === '36 tháng') norm = '3 năm';
-        
-        // Match existing duration options if possible
-        for (let i = 0; i < durationSelect.options.length; i++) {
-            if (durationSelect.options[i].value.toLowerCase().includes(norm)) {
-                durationSelect.selectedIndex = i;
-                break;
-            }
-        }
+    if (!pkg || !durationSelect) return;
+
+    let targetVal = '';
+    const normPkg = pkg.toLowerCase();
+    
+    if (normPkg.includes('12 tháng') || normPkg.includes('1 năm')) targetVal = '1 nam';
+    else if (normPkg.includes('24 tháng') || normPkg.includes('2 năm')) targetVal = '2 nam';
+    else if (normPkg.includes('36 tháng') || normPkg.includes('3 năm')) targetVal = '3 nam';
+    else if (normPkg.includes('48 tháng') || normPkg.includes('4 năm')) targetVal = '4 nam';
+    else if (normPkg.includes('60 tháng') || normPkg.includes('5 năm')) targetVal = '5 nam';
+    else if (normPkg.includes('06 tháng') || normPkg.includes('6 tháng')) targetVal = '6 tháng';
+    
+    if (targetVal) {
+        durationSelect.value = targetVal;
     }
 }
 
@@ -947,14 +948,21 @@ function calculatePrice() {
     // Sync Duration based on Package (Smart Sync)
     const durationSelect = document.getElementById('ca2-crm-duration');
     if (durationSelect && pkg) {
-        if (pkg.includes('12 tháng')) durationSelect.value = '1 năm';
-        else if (pkg.includes('24 tháng')) durationSelect.value = '2 năm';
-        else if (pkg.includes('36 tháng')) durationSelect.value = '3 năm';
-        else if (pkg.includes('48 tháng')) durationSelect.value = '4 năm';
-        else if (pkg.includes('60 tháng')) durationSelect.value = '5 năm';
-        else if (pkg.includes('06 tháng')) durationSelect.value = '6 tháng';
-        // For HDDT, the package name often contains the quantity like "300", "500"
-        else if (service === 'Hóa đơn điện tử') durationSelect.value = pkg;
+        let targetVal = '';
+        const normPkg = pkg.toLowerCase();
+        
+        if (normPkg.includes('12 tháng') || normPkg.includes('1 năm')) targetVal = '1 nam';
+        else if (normPkg.includes('24 tháng') || normPkg.includes('2 năm')) targetVal = '2 nam';
+        else if (normPkg.includes('36 tháng') || normPkg.includes('3 năm')) targetVal = '3 nam';
+        else if (normPkg.includes('48 tháng') || normPkg.includes('4 năm')) targetVal = '4 nam';
+        else if (normPkg.includes('60 tháng') || normPkg.includes('5 năm')) targetVal = '5 nam';
+        else if (normPkg.includes('06 tháng') || normPkg.includes('6 tháng')) targetVal = '6 tháng';
+        
+        if (targetVal) {
+            durationSelect.value = targetVal;
+        } else if (service === 'Hóa đơn điện tử') {
+            durationSelect.value = pkg;
+        }
     }
 
     // Simplified: Focus only on registration type for bonus logic
