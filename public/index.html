@@ -235,20 +235,20 @@
             background: transparent;
             border: none;
             color: white;
-            padding: 18px 24px;
-            font-size: 1.05rem;
+            padding: 12px 18px;
+            font-size: 0.9rem;
             font-weight: 700;
             outline: none;
             transition: all 0.3s;
         }
 
         .label-premium {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.15em;
             color: rgba(255, 255, 255, 0.4);
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             transition: all 0.3s;
         }
 
@@ -1546,8 +1546,8 @@
 
     <!-- Modal: Add/Edit CA2 CRM -->
     <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-        <div class="modal-premium w-full max-w-[95%] rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
-            <div class="px-10 py-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
+        <div class="modal-premium w-full max-w-[1100px] rounded-[24px] overflow-hidden animate-in zoom-in duration-300">
+            <div class="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
                 <div>
                     <h2 id="ca2-crm-modal-title" class="text-2xl font-black text-white tracking-tighter">Thêm khách hàng CA2 CRM</h2>
                     <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Thông tin chi tiết dịch vụ khách hàng</p>
@@ -1557,13 +1557,13 @@
                 </button>
             </div>
             
-            <div class="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <div class="p-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="ca2-crm-id">
                 <input type="hidden" id="ca2-crm-cks-type" value="">
                 
-                <div class="space-y-12">
+                <div class="space-y-6">
                     <!-- Section 1: Thông tin khách hàng -->
-                    <div class="bg-white/[0.02] border border-white/5 rounded-[32px] p-8 space-y-6">
+                    <div class="bg-white/[0.02] border border-white/5 rounded-[20px] p-5 space-y-4">
                         <div class="flex items-center gap-3 mb-2">
                             <div class="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-500">
                                 <i class="fas fa-id-card"></i>
@@ -1596,7 +1596,7 @@
                     </div>
 
                     <!-- Section 2: Dịch vụ & Gói cước -->
-                    <div class="bg-white/[0.02] border border-white/5 rounded-[32px] p-8 space-y-6">
+                    <div class="bg-white/[0.02] border border-white/5 rounded-[20px] p-5 space-y-4">
                         <div class="flex items-center gap-3 mb-2">
                             <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
                                 <i class="fas fa-briefcase"></i>
@@ -1630,14 +1630,14 @@
                             <div class="space-y-3">
                                 <label class="label-premium flex items-center gap-2 text-emerald-400"><i class="fas fa-receipt"></i> Thành tiền (VNĐ)</label>
                                 <div class="input-group-premium bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20">
-                                    <input type="text" id="ca2-crm-amount" class="input-premium text-emerald-400 font-extrabold cursor-not-allowed text-xl" readonly value="0">
+                                    <input type="text" id="ca2-crm-amount" class="input-premium text-emerald-400 font-extrabold cursor-not-allowed text-lg" readonly value="0">
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Section 3: Liên hệ & Thời gian -->
-                    <div class="bg-white/[0.02] border border-white/5 rounded-[32px] p-8 space-y-6">
+                    <div class="bg-white/[0.02] border border-white/5 rounded-[20px] p-5 space-y-4">
                         <div class="flex items-center gap-3 mb-2">
                             <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
                                 <i class="fas fa-calendar-check"></i>
@@ -1686,9 +1686,9 @@
                 </div>
             </div>
             
-            <div class="px-8 py-6 bg-white/2 flex gap-4">
-                <button onclick="closeCA2CRMModal()" class="flex-1 px-8 py-4 rounded-[24px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-sm transition-all uppercase tracking-widest">Hủy bỏ</button>
-                <button onclick="saveCA2CRM()" class="flex-[1.5] px-8 py-4 rounded-[24px] bg-orange-gradient text-white font-black text-sm shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Lưu & Cập nhật</button>
+            <div class="px-6 py-4 bg-white/2 flex gap-3">
+                <button onclick="closeCA2CRMModal()" class="flex-1 px-6 py-3 rounded-[16px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-xs transition-all uppercase tracking-widest">Hủy bỏ</button>
+                <button onclick="saveCA2CRM()" class="flex-[1.5] px-6 py-3 rounded-[16px] bg-orange-gradient text-white font-black text-xs shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Lưu & Cập nhật</button>
             </div>
         </div>
     </div>
