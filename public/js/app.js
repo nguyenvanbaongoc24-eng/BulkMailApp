@@ -1226,12 +1226,7 @@ function editCRM(id) {
     const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || document.getElementById('ca2-crm-package').value);
     document.getElementById('ca2-crm-amount').value = new Intl.NumberFormat('vi-VN').format(price);
     
-    // Restore CKS type if applicable
-    const cksType = c.cks_type || 'cap_moi';
-    document.getElementById('ca2-crm-cks-type').value = cksType;
-    if (normalizedServiceType.toUpperCase().includes('CKS')) {
-        selectCKSType(cksType);
-    }
+    // Removed obsolete selectCKSType call, CKS types are now handled by ca2-crm-service directly.
     
     // SYNC PREMIUM UI
     if (typeof refreshCustomSelects === 'function') {
