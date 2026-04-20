@@ -155,7 +155,7 @@ function saveCurrentSession(token, user) {
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
 
-    // Initialize premium date picker
+    // Initialize premium date picker (Single/Modal)
     const startInput = document.getElementById('ca2-crm-start');
     if (startInput && window.flatpickr) {
         flatpickr(startInput, {
@@ -163,7 +163,62 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: "vn",
             appendTo: document.body,
             theme: "dark",
-            disableMobile: true
+            disableMobile: true,
+            position: "auto above"
+        });
+    }
+
+    // Initialize premium date range picker (Dashboard Filter)
+    const rangeInput = document.getElementById('crm-date-range-picker');
+    if (rangeInput && window.flatpickr) {
+        flatpickr(rangeInput, {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            locale: "vn",
+            appendTo: document.body,
+            theme: "dark",
+            disableMobile: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                // selectedDates is an array: [startDate, endDate]
+                const startLabel = document.getElementById('crm-date-start-label');
+                const endLabel = document.getElementById('crm-date-end-label');
+                const fromInput = document.getElementById('crm-filter-from-date');
+                const toInput = document.getElementById('crm-filter-to-date');
+
+                if (selectedDates.length > 0) {
+                    const startObj = selectedDates[0];
+                    startLabel.innerText = flatpickr.formatDate(startObj, "d/m/Y");
+                    startLabel.classList.remove('opacity-70');
+                    startLabel.classList.add('text-orange-400');
+                    fromInput.value = flatpickr.formatDate(startObj, "Y-m-d");
+
+                    if (selectedDates.length === 2) {
+                        const endObj = selectedDates[1];
+                        endLabel.innerText = flatpickr.formatDate(endObj, "d/m/Y");
+                        endLabel.classList.remove('opacity-70');
+                        endLabel.classList.add('text-orange-400');
+                        toInput.value = flatpickr.formatDate(endObj, "Y-m-d");
+                        
+                        // Auto trigger filter when range is fully selected
+                        renderCA2CRM();
+                    } else {
+                        endLabel.innerText = "Đến ngày";
+                        endLabel.classList.add('opacity-70');
+                        endLabel.classList.remove('text-orange-400');
+                        toInput.value = "";
+                    }
+                } else {
+                    startLabel.innerText = "Từ ngày";
+                    endLabel.innerText = "Đến ngày";
+                    startLabel.classList.add('opacity-70');
+                    endLabel.classList.add('opacity-70');
+                    startLabel.classList.remove('text-orange-400');
+                    endLabel.classList.remove('text-orange-400');
+                    fromInput.value = "";
+                    toInput.value = "";
+                    renderCA2CRM(); // Reset filter
+                }
+            }
         });
     }
 

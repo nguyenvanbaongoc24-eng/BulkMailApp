@@ -666,21 +666,32 @@
                         </button>
                     </div>
 
-                    <!-- Date Range Filter Group (New) -->
-                    <div class="flex items-center gap-4 bg-white/[0.03] backdrop-blur-xl px-6 py-3 rounded-[28px] border border-white/5 shadow-2xl">
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Từ ngày:</span>
-                            <div class="relative">
-                                <input type="date" id="crm-filter-from-date" class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white font-bold outline-none focus:ring-1 focus:ring-orange-500/50 transition-all appearance-none cursor-pointer">
+                    <!-- Date Range Filter Group (SaaS Premium) -->
+                    <div class="flex items-center gap-4 bg-[#0f172a]/80 backdrop-blur-2xl px-3 py-2 rounded-[24px] border border-[rgba(255,255,255,0.08)] shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all">
+                        <div class="relative flex-1 group cursor-pointer" id="crm-date-range-wrapper">
+                            <div class="flex items-center justify-between px-4 py-2 bg-transparent border-0 outline-none w-full min-w-[280px]">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1 group-hover:text-gray-300 transition-colors">Thời gian lọc</span>
+                                    <div class="flex items-center gap-3 text-sm font-bold text-white">
+                                        <span id="crm-date-start-label" class="opacity-70">Từ ngày</span>
+                                        <i class="fas fa-arrow-right text-gray-600 text-[10px]"></i>
+                                        <span id="crm-date-end-label" class="opacity-70">Đến ngày</span>
+                                    </div>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-orange-500 group-hover:bg-orange-500/10 group-hover:scale-105 transition-all">
+                                    <i class="far fa-calendar-alt"></i>
+                                </div>
                             </div>
+                            <!-- Hidden input for Flatpickr range mode -->
+                            <input type="text" id="crm-date-range-picker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <!-- Hidden fields to preserve existing backend logic -->
+                            <input type="hidden" id="crm-filter-from-date">
+                            <input type="hidden" id="crm-filter-to-date">
                         </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Đến ngày:</span>
-                            <div class="relative">
-                                <input type="date" id="crm-filter-to-date" class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white font-bold outline-none focus:ring-1 focus:ring-orange-500/50 transition-all appearance-none cursor-pointer">
-                            </div>
-                        </div>
-                        <button onclick="renderCA2CRM()" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2">
+                        
+                        <div class="w-px h-10 bg-white/10 mx-1"></div>
+
+                        <button onclick="renderCA2CRM()" class="bg-gradient-to-br from-orange-500 to-orange-600 text-white px-8 py-3.5 rounded-[18px] text-xs font-black shadow-lg shadow-orange-900/40 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 mr-1">
                             <i class="fas fa-filter text-[10px]"></i>
                             Lọc dữ liệu
                         </button>
@@ -1605,7 +1616,7 @@
                 </button>
             </div>
             
-            <div class="p-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="modal-body-premium p-6 custom-scrollbar">
                 <input type="hidden" id="ca2-crm-id">
                 <input type="hidden" id="ca2-crm-cks-type" value="">
                 
@@ -1734,7 +1745,7 @@
                 </div>
             </div>
             
-            <div class="px-6 py-4 bg-white/2 flex gap-3">
+            <div class="modal-footer-premium px-6 py-4 bg-white/2 flex gap-3">
                 <button onclick="closeCA2CRMModal()" class="flex-1 px-6 py-3 rounded-[16px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-xs transition-all uppercase tracking-widest">Hủy bỏ</button>
                 <button onclick="saveCA2CRM()" class="flex-[1.5] px-6 py-3 rounded-[16px] bg-orange-gradient text-white font-black text-xs shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Lưu & Cập nhật</button>
             </div>
