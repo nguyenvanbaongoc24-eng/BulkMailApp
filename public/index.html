@@ -668,7 +668,7 @@
 
                     <!-- Date Range Filter Group (SaaS Premium) -->
                     <div class="flex items-center gap-4 bg-[#0f172a]/80 backdrop-blur-2xl px-3 py-2 rounded-[24px] border border-[rgba(255,255,255,0.08)] shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all">
-                        <div class="relative flex-1 group cursor-pointer" id="crm-date-range-wrapper">
+                        <div class="relative flex-1 group cursor-pointer overflow-hidden rounded-[20px]" id="crm-date-range-wrapper">
                             <div class="flex items-center justify-between px-4 py-2 bg-transparent border-0 outline-none w-full min-w-[280px]">
                                 <div class="flex flex-col">
                                     <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1 group-hover:text-gray-300 transition-colors">Thời gian lọc</span>
@@ -682,8 +682,8 @@
                                     <i class="far fa-calendar-alt"></i>
                                 </div>
                             </div>
-                            <!-- Hidden input for Flatpickr range mode -->
-                            <input type="text" id="crm-date-range-picker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <!-- Hidden input for Flatpickr range mode — perfectly constrained -->
+                            <input type="text" id="crm-date-range-picker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                             <!-- Hidden fields to preserve existing backend logic -->
                             <input type="hidden" id="crm-filter-from-date">
                             <input type="hidden" id="crm-filter-to-date">

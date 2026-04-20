@@ -273,10 +273,14 @@
 
         addEvents() {
             this.trigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                if (this.wrapper.classList.contains('open')) this.close();
-                else this.open();
+                try {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    if (this.wrapper.classList.contains('open')) this.close();
+                    else this.open();
+                } catch (err) {
+                    console.error('PremiumSelect Click Error:', err);
+                }
             });
         }
 
@@ -285,13 +289,20 @@
         }
     }
 
-    // Global helper to refresh custom selects when native select value is changed via JS
+    // Global helper to refresh custom selects
+    // It syncs existing ones AND initializes any new ones found (vital for dynamic data tables)
     window.refreshCustomSelects = function () {
-        document.querySelectorAll('select').forEach(select => {
-            if (select.customSelectInstance) {
-                select.customSelectInstance.sync();
-            }
-        });
+        try {
+            document.querySelectorAll('select').forEach(select => {
+                if (select.customSelectInstance) {
+                    select.customSelectInstance.sync();
+                } else if (!select.dataset.customInit && !select.classList.contains('no-custom')) {
+                    new PremiumSelect(select);
+                }
+            });
+        } catch (err) {
+            console.error('refreshCustomSelects Error:', err);
+        }
     };
 
     // Close select menus when clicking outside
@@ -304,9 +315,7 @@
 
     // Initialize custom selects globally
     function initAllCustomSelects() {
-        document.querySelectorAll('select').forEach(select => {
-            new PremiumSelect(select);
-        });
+        window.refreshCustomSelects();
     }
 
     // ----------------------------------------------------------

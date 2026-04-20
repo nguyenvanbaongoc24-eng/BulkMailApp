@@ -855,6 +855,11 @@ function renderCA2CRM() {
             </tr>
         `;
     }).join('') || `<tr><td colspan="8" class="px-8 py-10 text-center text-gray-500 italic">Không có dữ liệu khách hàng</td></tr>`;
+
+    // Initialize/Refresh premium UI for dynamic table elements
+    if (typeof refreshCustomSelects === 'function') {
+        refreshCustomSelects();
+    }
 }
 
 function calculateRemainingDays(dateStr) {
