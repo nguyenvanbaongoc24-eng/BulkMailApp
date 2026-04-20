@@ -254,6 +254,27 @@
             if (textSpan) {
                 textSpan.textContent = selectedText || 'Chọn...';
             }
+            
+            // Sync status colors from the original select (Payment Status logic)
+            if (this.select.classList.contains('text-green-400')) {
+                this.trigger.style.backgroundColor = 'rgba(74, 222, 128, 0.1)';
+                this.trigger.style.borderColor = '#22c55e';
+                this.trigger.style.color = '#4ade80';
+                this.trigger.style.boxShadow = '0 0 15px rgba(74, 222, 128, 0.15)';
+                if (textSpan) textSpan.style.cssText = 'font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px;';
+            } else if (this.select.classList.contains('text-orange-400')) {
+                this.trigger.style.backgroundColor = 'rgba(251, 146, 60, 0.1)';
+                this.trigger.style.borderColor = '#f97316';
+                this.trigger.style.color = '#fb923c';
+                this.trigger.style.boxShadow = '0 0 15px rgba(251, 146, 60, 0.15)';
+                if (textSpan) textSpan.style.cssText = 'font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px;';
+            } else {
+                this.trigger.style.backgroundColor = '';
+                this.trigger.style.borderColor = '';
+                this.trigger.style.color = '';
+                this.trigger.style.boxShadow = '';
+                if (textSpan) textSpan.style.cssText = '';
+            }
         }
 
         open() {
