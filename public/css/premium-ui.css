@@ -1,32 +1,90 @@
 /* ============================================================
-   PREMIUM UI/UX – SaaS-Grade Animations & Interactions
-   Version: 1.0.0
+   PREMIUM DESIGN SYSTEM — SaaS-Grade UI/UX
+   Version: 2.0.0
+   Aesthetic: Stripe / Linear / Notion
    NOTE: This file is PURELY visual. No backend logic is modified.
    ============================================================ */
 
-/* ----------------------------------------------------------
-   0. PERFORMANCE & GLOBAL DEFAULTS
-   ---------------------------------------------------------- */
-*, *::before, *::after {
-    -webkit-tap-highlight-color: transparent;
+/* ==========================================================
+   0. DESIGN TOKENS
+   ========================================================== */
+:root {
+    /* ── Surfaces ── */
+    --ds-bg:              #0B0F1A;
+    --ds-surface:         #111827;
+    --ds-surface-elevated:#1a2235;
+    --ds-surface-hover:   rgba(255,255,255,0.04);
+    --ds-surface-active:  rgba(255,255,255,0.06);
+
+    /* ── Borders ── */
+    --ds-border:          rgba(255,255,255,0.08);
+    --ds-border-hover:    rgba(255,255,255,0.14);
+    --ds-border-focus:    rgba(59,130,246,0.5);
+
+    /* ── Typography ── */
+    --ds-text:            #f0f4f8;
+    --ds-text-secondary:  #8b9cb8;
+    --ds-text-muted:      #556880;
+    --ds-text-placeholder:#3d4f66;
+
+    /* ── Accents ── */
+    --ds-blue:            #3b82f6;
+    --ds-blue-glow:       rgba(59,130,246,0.25);
+    --ds-orange:          #f97316;
+    --ds-orange-glow:     rgba(249,115,22,0.25);
+    --ds-green:           #22c55e;
+    --ds-green-glow:      rgba(34,197,94,0.25);
+    --ds-red:             #ef4444;
+    --ds-red-glow:        rgba(239,68,68,0.25);
+    --ds-amber:           #f59e0b;
+    --ds-amber-glow:      rgba(245,158,11,0.25);
+    --ds-purple:          #a855f7;
+
+    /* ── Shadows ── */
+    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.18);
+    --ds-shadow-md:       0 8px 24px rgba(0,0,0,0.22);
+    --ds-shadow-lg:       0 16px 48px rgba(0,0,0,0.35);
+    --ds-shadow-glow-orange: 0 8px 30px -4px rgba(249,115,22,0.4);
+    --ds-shadow-glow-blue:   0 8px 30px -4px rgba(59,130,246,0.35);
+
+    /* ── Radii ── */
+    --ds-radius-sm:       8px;
+    --ds-radius-md:       12px;
+    --ds-radius-lg:       16px;
+    --ds-radius-xl:       24px;
+    --ds-radius-pill:     9999px;
+
+    /* ── Motion ── */
+    --ds-ease:            cubic-bezier(0.22, 1, 0.36, 1);
+    --ds-ease-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ds-duration-fast:   150ms;
+    --ds-duration:        200ms;
+    --ds-duration-slow:   300ms;
 }
 
-/* Smooth scroll for the entire app */
+
+/* ==========================================================
+   1. GLOBAL DEFAULTS & PERFORMANCE
+   ========================================================== */
+*, *::before, *::after {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+}
+
 html {
     scroll-behavior: smooth;
 }
 
-/* Global transition baseline — everything gets a subtle ease */
-button, a, input, select, textarea,
-.bg-glass, .card-glow, .glass-card-premium,
-.input-group-premium, .modal-premium,
-th, td, tr, aside nav a, [class*="rounded-"] {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* GPU-hint for interactive elements only */
+button, [role="button"], a[onclick],
+.custom-select-trigger, .custom-select-menu {
+    will-change: transform, opacity;
 }
 
-/* ----------------------------------------------------------
-   1. CUSTOM SCROLLBAR (Premium, Thin)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   2. CUSTOM SCROLLBAR (Thin, Premium)
+   ========================================================== */
 *::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -35,59 +93,58 @@ th, td, tr, aside nav a, [class*="rounded-"] {
     background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255,255,255,0.07);
     border-radius: 10px;
-    transition: background 0.3s;
 }
 *::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255,255,255,0.16);
 }
 
 /* Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    scrollbar-color: rgba(255,255,255,0.07) transparent;
 }
 
-/* ----------------------------------------------------------
-   2. BUTTON EFFECTS (Hover glow + Click scale)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   3. BUTTON EFFECTS (Hover glow + Click scale)
+   ========================================================== */
 button, [role="button"], a[onclick] {
     cursor: pointer;
-    will-change: transform;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Hover: lift + glow */
+/* Hover: lift + shadow */
 button:hover, [role="button"]:hover {
     transform: translateY(-1px);
+    transition: transform var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease);
 }
 
 /* Active: press down */
 button:active, [role="button"]:active {
     transform: scale(0.97) translateY(0);
-    transition-duration: 0.1s;
+    transition-duration: 100ms;
 }
 
 /* Primary gradient buttons — enhanced glow on hover */
 .bg-orange-gradient:hover {
-    box-shadow: 0 8px 30px -4px rgba(249, 115, 22, 0.45),
-                0 0 20px rgba(249, 115, 22, 0.15);
+    box-shadow: var(--ds-shadow-glow-orange),
+                0 0 20px rgba(249,115,22,0.12);
     transform: translateY(-2px) scale(1.01);
 }
 .bg-orange-gradient:active {
-    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+    box-shadow: 0 2px 8px rgba(249,115,22,0.25);
     transform: scale(0.97);
 }
 
 /* Ripple effect */
-button, [role="button"] {
-    position: relative;
-    overflow: hidden;
-}
 .ripple-effect {
     position: absolute;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255,255,255,0.15);
     transform: scale(0);
     animation: ripple-anim 0.5s ease-out forwards;
     pointer-events: none;
@@ -101,129 +158,198 @@ button, [role="button"] {
     }
 }
 
-/* ----------------------------------------------------------
-   3. CARD / GLASS PANEL HOVER
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   4. CARD / GLASS PANEL HOVER (Depth, not plastic)
+   ========================================================== */
 .bg-glass,
 .bg-glass\/40,
 [class*="bg-glass"] {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--ds-duration-slow) var(--ds-ease),
+                box-shadow var(--ds-duration-slow) var(--ds-ease),
+                border-color var(--ds-duration-slow) var(--ds-ease);
 }
 
 .bg-glass:hover,
 .bg-glass\/40:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4),
-                0 0 0 1px rgba(255, 255, 255, 0.08);
+    box-shadow: var(--ds-shadow-md),
+                0 0 0 1px var(--ds-border-hover);
 }
 
 .card-glow {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--ds-duration-slow) var(--ds-ease),
+                box-shadow var(--ds-duration-slow) var(--ds-ease),
+                border-color var(--ds-duration-slow) var(--ds-ease);
 }
 .card-glow:hover {
     transform: translateY(-3px);
-    box-shadow: 0 0 30px rgba(255, 140, 0, 0.12),
-                0 12px 40px -8px rgba(0, 0, 0, 0.5);
-    border-color: rgba(255, 140, 0, 0.25);
+    box-shadow: 0 0 30px rgba(255,140,0,0.1),
+                var(--ds-shadow-md);
+    border-color: rgba(255,140,0,0.2);
 }
 
-/* ----------------------------------------------------------
-   4. TABLE ROW HOVER (SaaS-style)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   5. TABLE (SaaS-style: hover, zebra, sticky, badges)
+   ========================================================== */
+
+/* Sticky table header */
+thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Zebra striping — extremely subtle */
+tbody tr:nth-child(even) {
+    background: rgba(255,255,255,0.015);
+}
+
+/* Row hover */
 tbody tr {
-    transition: all 0.15s ease;
+    transition: background-color var(--ds-duration-fast) ease;
     position: relative;
 }
 tbody tr:hover {
-    background: rgba(255, 255, 255, 0.03) !important;
+    background: rgba(255,255,255,0.035) !important;
 }
 tbody tr:hover td:first-child {
-    box-shadow: inset 3px 0 0 0 rgba(249, 115, 22, 0.6);
+    box-shadow: inset 3px 0 0 0 rgba(249,115,22,0.6);
 }
 tbody tr:active {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(255,255,255,0.05) !important;
+}
+
+/* Table text clarity */
+tbody td {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ds-text-secondary);
+    line-height: 1.5;
 }
 
 /* Sortable header hover */
 th[onclick] {
-    transition: all 0.15s ease;
     cursor: pointer;
+    transition: background-color var(--ds-duration-fast) ease,
+                color var(--ds-duration-fast) ease;
 }
 th[onclick]:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
+    background: rgba(255,255,255,0.05) !important;
     color: #f8fafc;
 }
 
-/* Service Badge Styling */
-.badge-service {
-    padding: 0.25rem 0.75rem;
-    border-radius: 8px;
+/* ── Status Badges ── */
+.badge-status {
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-pill);
     font-size: 10px;
-    font-weight: 900;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+}
+.badge-status::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.badge-success {
+    color: var(--ds-green);
+    background: rgba(34,197,94,0.1);
+    border-color: rgba(34,197,94,0.2);
+}
+.badge-success::before { background: var(--ds-green); box-shadow: 0 0 6px var(--ds-green-glow); }
+
+.badge-fail, .badge-error {
+    color: var(--ds-red);
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.2);
+}
+.badge-fail::before, .badge-error::before { background: var(--ds-red); box-shadow: 0 0 6px var(--ds-red-glow); }
+
+.badge-pending, .badge-warning {
+    color: var(--ds-amber);
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.2);
+}
+.badge-pending::before, .badge-warning::before { background: var(--ds-amber); box-shadow: 0 0 6px var(--ds-amber-glow); }
+
+/* Service Badge Styling (CRM) */
+.badge-service {
+    padding: 4px 12px;
+    border-radius: var(--ds-radius-sm);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     border-width: 1px;
     display: inline-block;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease);
 }
 
 .badge-service:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--ds-shadow-sm);
     filter: brightness(1.1);
 }
 
 .badge-cks {
-    border-color: rgba(249, 115, 22, 0.3);
+    border-color: rgba(249,115,22,0.25);
     color: #fb923c;
-    background: rgba(249, 115, 22, 0.1);
-    box-shadow: 0 0 10px rgba(249, 115, 22, 0.05);
+    background: rgba(249,115,22,0.08);
 }
-
 .badge-hddt {
-    border-color: rgba(14, 165, 233, 0.3);
+    border-color: rgba(14,165,233,0.25);
     color: #38bdf8;
-    background: rgba(14, 165, 233, 0.1);
-    box-shadow: 0 0 10px rgba(14, 165, 233, 0.05);
+    background: rgba(14,165,233,0.08);
 }
-
 .badge-ebh {
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(16,185,129,0.25);
     color: #34d399;
-    background: rgba(16, 185, 129, 0.1);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.05);
+    background: rgba(16,185,129,0.08);
 }
-
 .badge-invoice {
-    border-color: rgba(168, 85, 247, 0.3);
+    border-color: rgba(168,85,247,0.25);
     color: #c084fc;
-    background: rgba(168, 85, 247, 0.1);
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.05);
+    background: rgba(168,85,247,0.08);
 }
-
 .badge-other {
-    border-color: rgba(244, 63, 94, 0.3);
+    border-color: rgba(244,63,94,0.25);
     color: #fb7185;
-    background: rgba(244, 63, 94, 0.1);
-    box-shadow: 0 0 10px rgba(244, 63, 94, 0.05);
+    background: rgba(244,63,94,0.08);
 }
 
-/* ----------------------------------------------------------
-   5. SIDEBAR NAV HOVER (iOS-like feel)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   6. SIDEBAR NAV HOVER (iOS-like)
+   ========================================================== */
 aside nav a {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--ds-duration) var(--ds-ease),
+                background-color var(--ds-duration) var(--ds-ease),
+                color var(--ds-duration) var(--ds-ease);
     position: relative;
 }
 aside nav a:hover {
     transform: translateX(4px);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--ds-surface-hover);
 }
 aside nav a:active {
     transform: translateX(2px) scale(0.98);
 }
 
-/* Active sidebar indicator pulse */
+/* Active sidebar indicator */
 .sidebar-item-active {
     position: relative;
 }
@@ -235,64 +361,74 @@ aside nav a:active {
     transform: translateY(-50%);
     width: 3px;
     height: 60%;
-    background: #ff8c00;
+    background: var(--ds-orange);
     border-radius: 4px;
-    box-shadow: 0 0 12px rgba(255, 140, 0, 0.5);
+    box-shadow: 0 0 12px var(--ds-orange-glow);
 }
 
-/* ----------------------------------------------------------
-   6. DROPDOWN / SELECT (iOS-style open animation)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   7. NATIVE SELECT POLISH
+   ========================================================== */
 select {
     appearance: none;
     -webkit-appearance: none;
     background-image: none !important;
     background-repeat: no-repeat;
-    background-position: right 18px center;
-    padding-right: 42px !important; /* Increased padding to prevent overlap */
+    background-position: right 16px center;
+    padding-right: 42px !important;
     cursor: pointer;
+    transition: border-color var(--ds-duration) var(--ds-ease),
+                background-color var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease);
 }
 
 select:hover {
-    border-color: rgba(255, 140, 0, 0.4);
-    background-color: rgba(255, 255, 255, 0.06);
+    border-color: var(--ds-border-hover);
+    background-color: var(--ds-surface-hover);
 }
 
 select:focus {
-    border-color: #f97316;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15),
-                0 4px 16px rgba(0, 0, 0, 0.2);
-    transform: translateY(-1px);
+    border-color: var(--ds-border-focus);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12),
+                var(--ds-shadow-sm);
+    outline: none;
 }
 
-/* ----------------------------------------------------------
-   6.5 CUSTOM JS DROPDOWN (Replaces native select)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   8. CUSTOM JS DROPDOWN (SaaS-grade — CRITICAL FIX)
+   ========================================================== */
 .custom-select-wrapper {
     position: relative;
     width: 100%;
 }
 
+/* ── Trigger ── */
 .custom-select-trigger {
     display: flex;
     align-items: center;
     justify-content: space-between;
     height: 44px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: 14px;  /* FIXED: fully rounded */
     padding: 0 16px;
-    color: #f8fafc;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--ds-text);
+    transition: border-color var(--ds-duration) var(--ds-ease),
+                background-color var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease),
+                transform var(--ds-duration) var(--ds-ease);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     user-select: none;
+    gap: 8px;
 }
 
 .custom-select-trigger:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--ds-surface-elevated);
+    border-color: var(--ds-border-hover);
     transform: translateY(-1px);
 }
 
@@ -300,61 +436,70 @@ select:focus {
     transform: scale(0.98);
 }
 
+/* Open state */
 .custom-select-wrapper.open .custom-select-trigger {
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.05);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15), 
-                0 8px 20px -4px rgba(0, 0, 0, 0.4);
+    border-color: var(--ds-blue);
+    background: rgba(59,130,246,0.04);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12),
+                var(--ds-shadow-md);
 }
 
+/* ── Text Label (no overlap!) ── */
 .select-text {
     flex: 1;
-    min-width: 0; /* CRITICAL for ellipsis in flex world */
+    min-width: 0; /* CRITICAL: allows ellipsis in flex */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 14px;
     font-weight: 500;
-    color: #e2e8f0;
-    margin-right: 8px;
+    color: var(--ds-text-secondary);
     text-align: left;
 }
 
+/* ── Chevron Icon (never overlaps text) ── */
 .select-chevron {
     flex-shrink: 0;
-    font-size: 12px;
-    color: #94a3b8;
-    opacity: 0.6;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    font-size: 11px;
+    color: var(--ds-text-muted);
+    opacity: 0.7;
+    transition: transform var(--ds-duration-slow) var(--ds-ease),
+                opacity var(--ds-duration) ease,
+                color var(--ds-duration) ease;
+    margin-left: auto;
 }
 
 .custom-select-wrapper.open .select-chevron {
     transform: rotate(180deg);
     opacity: 1;
-    color: #3b82f6;
+    color: var(--ds-blue);
 }
 
-/* MENU / DROPDOWN LIST */
+/* ── Menu / Dropdown List ── */
 .custom-select-menu {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 6px);
     left: 0;
     width: 100%;
     min-width: min-content;
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6),
-                0 0 0 1px rgba(255, 255, 255, 0.05);
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border-hover);
+    border-radius: 14px;   /* FIXED: fully rounded corners */
+    overflow: hidden;       /* FIXED: clips inner items to rounded shape */
+    box-shadow: var(--ds-shadow-lg),
+                0 0 0 1px rgba(255,255,255,0.04);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     z-index: 9999;
+
+    /* ── Animation: fade + slide down ── */
     opacity: 0;
     visibility: hidden;
-    transform: translateY(4px) scale(0.98);
-    transform-origin: top;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(6px) scale(0.98);
+    transform-origin: top center;
+    transition: opacity var(--ds-duration) var(--ds-ease),
+                visibility var(--ds-duration) var(--ds-ease),
+                transform var(--ds-duration) var(--ds-ease);
     max-height: 280px;
     overflow-y: auto;
 }
@@ -365,51 +510,59 @@ select:focus {
     transform: translateY(0) scale(1);
 }
 
+/* ── Option Items ── */
 .custom-select-option {
-    padding: 12px 16px;
+    padding: 10px 16px;
     cursor: pointer;
-    font-size: 14px;
-    color: #94a3b8;
-    transition: all 0.15s ease;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ds-text-secondary);
+    transition: background-color var(--ds-duration-fast) ease,
+                color var(--ds-duration-fast) ease;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .custom-select-option:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #f8fafc;
+    background: var(--ds-surface-active);
+    color: var(--ds-text);
 }
 
 .custom-select-option.selected {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    background: rgba(59,130,246,0.1);
+    color: var(--ds-blue);
     font-weight: 600;
 }
 
-/* Special scrollbar for custom select */
+/* Scrollbar for custom select */
 .custom-select-menu::-webkit-scrollbar {
     width: 4px;
 }
 .custom-select-menu::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.1);
     border-radius: 4px;
 }
 
-/* ----------------------------------------------------------
-   7. INPUT FOCUS STATES (Premium glow)
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   9. INPUT / FORM FOCUS STATES (Consistent, premium)
+   ========================================================== */
+input, textarea {
+    transition: border-color var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease),
+                background-color var(--ds-duration) var(--ds-ease);
+}
+
 input:focus, textarea:focus {
-    border-color: rgba(249, 115, 22, 0.5) !important;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12),
-                0 0 20px rgba(249, 115, 22, 0.08),
-                inset 0 0 8px rgba(249, 115, 22, 0.03) !important;
+    border-color: var(--ds-blue) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12),
+                0 0 16px rgba(59,130,246,0.06) !important;
     outline: none !important;
-    transform: translateY(-1px);
 }
 
 input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--ds-border-hover);
 }
 
 /* Fix for "White Box" autofill issue in dark mode */
@@ -417,36 +570,78 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px #0b0b0f inset !important; /* Deep dark background */
-    -webkit-text-fill-color: #f8fafc !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--ds-bg) inset !important;
+    -webkit-text-fill-color: var(--ds-text) !important;
     transition: background-color 5000s ease-in-out 0s;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid var(--ds-border) !important;
 }
 
-/* Input group premium — enhanced */
+/* Input group premium — enhanced hover */
+.input-group-premium {
+    transition: border-color var(--ds-duration-slow) var(--ds-ease),
+                background-color var(--ds-duration-slow) var(--ds-ease),
+                box-shadow var(--ds-duration-slow) var(--ds-ease);
+}
 .input-group-premium:hover:not(:focus-within) {
-    border-color: rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--ds-border-hover);
+    background: rgba(255,255,255,0.025);
 }
 
-/* ----------------------------------------------------------
-   8. MODAL ANIMATIONS
-   ---------------------------------------------------------- */
+/* ── Label styling (smaller, muted) ── */
+.label-premium {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ds-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ── Input field styling (consistent height) ── */
+.input-premium {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--ds-text);
+    padding: 12px 16px;
+    height: 44px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    outline: none;
+    transition: all var(--ds-duration-slow) var(--ds-ease);
+}
+
+.input-premium::placeholder {
+    color: var(--ds-text-placeholder);
+    font-weight: 400;
+}
+
+/* Select inside input-group needs proper padding for chevron */
+.input-group-premium select.input-premium {
+    padding-right: 40px;
+}
+
+
+/* ==========================================================
+   10. MODAL ANIMATIONS
+   ========================================================== */
 /* Modal backdrop fade-in */
 [id^="modal-"] {
-    transition: opacity 0.25s ease, backdrop-filter 0.3s ease;
+    transition: opacity var(--ds-duration-slow) ease,
+                backdrop-filter var(--ds-duration-slow) ease;
 }
 
 /* Modal content — zoom + slide in */
 .modal-premium,
 [id^="modal-"] > div:first-child {
-    animation: modal-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: modal-enter var(--ds-duration-slow) var(--ds-ease-bounce) forwards;
 }
 
 @keyframes modal-enter {
     from {
         opacity: 0;
-        transform: scale(0.95) translateY(12px);
+        transform: scale(0.96) translateY(10px);
     }
     to {
         opacity: 1;
@@ -454,13 +649,14 @@ input:-webkit-autofill:active {
     }
 }
 
-/* ----------------------------------------------------------
-   9. PAGE TRANSITION ANIMATIONS
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   11. PAGE TRANSITION ANIMATIONS
+   ========================================================== */
 @keyframes page-fade-in {
     from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(10px);
     }
     to {
         opacity: 1;
@@ -469,14 +665,14 @@ input:-webkit-autofill:active {
 }
 
 .page-enter {
-    animation: page-fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation: page-fade-in 0.35s var(--ds-ease) forwards;
 }
 
 /* Staggered child entrance for cards/grid items */
 @keyframes stagger-fade-in {
     from {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(14px);
     }
     to {
         opacity: 1;
@@ -486,32 +682,33 @@ input:-webkit-autofill:active {
 
 .page-enter > .grid > * {
     opacity: 0;
-    animation: stagger-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation: stagger-fade-in 0.4s var(--ds-ease) forwards;
 }
-.page-enter > .grid > *:nth-child(1) { animation-delay: 0.05s; }
-.page-enter > .grid > *:nth-child(2) { animation-delay: 0.1s; }
-.page-enter > .grid > *:nth-child(3) { animation-delay: 0.15s; }
-.page-enter > .grid > *:nth-child(4) { animation-delay: 0.2s; }
-.page-enter > .grid > *:nth-child(5) { animation-delay: 0.25s; }
-.page-enter > .grid > *:nth-child(6) { animation-delay: 0.3s; }
+.page-enter > .grid > *:nth-child(1) { animation-delay: 0.04s; }
+.page-enter > .grid > *:nth-child(2) { animation-delay: 0.08s; }
+.page-enter > .grid > *:nth-child(3) { animation-delay: 0.12s; }
+.page-enter > .grid > *:nth-child(4) { animation-delay: 0.16s; }
+.page-enter > .grid > *:nth-child(5) { animation-delay: 0.20s; }
+.page-enter > .grid > *:nth-child(6) { animation-delay: 0.24s; }
 
-/* ----------------------------------------------------------
-   10. SKELETON / LOADING SHIMMER
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   12. SKELETON / LOADING SHIMMER
+   ========================================================== */
 .skeleton {
     background: linear-gradient(
         110deg,
-        rgba(255, 255, 255, 0.03) 30%,
-        rgba(255, 255, 255, 0.08) 50%,
-        rgba(255, 255, 255, 0.03) 70%
+        rgba(255,255,255,0.025) 30%,
+        rgba(255,255,255,0.06) 50%,
+        rgba(255,255,255,0.025) 70%
     );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
-    border-radius: 8px;
+    border-radius: var(--ds-radius-sm);
 }
 
 @keyframes skeleton-shimmer {
-    0% { background-position: 200% 0; }
+    0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
@@ -521,33 +718,35 @@ input:-webkit-autofill:active {
     margin-bottom: 8px;
     border-radius: 6px;
 }
-.skeleton-text.short { width: 40%; }
+.skeleton-text.short  { width: 40%; }
 .skeleton-text.medium { width: 70%; }
-.skeleton-text.long { width: 100%; }
+.skeleton-text.long   { width: 100%; }
 
 .skeleton-card {
     height: 120px;
-    border-radius: 24px;
+    border-radius: var(--ds-radius-xl);
 }
 
 .skeleton-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: var(--ds-radius-md);
 }
 
-/* ----------------------------------------------------------
-   11. MICRO INTERACTIONS
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   13. MICRO INTERACTIONS
+   ========================================================== */
 /* Icon hover scale */
 i.fas, i.far, i.fab, .fa-solid, .fa-regular {
-    transition: transform 0.2s ease, color 0.2s ease;
+    transition: transform var(--ds-duration) var(--ds-ease),
+                color var(--ds-duration) ease;
 }
 button:hover i.fas,
 button:hover i.far,
 a:hover i.fas,
 a:hover i.far {
-    transform: scale(1.15);
+    transform: scale(1.12);
 }
 
 /* Emoji hover */
@@ -555,7 +754,7 @@ span[class*="text-lg"]:hover,
 span[class*="text-xl"]:hover,
 span[class*="text-2xl"]:hover {
     transform: scale(1.2) rotate(-5deg);
-    transition: transform 0.2s ease;
+    transition: transform var(--ds-duration) var(--ds-ease);
     display: inline-block;
 }
 
@@ -564,24 +763,18 @@ span[class*="text-2xl"]:hover {
     animation-play-state: paused;
 }
 
-/* ----------------------------------------------------------
-   12. TOOLTIP ANIMATION
-   ---------------------------------------------------------- */
-[title] {
-    position: relative;
-}
 
-/* ----------------------------------------------------------
-   13. DARK MODE POLISH
-   ---------------------------------------------------------- */
-/* Gradient background overlay for depth */
+/* ==========================================================
+   14. DARK MODE POLISH (Depth, not flat)
+   ========================================================== */
+/* Subtle ambient gradient background for depth */
 body::before {
     content: '';
     position: fixed;
     inset: 0;
     background:
-        radial-gradient(ellipse at top right, rgba(249, 115, 22, 0.03) 0%, transparent 60%),
-        radial-gradient(ellipse at bottom left, rgba(147, 51, 234, 0.03) 0%, transparent 60%);
+        radial-gradient(ellipse at top right, rgba(249,115,22,0.025) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom left, rgba(147,51,234,0.025) 0%, transparent 60%);
     pointer-events: none;
     z-index: -1;
 }
@@ -593,14 +786,15 @@ body::before {
 
 /* Stat numbers — subtle glow */
 [id^="stat-"], [id^="dash-crm-"], [id^="ca2-crm-"] {
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+    text-shadow: 0 0 30px rgba(255,255,255,0.04);
 }
 
-/* ----------------------------------------------------------
-   14. HEADER BLUR ENHANCEMENT
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   15. HEADER BLUR ENHANCEMENT
+   ========================================================== */
 header {
-    transition: all 0.3s ease;
+    transition: box-shadow var(--ds-duration-slow) ease;
 }
 header::after {
     content: '';
@@ -609,16 +803,17 @@ header::after {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.15), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,140,0,0.12), transparent);
 }
 
-/* ----------------------------------------------------------
-   15. NOTIFICATION / TOAST ANIMATION
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   16. TOAST / NOTIFICATION ANIMATION
+   ========================================================== */
 @keyframes toast-in {
     from {
         opacity: 0;
-        transform: translateY(-20px) scale(0.95);
+        transform: translateY(-20px) scale(0.96);
     }
     to {
         opacity: 1;
@@ -633,109 +828,120 @@ header::after {
     }
     to {
         opacity: 0;
-        transform: translateY(-20px) scale(0.95);
+        transform: translateY(-20px) scale(0.96);
     }
 }
 
 .toast-enter {
-    animation: toast-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: toast-in var(--ds-duration-slow) var(--ds-ease-bounce) forwards;
 }
-
 .toast-exit {
-    animation: toast-out 0.2s ease-in forwards;
+    animation: toast-out var(--ds-duration) ease-in forwards;
 }
 
-/* ----------------------------------------------------------
-   16. PROGRESS BAR SMOOTH
-   ---------------------------------------------------------- */
+
+/* ==========================================================
+   17. PROGRESS BAR SMOOTH
+   ========================================================== */
 [id*="progress-bar"] {
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.8s var(--ds-ease);
 }
 
-/* ----------------------------------------------------------
-   17. LIGHT MODE ADJUSTMENTS
-   ---------------------------------------------------------- */
-.light-mode tbody tr:hover {
-    background: rgba(0, 0, 0, 0.02) !important;
-}
-.light-mode tbody tr:hover td:first-child {
-    box-shadow: inset 3px 0 0 0 rgba(249, 115, 22, 0.8);
-}
 
-.light-mode .bg-glass:hover,
-.light-mode .bg-glass\/40:hover {
-    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.12),
-                0 0 0 1px rgba(0, 0, 0, 0.06);
+/* ==========================================================
+   18. FILTER BAR PILLS (Segment control style)
+   ========================================================== */
+
+/* Filter bar container */
+.flex-wrap .custom-select-wrapper,
+.flex .custom-select-wrapper {
+    width: auto !important;
+    min-width: 150px;
 }
 
-.light-mode .card-glow:hover {
-    box-shadow: 0 0 30px rgba(255, 140, 0, 0.08),
-                0 12px 40px -8px rgba(0, 0, 0, 0.15);
+/* Filter pill buttons (segment control) */
+.filter-pill,
+#seo-news-filters button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;                   /* Icon ↔ Text spacing */
+    height: 40px;
+    padding: 0 18px;
+    border-radius: var(--ds-radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--ds-duration) var(--ds-ease),
+                color var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease),
+                transform var(--ds-duration) var(--ds-ease);
+    white-space: nowrap;
 }
 
-.light-mode aside nav a:hover {
-    background: rgba(0, 0, 0, 0.03);
+.filter-pill:hover,
+#seo-news-filters button:hover {
+    background: var(--ds-surface-active);
+    transform: translateY(-1px);
 }
 
-.light-mode body::before {
-    background:
-        radial-gradient(ellipse at top right, rgba(249, 115, 22, 0.02) 0%, transparent 60%),
-        radial-gradient(ellipse at bottom left, rgba(59, 130, 246, 0.02) 0%, transparent 60%);
+.filter-pill.active,
+#seo-news-filters button.active {
+    background: rgba(249,115,22,0.15);
+    color: var(--ds-orange);
+    box-shadow: 0 2px 8px rgba(249,115,22,0.15);
 }
 
-.light-mode .skeleton {
-    background: linear-gradient(
-        110deg,
-        rgba(0, 0, 0, 0.04) 30%,
-        rgba(0, 0, 0, 0.08) 50%,
-        rgba(0, 0, 0, 0.04) 70%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+
+/* ==========================================================
+   19. GLASS CARDS (Premium feel)
+   ========================================================== */
+.glass-card-premium {
+    background: linear-gradient(145deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid var(--ds-border);
+    border-radius: 28px;
+    padding: 2rem;
+    transition: background-color var(--ds-duration-slow) var(--ds-ease),
+                border-color var(--ds-duration-slow) var(--ds-ease),
+                transform var(--ds-duration-slow) var(--ds-ease),
+                box-shadow var(--ds-duration-slow) var(--ds-ease);
 }
 
-.light-mode select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+.glass-card-premium:hover {
+    background: linear-gradient(145deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%);
+    border-color: var(--ds-border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--ds-shadow-md);
 }
 
-/* ----------------------------------------------------------
-   18. REDUCED MOTION ACCESSIBILITY
-   ---------------------------------------------------------- */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-    html {
-        scroll-behavior: auto;
-    }
-}
 
-/* ============================================================
-   19. FLATPICKR SAAS / IOS OVERRIDES
-   ============================================================ */
+/* ==========================================================
+   20. FLATPICKR OVERRIDES (SaaS / iOS style)
+   ========================================================== */
 
-/* CONTAINER */
+/* Container */
 .flatpickr-calendar {
-    width: 336px !important; 
-    background: #0f172a !important; 
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-    overflow: hidden !important; 
+    width: 340px !important;
+    background: linear-gradient(160deg, #141c2e 0%, #0f172a 100%) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: var(--ds-radius-lg) !important;
+    box-shadow: var(--ds-shadow-lg),
+                inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    overflow: hidden !important;
     padding: 16px !important;
-    margin-top: 10px !important;
+    margin-top: 8px !important;
+
+    /* Open animation */
     opacity: 0;
-    transform: scale(0.96);
-    transition: opacity 0.16s ease-out, transform 0.16s ease-out !important;
+    transform: scale(0.95);
+    transition: opacity 180ms var(--ds-ease),
+                transform 180ms var(--ds-ease) !important;
 }
 
 .flatpickr-calendar.open,
 .flatpickr-calendar.inline {
     opacity: 1;
     transform: scale(1);
-    animation: none !important; 
+    animation: none !important;
 }
 
 /* Hide arrow */
@@ -744,22 +950,23 @@ header::after {
     display: none !important;
 }
 
-/* HEADER - TEXT ONLY */
+/* Header */
 .flatpickr-months {
     background: transparent !important;
-    padding-bottom: 16px !important;
+    padding-bottom: 14px !important;
 }
 .flatpickr-months .flatpickr-month {
     background: transparent !important;
-    color: #e2e8f0 !important;
+    color: var(--ds-text) !important;
     height: auto !important;
 }
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
-    fill: #e2e8f0 !important;
-    color: #e2e8f0 !important;
+    fill: var(--ds-text-secondary) !important;
+    color: var(--ds-text-secondary) !important;
     border-radius: 50% !important;
-    transition: all 0.2s ease !important;
+    transition: background-color var(--ds-duration) ease,
+                color var(--ds-duration) ease !important;
     top: 16px !important;
     padding: 8px !important;
     cursor: pointer !important;
@@ -768,12 +975,14 @@ header::after {
 }
 .flatpickr-months .flatpickr-prev-month:hover,
 .flatpickr-months .flatpickr-next-month:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: var(--ds-surface-active) !important;
+    color: var(--ds-text) !important;
+    fill: var(--ds-text) !important;
     transform: none !important;
 }
 
 .flatpickr-current-month {
-    font-size: 17px !important;
+    font-size: 16px !important;
     font-weight: 600 !important;
     letter-spacing: 0.3px !important;
     padding: 0 !important;
@@ -783,9 +992,9 @@ header::after {
 }
 .flatpickr-current-month .flatpickr-monthDropdown-months,
 .flatpickr-current-month .numInputWrapper {
-    color: #e2e8f0 !important;
+    color: var(--ds-text) !important;
     font-weight: 600 !important;
-    font-size: 17px !important;
+    font-size: 16px !important;
     appearance: none !important;
     -webkit-appearance: none !important;
     background: transparent !important;
@@ -804,12 +1013,12 @@ header::after {
     display: none !important;
 }
 .numInputWrapper input {
-    color: #e2e8f0 !important;
+    color: var(--ds-text) !important;
     font-weight: 600 !important;
     outline: none !important;
 }
 
-/* WEEKDAYS - Fixed Layering & Clarity */
+/* WEEKDAYS — FIXED: Full opacity, clear and sharp */
 .flatpickr-weekdays {
     background: transparent !important;
     height: 36px !important;
@@ -817,22 +1026,22 @@ header::after {
     z-index: 10 !important;
 }
 span.flatpickr-weekday {
-    color: rgba(255, 255, 255, 0.65) !important; /* Sharp, high-contrast text */
-    font-weight: 500 !important;
+    color: var(--ds-text-secondary) !important;  /* Clear, readable */
+    font-weight: 600 !important;
     font-size: 11px !important;
     letter-spacing: 1px !important;
     text-transform: uppercase !important;
-    opacity: 1 !important; /* Ensure no opacity is inherited */
+    opacity: 1 !important;            /* FIXED: No inherited opacity */
 }
 
-/* GRID & DAY ITEMS */
+/* Grid & Day Items */
 .flatpickr-days {
     border: none !important;
 }
 .dayContainer {
-    gap: 8px !important; 
+    gap: 6px !important;
     justify-content: center;
-    padding: 8px 0;
+    padding: 6px 0;
 }
 .flatpickr-day {
     display: flex !important;
@@ -844,32 +1053,36 @@ span.flatpickr-weekday {
     line-height: normal !important;
     margin: 0 !important;
     background: transparent !important;
-    border: 1px solid transparent !important;
-    border-radius: 999px !important; 
-    color: #e2e8f0 !important; 
+    border: 1.5px solid transparent !important;
+    border-radius: 50% !important;     /* Perfect circle */
+    color: var(--ds-text) !important;
     font-weight: 500 !important;
-    font-size: 15px !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    font-size: 14px !important;
+    transition: background-color 180ms var(--ds-ease),
+                transform 180ms var(--ds-ease),
+                border-color 180ms var(--ds-ease),
+                box-shadow 180ms var(--ds-ease) !important;
 }
 
 /* Hover Day */
 .flatpickr-day:not(.selected):not(.disabled):hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: var(--ds-surface-active) !important;
     transform: scale(1.05) !important;
 }
 
 /* Active/Click scale */
 .flatpickr-day:active:not(.disabled) {
-    transform: scale(0.95) !important;
+    transform: scale(0.92) !important;
 }
 
-/* Today */
+/* Today — distinct amber ring */
 .flatpickr-day.today {
-    border-color: #3b82f6 !important;
-    color: #e2e8f0 !important;
+    border-color: var(--ds-amber) !important;
+    color: var(--ds-amber) !important;
+    font-weight: 600 !important;
 }
 
-/* Selected */
+/* Selected — gradient + glow */
 .flatpickr-day.selected,
 .flatpickr-day.startRange,
 .flatpickr-day.endRange,
@@ -891,29 +1104,168 @@ span.flatpickr-weekday {
     background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
     border-color: transparent !important;
     color: #fff !important;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+    box-shadow: 0 0 16px rgba(59,130,246,0.4),
+                0 4px 10px rgba(59,130,246,0.25) !important;
     font-weight: 600 !important;
-    transform: scale(1) !important; /* Keep stable when selected, hover is fine */
+    transform: scale(1) !important;
 }
 
 /* Prev/Next Month Days */
 .flatpickr-day.prevMonthDay,
 .flatpickr-day.nextMonthDay {
-    color: rgba(255, 255, 255, 0.3) !important;
+    color: rgba(255,255,255,0.2) !important;
 }
 
 /* Disabled */
 .flatpickr-day.disabled,
 .flatpickr-day.disabled:hover {
-    opacity: 0.3 !important;
+    opacity: 0.25 !important;
     cursor: not-allowed !important;
     background: transparent !important;
-    color: rgba(255, 255, 255, 0.3) !important;
+    color: rgba(255,255,255,0.2) !important;
     transform: none !important;
 }
 
 .flatpickr-innerContainer {
-    border-top: 1px solid rgba(255, 255, 255, 0.05); 
+    border-top: 1px solid rgba(255,255,255,0.05);
     margin-top: 8px;
     padding-top: 8px;
+}
+
+/* Fix for Flatpickr inside input-group-premium */
+.input-group-premium .flatpickr {
+    width: 100% !important;
+    display: flex !important;
+}
+
+.input-group-premium input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+
+/* ==========================================================
+   21. TOOLTIP ANIMATION
+   ========================================================== */
+[title] {
+    position: relative;
+}
+
+
+/* ==========================================================
+   22. LIGHT MODE ADJUSTMENTS
+   ========================================================== */
+.light-mode tbody tr:hover {
+    background: rgba(0,0,0,0.02) !important;
+}
+.light-mode tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 0 rgba(249,115,22,0.8);
+}
+
+.light-mode .bg-glass:hover,
+.light-mode .bg-glass\/40:hover {
+    box-shadow: 0 12px 40px -8px rgba(0,0,0,0.1),
+                0 0 0 1px rgba(0,0,0,0.05);
+}
+
+.light-mode .card-glow:hover {
+    box-shadow: 0 0 30px rgba(255,140,0,0.06),
+                0 12px 40px -8px rgba(0,0,0,0.12);
+}
+
+.light-mode aside nav a:hover {
+    background: rgba(0,0,0,0.03);
+}
+
+.light-mode body::before {
+    background:
+        radial-gradient(ellipse at top right, rgba(249,115,22,0.015) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom left, rgba(59,130,246,0.015) 0%, transparent 60%);
+}
+
+.light-mode .skeleton {
+    background: linear-gradient(
+        110deg,
+        rgba(0,0,0,0.03) 30%,
+        rgba(0,0,0,0.06) 50%,
+        rgba(0,0,0,0.03) 70%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.light-mode select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Light-mode custom select */
+.light-mode .custom-select-trigger {
+    background: #fff;
+    border-color: #e2e8f0;
+    color: #0f172a;
+}
+.light-mode .custom-select-trigger:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+.light-mode .custom-select-menu {
+    background: #fff;
+    border-color: #e2e8f0;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+}
+.light-mode .custom-select-option {
+    color: #334155;
+}
+.light-mode .custom-select-option:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+.light-mode .custom-select-option.selected {
+    background: rgba(59,130,246,0.08);
+    color: var(--ds-blue);
+}
+.light-mode .select-text {
+    color: #334155;
+}
+.light-mode .select-chevron {
+    color: #94a3b8;
+}
+
+/* Light-mode flatpickr */
+.light-mode .flatpickr-calendar {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.1) !important;
+}
+.light-mode .flatpickr-day {
+    color: #1e293b !important;
+}
+.light-mode .flatpickr-day.today {
+    border-color: var(--ds-amber) !important;
+    color: #b45309 !important;
+}
+.light-mode span.flatpickr-weekday {
+    color: #64748b !important;
+}
+.light-mode .flatpickr-current-month,
+.light-mode .flatpickr-current-month .flatpickr-monthDropdown-months,
+.light-mode .flatpickr-current-month .numInputWrapper,
+.light-mode .numInputWrapper input {
+    color: #0f172a !important;
+}
+
+
+/* ==========================================================
+   23. REDUCED MOTION ACCESSIBILITY
+   ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    html {
+        scroll-behavior: auto;
+    }
 }

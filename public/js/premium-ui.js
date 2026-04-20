@@ -1,18 +1,21 @@
 /* ============================================================
-   PREMIUM UI/UX – Micro-Interaction Engine
-   Version: 1.0.0
+   PREMIUM UI/UX – Micro-Interaction Engine v2.0
+   Aesthetic: Stripe / Linear / Notion
    NOTE: This file is PURELY visual. No backend logic is modified.
    ============================================================ */
 
 (function () {
     'use strict';
 
+    // Design system motion constants
+    const DS_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const DS_DURATION = 200; // ms
+
     // ----------------------------------------------------------
-    // 1. RIPPLE EFFECT ON BUTTONS
+    // 1. RIPPLE EFFECT ON BUTTONS (refined, lighter)
     // ----------------------------------------------------------
     function createRipple(e) {
         const btn = e.currentTarget;
-        // Skip if not a real button click (e.g. programmatic)
         if (!btn || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
 
         const existingRipple = btn.querySelector('.ripple-effect');
@@ -42,15 +45,12 @@
 
     if (typeof originalShowPage === 'function') {
         window.showPage = function (pageId) {
-            // Call original function first
             originalShowPage(pageId);
 
-            // Apply entrance animation to the newly visible view
             const view = document.getElementById(`view-${pageId}`);
             if (view) {
                 view.classList.remove('page-enter');
-                // Force reflow to restart animation
-                void view.offsetWidth;
+                void view.offsetWidth; // Force reflow
                 view.classList.add('page-enter');
             }
         };
@@ -59,7 +59,6 @@
     // ----------------------------------------------------------
     // 3. MODAL OPEN/CLOSE ANIMATION ENHANCER
     // ----------------------------------------------------------
-    // Observe modals being shown/hidden and add smooth animation
     const modalObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -69,7 +68,7 @@
                     if (isVisible) {
                         el.style.opacity = '0';
                         requestAnimationFrame(() => {
-                            el.style.transition = 'opacity 0.25s ease';
+                            el.style.transition = `opacity ${DS_DURATION}ms ${DS_EASE}`;
                             el.style.opacity = '1';
                         });
                     }
@@ -78,7 +77,6 @@
         });
     });
 
-    // Observe all modals
     document.querySelectorAll('[id^="modal-"]').forEach((modal) => {
         modalObserver.observe(modal, { attributes: true, attributeFilter: ['class'] });
     });
@@ -94,7 +92,6 @@
         function update(currentTime) {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            // Ease-out cubic
             const easeOut = 1 - Math.pow(1 - progress, 3);
             const current = Math.round(start + (targetValue - start) * easeOut);
             el.textContent = current;
@@ -106,7 +103,7 @@
     };
 
     // ----------------------------------------------------------
-    // 5. SCROLL REVEAL (Fade-in elements as they enter viewport)
+    // 5. SCROLL REVEAL (Fade-in on viewport entry)
     // ----------------------------------------------------------
     const revealObserver = new IntersectionObserver(
         (entries) => {
@@ -120,7 +117,6 @@
         { threshold: 0.1 }
     );
 
-    // Observe key containers after DOM is ready
     function observeRevealElements() {
         document.querySelectorAll('.bg-glass, .card-glow, .glass-card-premium').forEach((el) => {
             if (!el.classList.contains('page-enter')) {
@@ -130,11 +126,11 @@
     }
 
     // ----------------------------------------------------------
-    // 6. ICON BOUNCE ON HOVER (for sidebar emoji icons)
+    // 6. ICON BOUNCE ON HOVER (sidebar emoji icons)
     // ----------------------------------------------------------
     document.querySelectorAll('aside nav a span:first-child').forEach((icon) => {
         icon.style.display = 'inline-block';
-        icon.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        icon.style.transition = `transform ${DS_DURATION}ms ${DS_EASE}`;
         icon.parentElement.addEventListener('mouseenter', () => {
             icon.style.transform = 'scale(1.25) rotate(-8deg)';
         });
@@ -151,7 +147,7 @@
     if (mainContent && header) {
         mainContent.addEventListener('scroll', () => {
             if (mainContent.scrollTop > 10) {
-                header.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.3)';
+                header.style.boxShadow = '0 4px 24px rgba(0, 0, 0, 0.25)';
             } else {
                 header.style.boxShadow = 'none';
             }
@@ -187,15 +183,17 @@
     };
 
     // ----------------------------------------------------------
-    // 9. CUSTOM SELECT ENHANCER (SaaS Style Dropdown)
+    // 9. CUSTOM SELECT ENHANCER (SaaS-Grade Dropdown)
+    //    CRITICAL FIX: rounded corners, no icon overlap,
+    //    smooth fade+slide animation
     // ----------------------------------------------------------
     class PremiumSelect {
         constructor(selectElement) {
             this.select = selectElement;
             if (this.select.dataset.customInit || this.select.classList.contains('no-custom')) return;
             this.select.dataset.customInit = 'true';
-            this.select.customSelectInstance = this; // Store instance for syncing
-            
+            this.select.customSelectInstance = this;
+
             // Hide original select completely
             this.select.style.display = 'none';
 
@@ -204,10 +202,14 @@
 
             this.trigger = document.createElement('div');
             this.trigger.className = 'custom-select-trigger';
+
+            // Build trigger HTML — icon left, text center, chevron right (no overlap)
             const iconClass = this.select.dataset.icon || '';
-            const iconHtml = iconClass ? `<i class="${iconClass} mr-2"></i>` : '';
+            const iconHtml = iconClass
+                ? `<i class="${iconClass}" style="flex-shrink:0; font-size:13px; margin-right:8px;"></i>`
+                : '';
             this.trigger.innerHTML = `${iconHtml}<span class="select-text"></span><i class="fas fa-chevron-down select-chevron"></i>`;
-            
+
             this.menu = document.createElement('div');
             this.menu.className = 'custom-select-menu';
 
@@ -218,7 +220,7 @@
             this.setupOptions();
             this.addEvents();
 
-            // Setup observer to watch for dynamic option changes (e.g., from updateCRMPackages)
+            // Observe dynamic option changes
             this.observer = new MutationObserver(() => this.setupOptions());
             this.observer.observe(this.select, { childList: true, characterData: true, subtree: true });
         }
@@ -226,7 +228,7 @@
         setupOptions() {
             this.menu.innerHTML = '';
             let selectedText = '';
-            
+
             Array.from(this.select.options).forEach((option) => {
                 const item = document.createElement('div');
                 item.className = 'custom-select-option';
@@ -236,20 +238,22 @@
                 }
                 item.textContent = option.text;
                 item.dataset.value = option.value;
-                
+
                 item.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.select.value = option.value;
-                    // Trigger native change event so app.js logic runs
                     this.select.dispatchEvent(new Event('change', { bubbles: true }));
                     this.close();
-                    this.setupOptions(); // Re-render to update selected state
+                    this.setupOptions();
                 });
-                
+
                 this.menu.appendChild(item);
             });
 
-            this.trigger.querySelector('span').textContent = selectedText || 'Chọn...';
+            const textSpan = this.trigger.querySelector('.select-text');
+            if (textSpan) {
+                textSpan.textContent = selectedText || 'Chọn...';
+            }
         }
 
         open() {
@@ -259,7 +263,7 @@
                 w.style.zIndex = '';
             });
             this.wrapper.classList.add('open');
-            this.wrapper.style.zIndex = '1000'; // Ensure it's above other fields
+            this.wrapper.style.zIndex = '1000';
         }
 
         close() {
@@ -282,7 +286,7 @@
     }
 
     // Global helper to refresh custom selects when native select value is changed via JS
-    window.refreshCustomSelects = function() {
+    window.refreshCustomSelects = function () {
         document.querySelectorAll('select').forEach(select => {
             if (select.customSelectInstance) {
                 select.customSelectInstance.sync();
@@ -292,7 +296,10 @@
 
     // Close select menus when clicking outside
     document.addEventListener('click', () => {
-        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
+            w.classList.remove('open');
+            w.style.zIndex = '';
+        });
     });
 
     // Initialize custom selects globally
@@ -305,7 +312,6 @@
     // ----------------------------------------------------------
     // 10. INITIAL SETUP
     // ----------------------------------------------------------
-    // Wait for DOM to be fully ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             observeRevealElements();
@@ -317,5 +323,5 @@
     }
 
     // Log that premium UI is loaded
-    console.log('%c✨ Premium UI Engine loaded', 'color: #f97316; font-weight: bold; font-size: 12px;');
+    console.log('%c✨ Premium Design System v2.0 loaded', 'color: #3b82f6; font-weight: bold; font-size: 12px;');
 })();
