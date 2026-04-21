@@ -292,14 +292,10 @@ async function checkAuth() {
             currentUser = await res.json();
             updateUserUI();
             
-            // RBAC Logic: Show/Hide Settings based on role
+            // Show Settings for everyone as requested by user
             const settingsWrapper = document.getElementById('nav-settings-wrapper');
             if (settingsWrapper) {
-                if (currentUser.role === 'admin') {
-                    settingsWrapper.classList.remove('hidden');
-                } else {
-                    settingsWrapper.classList.add('hidden');
-                }
+                settingsWrapper.classList.remove('hidden');
             }
 
             showAuthScreen(false);
@@ -809,7 +805,7 @@ function renderCA2CRM() {
                 <td class="px-8 py-5">
                     <div class="font-bold text-white">${c.company_name || 'N/A'}</div>
                     <div class="text-[10px] text-gray-500 font-black tracking-widest mt-0.5">${c.mst || '---'}</div>
-                    <div class="text-[10px] text-gray-400 italic">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
+                    <div class="text-[10px] text-gray-400 font-medium">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
                 </td>
                 <td class="px-8 py-5 text-center">
                     ${(() => {
