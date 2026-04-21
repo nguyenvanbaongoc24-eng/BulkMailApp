@@ -400,6 +400,16 @@
             </a>
 
             <div class="pt-4 border-t border-white/5 space-y-2">
+                <p class="px-4 uppercase-label mt-2 mb-2">Hợp đồng & Tài liệu <span class="text-blue-500 font-bold ml-2 shrink-0">NEW</span></p>
+                <a href="javascript:void(0)" onclick="showPage('quotations'); return false;" id="nav-quotations" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">📄</span> <span class="font-semibold text-sm">Quản lý Báo giá</span>
+                </a>
+                <a href="javascript:void(0)" onclick="showPage('documents'); return false;" id="nav-documents" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">Kho Tài liệu Sales</span>
+                </a>
+            </div>
+
+            <div class="pt-4 border-t border-white/5 space-y-2">
                 <p class="px-4 uppercase-label mt-2 mb-2">SEO Tools <span class="text-orange-500 font-bold ml-2 shrink-0">AI</span></p>
                 <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                     <span class="mr-3 text-lg">📰</span> <span class="font-semibold text-sm">Tin Tức Thuế</span>
@@ -421,6 +431,14 @@
                     <span class="mr-3 text-lg">🏛️</span> <span class="font-semibold text-sm">Cổng Tra Cứu Nghiệp Vụ</span>
                 </a>
             </div>
+
+            <!-- Settings Section -->
+            <div id="nav-settings-wrapper" class="pt-4 border-t border-white/5 space-y-2 mt-4 hidden">
+                <a href="javascript:void(0)" onclick="showPage('settings'); return false;" id="nav-settings" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold text-sm">Cài đặt hệ thống</span>
+                </a>
+            </div>
+
             <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
                 <a href="ca2-automation://open" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
                     <span class="mr-3 text-lg group-hover:scale-110 transition-transform">⚡</span> <span class="font-bold text-sm">Mở Công cụ Local</span>
@@ -790,6 +808,97 @@
                                     <th onclick="handleCRMSort('service_type')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center cursor-pointer hover:bg-white/5 transition-colors">
                                         Dịch vụ <i id="sort-icon-service_type" class="fas fa-sort ml-1 opacity-30"></i>
                                     </th>
+                                </tr>
+                            </thead>
+                            <tbody id="ca2-crm-table-body" class="divide-y divide-white/5 italic text-xs font-medium"> <!-- JS records --> </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quotations View -->
+            <div id="view-quotations" class="hidden space-y-10 animate-in fade-in duration-500">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-4xl font-black text-white tracking-tight">Báo giá</h2>
+                        <p class="text-gray-400 mt-2 font-medium italic">Tạo và quản lý báo giá chuyên nghiệp cho khách hàng</p>
+                    </div>
+                    <button onclick="openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg shadow-orange-900/40 hover:scale-105 transition-all">
+                        <i class="fas fa-plus"></i> Tạo báo giá mới
+                    </button>
+                </div>
+
+                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                    <div class="p-6 border-b border-white/5 bg-white/5 flex flex-wrap items-center justify-between gap-4">
+                        <div class="relative group w-full sm:w-64">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                            <input type="text" id="quotation-search" onkeyup="renderQuotations()" placeholder="Tìm khách hàng..." class="w-full pl-11 pr-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-sm outline-none focus:border-orange-500/50 transition-all">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-white/2 border-b border-white/5">
+                                <tr>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Khách hàng</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dịch vụ</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Giá trị</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày tạo</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quotation-list" class="divide-y divide-white/5">
+                                <!-- JS injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents View -->
+            <div id="view-documents" class="hidden space-y-10 animate-in fade-in duration-500">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-4xl font-black text-white tracking-tight">Tài liệu Sales</h2>
+                        <p class="text-gray-400 mt-2 font-medium italic">Kho lưu trữ hồ sơ, tài liệu marketing và mẫu báo giá</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="openUploadDocModal()" class="bg-white/5 text-white px-6 py-4 rounded-2xl font-bold border border-white/10 hover:bg-white/10 transition-all">
+                            <i class="fas fa-upload mr-2 text-blue-400"></i> Tải lên
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Marketing Docs -->
+                    <div class="bg-glass rounded-[32px] border border-white/5 p-8 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-3">
+                                <span class="p-3 bg-blue-500/10 rounded-2xl text-blue-500"><i class="fas fa-bullhorn"></i></span>
+                                Tài liệu Marketing
+                            </h3>
+                            <span id="marketing-count" class="text-xs font-bold text-gray-500 tracking-widest uppercase">0 files</span>
+                        </div>
+                        <div id="marketing-docs-list" class="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+                           <!-- Dynamic -->
+                        </div>
+                    </div>
+
+                    <!-- Templates -->
+                    <div class="bg-glass rounded-[32px] border border-white/5 p-8 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-3">
+                                <span class="p-3 bg-orange-500/10 rounded-2xl text-orange-500"><i class="fas fa-file-invoice"></i></span>
+                                Mẫu Báo giá (.html)
+                            </h3>
+                            <span id="template-count" class="text-xs font-bold text-gray-500 tracking-widest uppercase">0 files</span>
+                        </div>
+                        <div id="template-docs-list" class="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+                            <!-- Dynamic -->
+                        </div>
+                    </div>
+                </div>
+            </div>
                                     <th onclick="handleCRMSort('start_date')" class="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:bg-white/5 transition-colors">
                                         Ngày cấp <i id="sort-icon-start_date" class="fas fa-sort ml-1 opacity-30"></i>
                                     </th>
@@ -1245,56 +1354,145 @@
 
             <!-- Lookup Tools View -->
             <div id="view-lookup-tools" class="hidden space-y-8 animate-in fade-in duration-500 pb-10">
-                <h2 class="text-3xl font-black text-white tracking-tight">Cổng Tra Cứu <span class="text-blue-500">Nghiệp Vụ</span></h2>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Tool 1: Tra cứu Đăng ký kinh doanh (API) -->
-                    <div class="bg-glass p-8 rounded-[40px] border border-white/5 shadow-2xl relative overflow-hidden h-fit">
-                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full"></div>
-                        <h3 class="text-xl font-black text-white mb-6 relative z-10 flex items-center justify-between">
-                            <span>🔍 Thông tin Doanh nghiệp</span>
-                            <span class="text-[10px] bg-green-500/20 text-green-400 px-2 py-1 rounded border border-green-500/20 font-bold uppercase tracking-widest">Live API</span>
-                        </h3>
-                        <div class="space-y-4 relative z-10">
-                            <div>
-                                <label class="uppercase-label mb-3 ml-1 block">Nhập Mã Số Thuế / Tên Công Ty</label>
-                                <div class="flex gap-3">
-                                    <input id="lookup-mst" type="text" placeholder="Ví dụ: 0101243150" class="flex-1 px-6 py-4 rounded-[20px] outline-none border border-white/5 bg-black/20 focus:border-blue-500/50 shadow-inner font-bold text-white transition-all">
-                                    <button onclick="lookupCompany()" class="px-8 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-[20px] shadow-xl shadow-blue-900/40 transition-all font-black shrink-0 hover:scale-[1.02] active:scale-95">Tra Cứu</button>
-                                </div>
-                            </div>
-                            <div id="lookup-result" class="hidden mt-6 p-6 bg-white/5 rounded-[24px] border border-white/10 text-sm space-y-4 shadow-inner">
-                                <!-- Kết quả trả về đây -->
-                            </div>
-                            <div id="lookup-loading" class="hidden text-center text-blue-400 py-6">
-                                <i class="fas fa-spinner fa-spin text-3xl mb-3 mt-2"></i>
-                                <p class="font-bold text-sm tracking-wide">Đang truy vấn CSDL Quốc gia...</p>
-                            </div>
-                        </div>
+                <!-- ... existing lookup tools content ... -->
+            </div>
+
+            <!-- Settings View -->
+            <div id="view-settings" class="hidden space-y-10 animate-in fade-in duration-500 pb-20">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-4xl font-black text-white tracking-tight">Cài đặt <span class="text-orange-gradient">Hệ thống</span></h2>
+                        <p class="text-gray-400 mt-2 font-medium italic">Tùy chỉnh cá nhân và quản trị ứng dụng</p>
+                    </div>
+                </div>
+
+                <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                    <!-- Settings Tabs -->
+                    <div class="flex items-center gap-1 bg-white/5 p-2 border-b border-white/5">
+                        <button onclick="switchSettingsTab('account')" id="tab-settings-account" class="px-8 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 bg-orange-gradient text-white">
+                            <i class="fas fa-user-circle"></i> Tài khoản
+                        </button>
+                        <button onclick="switchSettingsTab('interface')" id="tab-settings-interface" class="px-8 py-3 rounded-2xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-paint-brush"></i> Giao diện
+                        </button>
+                        <button onclick="switchSettingsTab('system')" id="tab-settings-system" class="px-8 py-3 rounded-2xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-server"></i> Hệ thống & Admin
+                        </button>
                     </div>
 
-                    <!-- Tool 2: Hóa đơn điện tử & Cổng Nhà Nước -->
-                    <div class="space-y-6">
-                        <!-- Box Hóa đơn điện tử -->
-                        <div class="bg-glass p-8 rounded-[32px] border border-white/5 shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
-                            <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="flex items-center justify-between mb-4 relative z-10">
-                                <h3 class="text-lg font-black text-white">📑 Hóa Đơn Điện Tử (GDT)</h3>
-                                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-cyan-900/20"><i class="fas fa-file-invoice"></i></div>
+                    <div class="p-10">
+                        <!-- Tab 1: Account -->
+                        <div id="settings-tab-account" class="space-y-8">
+                            <div class="flex items-center gap-8">
+                                <div id="settings-user-avatar" class="w-32 h-32 rounded-[40px] bg-orange-gradient flex items-center justify-center text-5xl text-white font-black shadow-2xl shadow-orange-900/40">U</div>
+                                <div class="space-y-2">
+                                    <h3 id="settings-user-name" class="text-3xl font-black text-white">User Name</h3>
+                                    <p id="settings-user-email" class="text-lg text-gray-400 font-medium tracking-tight">user@email.com</p>
+                                    <div id="settings-user-role-badge" class="inline-flex items-center px-4 py-1.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest mt-2">
+                                        Role: Staff
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-[13px] text-gray-400 font-medium mb-6 line-clamp-2 leading-relaxed relative z-10">Truy cập Cổng thông tin của Tổng Cục Thuế để tra cứu trạng thái và tính hợp lệ của hóa đơn điện tử mua vào/bán ra theo Nghị định 123.</p>
-                            <a href="https://hoadondientu.gdt.gov.vn/" target="_blank" class="block w-full text-center py-3.5 bg-white/5 hover:bg-cyan-600 text-white rounded-xl font-black text-sm transition-all border border-white/5 hover:border-cyan-500 relative z-10 shadow-lg">Mở Cổng Tra Cứu ↗</a>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                                <div class="bg-white/2 p-6 rounded-3xl border border-white/5">
+                                    <p class="uppercase-label mb-2">Đăng nhập lần cuối</p>
+                                    <p id="settings-last-login" class="text-white font-bold">--:-- --/--/----</p>
+                                </div>
+                                <div class="bg-white/2 p-6 rounded-3xl border border-white/5">
+                                    <p class="uppercase-label mb-2">ID Người dùng</p>
+                                    <p id="settings-user-id" class="text-white font-mono text-xs opacity-50 truncate">------------------</p>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <!-- Box Bảo hiểm xã hội -->
-                        <div class="bg-glass p-8 rounded-[32px] border border-white/5 shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
-                            <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="flex items-center justify-between mb-4 relative z-10">
-                                <h3 class="text-lg font-black text-white">🏥 Bảo Hiểm Xã Hội VN</h3>
-                                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shadow-lg shadow-emerald-900/20"><i class="fas fa-shield-alt"></i></div>
+
+                        <!-- Tab 2: Interface -->
+                        <div id="settings-tab-interface" class="hidden space-y-8">
+                            <div class="glass-card-premium">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h4 class="text-xl font-black text-white">Chế độ giao diện</h4>
+                                        <p class="text-sm text-gray-500 mt-1">Chọn phong cách hiển thị phù hợp với bạn</p>
+                                    </div>
+                                    <div class="p-1 bgColor-white/5 rounded-2xl flex border border-white/5">
+                                        <button onclick="applyTheme('dark')" id="theme-btn-dark" class="px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all">
+                                            <i class="fas fa-moon"></i> Dark
+                                        </button>
+                                        <button onclick="applyTheme('light')" id="theme-btn-light" class="px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all">
+                                            <i class="fas fa-sun"></i> Light
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="aspect-video bg-[#0B0F1A] rounded-2xl border-4 border-orange-500/50 flex items-center justify-center relative overflow-hidden group cursor-pointer" onclick="applyTheme('dark')">
+                                        <div class="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent"></div>
+                                        <span class="font-black text-white text-xs uppercase tracking-widest z-10">Premium Dark</span>
+                                    </div>
+                                    <div class="aspect-video bg-gray-100 rounded-2xl border-2 border-white/10 flex items-center justify-center relative overflow-hidden group cursor-pointer" onclick="applyTheme('light')">
+                                        <span class="font-black text-gray-800 text-xs uppercase tracking-widest z-10">Minimal Light</span>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-[13px] text-gray-400 font-medium mb-6 line-clamp-2 leading-relaxed relative z-10">Tra cứu mã số BHXH, quá trình tham gia BHXH, BHYT, BHTN và giá trị sử dụng thẻ BHYT của người lao động.</p>
-                            <a href="https://baohiemxahoi.gov.vn/tracuu/" target="_blank" class="block w-full text-center py-3.5 bg-white/5 hover:bg-emerald-600 text-white rounded-xl font-black text-sm transition-all border border-white/5 hover:border-emerald-500 relative z-10 shadow-lg">Mở Trình Tra Cứu ↗</a>
+                        </div>
+
+                        <!-- Tab 3: System & Admin -->
+                        <div id="settings-tab-system" class="hidden space-y-12">
+                            <!-- System Config -->
+                            <div class="space-y-6">
+                                <h4 class="text-xl font-black text-white flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-500 flex items-center justify-center text-sm"><i class="fas fa-folder-open"></i></span>
+                                    Cấu hình Hệ thống
+                                </h4>
+                                <div class="glass-card-premium">
+                                    <label class="label-premium">Đường dẫn tải xuống mặc định</label>
+                                    <div class="flex gap-4">
+                                        <div class="input-group-premium flex-1">
+                                            <input id="settings-storage-path" type="text" placeholder="C:/Downloads/CA2_Automation" class="input-premium">
+                                        </div>
+                                        <button onclick="saveSystemSettings()" class="px-10 bg-orange-gradient text-white font-black rounded-2xl shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">Lưu cài đặt</button>
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 mt-4 italic font-medium">* Lưu ý: Đường dẫn này sẽ được ưu tiên khi sử dụng công cụ cào PDF local.</p>
+                                </div>
+                            </div>
+
+                            <!-- User Management (Only for Admin) -->
+                            <div id="admin-user-section" class="space-y-6 hidden">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-xl font-black text-white flex items-center gap-3">
+                                        <span class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-500 flex items-center justify-center text-sm"><i class="fas fa-users-cog"></i></span>
+                                        Quản lý Người dùng (Admin)
+                                    </h4>
+                                    <button onclick="refreshUserList()" class="bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl transition-all border border-white/10">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="overflow-x-auto rounded-[32px] border border-white/5 bg-black/20">
+                                    <table class="w-full text-left">
+                                        <thead>
+                                            <tr class="bg-white/5">
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Người dùng</th>
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Vai trò</th>
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Đăng ký ngày</th>
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-user-list" class="divide-y divide-white/5">
+                                            <!-- Injected via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Forbidden Message for Staff -->
+                            <div id="staff-restricted-msg" class="p-12 border-2 border-dashed border-white/5 rounded-[40px] text-center space-y-4">
+                                <div class="w-20 h-20 bg-red-500/10 rounded-full mx-auto flex items-center justify-center text-4xl text-red-500 opacity-50">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-lg font-black text-white">Tính năng hạn chế</h5>
+                                    <p class="text-sm text-gray-500 max-w-sm mx-auto">Vui lòng liên hệ Quản trị viên để được cấp quyền quản lý hệ thống và người dùng.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1881,6 +2079,102 @@
                 
                 <button onclick="dismissSessionWarning()" class="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition-all shadow-lg text-sm uppercase tracking-widest active:scale-95 border border-white/10">
                     Tiếp tục làm việc
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Quotation Modal -->
+    <div id="modal-quotation" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="modal-premium w-full max-w-2xl rounded-[40px] overflow-hidden animate-in fade-in scale-in duration-300">
+            <div class="p-10 space-y-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-black text-white tracking-tighter">Tạo Báo Giá Mới</h2>
+                        <p class="text-gray-400 text-sm font-medium mt-1">Thông tin sẽ được dùng để tạo file PDF chuyên nghiệp</p>
+                    </div>
+                    <button onclick="closeModal('modal-quotation')" class="w-12 h-12 rounded-2xl bg-white/5 hover:bg-red-500/10 hover:text-red-500 transition-all flex items-center justify-center">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="col-span-2 relative">
+                        <label class="label-premium">Tên khách hàng / Công ty</label>
+                        <div class="input-group-premium">
+                            <input type="text" id="quote-customer-name" placeholder="Công ty TNHH Giải pháp số..." class="input-premium">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label-premium">Mã số thuế</label>
+                        <div class="input-group-premium relative">
+                            <input type="text" id="quote-mst" placeholder="0108..." class="input-premium">
+                            <button onclick="searchCRMForQuote()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-orange-500/20 text-orange-500 rounded-lg hover:bg-orange-500 transition-all hover:text-white" title="Lấy từ CRM">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label-premium">Dịch vụ</label>
+                        <select id="quote-service" class="w-full h-[44px] bg-white/5 border border-white/10 rounded-2xl text-white px-4 font-bold outline-none focus:border-blue-500">
+                            <option value="Chữ ký số (CKS)">Chữ ký số (CKS)</option>
+                            <option value="Hóa đơn điện tử (HDDT)">Hóa đơn điện tử (HDDT)</option>
+                            <option value="Bảo hiểm xã hội (EBH)">Bảo hiểm xã hội (EBH)</option>
+                            <option value="Phần mềm Kế toán">Phần mềm Kế toán</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label-premium">Thời hạn</label>
+                        <div class="input-group-premium">
+                            <input type="text" id="quote-duration" placeholder="12 tháng / 3 năm..." class="input-premium">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label-premium">Giá trị (VNĐ)</label>
+                        <div class="input-group-premium">
+                            <input type="number" id="quote-price" placeholder="0" class="input-premium">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button onclick="saveQuotation()" class="flex-1 bg-orange-gradient text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all">
+                        XÁC NHẬN & TẠO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Document Modal -->
+    <div id="modal-upload-doc" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="modal-premium w-full max-w-lg rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
+            <div class="p-10 space-y-8">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-black text-white">Tải lên Tài liệu</h2>
+                    <button onclick="closeModal('modal-upload-doc')" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="label-premium">Loại tài liệu</label>
+                        <select id="upload-doc-bucket" class="w-full h-[44px] bg-white/5 border border-white/10 rounded-2xl text-white px-4 font-bold outline-none">
+                            <option value="marketing-docs">Tài liệu Marketing (PDF/Image/PPT)</option>
+                            <option value="quotation-templates">Mẫu Báo giá (.html)</option>
+                        </select>
+                    </div>
+                    <div id="doc-drop-zone" class="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group">
+                        <input type="file" id="doc-file-input" class="hidden" onchange="handleDocFileChange(event)">
+                        <div class="w-16 h-16 bg-blue-500/10 rounded-2xl mx-auto flex items-center justify-center text-blue-500 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p class="text-white font-bold" id="doc-file-name">Chọn file hoặc kéo thả vào đây</p>
+                        <p class="text-gray-500 text-xs mt-2 font-medium">Hỗ trợ: PDF, Docx, Image, PPTX, HTML</p>
+                    </div>
+                </div>
+
+                <button onclick="uploadDocument()" id="upload-doc-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black shadow-xl shadow-blue-900/40 transition-all flex items-center justify-center gap-3">
+                    BẮT ĐẦU TẢI LÊN
                 </button>
             </div>
         </div>

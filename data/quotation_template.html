@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Báo giá dịch vụ - Automation CA2</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 0; }
+        .page { padding: 40px; }
+        .header { border-bottom: 4px solid #f97316; padding-bottom: 20px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .company-info h1 { margin: 0; color: #f97316; font-size: 28px; font-weight: 900; }
+        .company-info p { margin: 2px 0; font-size: 11px; color: #64748b; font-weight: 600; }
+        .quote-meta { text-align: right; }
+        .quote-meta h2 { margin: 0; font-size: 24px; font-weight: 900; color: #0f172a; text-transform: uppercase; }
+        .quote-meta p { margin: 2px 0; font-size: 12px; color: #64748b; font-weight: bold; }
+        
+        .section-title { font-size: 14px; font-weight: 900; color: #f97316; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 15px; margin-top: 30px; }
+        
+        .client-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px; font-size: 14px; }
+        .label { font-weight: bold; color: #64748b; }
+        .value { font-weight: 700; color: #0f172a; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 15px; text-align: left; font-size: 12px; font-weight: 900; text-transform: uppercase; color: #64748b; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 600; }
+        
+        .total-section { margin-top: 30px; margin-left: auto; width: 300px; }
+        .total-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .total-row.grand { border-bottom: none; font-size: 18px; font-weight: 900; color: #f97316; background: #fff7ed; padding: 15px; border-radius: 12px; margin-top: 10px; }
+        
+        .signature-section { margin-top: 80px; display: flex; justify-content: space-between; }
+        .signature-box { text-align: center; width: 250px; }
+        .signature-space { height: 100px; margin-bottom: 10px; }
+        .signature-box p { margin: 0; font-size: 12px; font-weight: bold; color: #64748b; }
+        .signature-box .signer-name { font-size: 14px; color: #0f172a; font-weight: 900; margin-top: 5px; }
+
+        .footer { margin-top: 100px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 10px; color: #94a3b8; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="company-info">
+                <h1>AUTOMATION CA2</h1>
+                <p>TRUNG TÂM DỊCH VỤ KHÁCH HÀNG NACENCOMM</p>
+                <p>Hotline: 0356 230 550 | Email: support@nacencomm.vn</p>
+            </div>
+            <div class="quote-meta">
+                <h2>BÁO GIÁ</h2>
+                <p>Số: #{{QuoteID}}</p>
+                <p>Ngày: {{Date}}</p>
+            </div>
+        </div>
+
+        <div class="section-title">Thông tin khách hàng</div>
+        <div class="client-grid">
+            <div class="label">ĐƠN VỊ:</div>
+            <div class="value">{{CustomerName}}</div>
+            <div class="label">MÃ SỐ THUẾ:</div>
+            <div class="value">{{MST}}</div>
+        </div>
+
+        <div class="section-title">Chi tiết dịch vụ</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50%;">NỘI DUNG DỊCH VỤ</th>
+                    <th style="text-align: center;">THỜI HẠN</th>
+                    <th style="text-align: right;">THÀNH TIỀN (VNĐ)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{Service}}</td>
+                    <td style="text-align: center;">{{Duration}}</td>
+                    <td style="text-align: right;">{{Price}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <div class="total-row">
+                <span class="label">CỘNG TIỀN:</span>
+                <span class="value">{{Price}}</span>
+            </div>
+            <div class="total-row">
+                <span class="label">THUẾ GTGT (10%):</span>
+                <span class="value">Đã bao gồm</span>
+            </div>
+            <div class="total-row grand">
+                <span>TỔNG CỘNG:</span>
+                <span>{{Total}}</span>
+            </div>
+        </div>
+
+        <div class="signature-section">
+            <div class="signature-box">
+                <p>ĐẠI DIỆN KHÁCH HÀNG</p>
+                <div class="signature-space"></div>
+                <p>(Ký, ghi rõ họ tên)</p>
+            </div>
+            <div class="signature-box">
+                <p>ĐẠI DIỆN AUTOMATION CA2</p>
+                <div class="signature-space"></div>
+                <p class="signer-name">TRUNG TÂM HỖ TRỢ CA2</p>
+                <p>CÔNG TY CP CÔNG NGHỆ THẺ NACENCOMM</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            Báo giá này có hiệu lực trong vòng 15 ngày kể từ ngày ban hành.<br>
+            Tầng 5 Tòa Nhà Hanel, Số 2 Chùa Bộc, Đống Đa, Hà Nội
+        </div>
+    </div>
+</body>
+</html>

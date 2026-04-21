@@ -9,6 +9,10 @@ let savedSessions = JSON.parse(localStorage.getItem('ca2_saved_sessions') || '[]
 let currentCRMData = [];
 let currentRecipientsData = [];
 let pendingCRMData = [];
+let currentQuotations = [];
+let currentMarketingDocs = [];
+let currentTemplates = [];
+let selectedUploadFile = null;
 let currentCRMTab = 'active'; // 'active' or 'expired'
 let currentCRMSort = { field: 'created_at', order: 'desc' }; // Default sorting
 
@@ -262,46 +266,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function toggleTheme() {
-    const isLight = document.body.classList.toggle('light-mode');
-    localStorage.setItem('ca2-theme', isLight ? 'light' : 'dark');
-    
-    const icon = document.getElementById('theme-icon');
-    if (icon) {
-        if (isLight) {
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-        } else {
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-        }
-    }
-}
+// Override global toggleTheme to use our new logic
+window.toggleTheme = function() {
+    const isLight = document.body.classList.contains('light-mode');
+    applyTheme(isLight ? 'dark' : 'light');
+};
 
 // --- Authentication Logic ---
 async function checkAuth() {
     const token = localStorage.getItem('sb-token');
+    const authScreen = document.getElementById('auth-screen');
+    const appContainer = document.getElementById('app-container');
+
     if (!token) {
         showAuthScreen(true);
         return;
     }
-    
+
     try {
         const res = await fetch('/api/me', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+
         if (res.ok) {
             currentUser = await res.json();
-            saveCurrentSession(token, currentUser); // Sync session
             updateUserUI();
+            
+            // RBAC Logic: Show/Hide Settings based on role
+            const settingsWrapper = document.getElementById('nav-settings-wrapper');
+            if (settingsWrapper) {
+                if (currentUser.role === 'admin') {
+                    settingsWrapper.classList.remove('hidden');
+                } else {
+                    settingsWrapper.classList.add('hidden');
+                }
+            }
+
             showAuthScreen(false);
+            
+            // Apply saved theme from DB
+            if (currentUser.settings && currentUser.settings.theme) {
+                applyTheme(currentUser.settings.theme, false); // false to avoid redundant API call
+            }
+
+            // Load dashboard stats as initial page
             showPage('dashboard');
         } else {
             localStorage.removeItem('sb-token');
             showAuthScreen(true);
         }
     } catch (e) {
-        console.error('Auth Check Error:', e);
+        console.error('Auth check error:', e);
         showAuthScreen(true);
     }
 }
@@ -554,7 +569,8 @@ function showPage(pageId) {
         'seo-article': 'Tạo Bài Viết SEO',
         'seo-image': 'Tạo Ảnh AI',
         'seo-posts': 'Kho Lưu Trữ SEO',
-        'lookup-tools': 'Cổng Tra Cứu Nghiệm Vụ'
+        'lookup-tools': 'Cổng Tra Cứu Nghiệp Vụ',
+        'settings': 'Cài đặt hệ thống'
     };
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
@@ -562,11 +578,14 @@ function showPage(pageId) {
     // Page specific loading
     if (pageId === 'ca2-crm') loadCA2CRMData();
     if (pageId === 'dashboard') { loadDashboardStats(); loadRecentCampaigns(); }
+    if (pageId === 'quotations') loadQuotations();
+    if (pageId === 'documents') loadDocuments();
     if (pageId === 'senders') loadSenders();
     if (pageId === 'reports') loadEmailLogs();
     if (pageId === 'campaigns') loadRecentCampaigns();
     if (pageId === 'seo-news') loadTaxNews();
     if (pageId === 'seo-posts') loadMySavedPosts();
+    if (pageId === 'settings') loadSettingsPage();
 }
 
 function toggleSidebar() {
@@ -846,10 +865,10 @@ function renderCA2CRM() {
                         <option value="paid" ${isPaid ? 'selected' : ''} class="font-black text-green-400" style="background: #0f172a; color: #4ade80;">Đã thanh toán</option>
                     </select>
                 </td>
-                <td class="px-8 py-5 text-right">
-                    <div class="flex justify-end gap-2 transition-all">
-                        <button onclick="editCRM('${c.id}')" class="p-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
-                        <button onclick="deleteCRM('${c.id}')" class="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                <td class="px-8 py-5 text-right relative z-40">
+                    <div class="flex justify-end gap-1.5 relative z-50">
+                        <button onclick="editCRM('${c.id}')" class="btn-action-premium text-gray-400 hover:text-white" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="deleteCRM('${c.id}')" class="btn-action-premium text-red-500 hover:text-red-400" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
                     </div>
                 </td>
             </tr>
@@ -1196,8 +1215,13 @@ function openAddCRMModal() {
 }
 
 function editCRM(id) {
+    console.log('[DEBUG] Edit CRM clicked for ID:', id);
     const c = currentCRMData.find(x => x.id === id);
-    if (!c) return;
+    if (!c) {
+        console.error('[ERROR] CRM record not found in state:', id);
+        return;
+    }
+    console.log('[DEBUG] CRM record data:', c);
 
     document.getElementById('ca2-crm-modal-title').innerText = 'Cập nhật khách hàng';
     document.getElementById('ca2-crm-id').value = c.id;
@@ -2468,4 +2492,517 @@ function exportEmailLogs() {
     link.href = url;
     link.download = `Email_Logs_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+}
+
+// --- Settings Module Support Functions ---
+
+function switchSettingsTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('[id^="settings-tab-"]').forEach(el => el.classList.add('hidden'));
+    // Show target tab
+    const target = document.getElementById(`settings-tab-${tabId}`);
+    if (target) target.classList.remove('hidden');
+
+    // Update buttons
+    document.querySelectorAll('[id^="tab-settings-"]').forEach(btn => {
+        btn.classList.remove('bg-orange-gradient', 'text-white');
+        btn.classList.add('text-gray-500');
+    });
+    const activeBtn = document.getElementById(`tab-settings-${tabId}`);
+    if (activeBtn) {
+        activeBtn.classList.add('bg-orange-gradient', 'text-white');
+        activeBtn.classList.remove('text-gray-500');
+    }
+}
+
+async function loadSettingsPage() {
+    if (!currentUser) return;
+
+    // Populate Account Info
+    const avatar = document.getElementById('settings-user-avatar');
+    const name = document.getElementById('settings-user-name');
+    const email = document.getElementById('settings-user-email');
+    const id = document.getElementById('settings-user-id');
+    const roleBadge = document.getElementById('settings-user-role-badge');
+    const lastLogin = document.getElementById('settings-last-login');
+
+    if (avatar) avatar.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+    if (name) name.innerText = currentUser.name || 'User Name';
+    if (email) email.innerText = currentUser.email;
+    if (id) id.innerText = currentUser.id;
+    if (lastLogin) lastLogin.innerText = new Date(currentUser.last_sign_in_at).toLocaleString('vi-VN');
+    
+    if (roleBadge) {
+        roleBadge.innerText = `Vai trò: ${currentUser.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}`;
+        roleBadge.className = `inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mt-2 ${
+            currentUser.role === 'admin' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20' : 'bg-blue-500/20 text-blue-400 border border-blue-500/20'
+        }`;
+    }
+
+    // Populate System Config
+    const storageInput = document.getElementById('settings-storage-path');
+    if (storageInput && currentUser.settings) {
+        storageInput.value = currentUser.settings.default_storage_path || 'C:/Downloads/CA2_Automation';
+    }
+
+    // Handle Admin Section
+    const adminSection = document.getElementById('admin-user-section');
+    const staffMsg = document.getElementById('staff-restricted-msg');
+    
+    if (currentUser.role === 'admin') {
+        if (adminSection) adminSection.classList.remove('hidden');
+        if (staffMsg) staffMsg.classList.add('hidden');
+        refreshUserList();
+    } else {
+        if (adminSection) adminSection.classList.add('hidden');
+        if (staffMsg) staffMsg.classList.remove('hidden');
+    }
+
+    // Theme selector UI state
+    const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+    updateThemeSelectorUI(currentTheme);
+}
+
+function updateThemeSelectorUI(theme) {
+    const darkBtn = document.getElementById('theme-btn-dark');
+    const lightBtn = document.getElementById('theme-btn-light');
+    
+    if (theme === 'dark') {
+        darkBtn?.classList.add('bg-orange-gradient', 'text-white');
+        lightBtn?.classList.remove('bg-white/10', 'text-white');
+        lightBtn?.classList.add('text-gray-500');
+    } else {
+        lightBtn?.classList.add('bg-orange-gradient', 'text-white');
+        darkBtn?.classList.remove('bg-white/10', 'text-white');
+        darkBtn?.classList.add('text-gray-500');
+    }
+}
+
+async function applyTheme(theme, saveToDB = true) {
+    const icon = document.getElementById('theme-icon');
+    
+    if (theme === 'light') {
+        document.body.classList.add('light-mode');
+        if (icon) {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        }
+    } else {
+        document.body.classList.remove('light-mode');
+        if (icon) {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+    }
+    
+    localStorage.setItem('ca2-theme', theme);
+    updateThemeSelectorUI(theme);
+
+    if (saveToDB) {
+        try {
+            await authedFetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme })
+            });
+        } catch (e) { console.error('Failed to save theme to DB:', e); }
+    }
+}
+
+async function saveSystemSettings() {
+    const path = document.getElementById('settings-storage-path').value;
+    try {
+        const res = await authedFetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ default_storage_path: path })
+        });
+        if (res.ok) {
+            alert('Đã lưu cấu hình hệ thống thành công!');
+            // Update local state
+            if (currentUser.settings) currentUser.settings.default_storage_path = path;
+        } else {
+            alert('Lỗi khi lưu cấu hình.');
+        }
+    } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+    }
+}
+
+async function refreshUserList() {
+    const list = document.getElementById('admin-user-list');
+    if (!list) return;
+    
+    list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-500">Đang tải danh sách...</td></tr>';
+    
+    try {
+        const res = await authedFetch('/api/admin/users');
+        if (!res.ok) throw new Error('Không thể tải danh sách người dùng');
+        
+        const users = await res.json();
+        list.innerHTML = '';
+        
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-white/5 hover:bg-white/2 transition-all';
+            
+            const isMe = u.id === currentUser.id;
+            
+            tr.innerHTML = `
+                <td class="px-8 py-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-black">${(u.email || 'U').charAt(0).toUpperCase()}</div>
+                        <div class="overflow-hidden">
+                            <p class="text-sm font-bold text-white truncate">${u.email}</p>
+                            <p class="text-[9px] text-gray-500 font-mono truncate">${u.id}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-8 py-5 text-center">
+                    <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                        u.role === 'admin' ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                    }">
+                        ${u.role}
+                    </span>
+                </td>
+                <td class="px-8 py-5">
+                    <p class="text-xs font-medium text-gray-400">${new Date(u.created_at).toLocaleDateString('vi-VN')}</p>
+                </td>
+                <td class="px-8 py-5 text-right">
+                    ${isMe ? '<span class="text-[9px] text-gray-600 font-black italic">Đang sử dụng</span>' : `
+                        <div class="flex justify-end gap-2">
+                            <button onclick="changeUserRole('${u.id}', '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-[9px] font-black uppercase text-blue-400 hover:text-white border border-blue-400/30 hover:bg-blue-400 px-3 py-1.5 rounded-lg transition-all">
+                                Đổi thành ${u.role === 'admin' ? 'Staff' : 'Admin'}
+                            </button>
+                            <button onclick="deleteUser('${u.id}')" class="text-[9px] font-black uppercase text-red-500 hover:text-white border border-red-500/30 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all">
+                                Xóa
+                            </button>
+                        </div>
+                    `}
+                </td>
+            `;
+            list.appendChild(tr);
+        });
+    } catch (e) {
+        list.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-red-500">${e.message}</td></tr>`;
+    }
+}
+
+async function changeUserRole(id, newRole) {
+    if (!confirm(`Xác nhận thay đổi vai trò người dùng thành ${newRole.toUpperCase()}?`)) return;
+    
+    try {
+        const res = await authedFetch(`/api/admin/users/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: newRole })
+        });
+        
+        if (res.ok) {
+            alert('Cập nhật vai trò thành công!');
+            refreshUserList();
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + err.error);
+        }
+    } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+    }
+}
+
+async function deleteUser(id) {
+    if (!confirm('Xác nhận xóa tài khoản người dùng này?')) return;
+    
+    try {
+        const res = await authedFetch(`/api/admin/users/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            alert('Đã xóa quyền truy cập người dùng thành công!');
+            refreshUserList();
+        } else {
+            alert('Lỗi khi xóa.');
+        }
+    } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+    }
+}
+
+// Global Exports
+window.switchSettingsTab = switchSettingsTab;
+window.applyTheme = applyTheme;
+window.saveSystemSettings = saveSystemSettings;
+window.refreshUserList = refreshUserList;
+window.changeUserRole = changeUserRole;
+window.deleteUser = deleteUser;
+// --- QUOTATION LOGIC ---
+async function loadQuotations() {
+    try {
+        const res = await authedFetch('/api/quotations');
+        const data = await res.json();
+        currentQuotations = data || [];
+        renderQuotations();
+    } catch (e) {
+        console.error('Load Quotations Error:', e);
+    }
+}
+
+function renderQuotations() {
+    const list = document.getElementById('quotation-list');
+    if (!list) return;
+
+    const search = document.getElementById('quotation-search')?.value.toLowerCase() || '';
+    const filtered = currentQuotations.filter(q => 
+        q.customer_name.toLowerCase().includes(search) || 
+        (q.mst && q.mst.includes(search))
+    );
+
+    if (filtered.length === 0) {
+        list.innerHTML = `<tr><td colspan="6" class="px-8 py-10 text-center text-gray-500 italic font-medium">Chưa có báo giá nào được tạo.</td></tr>`;
+        return;
+    }
+
+    list.innerHTML = filtered.map(q => `
+        <tr class="hover:bg-white/2 transition-colors">
+            <td class="px-8 py-5">
+                <p class="text-sm font-bold text-white">${q.customer_name}</p>
+                <p class="text-[10px] text-gray-500 font-mono">${q.mst || 'N/A'}</p>
+            </td>
+            <td class="px-8 py-5 text-sm text-gray-300 font-medium">${q.service}</td>
+            <td class="px-8 py-5 text-sm text-orange-500 font-black">${new Intl.NumberFormat('vi-VN').format(q.price)}đ</td>
+            <td class="px-8 py-5 text-xs text-gray-500 font-medium">${new Date(q.created_at).toLocaleDateString('vi-VN')}</td>
+            <td class="px-8 py-5">
+                ${q.file_url ? 
+                    `<span class="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full border border-green-500/20"><i class="fas fa-check mr-1"></i> Đã xuất file</span>` : 
+                    `<span class="px-3 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20"><i class="fas fa-clock mr-1"></i> Chờ xuất</span>`
+                }
+            </td>
+            <td class="px-8 py-5 text-right space-x-2">
+                ${q.file_url ? 
+                    `<a href="${q.file_url}" target="_blank" class="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg inline-block" title="Xem file"><i class="fas fa-external-link-alt"></i></a>` : 
+                    `<button onclick="generateQuotationFile('${q.id}')" class="p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg" title="Xuất PDF"><i class="fas fa-file-pdf"></i></button>`
+                }
+                <button onclick="deleteQuotation('${q.id}')" class="p-2 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg" title="Xóa"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openCreateQuotationModal() {
+    document.getElementById('modal-quotation').classList.remove('hidden');
+    document.getElementById('quote-customer-name').value = '';
+    document.getElementById('quote-mst').value = '';
+    document.getElementById('quote-price').value = '';
+    document.getElementById('quote-duration').value = '12 tháng';
+}
+
+async function searchCRMForQuote() {
+    const mst = document.getElementById('quote-mst').value.trim();
+    if (!mst) return;
+
+    // Search in currentCRMData first
+    const found = currentCRMData.find(c => c.mst === mst);
+    if (found) {
+        document.getElementById('quote-customer-name').value = found.company_name;
+        document.getElementById('quote-service').value = found.service_type || 'Chữ ký số (CKS)';
+        return;
+    }
+
+    // If not found in local state, could optionally fetch from API
+}
+
+async function saveQuotation() {
+    const data = {
+        customer_name: document.getElementById('quote-customer-name').value,
+        mst: document.getElementById('quote-mst').value,
+        service: document.getElementById('quote-service').value,
+        duration: document.getElementById('quote-duration').value,
+        price: parseFloat(document.getElementById('quote-price').value) || 0
+    };
+
+    if (!data.customer_name) {
+        alert('Vui lòng nhập tên khách hàng');
+        return;
+    }
+
+    try {
+        const res = await authedFetch('/api/quotations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            closeModal('modal-quotation');
+            loadQuotations();
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + err.error);
+        }
+    } catch (e) {
+        console.error('Save Quotation Error:', e);
+    }
+}
+
+async function generateQuotationFile(id) {
+    const btn = event.currentTarget;
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    try {
+        const res = await authedFetch(`/api/quotations/${id}/generate`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            alert('Đã xuất báo giá thành công!');
+            loadQuotations();
+        } else {
+            alert('Lỗi xuất file: ' + data.error);
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+        }
+    } catch (e) {
+        console.error('Generate File Error:', e);
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+    }
+}
+
+async function deleteQuotation(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa báo giá này?')) return;
+    try {
+        const res = await authedFetch(`/api/quotations/${id}`, { method: 'DELETE' });
+        if (res.ok) loadQuotations();
+    } catch (e) { console.error('Delete Quote Error:', e); }
+}
+
+// --- DOCUMENT LOGIC ---
+async function loadDocuments() {
+    try {
+        const res = await authedFetch('/api/storage/files');
+        const data = await res.json();
+        currentMarketingDocs = data.marketing || [];
+        currentTemplates = data.templates || [];
+        renderDocuments();
+    } catch (e) { console.error('Load Docs Error:', e); }
+}
+
+function renderDocuments() {
+    const marketingList = document.getElementById('marketing-docs-list');
+    const templateList = document.getElementById('template-docs-list');
+    
+    if (marketingList) {
+        document.getElementById('marketing-count').innerText = `${currentMarketingDocs.length} files`;
+        marketingList.innerHTML = currentMarketingDocs.map(f => `
+            <div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                        <i class="fas ${getFileIcon(f.name)}"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-bold text-white truncate max-w-[200px]">${f.name}</p>
+                        <p class="text-[10px] text-gray-500 font-medium uppercase tracking-widest">${(f.metadata?.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="${f.url}" target="_blank" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all"><i class="fas fa-download text-xs"></i></a>
+                    <button onclick="deleteDoc('marketing-docs', '${f.name}')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
+                </div>
+            </div>
+        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">Chưa có tài liệu nào.</p>';
+    }
+
+    if (templateList) {
+        document.getElementById('template-count').innerText = `${currentTemplates.length} files`;
+        templateList.innerHTML = currentTemplates.map(f => `
+            <div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-orange-500/30 transition-all group">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                        <i class="fas fa-file-code"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-bold text-white truncate max-w-[200px]">${f.name}</p>
+                        <p class="text-[10px] text-gray-500 font-medium uppercase tracking-widest">TEMPLATE</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="${f.url}" target="_blank" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all"><i class="fas fa-eye text-xs"></i></a>
+                    <button onclick="deleteDoc('quotation-templates', '${f.name}')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
+                </div>
+            </div>
+        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">Chưa có mẫu báo giá nào.</p>';
+    }
+}
+
+function getFileIcon(name) {
+    if (name.endsWith('.pdf')) return 'fa-file-pdf';
+    if (name.endsWith('.docx') || name.endsWith('.doc')) return 'fa-file-word';
+    if (name.endsWith('.xlsx')) return 'fa-file-excel';
+    if (name.endsWith('.pptx')) return 'fa-file-powerpoint';
+    if (name.match(/\.(jpg|jpeg|png|gif)$/i)) return 'fa-file-image';
+    return 'fa-file';
+}
+
+function openUploadDocModal() {
+    document.getElementById('modal-upload-doc').classList.remove('hidden');
+    document.getElementById('doc-file-name').innerText = 'Chọn file hoặc kéo thả vào đây';
+    selectedUploadFile = null;
+}
+
+function handleDocFileChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+        selectedUploadFile = file;
+        document.getElementById('doc-file-name').innerText = file.name;
+    }
+}
+
+async function uploadDocument() {
+    if (!selectedUploadFile) {
+        alert('Vui lòng chọn file');
+        return;
+    }
+    const bucket = document.getElementById('upload-doc-bucket').value;
+    const formData = new FormData();
+    formData.append('file', selectedUploadFile);
+    formData.append('bucket', bucket);
+
+    const btn = document.getElementById('upload-doc-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ĐANG TẢI LÊN...';
+    btn.disabled = true;
+
+    try {
+        const token = localStorage.getItem('sb-token');
+        const res = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+
+        if (res.ok) {
+            closeModal('modal-upload-doc');
+            loadDocuments();
+        } else {
+            const err = await res.json();
+            alert('Lỗi: ' + (err.error || 'Upload thất bại'));
+        }
+    } catch (e) {
+        console.error('Upload Error:', e);
+    } finally {
+        btn.innerHTML = 'BẮT ĐẦU TẢI LÊN';
+        btn.disabled = false;
+    }
+}
+
+async function deleteDoc(bucket, name) {
+    if (!confirm(`Xóa file "${name}"?`)) return;
+    try {
+        const res = await authedFetch(`/api/storage/files?bucket=${bucket}&name=${name}`, { method: 'DELETE' });
+        if (res.ok) loadDocuments();
+    } catch (e) { console.error('Delete Doc Error:', e); }
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
 }

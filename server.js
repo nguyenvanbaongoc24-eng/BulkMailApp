@@ -15,6 +15,7 @@ require('dotenv').config();
 const excelService = require('./services/excelService');
 const emailService = require('./services/emailService');
 const seoService = require('./services/seoService');
+const quotationService = require('./services/quotationService');
 // const scraperService = require('./services/scraperService'); // Moved to dynamic require for Render compatibility
 let scraperService = null;
 try {
@@ -254,7 +255,7 @@ app.get('/api/reset-worker', async (req, res) => {
     }
 });
 
-// Middleware to verify Supabase Auth Session
+// Middleware to verify Supabase Auth Session + Fetch Role/Settings
 const authenticate = async (req, res, next) => {
     let token = req.query.access_token; // Support URL-based auth for reports
     
@@ -275,12 +276,50 @@ const authenticate = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid session: ' + (error?.message || 'No user found') });
         }
 
-        req.user = user;
+        // --- FETCH ROLE & SETTINGS ---
+        // 1. Ensure user exists in public.users (Sync)
+        let { data: profile, error: profileErr } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile && !profileErr) {
+            // First time user login - auto create entry as 'staff'
+            // (Unless it's the very first user in the whole system, but we'll let user handle admin manually via SQL as agreed)
+            const { data: newProfile, error: createErr } = await supabase
+                .from('users')
+                .insert({ id: user.id, email: user.email, role: 'staff' })
+                .select('role')
+                .single();
+            if (!createErr) profile = newProfile;
+        }
+
+        // 2. Fetch user settings
+        const { data: settings } = await supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        req.user = { 
+            ...user, 
+            role: profile?.role || 'staff',
+            settings: settings || { theme: 'dark', default_storage_path: 'C:/Downloads/CA2_Automation' }
+        };
         req.token = token;
         next();
     } catch (e) {
         console.error('[AUTH] Critical error during authentication:', e.message);
         return res.status(500).json({ error: 'Internal Auth Error' });
+    }
+};
+
+const checkAdmin = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ error: 'Quyền truy cập bị từ chối. Khu vực dành riêng cho Quản trị viên.' });
     }
 };
 
@@ -346,17 +385,74 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.get('/api/me', async (req, res) => {
+app.get('/api/me', authenticate, async (req, res) => {
+    // req.user is already populated by authenticate middleware
+    res.json(req.user);
+});
+
+// --- Settings & User Management Routes ---
+
+app.post('/api/settings', authenticate, async (req, res) => {
     try {
-        let token = req.headers.authorization;
-        if (!token) return res.status(401).json({ error: 'No token' });
-        token = token.replace('Bearer ', '');
-        if (token === 'undefined' || token === 'null') return res.status(401).json({ error: 'Invalid token' });
-        
-        const { data, error } = await supabase.auth.getUser(token);
-        if (error || !data.user) return res.status(401).json({ error: 'Unauthorized' });
-        
-        res.json(data.user);
+        const { theme, default_storage_path } = req.body;
+        const updateData = { 
+            user_id: req.user.id,
+            updated_at: new Date().toISOString()
+        };
+        if (theme) updateData.theme = theme;
+        if (default_storage_path) updateData.default_storage_path = default_storage_path;
+
+        const { data, error } = await supabase
+            .from('user_settings')
+            .upsert(updateData)
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/admin/users', authenticate, checkAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/admin/users/:id', authenticate, checkAdmin, async (req, res) => {
+    try {
+        const { role } = req.body;
+        const { data, error } = await supabase
+            .from('users')
+            .update({ role })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/admin/users/:id', authenticate, checkAdmin, async (req, res) => {
+    try {
+        // First delete from public.users (auth.users deletion would require admin privileges usually done via dashboard)
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -626,6 +722,151 @@ app.delete('/api/templates/:id', authenticate, async (req, res) => {
         .eq('user_id', req.user.id);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true, message: 'Mẫu đã được xóa.' });
+});
+
+// --- QUOTATION ROUTES ---
+app.get('/api/quotations', authenticate, async (req, res) => {
+    const { data, error } = await supabase
+        .from('quotations')
+        .select('*')
+        .eq('user_id', req.user.id)
+        .order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+app.post('/api/quotations', authenticate, async (req, res) => {
+    const { customer_name, mst, service, duration, price } = req.body;
+    const { data, error } = await supabase
+        .from('quotations')
+        .insert([{
+            user_id: req.user.id,
+            customer_name,
+            mst,
+            service,
+            duration,
+            price
+        }])
+        .select();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data[0]);
+});
+
+app.delete('/api/quotations/:id', authenticate, async (req, res) => {
+    const { error } = await supabase
+        .from('quotations')
+        .delete()
+        .eq('id', req.params.id)
+        .eq('user_id', req.user.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+});
+
+app.post('/api/quotations/:id/generate', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: quote, error } = await supabase
+            .from('quotations')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', req.user.id)
+            .single();
+
+        if (error || !quote) return res.status(404).json({ error: 'Quotation not found' });
+
+        // Generate PDF
+        const pdfBuffer = await quotationService.generatePdf(quote);
+
+        // Upload to Supabase Storage
+        const fileName = `quotations/${req.user.id}/${quote.customer_name.replace(/\s+/g, '_')}_${id.substring(0, 5)}.pdf`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('marketing-docs')
+            .upload(fileName, pdfBuffer, {
+                contentType: 'application/pdf',
+                upsert: true
+            });
+
+        if (uploadErr) throw uploadErr;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('marketing-docs')
+            .getPublicUrl(fileName);
+
+        // Update DB
+        await supabase
+            .from('quotations')
+            .update({ file_url: publicUrl })
+            .eq('id', id);
+
+        res.json({ success: true, url: publicUrl });
+    } catch (e) {
+        console.error('[SERVER] Quotation Gen Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- STORAGE ROUTES ---
+app.get('/api/storage/files', authenticate, async (req, res) => {
+    try {
+        // List from marketing-docs
+        const { data: marketing, error: mErr } = await supabase.storage
+            .from('marketing-docs')
+            .list('', { sortBy: { column: 'created_at', order: 'desc' } });
+
+        // List from quotation-templates
+        const { data: templates, error: tErr } = await supabase.storage
+            .from('quotation-templates')
+            .list('', { sortBy: { column: 'created_at', order: 'desc' } });
+
+        const processList = (list, bucket) => {
+            return (list || []).map(f => ({
+                ...f,
+                url: supabase.storage.from(bucket).getPublicUrl(f.name).data.publicUrl
+            }));
+        };
+
+        res.json({
+            marketing: processList(marketing, 'marketing-docs'),
+            templates: processList(templates, 'quotation-templates')
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/storage/upload', authenticate, upload.single('file'), async (req, res) => {
+    try {
+        const { bucket } = req.body;
+        if (!req.file || !bucket) return res.status(400).json({ error: 'Missing file or bucket' });
+
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const fileName = req.file.originalname;
+
+        const { data, error } = await supabase.storage
+            .from(bucket)
+            .upload(fileName, fileBuffer, {
+                contentType: req.file.mimetype,
+                upsert: true
+            });
+
+        fs.unlinkSync(req.file.path); // Cleanup
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.delete('/api/storage/files', authenticate, async (req, res) => {
+    try {
+        const { bucket, name } = req.query;
+        const { error } = await supabase.storage.from(bucket).remove([name]);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // CA2 CRM Internal Tool API

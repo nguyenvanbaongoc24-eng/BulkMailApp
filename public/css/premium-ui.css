@@ -62,6 +62,27 @@
     --ds-duration-slow:   300ms;
 }
 
+/* ── Light Mode Design Tokens ── */
+.light-mode {
+    --ds-bg:              #f8fafc;
+    --ds-surface:         #ffffff;
+    --ds-surface-elevated:#f1f5f9;
+    --ds-surface-hover:   rgba(0,0,0,0.03);
+    --ds-surface-active:  rgba(0,0,0,0.06);
+
+    --ds-border:          rgba(0,0,0,0.08);
+    --ds-border-hover:    rgba(0,0,0,0.14);
+
+    --ds-text:            #0f172a;
+    --ds-text-secondary:  #475569;
+    --ds-text-muted:      #64748b;
+    --ds-text-placeholder:#94a3b8;
+
+    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.05);
+    --ds-shadow-md:       0 8px 24px rgba(0,0,0,0.08);
+    --ds-shadow-lg:       0 16px 48px rgba(0,0,0,0.12);
+}
+
 
 /* ==========================================================
    1. GLOBAL DEFAULTS & PERFORMANCE
@@ -295,6 +316,7 @@ th[onclick]:hover {
     letter-spacing: 0.08em;
     border-width: 1px;
     display: inline-block;
+    pointer-events: none; /* Prevents badge from blocking clicks below it */
     transition: transform var(--ds-duration) var(--ds-ease),
                 box-shadow var(--ds-duration) var(--ds-ease);
 }
@@ -1309,4 +1331,28 @@ span.flatpickr-weekday {
     html {
         scroll-behavior: auto;
     }
+}
+
+/* ==========================================================
+   15. CRM TABLE ACTION BUTTONS (Fix for click issues)
+   ========================================================== */
+.btn-action-premium {
+    position: relative;
+    z-index: 50; /* Stay above any overflowing cells */
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: all var(--ds-duration) var(--ds-ease);
+    cursor: pointer !important;
+}
+
+.btn-action-premium:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-action-premium:active {
+    transform: scale(0.92);
 }
