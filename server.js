@@ -33,8 +33,8 @@ const port = process.env.PORT || 3000;
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.NODE_ENV === 'production' 
-        ? 'https://automation-ca2.onrender.com/api/auth/google/callback'
+    process.env.BASE_URL 
+        ? `${process.env.BASE_URL}/api/auth/google/callback`
         : 'http://localhost:3000/api/auth/google/callback'
 );
 
@@ -449,8 +449,8 @@ app.get('/api/auth/google/callback', async (req, res) => {
         const localClient = new google.auth.OAuth2(
             process.env.GOOGLE_CLIENT_ID,
             process.env.GOOGLE_CLIENT_SECRET,
-            process.env.NODE_ENV === 'production' 
-                ? 'https://automation-ca2.onrender.com/api/auth/google/callback'
+            process.env.BASE_URL 
+                ? `${process.env.BASE_URL}/api/auth/google/callback`
                 : 'http://localhost:3000/api/auth/google/callback'
         );
 
@@ -2120,8 +2120,8 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running at http://0.0.0.0:${port}`);
     console.log(`Automation Tool: http://localhost:${port}/automation.html`);
     // Start the background worker
     emailService.startWorker();

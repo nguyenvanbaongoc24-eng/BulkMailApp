@@ -6,12 +6,9 @@ services:
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
-        value: 18.0.0
+        value: 20
+      - key: BASE_URL
+        value: https://your-app-name.onrender.com
       - key: RENDER
         value: true
       - fromGroup: bulk-mail-secrets # Suggested secret group
-    # Optimized for Puppeteer
-    disk:
-      name: puppeteer-cache
-      mountPath: /opt/render/project/src/puppeteer_cache
-      sizeGB: 1
