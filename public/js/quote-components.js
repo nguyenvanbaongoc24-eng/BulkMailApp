@@ -162,8 +162,7 @@ class QuoteManager {
         });
         this.els.serviceSel.innerHTML = html;
         
-        // Force sync custom select UI if present
-        if (window.refreshCustomSelects) {
+        if (typeof window.refreshCustomSelects === 'function') {
             window.refreshCustomSelects();
         }
     }
@@ -278,8 +277,7 @@ class QuoteManager {
         });
         this.els.packageSel.innerHTML = html;
 
-        // Force sync custom select UI
-        if (window.refreshCustomSelects) {
+        if (typeof window.refreshCustomSelects === 'function') {
             window.refreshCustomSelects();
         }
     }
@@ -600,7 +598,13 @@ window.openCreateQuotationModal = function() {
 }
 
 window.closeQuotationModal = function() {
-    document.getElementById('modal-quotation').classList.add('hidden');
+    const modal = document.getElementById('modal-quotation');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none'; // FORCE: Reset Absolute Rescue style
+        modal.style.opacity = '';
+        modal.style.pointerEvents = '';
+    }
 }
 
 window.sendQuotationEmail = function() {

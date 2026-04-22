@@ -308,8 +308,7 @@
         addEvents() {
             this.trigger.addEventListener('click', (e) => {
                 try {
-                    // e.stopPropagation(); // REMOVED (Requirement #10): Allow event to bubble if needed
-                    // e.stopImmediatePropagation();
+                    e.stopPropagation(); // RESTORED: Prevents the global document click listener from immediately closing the menu
                     if (this.wrapper.classList.contains('open')) this.close();
                     else this.open();
                 } catch (err) {
