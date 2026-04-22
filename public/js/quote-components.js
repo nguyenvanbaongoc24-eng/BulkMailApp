@@ -342,7 +342,7 @@ class QuoteManager {
         // Show loading state (Skeleton-like placeholder)
         listContainer.innerHTML = `
             <tr>
-                <td colspan="6" class="px-8 py-20 text-center">
+                <td colspan="6" class="px-8 py-20 text-center pointer-events-none">
                     <div class="flex flex-col items-center gap-4">
                         <div class="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin"></div>
                         <p class="text-gray-500 font-bold italic text-sm">Đang tải danh sách báo giá...</p>
@@ -352,11 +352,16 @@ class QuoteManager {
         `;
 
         try {
-            if (typeof authedFetch === 'undefined') {
-                throw new Error('Hệ thống chưa sẵn sàng (authedFetch missing)');
-            }
+            // 15s Timeout protection
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Kết nối quá hạn (Timeout). Vui lòng thử lại.')), 15000)
+            );
 
-            const res = await authedFetch('/api/quotations');
+            const res = await Promise.race([
+                authedFetch('/api/quotations'),
+                timeoutPromise
+            ]);
+
             if (!res.ok) throw new Error(`Lỗi máy chủ: ${res.status}`);
             
             const data = await res.json();

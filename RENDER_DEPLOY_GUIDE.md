@@ -8,7 +8,7 @@ Log in to your Render Dashboard, go to your service's **Environment** tab, and a
 | Key | Value | Description |
 |-----|-------|-------------|
 | `NODE_VERSION` | `20` | Ensures compatibility with modern packages. |
-| `BASE_URL` | `https://your-app-name.onrender.com` | **CRITICAL**: Your app's public URL (without trailing slash). |
+| `BASE_URL` | `https://automation-ca2.onrender.com` | **CRITICAL**: Your app's public URL (without trailing slash). |
 | `SUPABASE_URL` | `your_supabase_url` | From your Supabase project settings. |
 | `SUPABASE_KEY` | `your_supabase_anon_key` | From your Supabase project settings. |
 | `SUPABASE_SERVICE_ROLE_KEY` | `your_service_role_key` | **REQUIRED** for administrative tasks and bypassing RLS. |
@@ -28,7 +28,7 @@ These are pre-configured in `render.yaml`:
 ## 4. Google OAuth2 Callback
 Ensure that you have added your `BASE_URL/api/auth/google/callback` to the "Authorized redirect URIs" in your **Google Cloud Console**.
 
-Example: `https://bulk-mail-app.onrender.com/api/auth/google/callback`
+Example: `https://automation-ca2.onrender.com/api/auth/google/callback`
 
 ---
 *Note: Puppeteer/Chromium is disabled on the server to prevent timeouts. Certificate scraping is handled locally by the Desktop App.*
