@@ -106,12 +106,17 @@ class QuoteGenerator {
 
 class QuoteManager {
     constructor() {
-        this.state = {
-            company: '', mst: '', receiver: '', email: '',
-            service: '', packageId: '', quantity: 0, price: 0, total: 0,
-            quotations: []
-        };
-        this.init();
+        try {
+            this.state = {
+                company: '', mst: '', receiver: '', email: '',
+                service: '', packageId: '', quantity: 0, price: 0, total: 0,
+                quotations: [],
+                isLoading: false
+            };
+            this.init();
+        } catch (err) {
+            console.error('[QuoteManager] Critical Initialization Error:', err);
+        }
     }
 
     init() {
@@ -331,7 +336,10 @@ class QuoteManager {
         const listContainer = document.getElementById('quotation-list');
         if (!listContainer) return;
 
-        // Show loading state
+        this.state.isLoading = true;
+        console.log('[QuoteManager] Loading quotations list...');
+
+        // Show loading state (Skeleton-like placeholder)
         listContainer.innerHTML = `
             <tr>
                 <td colspan="6" class="px-8 py-20 text-center">
@@ -353,10 +361,14 @@ class QuoteManager {
             
             const data = await res.json();
             this.state.quotations = Array.isArray(data) ? data : [];
+            console.log('[QuoteManager] Loaded Quotes:', this.state.quotations);
             this.renderList();
         } catch (e) {
-            console.error('Load Quotations Error:', e);
+            console.error('[QuoteManager] Load List Error:', e);
             this.renderError(e.message);
+        } finally {
+            this.state.isLoading = false;
+            console.log('[QuoteManager] Loading finished (isLoading: false)');
         }
     }
 
@@ -387,6 +399,9 @@ class QuoteManager {
         const list = document.getElementById('quotation-list');
         if (!list) return;
 
+        console.log('[QuoteManager] Rendering List. Quotes:', this.state.quotations);
+        console.log('[QuoteManager] State Loading:', this.state.isLoading);
+
         try {
             const search = (document.getElementById('quotation-search')?.value || '').toLowerCase();
             const filtered = (this.state.quotations || []).filter(q => 
@@ -400,7 +415,7 @@ class QuoteManager {
             }
 
             list.innerHTML = filtered.map(q => {
-                const price = q.price || 0;
+                const displayPrice = q.total || q.price || 0;
                 const date = q.created_at ? new Date(q.created_at).toLocaleDateString('vi-VN') : 'N/A';
                 
                 return `
@@ -413,7 +428,7 @@ class QuoteManager {
                             <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">${q.service || 'Dịch vụ'}</span>
                         </td>
                         <td class="px-8 py-6 text-right">
-                            <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(price)}</p>
+                            <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(displayPrice)}</p>
                             <p class="text-[10px] text-gray-500 font-bold uppercase">VNĐ</p>
                         </td>
                         <td class="px-8 py-6 text-center text-xs text-gray-400 font-medium">${date}</td>
@@ -460,6 +475,13 @@ class QuoteManager {
             total: this.state.total
         };
 
+        const btn = this.els.btnSave;
+        const oldHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> ĐANG LƯU...';
+            btn.disabled = true;
+        }
+
         try {
             const res = await authedFetch('/api/quotations', {
                 method: 'POST',
@@ -475,40 +497,63 @@ class QuoteManager {
                 alert('Lỗi: ' + (err.error || 'Không thể lưu báo giá'));
             }
         } catch (e) {
-            console.error('Save Quotation Error:', e);
+            console.error('[QuoteManager] Save Quotation Error:', e);
+            alert('Lỗi kết nối máy chủ');
+        } finally {
+            if (btn) {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+            console.log('[QuoteManager] Save operation finished.');
         }
     }
 
     async generateFile(id) {
-        const btn = event.currentTarget;
-        const oldHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
-        btn.disabled = true;
+        const btn = event?.currentTarget;
+        const oldHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
+            btn.disabled = true;
+        }
 
         try {
+            console.log(`[QuoteManager] Generating file for quote ID: ${id}`);
             const res = await authedFetch(`/api/quotations/${id}/generate`, { method: 'POST' });
             if (res.ok) {
+                console.log('[QuoteManager] File generated successfully.');
                 this.loadList();
             } else {
                 const data = await res.json();
-                alert('Lỗi xuất file: ' + data.error);
+                console.warn('[QuoteManager] Generation failed:', data.error);
+                alert('Lỗi xuất file: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            console.error('[QuoteManager] Generate File Critical Error:', e);
+            alert('Lỗi hệ thống khi xuất file');
+        } finally {
+            if (btn) {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
             }
-        } catch (e) {
-            console.error('Generate File Error:', e);
-            btn.innerHTML = oldHtml;
-            btn.disabled = false;
         }
     }
 
     async deleteQuote(id) {
         if (!confirm('Bạn có chắc chắn muốn xóa báo giá này?')) return;
+        
+        console.log(`[QuoteManager] Deleting quote ID: ${id}`);
         try {
             const res = await authedFetch(`/api/quotations/${id}`, { method: 'DELETE' });
-            if (res.ok) this.loadList();
+            if (res.ok) {
+                console.log('[QuoteManager] Quote deleted.');
+                this.loadList();
+            } else {
+                const data = await res.json();
+                alert('Lỗi khi xóa: ' + (data.error || 'Lỗi không xác định'));
+            }
         } catch (e) {
-            console.error('Delete Quote Error:', e);
+            console.error('[QuoteManager] Delete Quote Error:', e);
+            alert('Lỗi kết nối khi xóa báo giá');
         }
     }
 }
@@ -516,11 +561,16 @@ class QuoteManager {
 window.QuoteGenerator = QuoteGenerator;
 
 window.openCreateQuotationModal = function() {
+    console.log('[DEBUG] openCreateQuotationModal CLICKED');
     const modal = document.getElementById('modal-quotation');
     if (modal) {
         modal.classList.remove('hidden');
         if (!window.quoteManagerInstance) {
-            window.quoteManagerInstance = new QuoteManager();
+            try {
+                window.quoteManagerInstance = new QuoteManager();
+            } catch (err) {
+                console.error('[QuoteManager] Global Initialization Crash:', err);
+            }
         }
     } else {
         console.error('Modal quotation not found!');

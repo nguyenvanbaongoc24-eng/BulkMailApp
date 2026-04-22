@@ -201,6 +201,11 @@
             box-shadow: var(--card-shadow);
         }
 
+        .loading-overlay {
+            pointer-events: none;
+            z-index: 50;
+        }
+
         /* Premium Modal Styles */
         .modal-premium {
             background: var(--glass-bg);
@@ -621,7 +626,7 @@
                         <p class="text-gray-400 mt-2 font-medium italic">Theo dõi, xuất file và quản lý các báo giá dịch vụ đã gửi</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button onclick="openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">
+                        <button onclick="console.log('DEBUG: TẠO BÁO GIÁ CLICKED'); openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">
                             <i class="fas fa-plus"></i>
                             TẠO BÁO GIÁ MỚI
                         </button>
