@@ -40,8 +40,8 @@ class QuotationService {
                 '{{Duration}}': data.duration || 'N/A',
                 '{{Price}}': formatter.format(data.price || 0),
                 '{{Date}}': new Date().toLocaleDateString('vi-VN'),
-                '{{QuoteID}}': data.id.substring(0, 8).toUpperCase(),
-                '{{Total}}': formatter.format(data.price || 0)
+                '{{QuoteID}}': String(data.id || '').substring(0, 8).toUpperCase(),
+                '{{Total}}': formatter.format(data.total || data.price || 0)
             };
 
             for (const [key, value] of Object.entries(placeholders)) {

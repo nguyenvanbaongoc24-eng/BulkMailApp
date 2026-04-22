@@ -210,8 +210,16 @@ class QuoteManager {
             if (!this.els[key]) return;
             this.els[key].addEventListener('input', (e) => {
                 const stateKey = key.replace('Inp', '');
-                this.state[stateKey] = e.target.value;
-                if (key === 'mstInp') this.searchCRMForQuote(e.target.value);
+                let value = e.target.value;
+                
+                // Clean MST (only numbers and optionally a dash)
+                if (key === 'mstInp') {
+                    value = value.replace(/[^0-9-]/g, '').trim();
+                    e.target.value = value;
+                    this.searchCRMForQuote(value);
+                }
+
+                this.state[stateKey] = value;
                 this.updatePreview();
             });
             this.els[key].addEventListener('focus', () => this.els[key].parentElement.classList.add('shadow-[0_0_15px_rgba(59,130,246,0.3)]'));
@@ -437,11 +445,16 @@ class QuoteManager {
             return;
         }
 
+        // Extract duration from selected package name
+        const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
+        const duration = pkg ? pkg.name : '';
+
         const data = {
             customer_name: this.state.company,
             mst: this.state.mst,
             service: this.state.service,
             package_id: this.state.packageId,
+            duration: duration,
             quantity: this.state.quantity,
             price: this.state.price,
             total: this.state.total

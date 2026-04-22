@@ -736,20 +736,29 @@ app.get('/api/quotations', authenticate, async (req, res) => {
 });
 
 app.post('/api/quotations', authenticate, async (req, res) => {
-    const { customer_name, mst, service, duration, price } = req.body;
-    const { data, error } = await supabase
-        .from('quotations')
-        .insert([{
-            user_id: req.user.id,
-            customer_name,
-            mst,
-            service,
-            duration,
-            price
-        }])
-        .select();
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data[0]);
+    try {
+        const { customer_name, mst, service, duration, price, package_id, quantity, total } = req.body;
+        const { data, error } = await supabase
+            .from('quotations')
+            .insert([{
+                user_id: req.user.id,
+                customer_name,
+                mst,
+                service,
+                duration,
+                price,
+                package_id,
+                quantity,
+                total
+            }])
+            .select();
+        
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (err) {
+        console.error('[API] Create Quotation Error:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.delete('/api/quotations/:id', authenticate, async (req, res) => {
@@ -792,10 +801,13 @@ app.post('/api/quotations/:id/generate', authenticate, async (req, res) => {
             .from('marketing-docs')
             .getPublicUrl(fileName);
 
-        // Update DB
+        // Update DB with the file URL and ensure total is synced for the PDF generator next time
         await supabase
             .from('quotations')
-            .update({ file_url: publicUrl })
+            .update({ 
+                file_url: publicUrl,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', id);
 
         res.json({ success: true, url: publicUrl });
