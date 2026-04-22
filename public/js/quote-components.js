@@ -108,7 +108,8 @@ class QuoteManager {
     constructor() {
         this.state = {
             company: '', mst: '', receiver: '', email: '',
-            service: '', packageId: '', quantity: 0, price: 0, total: 0
+            service: '', packageId: '', quantity: 0, price: 0, total: 0,
+            quotations: []
         };
         this.init();
     }
@@ -133,6 +134,10 @@ class QuoteManager {
         this.populateServices();
         this.bindEvents();
         this.recalc();
+        // Initial list load if on management page
+        if (document.getElementById('quotation-list')) {
+            this.loadList();
+        }
     }
 
     populateServices() {
@@ -194,14 +199,36 @@ class QuoteManager {
         });
 
         ['companyInp', 'mstInp', 'receiverInp', 'emailInp'].forEach(key => {
+            if (!this.els[key]) return;
             this.els[key].addEventListener('input', (e) => {
                 const stateKey = key.replace('Inp', '');
                 this.state[stateKey] = e.target.value;
+                if (key === 'mstInp') this.searchCRMForQuote(e.target.value);
                 this.updatePreview();
             });
             this.els[key].addEventListener('focus', () => this.els[key].parentElement.classList.add('shadow-[0_0_15px_rgba(59,130,246,0.3)]'));
             this.els[key].addEventListener('blur', () => this.els[key].parentElement.classList.remove('shadow-[0_0_15px_rgba(59,130,246,0.3)]'));
         });
+    }
+
+    searchCRMForQuote(mst) {
+        if (!mst || mst.length < 5) return;
+        if (typeof currentCRMData === 'undefined') return;
+        
+        const found = currentCRMData.find(c => c.mst === mst.trim());
+        if (found) {
+            this.state.company = found.company_name;
+            this.els.companyInp.value = found.company_name;
+            // Optionally auto-select service
+            const svc = found.service_type || 'Chữ ký số';
+            if (this.els.serviceSel.querySelector(`option[value*="${svc}"]`)) {
+                this.state.service = this.els.serviceSel.querySelector(`option[value*="${svc}"]`).value;
+                this.els.serviceSel.value = this.state.service;
+                if (window.refreshCustomSelects) window.refreshCustomSelects(); 
+                this.updatePackageOptions();
+            }
+            this.updatePreview();
+        }
     }
 
     animateDropdown(el) {
@@ -281,6 +308,131 @@ class QuoteManager {
         document.getElementById('pv-pkg-price').innerText = this.state.price > 0 ? QuoteUtils.formatCurrency(this.state.price) : '-';
         document.getElementById('pv-pkg-total').innerText = this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '-';
         document.getElementById('pv-final-total').innerText = this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '0';
+    }
+
+    // --- API LIST MANAGEMENT ---
+    async loadList() {
+        try {
+            const res = await authedFetch('/api/quotations');
+            this.state.quotations = await res.json();
+            this.renderList();
+        } catch (e) {
+            console.error('Load Quotations Error:', e);
+        }
+    }
+
+    renderList() {
+        const list = document.getElementById('quotation-list');
+        if (!list) return;
+
+        const search = (document.getElementById('quotation-search')?.value || '').toLowerCase();
+        const filtered = this.state.quotations.filter(q => 
+            (q.customer_name || '').toLowerCase().includes(search) || 
+            (q.mst && q.mst.includes(search))
+        );
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center text-gray-500 italic font-medium">Chưa có báo giá nào được tạo.</td></tr>`;
+            return;
+        }
+
+        list.innerHTML = filtered.map(q => `
+            <tr class="hover:bg-white/2 transition-colors border-b border-white/5">
+                <td class="px-8 py-6">
+                    <p class="text-sm font-bold text-white">${q.customer_name}</p>
+                    <p class="text-[10px] text-gray-500 font-mono tracking-widest">${q.mst || 'KHÔNG CÓ MST'}</p>
+                </td>
+                <td class="px-8 py-6">
+                    <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">${q.service}</span>
+                </td>
+                <td class="px-8 py-6 text-right">
+                    <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(q.price)}</p>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase">VNĐ</p>
+                </td>
+                <td class="px-8 py-6 text-center text-xs text-gray-400 font-medium">${new Date(q.created_at).toLocaleDateString('vi-VN')}</td>
+                <td class="px-8 py-6 text-center">
+                    ${q.file_url ? 
+                        `<span class="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full border border-green-500/20"><i class="fas fa-check mr-1"></i> HOÀN TẤT</span>` : 
+                        `<span class="px-3 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20 animate-pulse"><i class="fas fa-clock mr-1"></i> ĐANG CHỜ</span>`
+                    }
+                </td>
+                <td class="px-8 py-6 text-right space-x-2">
+                    ${q.file_url ? 
+                        `<a href="${q.file_url}" target="_blank" class="w-10 h-10 inline-flex items-center justify-center bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all" title="Xem file"><i class="fas fa-external-link-alt text-xs"></i></a>` : 
+                        `<button onclick="window.quoteManagerInstance.generateFile('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl transition-all" title="Xuất File"><i class="fas fa-file-export text-xs"></i></button>`
+                    }
+                    <button onclick="window.quoteManagerInstance.deleteQuote('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async save() {
+        if (!this.state.company) {
+            alert('Vui lòng nhập tên khách hàng');
+            return;
+        }
+
+        const data = {
+            customer_name: this.state.company,
+            mst: this.state.mst,
+            service: this.state.service,
+            package_id: this.state.packageId,
+            quantity: this.state.quantity,
+            price: this.state.price,
+            total: this.state.total
+        };
+
+        try {
+            const res = await authedFetch('/api/quotations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                window.closeQuotationModal();
+                this.loadList();
+            } else {
+                const err = await res.json();
+                alert('Lỗi: ' + (err.error || 'Không thể lưu báo giá'));
+            }
+        } catch (e) {
+            console.error('Save Quotation Error:', e);
+        }
+    }
+
+    async generateFile(id) {
+        const btn = event.currentTarget;
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const res = await authedFetch(`/api/quotations/${id}/generate`, { method: 'POST' });
+            if (res.ok) {
+                this.loadList();
+            } else {
+                const data = await res.json();
+                alert('Lỗi xuất file: ' + data.error);
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        } catch (e) {
+            console.error('Generate File Error:', e);
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+        }
+    }
+
+    async deleteQuote(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa báo giá này?')) return;
+        try {
+            const res = await authedFetch(`/api/quotations/${id}`, { method: 'DELETE' });
+            if (res.ok) this.loadList();
+        } catch (e) {
+            console.error('Delete Quote Error:', e);
+        }
     }
 }
 

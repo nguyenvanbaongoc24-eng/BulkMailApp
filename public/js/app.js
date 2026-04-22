@@ -574,7 +574,12 @@ function showPage(pageId) {
     // Page specific loading
     if (pageId === 'ca2-crm') loadCA2CRMData();
     if (pageId === 'dashboard') { loadDashboardStats(); loadRecentCampaigns(); }
-    if (pageId === 'quotations') loadQuotations();
+    if (pageId === 'quotations') {
+        if (!window.quoteManagerInstance) {
+            window.quoteManagerInstance = new QuoteManager();
+        }
+        window.quoteManagerInstance.loadList();
+    }
     if (pageId === 'documents') loadDocuments();
     if (pageId === 'senders') loadSenders();
     if (pageId === 'reports') loadEmailLogs();
@@ -2732,146 +2737,7 @@ window.saveSystemSettings = saveSystemSettings;
 window.refreshUserList = refreshUserList;
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
-// --- QUOTATION LOGIC ---
-async function loadQuotations() {
-    try {
-        const res = await authedFetch('/api/quotations');
-        const data = await res.json();
-        currentQuotations = data || [];
-        renderQuotations();
-    } catch (e) {
-        console.error('Load Quotations Error:', e);
-    }
-}
-
-function renderQuotations() {
-    const list = document.getElementById('quotation-list');
-    if (!list) return;
-
-    const search = document.getElementById('quotation-search')?.value.toLowerCase() || '';
-    const filtered = currentQuotations.filter(q => 
-        q.customer_name.toLowerCase().includes(search) || 
-        (q.mst && q.mst.includes(search))
-    );
-
-    if (filtered.length === 0) {
-        list.innerHTML = `<tr><td colspan="6" class="px-8 py-10 text-center text-gray-500 italic font-medium">Chưa có báo giá nào được tạo.</td></tr>`;
-        return;
-    }
-
-    list.innerHTML = filtered.map(q => `
-        <tr class="hover:bg-white/2 transition-colors">
-            <td class="px-8 py-5">
-                <p class="text-sm font-bold text-white">${q.customer_name}</p>
-                <p class="text-[10px] text-gray-500 font-mono">${q.mst || 'N/A'}</p>
-            </td>
-            <td class="px-8 py-5 text-sm text-gray-300 font-medium">${q.service}</td>
-            <td class="px-8 py-5 text-sm text-orange-500 font-black">${new Intl.NumberFormat('vi-VN').format(q.price)}đ</td>
-            <td class="px-8 py-5 text-xs text-gray-500 font-medium">${new Date(q.created_at).toLocaleDateString('vi-VN')}</td>
-            <td class="px-8 py-5">
-                ${q.file_url ? 
-                    `<span class="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full border border-green-500/20"><i class="fas fa-check mr-1"></i> Đã xuất file</span>` : 
-                    `<span class="px-3 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20"><i class="fas fa-clock mr-1"></i> Chờ xuất</span>`
-                }
-            </td>
-            <td class="px-8 py-5 text-right space-x-2">
-                ${q.file_url ? 
-                    `<a href="${q.file_url}" target="_blank" class="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg inline-block" title="Xem file"><i class="fas fa-external-link-alt"></i></a>` : 
-                    `<button onclick="generateQuotationFile('${q.id}')" class="p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg" title="Xuất PDF"><i class="fas fa-file-pdf"></i></button>`
-                }
-                <button onclick="deleteQuotation('${q.id}')" class="p-2 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg" title="Xóa"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-function openCreateQuotationModal() {
-    document.getElementById('modal-quotation').classList.remove('hidden');
-    document.getElementById('quote-customer-name').value = '';
-    document.getElementById('quote-mst').value = '';
-    document.getElementById('quote-price').value = '';
-    document.getElementById('quote-duration').value = '12 tháng';
-}
-
-async function searchCRMForQuote() {
-    const mst = document.getElementById('quote-mst').value.trim();
-    if (!mst) return;
-
-    // Search in currentCRMData first
-    const found = currentCRMData.find(c => c.mst === mst);
-    if (found) {
-        document.getElementById('quote-customer-name').value = found.company_name;
-        document.getElementById('quote-service').value = found.service_type || 'Chữ ký số (CKS)';
-        return;
-    }
-
-    // If not found in local state, could optionally fetch from API
-}
-
-async function saveQuotation() {
-    const data = {
-        customer_name: document.getElementById('quote-customer-name').value,
-        mst: document.getElementById('quote-mst').value,
-        service: document.getElementById('quote-service').value,
-        duration: document.getElementById('quote-duration').value,
-        price: parseFloat(document.getElementById('quote-price').value) || 0
-    };
-
-    if (!data.customer_name) {
-        alert('Vui lòng nhập tên khách hàng');
-        return;
-    }
-
-    try {
-        const res = await authedFetch('/api/quotations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (res.ok) {
-            closeModal('modal-quotation');
-            loadQuotations();
-        } else {
-            const err = await res.json();
-            alert('Lỗi: ' + err.error);
-        }
-    } catch (e) {
-        console.error('Save Quotation Error:', e);
-    }
-}
-
-async function generateQuotationFile(id) {
-    const btn = event.currentTarget;
-    const oldHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.disabled = true;
-
-    try {
-        const res = await authedFetch(`/api/quotations/${id}/generate`, { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-            alert('Đã xuất báo giá thành công!');
-            loadQuotations();
-        } else {
-            alert('Lỗi xuất file: ' + data.error);
-            btn.innerHTML = oldHtml;
-            btn.disabled = false;
-        }
-    } catch (e) {
-        console.error('Generate File Error:', e);
-        btn.innerHTML = oldHtml;
-        btn.disabled = false;
-    }
-}
-
-async function deleteQuotation(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa báo giá này?')) return;
-    try {
-        const res = await authedFetch(`/api/quotations/${id}`, { method: 'DELETE' });
-        if (res.ok) loadQuotations();
-    } catch (e) { console.error('Delete Quote Error:', e); }
-}
+// --- QUOTATION LOGIC REMOVED (Moved to quote-components.js) ---
 
 // --- DOCUMENT LOGIC ---
 async function loadDocuments() {

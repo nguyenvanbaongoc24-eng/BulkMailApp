@@ -613,6 +613,62 @@
             </div>
 
 
+            <!-- Quotations View (Management Page) -->
+            <div id="view-quotations" class="hidden space-y-10 animate-in fade-in duration-500 pb-20">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-4xl font-black text-white tracking-tight">Quản lý <span class="text-orange-gradient">Báo giá</span></h2>
+                        <p class="text-gray-400 mt-2 font-medium italic">Theo dõi, xuất file và quản lý các báo giá dịch vụ đã gửi</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">
+                            <i class="fas fa-plus"></i>
+                            TẠO BÁO GIÁ MỚI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-glass p-6 rounded-[32px] border border-white/5 flex flex-wrap items-center gap-6">
+                    <div class="flex-1 min-w-[300px] relative group">
+                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-orange-500 transition-colors"></i>
+                        <input type="text" id="quotation-search" oninput="if(window.quoteManagerInstance) window.quoteManagerInstance.renderList()" placeholder="Tìm kiếm theo tên khách hàng, MST..." class="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none focus:border-orange-500/50 transition-all">
+                    </div>
+                    <button onclick="if(window.quoteManagerInstance) window.quoteManagerInstance.loadList()" class="p-4 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl border border-white/5 transition-all">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+                <!-- List Table -->
+                <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-white/5 border-b border-white/5">
+                                    <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-widest">Khách hàng</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-widest">Dịch vụ</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Giá trị</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Ngày tạo</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tình trạng</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quotation-list" class="divide-y divide-white/5">
+                                <tr>
+                                    <td colspan="6" class="px-8 py-20 text-center">
+                                        <div class="flex flex-col items-center gap-4 animate-pulse">
+                                            <div class="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin"></div>
+                                            <p class="text-gray-500 font-bold italic text-sm">Đang tải danh sách báo giá...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
             <!-- CA2 CRM View (Internal Tool) -->
             <div id="view-ca2-crm" class="hidden space-y-10 animate-in fade-in duration-500">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
