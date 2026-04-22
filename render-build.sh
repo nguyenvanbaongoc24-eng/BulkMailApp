@@ -4,14 +4,14 @@ set -e
 
 echo "--- Starting Optimized Render Build ---"
 
-# 1. Setup Puppeteer Skip
-# ❌ DISABLED: The web app no longer needs Chromium because scraping is handled locally by the Desktop App.
-# This prevents the long download time that caused Render timeouts.
-export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-echo "✅ Scraping matches local Desktop App policy. Skipping heavy Chromium download on Render."
+# 1. Setup Puppeteer Cache
+# We enable Chromium download to support Quotation PDF generation.
+# We use a specific cache directory to speed up future builds on Render.
+export PUPPETEER_CACHE_DIR="$(pwd)/.puppeteer_cache"
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
+echo "✅ Puppeteer Chromium download ENABLED for Document Generation."
 
 # 2. Setup Cache (Optional for NPM)
-export PUPPETEER_CACHE_DIR="$(pwd)/puppeteer_cache"
 if [ ! -d "$PUPPETEER_CACHE_DIR" ]; then
     mkdir -p "$PUPPETEER_CACHE_DIR"
 fi
