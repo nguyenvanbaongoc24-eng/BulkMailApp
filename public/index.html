@@ -206,22 +206,23 @@
             z-index: 50;
         }
 
-        /* Aggressive Interactivity Overrides (Requirement #1) */
+        /* Absolute Rescue Interactivity (Requirement #1 & #3) */
         #view-quotations {
             pointer-events: auto !important;
-            z-index: 100 !important;
-            opacity: 1 !important;
-            display: block !important; /* Force visibility when not using .hidden */
-        }
-        #view-quotations.hidden {
-            display: none !important;
-        }
-        #view-quotations * {
-            pointer-events: auto !important;
+            z-index: 999999 !important;
+            isolation: isolate;
         }
         .quotation-btn-elevated {
-            z-index: 9999 !important;
+            z-index: 1000000 !important;
             position: relative !important;
+            pointer-events: auto !important;
+        }
+        #sidebar {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+        }
+        #sidebar.collapsed-rescue {
+            pointer-events: none !important;
+            visibility: hidden !important;
         }
         .modal-premium {
             background: var(--glass-bg);
@@ -641,8 +642,8 @@
                         <h2 class="text-4xl font-black text-white tracking-tight">Quản lý <span class="text-orange-gradient">Báo giá</span></h2>
                         <p class="text-gray-400 mt-2 font-medium italic">Theo dõi, xuất file và quản lý các báo giá dịch vụ đã gửi</p>
                     </div>
-                    <div class="flex items-center gap-3 relative z-[100]">
-                        <button onclick="console.log('[FORCE-LOG] Button Clicked!'); openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all quotation-btn-elevated">
+                    <div class="flex items-center gap-3 relative z-[1000001]">
+                        <button onclick="window.forceOpenQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all quotation-btn-elevated">
                             <i class="fas fa-plus"></i>
                             TẠO BÁO GIÁ MỚI
                         </button>
@@ -2357,18 +2358,38 @@
     <script src="js/seo.js?v=1.1.0"></script>
     <script src="js/premium-ui.js?v=2.0.0"></script>
     <script>
-        // Global Emergency Monitor
-        window.onerror = function(msg, url, line) {
-            if (url.includes('quote') || url.includes('app')) {
-                console.error('[CRITICAL-MONITOR] Exception caught:', msg, 'at', url, ':', line);
-                // Try to recover if it's a quotation list hang
-                if (window.quoteManagerInstance) {
-                    window.quoteManagerInstance.state.isLoading = false;
-                }
+        // Absolute Rescue Functions
+        window.forceOpenQuotationModal = function() {
+            console.log('[RESCUE] Manual Modal Trigger...');
+            const modal = document.getElementById('modal-quotation');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
+                modal.style.zIndex = '1000002';
+                modal.style.pointerEvents = 'auto';
+                modal.style.opacity = '1';
+                console.log('[RESCUE] Modal forced visible.');
             }
-            return false;
+            if (typeof window.openCreateQuotationModal === 'function') {
+                window.openCreateQuotationModal();
+            }
         };
-        console.log('[FORCE-LOG] Interaction safety monitor active.');
+
+        // Self-Destruct Spinner after 8s
+        setTimeout(() => {
+            const list = document.getElementById('quotation-list');
+            if (list && list.innerHTML.includes('animate-spin')) {
+                console.warn('[RESCUE] Loading stuck detected. Clearing spinner...');
+                list.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center text-gray-500 italic font-medium">
+                    <div class="flex flex-col items-center gap-2">
+                        <i class="fas fa-history text-xl mb-2 opacity-50"></i>
+                        Vẫn đang tải? Thử nhấn nút Refresh bên cạnh hoặc Tải lại trang.
+                    </div>
+                </td></tr>`;
+            }
+        }, 8000);
+
+        console.log('[RESCUE] Interactive bypass active.');
     </script>
 </body>
 </html>

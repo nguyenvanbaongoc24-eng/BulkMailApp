@@ -606,6 +606,13 @@ function toggleSidebar() {
     sidebar.classList.toggle('w-64');
     sidebar.classList.toggle('w-0');
     sidebar.classList.toggle('border-r'); // Toggle border visibility
+    
+    // RESCUE: Toggle pointer-events and visibility
+    if (sidebar.classList.contains('w-0')) {
+        sidebar.classList.add('collapsed-rescue');
+    } else {
+        sidebar.classList.remove('collapsed-rescue');
+    }
 }
 
 // --- API Helper ---
