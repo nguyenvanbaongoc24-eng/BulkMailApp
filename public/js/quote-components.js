@@ -40,6 +40,31 @@ class QuoteGenerator {
         const previewEl = document.getElementById('quote-preview-board');
         if (!previewEl) return;
         
+        const service = window.quoteManagerInstance?.state?.service || '';
+        const packageId = window.quoteManagerInstance?.state?.packageId || '';
+        
+        let rowsHtml = '';
+        if (packageId === 'ALL') {
+            const pkgs = PricingEngine.getPackages(service);
+            pkgs.forEach(pkg => {
+                rowsHtml += `
+                <tr>
+                    <td class="text-left">${pkg.name}</td>
+                    <td>${pkg.quantity || 1}</td>
+                    <td class="text-right">${QuoteUtils.formatCurrency(pkg.price)}</td>
+                    <td class="text-right">${QuoteUtils.formatCurrency(pkg.price * (pkg.quantity || 1))}</td>
+                </tr>`;
+            });
+        } else {
+            rowsHtml = `
+            <tr>
+                <td class="text-left">${document.getElementById('pv-table-body').querySelector('tr td:nth-child(1)').innerText}</td>
+                <td>${document.getElementById('pv-table-body').querySelector('tr td:nth-child(2)').innerText}</td>
+                <td class="text-right">${document.getElementById('pv-table-body').querySelector('tr td:nth-child(3)').innerText}</td>
+                <td class="text-right">${document.getElementById('pv-table-body').querySelector('tr td:nth-child(4)').innerText}</td>
+            </tr>`;
+        }
+
         const htmlContent = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
@@ -76,12 +101,7 @@ class QuoteGenerator {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="text-left">${document.getElementById('pv-pkg-name').innerText}</td>
-                        <td>${document.getElementById('pv-pkg-qty').innerText}</td>
-                        <td class="text-right">${document.getElementById('pv-pkg-price').innerText}</td>
-                        <td class="text-right">${document.getElementById('pv-pkg-total').innerText}</td>
-                    </tr>
+                    ${rowsHtml}
                     <tr class="total-row">
                         <td colspan="3" class="text-right">Tổng cộng (Đã bao gồm VAT):</td>
                         <td class="text-right brand-color">${document.getElementById('pv-final-total').innerText}</td>
@@ -178,22 +198,29 @@ class QuoteManager {
 
         this.els.packageSel.addEventListener('change', (e) => {
             this.state.packageId = e.target.value;
-            const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
-            if (pkg) {
-                this.state.price = pkg.price;
-                if (pkg.requiresCustomQuantity) {
-                    this.state.quantity = 0;
-                    this.els.qtyWrapper.classList.remove('hidden');
-                    this.els.qtyInput.value = '';
-                    this.els.qtyInput.focus();
-                } else {
-                    this.state.quantity = pkg.quantity;
-                    this.els.qtyWrapper.classList.add('hidden');
-                }
-            } else {
+            
+            if (this.state.packageId === 'ALL') {
                 this.state.price = 0;
                 this.state.quantity = 0;
                 this.els.qtyWrapper.classList.add('hidden');
+            } else {
+                const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
+                if (pkg) {
+                    this.state.price = pkg.price;
+                    if (pkg.requiresCustomQuantity) {
+                        this.state.quantity = 0;
+                        this.els.qtyWrapper.classList.remove('hidden');
+                        this.els.qtyInput.value = '';
+                        this.els.qtyInput.focus();
+                    } else {
+                        this.state.quantity = pkg.quantity;
+                        this.els.qtyWrapper.classList.add('hidden');
+                    }
+                } else {
+                    this.state.price = 0;
+                    this.state.quantity = 0;
+                    this.els.qtyWrapper.classList.add('hidden');
+                }
             }
             this.recalc();
             this.updatePreview();
@@ -272,6 +299,7 @@ class QuoteManager {
         this.els.packageSel.disabled = false;
         const pkgs = PricingEngine.getPackages(this.state.service);
         let html = '<option value="">Chọn gói dịch vụ...</option>';
+        html += '<option value="ALL" style="color: #3b82f6; font-weight: bold;">✨ TẤT CẢ CÁC GÓI (Báo giá tổng hợp)</option>';
         pkgs.forEach(p => {
             html += `<option value="${p.id}">${p.name}</option>`;
         });
@@ -283,13 +311,20 @@ class QuoteManager {
     }
 
     recalc() {
-        this.state.total = PricingEngine.calculateTotal(this.state.price, this.state.quantity);
-        this.els.priceDisplay.value = QuoteUtils.formatCurrency(this.state.price);
-        this.els.totalDisplay.value = QuoteUtils.formatCurrency(this.state.total);
+        if (this.state.packageId === 'ALL') {
+            this.state.total = 0;
+            this.els.priceDisplay.value = "Theo bảng giá";
+            this.els.totalDisplay.value = "Xem chi tiết";
+        } else {
+            this.state.total = PricingEngine.calculateTotal(this.state.price, this.state.quantity);
+            this.els.priceDisplay.value = QuoteUtils.formatCurrency(this.state.price);
+            this.els.totalDisplay.value = QuoteUtils.formatCurrency(this.state.total);
+        }
         
-        let isValid = this.state.service && this.state.packageId && this.state.quantity > 0;
-        if (this.state.packageId === 'CA2-eiextra' && this.state.quantity < 10000) {
-            isValid = false; // requires > 10000
+        let isValid = this.state.service && this.state.packageId;
+        if (this.state.packageId !== 'ALL') {
+            if (this.state.quantity <= 0) isValid = false;
+            if (this.state.packageId === 'CA2-eiextra' && this.state.quantity < 10000) isValid = false;
         }
 
         this.els.btnImg.disabled = !isValid;
@@ -321,12 +356,34 @@ class QuoteManager {
         document.getElementById('pv-title').innerText = `BÁO GIÁ ${serviceMap[this.state.service] || 'DỊCH VỤ'}`;
         document.getElementById('pv-subtitle').innerText = (this.state.service === 'Hóa đơn điện tử') ? 'CA2 - EINVOICE' : '';
 
-        const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
-        document.getElementById('pv-pkg-name').innerText = pkg ? pkg.name : '-';
-        document.getElementById('pv-pkg-qty').innerText = this.state.quantity > 0 ? QuoteUtils.formatCurrency(this.state.quantity) : '-';
-        document.getElementById('pv-pkg-price').innerText = this.state.price > 0 ? QuoteUtils.formatCurrency(this.state.price) : '-';
-        document.getElementById('pv-pkg-total').innerText = this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '-';
-        document.getElementById('pv-final-total').innerText = this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '0';
+        const tbody = document.getElementById('quote-preview-body');
+        if (!tbody) return;
+
+        if (this.state.packageId === 'ALL') {
+            const pkgs = PricingEngine.getPackages(this.state.service);
+            let html = '';
+            pkgs.forEach(pkg => {
+                html += `
+                <tr class="hover:bg-gray-50 border-b border-gray-100">
+                    <td class="border border-gray-300 px-3 py-2 text-left font-medium">${pkg.name}</td>
+                    <td class="border border-gray-300 px-3 py-2 text-center">${pkg.quantity || 1}</td>
+                    <td class="border border-gray-300 px-3 py-2 text-right">${QuoteUtils.formatCurrency(pkg.price)}</td>
+                    <td class="border border-gray-300 px-3 py-2 text-right font-medium text-blue-600">${QuoteUtils.formatCurrency(pkg.price * (pkg.quantity || 1))}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('pv-final-total').innerText = 'Theo bảng giá';
+        } else {
+            const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
+            tbody.innerHTML = `
+            <tr class="hover:bg-gray-50">
+                <td class="border border-gray-300 px-3 py-2 text-left font-medium">${pkg ? pkg.name : '-'}</td>
+                <td class="border border-gray-300 px-3 py-2 text-center">${this.state.quantity > 0 ? QuoteUtils.formatCurrency(this.state.quantity) : '-'}</td>
+                <td class="border border-gray-300 px-3 py-2 text-right">${this.state.price > 0 ? QuoteUtils.formatCurrency(this.state.price) : '-'}</td>
+                <td class="border border-gray-300 px-3 py-2 text-right font-medium">${this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '-'}</td>
+            </tr>`;
+            document.getElementById('pv-final-total').innerText = this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '0';
+        }
     }
 
     // --- API LIST MANAGEMENT ---
