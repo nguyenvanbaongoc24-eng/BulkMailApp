@@ -1103,35 +1103,7 @@ app.get('/api/campaigns', authenticate, async (req, res) => {
     res.json(data);
 });
 
-// DEBUG ENDPOINT FOR CAMPAIGNS
-app.get('/api/debug-campaign/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { data: campaign, error } = await adminClient.from('campaigns').select('*').eq('id', id).single();
-        if (error) throw error;
-        res.json({
-            id: campaign.id,
-            template: campaign.template,
-            first_recipient: campaign.recipients ? campaign.recipients[0] : null,
-            total_recipients: campaign.recipients ? campaign.recipients.length : 0
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
-app.post('/api/debug-reset-worker', async (req, res) => {
-    try {
-        const { error } = await adminClient
-            .from('email_logs')
-            .update({ status: 'pending', error_message: 'Manual reset by AI' })
-            .eq('status', 'processing');
-        if (error) throw error;
-        res.json({ success: true, message: 'All processing tasks reset to pending' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 app.post('/api/campaigns', authenticate, async (req, res) => {
     const campaignId = Date.now().toString();
@@ -1363,21 +1335,6 @@ app.get('/api/stats', authenticate, async (req, res) => {
     res.json(stats);
 });
 
-// --- CA2 CRM ROUTES ---
-app.get('/api/ca2-crm', authenticate, async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('user_id', req.user.id)
-            .order('expired_date', { ascending: true });
-        
-        if (error) throw error;
-        res.json({ data });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 app.post('/api/ca2-crm', authenticate, async (req, res) => {
     try {
