@@ -619,14 +619,14 @@
 
 
             <!-- Quotations View (Management Page) -->
-            <div id="view-quotations" class="hidden space-y-10 animate-in fade-in duration-500 pb-20 relative z-10">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-20">
+            <div id="view-quotations" class="hidden space-y-10 animate-in fade-in duration-500 pb-20 relative z-10 pointer-events-auto">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-50">
                     <div>
                         <h2 class="text-4xl font-black text-white tracking-tight">Quản lý <span class="text-orange-gradient">Báo giá</span></h2>
                         <p class="text-gray-400 mt-2 font-medium italic">Theo dõi, xuất file và quản lý các báo giá dịch vụ đã gửi</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button onclick="console.log('DEBUG: TẠO BÁO GIÁ CLICKED'); openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">
+                        <button onclick="console.log('[DEBUG] CLICK OK - Creating Quotation...'); openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all relative z-[60]">
                             <i class="fas fa-plus"></i>
                             TẠO BÁO GIÁ MỚI
                         </button>

@@ -337,7 +337,8 @@ class QuoteManager {
         if (!listContainer) return;
 
         this.state.isLoading = true;
-        console.log('[QuoteManager] Loading quotations list...');
+        console.log('[DEBUG] loading: true (loadList starting)');
+        console.log('[DEBUG] render component (Quotation List - Loading state)');
 
         // Show loading state (Skeleton-like placeholder)
         listContainer.innerHTML = `
@@ -352,7 +353,16 @@ class QuoteManager {
         `;
 
         try {
-            // 15s Timeout protection
+            // 5s Safety Fallback (Requirement #1)
+            const safetyTimeout = setTimeout(() => {
+                if (this.state.isLoading) {
+                    console.warn('[DEBUG] Safety Timeout triggered after 5s. Forcing loading = false.');
+                    this.state.isLoading = false;
+                    this.renderError('Kết nối chậm. Vui lòng Tải lại.');
+                }
+            }, 5000);
+
+            // 15s API Timeout protection
             const timeoutPromise = new Promise((_, reject) => 
                 setTimeout(() => reject(new Error('Kết nối quá hạn (Timeout). Vui lòng thử lại.')), 15000)
             );
@@ -362,6 +372,7 @@ class QuoteManager {
                 timeoutPromise
             ]);
 
+            clearTimeout(safetyTimeout);
             if (!res.ok) throw new Error(`Lỗi máy chủ: ${res.status}`);
             
             const data = await res.json();
@@ -373,11 +384,12 @@ class QuoteManager {
             this.renderError(e.message);
         } finally {
             this.state.isLoading = false;
-            console.log('[QuoteManager] Loading finished (isLoading: false)');
+            console.log('[DEBUG] loading: false (loadList finished)');
         }
     }
 
     renderError(msg) {
+        console.log('[DEBUG] render component (Quotation List - Error State):', msg);
         const list = document.getElementById('quotation-list');
         if (!list) return;
         list.innerHTML = `
@@ -391,8 +403,8 @@ class QuoteManager {
                             <p class="text-white font-black">KHÔNG THỂ TẢI DỮ LIỆU</p>
                             <p class="text-xs text-gray-500">${msg}</p>
                         </div>
-                        <button onclick="window.quoteManagerInstance.loadList()" class="mt-4 px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-bold transition-all">
-                            THỬ LẠI
+                        <button onclick="window.quoteManagerInstance.loadList(); console.log('[DEBUG] RELOAD CLICKED')" class="mt-4 px-8 py-3 bg-white/5 hover:bg-orange-500 hover:text-white border border-white/10 rounded-2xl text-xs font-black transition-all shadow-xl">
+                            TẢI LẠI DANH SÁCH (RELOAD)
                         </button>
                     </div>
                 </td>

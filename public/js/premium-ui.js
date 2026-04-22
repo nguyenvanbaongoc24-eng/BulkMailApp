@@ -57,7 +57,9 @@
     }
 
     // ----------------------------------------------------------
-    // 3. MODAL OPEN/CLOSE ANIMATION ENHANCER
+    // 3. MODAL OPEN/CLOSE LOGIC (Robust Visibility)
+    //    Removed requestAnimationFrame opacity logic to prevent 
+    //    invisible blocking layers if animations hang.
     // ----------------------------------------------------------
     const modalObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -66,11 +68,12 @@
                 if (el.id && el.id.startsWith('modal-')) {
                     const isVisible = !el.classList.contains('hidden');
                     if (isVisible) {
-                        el.style.opacity = '0';
-                        requestAnimationFrame(() => {
-                            el.style.transition = `opacity ${DS_DURATION}ms ${DS_EASE}`;
-                            el.style.opacity = '1';
-                        });
+                        console.log(`[DEBUG] render component (Modal Open: ${el.id})`);
+                        el.style.opacity = '1';
+                        el.style.pointerEvents = 'auto';
+                        el.style.visibility = 'visible';
+                    } else {
+                        el.style.pointerEvents = 'none';
                     }
                 }
             }
@@ -299,8 +302,8 @@
         addEvents() {
             this.trigger.addEventListener('click', (e) => {
                 try {
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
+                    // e.stopPropagation(); // REMOVED (Requirement #10): Allow event to bubble if needed
+                    // e.stopImmediatePropagation();
                     if (this.wrapper.classList.contains('open')) this.close();
                     else this.open();
                 } catch (err) {
