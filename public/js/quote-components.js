@@ -136,11 +136,18 @@ class QuoteManager {
     }
 
     populateServices() {
+        console.log('[QuoteManager] Populating services...');
         const services = PricingEngine.getServices();
-        this.els.serviceSel.innerHTML = '<option value="">Chọn dịch vụ...</option>';
+        let html = '<option value="">Chọn dịch vụ...</option>';
         services.forEach(s => {
-            this.els.serviceSel.innerHTML += \`<option value="\${s}">\${s}</option>\`;
+            html += `<option value="${s}">${s}</option>`;
         });
+        this.els.serviceSel.innerHTML = html;
+        
+        // Force sync custom select UI if present
+        if (window.refreshCustomSelects) {
+            window.refreshCustomSelects();
+        }
     }
 
     bindEvents() {
@@ -208,17 +215,25 @@ class QuoteManager {
     }
 
     updatePackageOptions() {
+        console.log('[QuoteManager] Updating packages for:', this.state.service);
         if (!this.state.service) {
             this.els.packageSel.innerHTML = '<option value="">-- Trước tiên chọn dịch vụ --</option>';
             this.els.packageSel.disabled = true;
+            if (window.refreshCustomSelects) window.refreshCustomSelects();
             return;
         }
         this.els.packageSel.disabled = false;
         const pkgs = PricingEngine.getPackages(this.state.service);
-        this.els.packageSel.innerHTML = '<option value="">Chọn gói dịch vụ...</option>';
+        let html = '<option value="">Chọn gói dịch vụ...</option>';
         pkgs.forEach(p => {
-            this.els.packageSel.innerHTML += \`<option value="\${p.id}">\${p.name}</option>\`;
+            html += `<option value="${p.id}">${p.name}</option>`;
         });
+        this.els.packageSel.innerHTML = html;
+
+        // Force sync custom select UI
+        if (window.refreshCustomSelects) {
+            window.refreshCustomSelects();
+        }
     }
 
     recalc() {

@@ -226,10 +226,14 @@
         }
 
         setupOptions() {
+            if (!this.select) return;
+            const options = Array.from(this.select.options);
+            console.log(`[PremiumSelect] Syncing ${options.length} options for`, this.select.id || this.select.name);
+            
             this.menu.innerHTML = '';
             let selectedText = '';
-
-            Array.from(this.select.options).forEach((option) => {
+            
+            options.forEach((option) => {
                 const item = document.createElement('div');
                 item.className = 'custom-select-option';
                 if (option.selected) {
