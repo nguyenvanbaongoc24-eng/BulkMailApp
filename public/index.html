@@ -206,7 +206,23 @@
             z-index: 50;
         }
 
-        /* Premium Modal Styles */
+        /* Aggressive Interactivity Overrides (Requirement #1) */
+        #view-quotations {
+            pointer-events: auto !important;
+            z-index: 100 !important;
+            opacity: 1 !important;
+            display: block !important; /* Force visibility when not using .hidden */
+        }
+        #view-quotations.hidden {
+            display: none !important;
+        }
+        #view-quotations * {
+            pointer-events: auto !important;
+        }
+        .quotation-btn-elevated {
+            z-index: 9999 !important;
+            position: relative !important;
+        }
         .modal-premium {
             background: var(--glass-bg);
             backdrop-filter: blur(32px);
@@ -625,8 +641,8 @@
                         <h2 class="text-4xl font-black text-white tracking-tight">Quản lý <span class="text-orange-gradient">Báo giá</span></h2>
                         <p class="text-gray-400 mt-2 font-medium italic">Theo dõi, xuất file và quản lý các báo giá dịch vụ đã gửi</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button onclick="console.log('[DEBUG] CLICK OK - Creating Quotation...'); openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all relative z-[60]">
+                    <div class="flex items-center gap-3 relative z-[100]">
+                        <button onclick="console.log('[FORCE-LOG] Button Clicked!'); openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all quotation-btn-elevated">
                             <i class="fas fa-plus"></i>
                             TẠO BÁO GIÁ MỚI
                         </button>
@@ -2340,6 +2356,20 @@
     <script src="js/app.js?v=1.2.0"></script>
     <script src="js/seo.js?v=1.1.0"></script>
     <script src="js/premium-ui.js?v=2.0.0"></script>
+    <script>
+        // Global Emergency Monitor
+        window.onerror = function(msg, url, line) {
+            if (url.includes('quote') || url.includes('app')) {
+                console.error('[CRITICAL-MONITOR] Exception caught:', msg, 'at', url, ':', line);
+                // Try to recover if it's a quotation list hang
+                if (window.quoteManagerInstance) {
+                    window.quoteManagerInstance.state.isLoading = false;
+                }
+            }
+            return false;
+        };
+        console.log('[FORCE-LOG] Interaction safety monitor active.');
+    </script>
 </body>
 </html>
 

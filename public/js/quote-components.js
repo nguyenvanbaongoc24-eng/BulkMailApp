@@ -341,6 +341,7 @@ class QuoteManager {
         console.log('[DEBUG] render component (Quotation List - Loading state)');
 
         // Show loading state (Skeleton-like placeholder)
+        console.log('[FORCE-LOG] Injecting spinner into quotation-list');
         listContainer.innerHTML = `
             <tr>
                 <td colspan="6" class="px-8 py-20 text-center pointer-events-none">
@@ -578,19 +579,23 @@ class QuoteManager {
 window.QuoteGenerator = QuoteGenerator;
 
 window.openCreateQuotationModal = function() {
-    console.log('[DEBUG] openCreateQuotationModal CLICKED');
+    console.log('[FORCE-LOG] openCreateQuotationModal CALLED');
     const modal = document.getElementById('modal-quotation');
     if (modal) {
         modal.classList.remove('hidden');
+        modal.style.display = 'flex'; // FORCE
+        modal.style.opacity = '1';    // FORCE
+        modal.style.pointerEvents = 'auto'; // FORCE
+        console.log('[FORCE-LOG] Modal DOM classes modified.');
         if (!window.quoteManagerInstance) {
             try {
                 window.quoteManagerInstance = new QuoteManager();
             } catch (err) {
-                console.error('[QuoteManager] Global Initialization Crash:', err);
+                console.error('[FORCE-LOG] QuoteManager Init Crash:', err);
             }
         }
     } else {
-        console.error('Modal quotation not found!');
+        console.error('[FORCE-LOG] Modal quotation NOT FOUND in DOM!');
     }
 }
 

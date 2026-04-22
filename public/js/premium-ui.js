@@ -49,6 +49,12 @@
 
             const view = document.getElementById(`view-${pageId}`);
             if (view) {
+                // FORCE: Bypass animation for quotations to prevent hangs (Requirement #1)
+                if (pageId === 'quotations') {
+                    view.classList.remove('page-enter', 'hidden');
+                    console.log('[FORCE-LOG] Animation bypassed for quotations view.');
+                    return;
+                }
                 view.classList.remove('page-enter');
                 void view.offsetWidth; // Force reflow
                 view.classList.add('page-enter');

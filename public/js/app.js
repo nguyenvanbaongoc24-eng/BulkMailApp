@@ -566,7 +566,9 @@ function showPage(pageId) {
         'seo-image': 'Tạo Ảnh AI',
         'seo-posts': 'Kho Lưu Trữ SEO',
         'lookup-tools': 'Cổng Tra Cứu Nghiệp Vụ',
-        'settings': 'Cài đặt hệ thống'
+        'settings': 'Cài đặt hệ thống',
+        'quotations': 'Hợp đồng & Báo giá',
+        'documents': 'Kho Tài liệu Sales'
     };
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
@@ -575,8 +577,14 @@ function showPage(pageId) {
     if (pageId === 'ca2-crm') loadCA2CRMData();
     if (pageId === 'dashboard') { loadDashboardStats(); loadRecentCampaigns(); }
     if (pageId === 'quotations') {
+        console.log('[FORCE-LOG] Entering Quotations view. Manager status:', !!window.quoteManagerInstance);
         if (!window.quoteManagerInstance) {
-            window.quoteManagerInstance = new QuoteManager();
+            try {
+                window.quoteManagerInstance = new QuoteManager();
+                console.log('[FORCE-LOG] New QuoteManager instance created.');
+            } catch (err) {
+                console.error('[FORCE-LOG] CRITICAL: Failed to create QuoteManager:', err);
+            }
         } else {
             window.quoteManagerInstance.loadList();
         }
