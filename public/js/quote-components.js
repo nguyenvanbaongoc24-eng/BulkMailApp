@@ -115,6 +115,13 @@ class QuoteManager {
     }
 
     init() {
+        // Essential Elements for Management Page
+        const listEl = document.getElementById('quotation-list');
+        if (listEl) {
+            this.loadList();
+        }
+
+        // Essential Elements for Creation Modal
         this.els = {
             serviceSel: document.getElementById('quote-service-sel'),
             packageSel: document.getElementById('quote-package-sel'),
@@ -127,16 +134,17 @@ class QuoteManager {
             priceDisplay: document.getElementById('quote-price-display'),
             totalDisplay: document.getElementById('quote-total-display'),
             btnImg: document.getElementById('btn-export-img'),
-            btnWord: document.getElementById('btn-export-word')
+            btnWord: document.getElementById('btn-export-word'),
+            btnSave: document.getElementById('btn-save-quote') // Added ID in index.html later if needed
         };
         
-        if (!this.els.serviceSel) return;
-        this.populateServices();
-        this.bindEvents();
-        this.recalc();
-        // Initial list load if on management page
-        if (document.getElementById('quotation-list')) {
-            this.loadList();
+        // Only bind events if the modal selects are present
+        if (this.els.serviceSel && this.els.packageSel) {
+            this.populateServices();
+            this.bindEvents();
+            this.recalc();
+        } else {
+            console.warn('[QuoteManager] Creation Modal elements not fully found. Modal features may be limited.');
         }
     }
 
@@ -312,59 +320,115 @@ class QuoteManager {
 
     // --- API LIST MANAGEMENT ---
     async loadList() {
+        const listContainer = document.getElementById('quotation-list');
+        if (!listContainer) return;
+
+        // Show loading state
+        listContainer.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-8 py-20 text-center">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin"></div>
+                        <p class="text-gray-500 font-bold italic text-sm">Đang tải danh sách báo giá...</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+
         try {
+            if (typeof authedFetch === 'undefined') {
+                throw new Error('Hệ thống chưa sẵn sàng (authedFetch missing)');
+            }
+
             const res = await authedFetch('/api/quotations');
-            this.state.quotations = await res.json();
+            if (!res.ok) throw new Error(`Lỗi máy chủ: ${res.status}`);
+            
+            const data = await res.json();
+            this.state.quotations = Array.isArray(data) ? data : [];
             this.renderList();
         } catch (e) {
             console.error('Load Quotations Error:', e);
+            this.renderError(e.message);
         }
+    }
+
+    renderError(msg) {
+        const list = document.getElementById('quotation-list');
+        if (!list) return;
+        list.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-8 py-20 text-center">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-white font-black">KHÔNG THỂ TẢI DỮ LIỆU</p>
+                            <p class="text-xs text-gray-500">${msg}</p>
+                        </div>
+                        <button onclick="window.quoteManagerInstance.loadList()" class="mt-4 px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-bold transition-all">
+                            THỬ LẠI
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
     }
 
     renderList() {
         const list = document.getElementById('quotation-list');
         if (!list) return;
 
-        const search = (document.getElementById('quotation-search')?.value || '').toLowerCase();
-        const filtered = this.state.quotations.filter(q => 
-            (q.customer_name || '').toLowerCase().includes(search) || 
-            (q.mst && q.mst.includes(search))
-        );
+        try {
+            const search = (document.getElementById('quotation-search')?.value || '').toLowerCase();
+            const filtered = (this.state.quotations || []).filter(q => 
+                (q.customer_name || '').toLowerCase().includes(search) || 
+                (q.mst && q.mst.includes(search))
+            );
 
-        if (filtered.length === 0) {
-            list.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center text-gray-500 italic font-medium">Chưa có báo giá nào được tạo.</td></tr>`;
-            return;
+            if (filtered.length === 0) {
+                list.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center text-gray-500 italic font-medium">Chưa có báo giá nào phù hợp.</td></tr>`;
+                return;
+            }
+
+            list.innerHTML = filtered.map(q => {
+                const price = q.price || 0;
+                const date = q.created_at ? new Date(q.created_at).toLocaleDateString('vi-VN') : 'N/A';
+                
+                return `
+                    <tr class="hover:bg-white/2 transition-colors border-b border-white/5">
+                        <td class="px-8 py-6">
+                            <p class="text-sm font-bold text-white">${q.customer_name || 'N/A'}</p>
+                            <p class="text-[10px] text-gray-500 font-mono tracking-widest">${q.mst || 'KHÔNG CÓ MST'}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">${q.service || 'Dịch vụ'}</span>
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(price)}</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase">VNĐ</p>
+                        </td>
+                        <td class="px-8 py-6 text-center text-xs text-gray-400 font-medium">${date}</td>
+                        <td class="px-8 py-6 text-center">
+                            ${q.file_url ? 
+                                `<span class="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full border border-green-500/20"><i class="fas fa-check mr-1"></i> HOÀN TẤT</span>` : 
+                                `<span class="px-3 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20 animate-pulse"><i class="fas fa-clock mr-1"></i> ĐANG CHỜ</span>`
+                            }
+                        </td>
+                        <td class="px-8 py-6 text-right space-x-2">
+                            ${q.file_url ? 
+                                `<a href="${q.file_url}" target="_blank" class="w-10 h-10 inline-flex items-center justify-center bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all" title="Xem file"><i class="fas fa-external-link-alt text-xs"></i></a>` : 
+                                `<button onclick="window.quoteManagerInstance.generateFile('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl transition-all" title="Xuất File"><i class="fas fa-file-export text-xs"></i></button>`
+                            }
+                            <button onclick="window.quoteManagerInstance.deleteQuote('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error('Render List Error:', err);
+            this.renderError('Lỗi hiển thị danh sách');
         }
-
-        list.innerHTML = filtered.map(q => `
-            <tr class="hover:bg-white/2 transition-colors border-b border-white/5">
-                <td class="px-8 py-6">
-                    <p class="text-sm font-bold text-white">${q.customer_name}</p>
-                    <p class="text-[10px] text-gray-500 font-mono tracking-widest">${q.mst || 'KHÔNG CÓ MST'}</p>
-                </td>
-                <td class="px-8 py-6">
-                    <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">${q.service}</span>
-                </td>
-                <td class="px-8 py-6 text-right">
-                    <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(q.price)}</p>
-                    <p class="text-[10px] text-gray-500 font-bold uppercase">VNĐ</p>
-                </td>
-                <td class="px-8 py-6 text-center text-xs text-gray-400 font-medium">${new Date(q.created_at).toLocaleDateString('vi-VN')}</td>
-                <td class="px-8 py-6 text-center">
-                    ${q.file_url ? 
-                        `<span class="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full border border-green-500/20"><i class="fas fa-check mr-1"></i> HOÀN TẤT</span>` : 
-                        `<span class="px-3 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20 animate-pulse"><i class="fas fa-clock mr-1"></i> ĐANG CHỜ</span>`
-                    }
-                </td>
-                <td class="px-8 py-6 text-right space-x-2">
-                    ${q.file_url ? 
-                        `<a href="${q.file_url}" target="_blank" class="w-10 h-10 inline-flex items-center justify-center bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all" title="Xem file"><i class="fas fa-external-link-alt text-xs"></i></a>` : 
-                        `<button onclick="window.quoteManagerInstance.generateFile('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl transition-all" title="Xuất File"><i class="fas fa-file-export text-xs"></i></button>`
-                    }
-                    <button onclick="window.quoteManagerInstance.deleteQuote('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
-                </td>
-            </tr>
-        `).join('');
     }
 
     async save() {

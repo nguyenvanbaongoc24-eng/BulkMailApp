@@ -577,8 +577,9 @@ function showPage(pageId) {
     if (pageId === 'quotations') {
         if (!window.quoteManagerInstance) {
             window.quoteManagerInstance = new QuoteManager();
+        } else {
+            window.quoteManagerInstance.loadList();
         }
-        window.quoteManagerInstance.loadList();
     }
     if (pageId === 'documents') loadDocuments();
     if (pageId === 'senders') loadSenders();
