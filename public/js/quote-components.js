@@ -318,7 +318,7 @@ class QuoteManager {
             'Chữ ký số': 'CHỮ KÝ SỐ CHUYÊN DÙNG CA2',
             'Bảo hiểm EBH': 'PHẦN MỀM BẢO HIỂM EBH'
         };
-        document.getElementById('pv-title').innerText = \`BÁO GIÁ \${serviceMap[this.state.service] || 'DỊCH VỤ'}\`;
+        document.getElementById('pv-title').innerText = `BÁO GIÁ ${serviceMap[this.state.service] || 'DỊCH VỤ'}`;
         document.getElementById('pv-subtitle').innerText = (this.state.service === 'Hóa đơn điện tử') ? 'CA2 - EINVOICE' : '';
 
         const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);

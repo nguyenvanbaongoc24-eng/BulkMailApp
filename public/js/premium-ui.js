@@ -14,9 +14,9 @@
     // ----------------------------------------------------------
     // 1. RIPPLE EFFECT ON BUTTONS (refined, lighter)
     // ----------------------------------------------------------
-    function createRipple(e) {
-        const btn = e.currentTarget;
-        if (!btn || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
+    function createRipple(e, target) {
+        const btn = target || e.currentTarget;
+        if (!btn || !btn.tagName || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
 
         const existingRipple = btn.querySelector('.ripple-effect');
         if (existingRipple) existingRipple.remove();
@@ -35,7 +35,7 @@
 
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('button, [role="button"], a[onclick]');
-        if (btn) createRipple(e);
+        if (btn) createRipple(e, btn);
     });
 
     // ----------------------------------------------------------
