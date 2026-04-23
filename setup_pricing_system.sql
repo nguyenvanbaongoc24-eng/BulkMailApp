@@ -108,5 +108,28 @@ BEGIN
     INSERT INTO pricing_items (version_id, service_id, duration, price) VALUES 
     (version_id, service_id, '300 số', 800000),
     (version_id, service_id, '500 số', 925000),
-    (version_id, service_id, '1000 số', 1175000);
+    (version_id, service_id, '1000 số', 1175000),
+    (version_id, service_id, '2000 số', 1675000),
+    (version_id, service_id, '3000 số', 2175000),
+    (version_id, service_id, '5000 số', 2825000),
+    (version_id, service_id, '10000 số', 3825000);
+
+    -- Add items for Remote Signing (Company)
+    SELECT id INTO service_id FROM pricing_services WHERE name = 'Remote Signing' AND category_id = company_id;
+    INSERT INTO pricing_items (version_id, service_id, duration, price) VALUES 
+    (version_id, service_id, '1 năm', 1800000),
+    (version_id, service_id, '2 năm', 2700000),
+    (version_id, service_id, '3 năm', 3100000),
+    (version_id, service_id, '1000 lượt', 990000),
+    (version_id, service_id, '2000 lượt', 1800000),
+    (version_id, service_id, '5000 lượt', 4000000);
+
+    SELECT id INTO individual_id FROM service_categories WHERE name = 'Cá nhân/HKD';
+
+    -- Add items for Remote Signing (Individual)
+    SELECT id INTO service_id FROM pricing_services WHERE name = 'Remote Signing' AND category_id = individual_id;
+    INSERT INTO pricing_items (version_id, service_id, duration, price) VALUES 
+    (version_id, service_id, '1 năm (Cá nhân)', 800000),
+    (version_id, service_id, '2 năm (Cá nhân)', 1500000),
+    (version_id, service_id, '3 năm (Cá nhân)', 2100000);
 END $$;

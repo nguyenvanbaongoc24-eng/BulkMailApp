@@ -2325,36 +2325,94 @@
                     
                     <!-- B. Dịch vụ -->
                     <div class="space-y-4">
-                        <h4 class="text-blue-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2"><i class="fas fa-box-open"></i> B. Dịch vụ & Gói cước</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="label-premium">Dịch vụ</label>
-                                <select id="quote-service-sel" class="w-full h-[46px] bg-white/5 border border-white/10 rounded-2xl text-white px-4 font-bold outline-none focus:border-blue-500 transition-all cursor-pointer">
-                                    <!-- Dynamic -->
-                                </select>
-                            </div>
-                            <div>
-                                <label class="label-premium">Gói dịch vụ</label>
-                                <select disabled id="quote-package-sel" class="w-full h-[46px] bg-white/5 border border-white/10 rounded-2xl text-white px-4 font-bold outline-none focus:border-blue-500 transition-all cursor-pointer disabled:opacity-50">
-                                    <option value="">-- Trước tiên chọn dịch vụ --</option>
-                                </select>
-                            </div>
-                            <div class="col-span-2 hidden" id="quote-qty-wrapper">
-                                <label class="label-premium text-red-500">Nhập số lượng (Yêu cầu &ge; 10000)</label>
-                                <div class="input-group-premium">
-                                    <input type="number" id="quote-custom-qty" placeholder="VD: 15000" class="input-premium font-bold text-white transition-all">
-                                </div>
-                            </div>
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-blue-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2"><i class="fas fa-box-open"></i> B. Danh sách dịch vụ</h4>
+                            <button id="btn-show-add-service" onclick="window.quoteManagerInstance.showAddForm()" class="px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg text-xs font-bold transition-all"><i class="fas fa-plus mr-1"></i> Thêm dịch vụ</button>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-4 mt-6">
-                            <div>
-                                <label class="label-premium text-gray-400">Đơn giá / Trọn gói</label>
-                                <input type="text" id="quote-price-display" readonly class="w-full h-[46px] bg-black/20 border-b border-gray-600 outline-none text-gray-400 font-bold px-4 cursor-not-allowed">
+                        <!-- Table of items -->
+                        <div class="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                            <table class="w-full text-left text-sm text-gray-300">
+                                <thead class="bg-white/5 text-xs uppercase font-bold text-gray-400">
+                                    <tr>
+                                        <th class="px-4 py-3">Dịch vụ</th>
+                                        <th class="px-4 py-3">Gói/Thời hạn</th>
+                                        <th class="px-4 py-3 text-right">Giá</th>
+                                        <th class="px-4 py-3 text-center">SL</th>
+                                        <th class="px-4 py-3 text-right">Tổng</th>
+                                        <th class="px-4 py-3 text-center w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quote-items-table" class="divide-y divide-white/5">
+                                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500 italic">Chưa có dịch vụ nào</td></tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-emerald-500/10">
+                                        <td colspan="4" class="px-4 py-3 text-right font-bold text-emerald-500">TỔNG CỘNG:</td>
+                                        <td colspan="2" id="quote-total-sum" class="px-4 py-3 text-right font-black text-emerald-400 text-lg">0 đ</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Inline Form Thêm Dịch Vụ (Hidden by default) -->
+                        <div id="quote-add-item-form" class="hidden bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4 relative mt-2">
+                            <button id="btn-close-add-service" onclick="window.quoteManagerInstance.hideAddForm()" class="absolute top-4 right-4 text-gray-500 hover:text-red-400"><i class="fas fa-times"></i></button>
+                            <h5 class="text-white font-bold text-sm mb-2">Thêm dịch vụ mới</h5>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label-premium">Dịch vụ</label>
+                                    <select id="quote-service-sel" class="w-full h-[40px] bg-black/40 border border-white/10 rounded-xl text-white px-3 text-sm font-medium outline-none focus:border-blue-500 transition-all">
+                                        <!-- Dynamic -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="label-premium">Loại (Variant)</label>
+                                    <select id="quote-variant-sel" class="w-full h-[40px] bg-black/40 border border-white/10 rounded-xl text-white px-3 text-sm font-medium outline-none focus:border-blue-500 transition-all disabled:opacity-50">
+                                        <option value="Cấp mới">Cấp mới</option>
+                                        <option value="Gia hạn">Gia hạn</option>
+                                        <option value="Chuyển đổi">Chuyển đổi</option>
+                                    </select>
+                                </div>
+                                <div id="quote-model-wrapper" class="hidden col-span-2">
+                                    <label class="label-premium">Hình thức (Model)</label>
+                                    <select id="quote-model-sel" class="w-full h-[40px] bg-black/40 border border-white/10 rounded-xl text-white px-3 text-sm font-medium outline-none focus:border-blue-500 transition-all">
+                                        <option value="TIME">Theo thời gian</option>
+                                        <option value="USAGE">Theo lượt ký / Số lượng</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-2" id="quote-duration-wrapper">
+                                    <label class="label-premium" id="quote-duration-label">Gói cước / Thời hạn</label>
+                                    <select id="quote-package-sel" class="w-full h-[40px] bg-black/40 border border-white/10 rounded-xl text-white px-3 text-sm font-medium outline-none focus:border-blue-500 transition-all disabled:opacity-50">
+                                        <option value="">-- Chọn --</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-2 hidden" id="quote-qty-wrapper">
+                                    <label class="label-premium text-red-500">Nhập số lượng (Tuỳ chỉnh)</label>
+                                    <input type="number" id="quote-custom-qty-old" placeholder="VD: 15000" class="w-full h-[40px] bg-black/40 border border-red-500/50 rounded-xl text-white px-3 text-sm font-medium outline-none focus:border-red-500 transition-all">
+                                </div>
+                                
+                                <div class="col-span-2 mt-2 pt-4 border-t border-white/5 grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="label-premium">Số lượng</label>
+                                        <input type="number" id="quote-item-qty" value="1" min="1" class="w-full h-[40px] bg-black/40 border border-white/10 rounded-xl text-white px-3 text-sm font-medium outline-none focus:border-blue-500 transition-all text-center">
+                                    </div>
+                                    <div>
+                                        <label class="label-premium text-gray-400">Đơn giá (Có thể sửa)</label>
+                                        <input type="text" id="quote-price-display" class="w-full h-[40px] bg-black/20 border-b border-gray-600 outline-none text-gray-400 font-bold px-3 text-sm transition-all focus:border-blue-500 focus:text-white text-right" placeholder="0">
+                                    </div>
+                                    <div>
+                                        <label class="label-premium text-emerald-400">Thành tiền</label>
+                                        <input type="text" id="quote-item-total" readonly class="w-full h-[40px] bg-emerald-500/10 border border-emerald-500/30 rounded-xl outline-none text-emerald-400 font-bold px-3 text-sm text-right cursor-not-allowed">
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label class="label-premium text-emerald-400">Thành tiền (VNĐ)</label>
-                                <input type="text" id="quote-total-display" readonly class="w-full h-[46px] bg-emerald-500/10 border border-emerald-500/30 rounded-xl outline-none text-emerald-400 font-black px-4 cursor-not-allowed text-lg text-right">
+                            
+                            <div class="pt-2 flex justify-end">
+                                <button id="btn-add-item-to-list" onclick="window.quoteManagerInstance.addCurrentItem()" disabled class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 text-sm transition-all">
+                                    Xác nhận thêm
+                                </button>
                             </div>
                         </div>
                     </div>

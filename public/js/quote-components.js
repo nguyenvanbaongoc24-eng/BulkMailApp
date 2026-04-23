@@ -40,29 +40,26 @@ class QuoteGenerator {
         const previewEl = document.getElementById('quote-preview-board');
         if (!previewEl) return;
         
-        const service = window.quoteManagerInstance?.state?.service || '';
-        const packageId = window.quoteManagerInstance?.state?.packageId || '';
-        
+        const items = window.quoteManagerInstance?.state?.items || [];
         let rowsHtml = '';
-        if (packageId === 'ALL') {
-            const pkgs = PricingEngine.getPackages(service);
-            pkgs.forEach(pkg => {
+        
+        if (items.length === 0) {
+            rowsHtml = `<tr><td colspan="4" class="text-center">Chưa có dịch vụ nào</td></tr>`;
+        } else {
+            items.forEach((item, index) => {
+                const title = `${item.service} (${item.variant})`;
+                const desc = item.duration;
                 rowsHtml += `
                 <tr>
-                    <td class="text-left">${pkg.name}</td>
-                    <td>${pkg.quantity || 1}</td>
-                    <td class="text-right">${QuoteUtils.formatCurrency(pkg.price)}</td>
-                    <td class="text-right">${QuoteUtils.formatCurrency(pkg.price * (pkg.quantity || 1))}</td>
+                    <td class="text-left">
+                        <strong>${title}</strong><br>
+                        <small>${desc}</small>
+                    </td>
+                    <td>${item.quantity || 1}</td>
+                    <td class="text-right">${QuoteUtils.formatCurrency(item.price)}</td>
+                    <td class="text-right">${QuoteUtils.formatCurrency(item.total)}</td>
                 </tr>`;
             });
-        } else {
-            rowsHtml = `
-            <tr>
-                <td class="text-left">${document.getElementById('pv-table-body').querySelector('tr td:nth-child(1)').innerText}</td>
-                <td>${document.getElementById('pv-table-body').querySelector('tr td:nth-child(2)').innerText}</td>
-                <td class="text-right">${document.getElementById('pv-table-body').querySelector('tr td:nth-child(3)').innerText}</td>
-                <td class="text-right">${document.getElementById('pv-table-body').querySelector('tr td:nth-child(4)').innerText}</td>
-            </tr>`;
         }
 
         const htmlContent = `
@@ -84,17 +81,17 @@ class QuoteGenerator {
         <body>
             <div style="text-align: center; margin-bottom: 20px;">
                 <h1 style="color: #2563eb;">NACENCOMM</h1>
-                <h2>${document.getElementById('pv-title').innerText}</h2>
+                <h2>${document.getElementById('pv-title')?.innerText || 'BÁO GIÁ DỊCH VỤ'}</h2>
             </div>
             <div style="margin-bottom: 20px;">
-                <p><strong>Khách hàng:</strong> ${document.getElementById('pv-company').innerText}</p>
-                <p><strong>Mã số thuế:</strong> ${document.getElementById('pv-mst').innerText}</p>
-                <p><strong>Người nhận:</strong> ${document.getElementById('pv-receiver').innerText}</p>
+                <p><strong>Khách hàng:</strong> ${document.getElementById('pv-company')?.innerText || ''}</p>
+                <p><strong>Mã số thuế:</strong> ${document.getElementById('pv-mst')?.innerText || ''}</p>
+                <p><strong>Người nhận:</strong> ${document.getElementById('pv-receiver')?.innerText || ''}</p>
             </div>
             <table>
                 <thead>
                     <tr>
-                        <th class="text-left">Gói Dịch Vụ</th>
+                        <th class="text-left">Dịch vụ / Gói cước</th>
                         <th>Số lượng</th>
                         <th class="text-right">Đơn giá (VNĐ)</th>
                         <th class="text-right">Thành tiền (VNĐ)</th>
@@ -104,7 +101,7 @@ class QuoteGenerator {
                     ${rowsHtml}
                     <tr class="total-row">
                         <td colspan="3" class="text-right">Tổng cộng (Đã bao gồm VAT):</td>
-                        <td class="text-right brand-color">${document.getElementById('pv-final-total').innerText}</td>
+                        <td class="text-right brand-color">${document.getElementById('pv-final-total')?.innerText || '0'}</td>
                     </tr>
                 </tbody>
             </table>
@@ -129,9 +126,20 @@ class QuoteManager {
         try {
             this.state = {
                 company: '', mst: '', receiver: '', email: '',
-                service: '', packageId: '', quantity: 0, price: 0, total: 0,
+                items: [],
                 quotations: [],
-                isLoading: false
+                isLoading: false,
+                // Add Item Form State
+                currentItem: {
+                    service: '',
+                    variant: 'Cấp mới',
+                    model: 'TIME',
+                    packageId: '',
+                    duration: '',
+                    quantity: 1,
+                    price: 0,
+                    total: 0
+                }
             };
             this.init();
         } catch (err) {
@@ -140,166 +148,153 @@ class QuoteManager {
     }
 
     init() {
-        // Essential Elements for Management Page
         const listEl = document.getElementById('quotation-list');
         if (listEl) {
             this.loadList();
         }
 
-        // Essential Elements for Creation Modal
         this.els = {
-            serviceSel: document.getElementById('quote-service-sel'),
-            packageSel: document.getElementById('quote-package-sel'),
-            qtyInput: document.getElementById('quote-custom-qty'),
-            qtyWrapper: document.getElementById('quote-qty-wrapper'),
             companyInp: document.getElementById('quote-company-inp'),
             mstInp: document.getElementById('quote-mst-inp'),
             receiverInp: document.getElementById('quote-receiver-inp'),
             emailInp: document.getElementById('quote-email-inp'),
-            priceDisplay: document.getElementById('quote-price-display'),
-            totalDisplay: document.getElementById('quote-total-display'),
             btnImg: document.getElementById('btn-export-img'),
             btnWord: document.getElementById('btn-export-word'),
-            btnSave: document.getElementById('btn-save-quote') // Added ID in index.html later if needed
+            btnSave: document.getElementById('btn-save-quote'),
+            
+            // Sub-form els
+            addForm: document.getElementById('quote-add-item-form'),
+            serviceSel: document.getElementById('quote-service-sel'),
+            variantSel: document.getElementById('quote-variant-sel'),
+            modelSel: document.getElementById('quote-model-sel'),
+            modelWrapper: document.getElementById('quote-model-wrapper'),
+            packageSel: document.getElementById('quote-package-sel'),
+            qtyOldWrapper: document.getElementById('quote-qty-wrapper'),
+            qtyInput: document.getElementById('quote-item-qty'),
+            priceDisplay: document.getElementById('quote-price-display'),
+            totalDisplay: document.getElementById('quote-item-total'),
+            btnAddItem: document.getElementById('btn-add-item-to-list'),
+            itemsTableBody: document.getElementById('quote-items-table'),
+            sumTotal: document.getElementById('quote-total-sum')
         };
         
-        // Only bind events if the modal selects are present
-        if (this.els.serviceSel && this.els.packageSel) {
+        if (this.els.serviceSel) {
             this.populateServices();
             this.bindEvents();
-            this.recalc();
-        } else {
-            console.warn('[QuoteManager] Creation Modal elements not fully found. Modal features may be limited.');
+            this.renderItemsTable();
+            this.updatePreview();
         }
     }
 
     populateServices() {
-        console.log('[QuoteManager] Populating services...');
         const services = PricingEngine.getServices();
         let html = '<option value="">Chọn dịch vụ...</option>';
         services.forEach(s => {
             html += `<option value="${s}">${s}</option>`;
         });
         this.els.serviceSel.innerHTML = html;
-        
-        if (typeof window.refreshCustomSelects === 'function') {
-            window.refreshCustomSelects();
-        }
+        if (typeof window.refreshCustomSelects === 'function') window.refreshCustomSelects();
     }
 
     bindEvents() {
-        this.els.serviceSel.addEventListener('change', (e) => {
-            this.state.service = e.target.value;
-            this.updatePackageOptions();
-            this.recalc();
-            this.updatePreview();
-            this.animateDropdown(this.els.packageSel);
-        });
-
-        this.els.packageSel.addEventListener('change', (e) => {
-            this.state.packageId = e.target.value;
-            
-            if (this.state.packageId === 'ALL') {
-                this.state.price = 0;
-                this.state.quantity = 0;
-                this.els.qtyWrapper.classList.add('hidden');
-            } else {
-                const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
-                if (pkg) {
-                    this.state.price = pkg.price;
-                    if (pkg.requiresCustomQuantity) {
-                        this.state.quantity = 0;
-                        this.els.qtyWrapper.classList.remove('hidden');
-                        this.els.qtyInput.value = '';
-                        this.els.qtyInput.focus();
-                    } else {
-                        this.state.quantity = pkg.quantity;
-                        this.els.qtyWrapper.classList.add('hidden');
-                    }
-                } else {
-                    this.state.price = 0;
-                    this.state.quantity = 0;
-                    this.els.qtyWrapper.classList.add('hidden');
-                }
-            }
-            this.recalc();
-            this.updatePreview();
-        });
-
-        this.els.qtyInput.addEventListener('input', (e) => {
-            this.state.quantity = parseInt(e.target.value) || 0;
-            if (this.state.quantity < 10000) {
-                 this.els.qtyInput.classList.add('border-red-500', 'bg-red-500/10');
-            } else {
-                 this.els.qtyInput.classList.remove('border-red-500', 'bg-red-500/10');
-            }
-            this.recalc();
-            this.updatePreview();
-        });
-
         ['companyInp', 'mstInp', 'receiverInp', 'emailInp'].forEach(key => {
             if (!this.els[key]) return;
             this.els[key].addEventListener('input', (e) => {
                 const stateKey = key.replace('Inp', '');
                 let value = e.target.value;
-                
-                // Clean MST (only numbers and optionally a dash)
                 if (key === 'mstInp') {
                     value = value.replace(/[^0-9-]/g, '').trim();
                     e.target.value = value;
                     this.searchCRMForQuote(value);
                 }
-
                 this.state[stateKey] = value;
                 this.updatePreview();
             });
             this.els[key].addEventListener('focus', () => this.els[key].parentElement.classList.add('shadow-[0_0_15px_rgba(59,130,246,0.3)]'));
             this.els[key].addEventListener('blur', () => this.els[key].parentElement.classList.remove('shadow-[0_0_15px_rgba(59,130,246,0.3)]'));
         });
+
+        // Add form events
+        this.els.serviceSel.addEventListener('change', (e) => {
+            this.state.currentItem.service = e.target.value;
+            // Handle Remote Signing special case
+            if (e.target.value.includes('Remote Signing')) {
+                this.els.modelWrapper.classList.remove('hidden');
+            } else {
+                this.els.modelWrapper.classList.add('hidden');
+                this.state.currentItem.model = 'TIME';
+                this.els.modelSel.value = 'TIME';
+            }
+            this.updatePackageOptions();
+            this.recalcCurrentItem();
+        });
+
+        this.els.variantSel.addEventListener('change', (e) => {
+            this.state.currentItem.variant = e.target.value;
+            this.updatePackageOptions();
+            this.recalcCurrentItem();
+        });
+
+        this.els.modelSel.addEventListener('change', (e) => {
+            this.state.currentItem.model = e.target.value;
+            this.updatePackageOptions();
+            this.recalcCurrentItem();
+        });
+
+        this.els.packageSel.addEventListener('change', (e) => {
+            this.state.currentItem.packageId = e.target.value;
+            const pkg = PricingEngine.getPackageDetails(this.state.currentItem.service, e.target.value);
+            if (pkg) {
+                this.state.currentItem.duration = pkg.name;
+                this.state.currentItem.price = pkg.price;
+                this.els.priceDisplay.value = QuoteUtils.formatCurrency(pkg.price);
+            } else {
+                this.state.currentItem.price = 0;
+                this.els.priceDisplay.value = '';
+            }
+            this.recalcCurrentItem();
+        });
+
+        this.els.qtyInput.addEventListener('input', (e) => {
+            this.state.currentItem.quantity = parseInt(e.target.value) || 1;
+            this.recalcCurrentItem();
+        });
+
+        this.els.priceDisplay.addEventListener('input', (e) => {
+            let raw = e.target.value.replace(/\./g, '');
+            let val = parseInt(raw);
+            if (isNaN(val)) val = 0;
+            this.state.currentItem.price = val;
+            e.target.value = val === 0 ? '' : QuoteUtils.formatCurrency(val);
+            this.recalcCurrentItem(true); // skip updating price display
+        });
     }
 
     searchCRMForQuote(mst) {
         if (!mst || mst.length < 5) return;
         if (typeof currentCRMData === 'undefined') return;
-        
         const found = currentCRMData.find(c => c.mst === mst.trim());
         if (found) {
             this.state.company = found.company_name;
             this.els.companyInp.value = found.company_name;
-            // Optionally auto-select service
-            const svc = found.service_type || 'Chữ ký số';
-            if (this.els.serviceSel.querySelector(`option[value*="${svc}"]`)) {
-                this.state.service = this.els.serviceSel.querySelector(`option[value*="${svc}"]`).value;
-                this.els.serviceSel.value = this.state.service;
-                if (window.refreshCustomSelects) window.refreshCustomSelects(); 
-                this.updatePackageOptions();
-            }
             this.updatePreview();
         }
     }
 
-    animateDropdown(el) {
-        el.style.transform = 'scale(0.95)';
-        el.style.opacity = '0.5';
-        setTimeout(() => {
-            el.style.transition = 'all 200ms ease-out';
-            el.style.transform = 'scale(1)';
-            el.style.opacity = '1';
-        }, 50);
-    }
-
     updatePackageOptions() {
-        console.log('[QuoteManager] Updating packages for:', this.state.service);
-        if (!this.state.service) {
+        const { service, variant, model } = this.state.currentItem;
+        if (!service) {
             this.els.packageSel.innerHTML = '<option value="">-- Trước tiên chọn dịch vụ --</option>';
             this.els.packageSel.disabled = true;
             if (window.refreshCustomSelects) window.refreshCustomSelects();
             return;
         }
         this.els.packageSel.disabled = false;
-        const pkgs = PricingEngine.getPackages(this.state.service);
-        let html = '<option value="">Chọn gói dịch vụ...</option>';
-        html += '<option value="ALL" style="color: #3b82f6; font-weight: bold;">✨ TẤT CẢ CÁC GÓI (Báo giá tổng hợp)</option>';
+        const pkgs = PricingEngine.getPackages(service);
+        let html = '<option value="">Chọn gói/thời hạn...</option>';
+        
+        // Advanced filtering can be applied here if PricingEngine data is structured with variants
+        // For now, list all and let user override price
         pkgs.forEach(p => {
             html += `<option value="${p.id}">${p.name}</option>`;
         });
@@ -310,33 +305,80 @@ class QuoteManager {
         }
     }
 
-    recalc() {
-        if (this.state.packageId === 'ALL') {
-            this.state.total = 0;
-            this.els.priceDisplay.value = "Theo bảng giá";
-            this.els.totalDisplay.value = "Xem chi tiết";
-        } else {
-            this.state.total = PricingEngine.calculateTotal(this.state.price, this.state.quantity);
-            this.els.priceDisplay.value = QuoteUtils.formatCurrency(this.state.price);
-            this.els.totalDisplay.value = QuoteUtils.formatCurrency(this.state.total);
+    recalcCurrentItem(skipPriceUpdate = false) {
+        const { price, quantity, service, packageId } = this.state.currentItem;
+        this.state.currentItem.total = price * quantity;
+        
+        this.els.totalDisplay.value = QuoteUtils.formatCurrency(this.state.currentItem.total);
+        if (!skipPriceUpdate) {
+            this.els.priceDisplay.value = QuoteUtils.formatCurrency(price);
         }
         
-        let isValid = this.state.service && this.state.packageId;
-        if (this.state.packageId !== 'ALL') {
-            if (this.state.quantity <= 0) isValid = false;
-            if (this.state.packageId === 'CA2-eiextra' && this.state.quantity < 10000) isValid = false;
-        }
+        const isValid = service && packageId;
+        this.els.btnAddItem.disabled = !isValid;
+    }
 
-        this.els.btnImg.disabled = !isValid;
-        this.els.btnWord.disabled = !isValid;
+    showAddForm() {
+        this.els.addForm.classList.remove('hidden');
+    }
+
+    hideAddForm() {
+        this.els.addForm.classList.add('hidden');
+    }
+
+    addCurrentItem() {
+        const item = { ...this.state.currentItem };
+        this.state.items.push(item);
         
-        if (!isValid) {
-            this.els.btnImg.classList.add('opacity-50', 'cursor-not-allowed');
-            this.els.btnWord.classList.add('opacity-50', 'cursor-not-allowed');
+        // Reset form
+        this.els.packageSel.value = '';
+        this.els.qtyInput.value = 1;
+        this.state.currentItem.packageId = '';
+        this.state.currentItem.duration = '';
+        this.state.currentItem.price = 0;
+        this.state.currentItem.quantity = 1;
+        this.state.currentItem.total = 0;
+        this.recalcCurrentItem();
+        
+        this.hideAddForm();
+        this.renderItemsTable();
+        this.updatePreview();
+    }
+
+    removeItem(index) {
+        this.state.items.splice(index, 1);
+        this.renderItemsTable();
+        this.updatePreview();
+    }
+
+    renderItemsTable() {
+        if (this.state.items.length === 0) {
+            this.els.itemsTableBody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500 italic">Chưa có dịch vụ nào</td></tr>`;
+            this.els.sumTotal.innerText = '0 đ';
         } else {
-            this.els.btnImg.classList.remove('opacity-50', 'cursor-not-allowed');
-            this.els.btnWord.classList.remove('opacity-50', 'cursor-not-allowed');
+            let html = '';
+            let sum = 0;
+            this.state.items.forEach((item, idx) => {
+                sum += item.total;
+                html += `
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="px-4 py-3 font-medium text-white">${item.service}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-white/10 text-gray-300 text-[10px] uppercase">${item.variant}</span> <br><span class="text-gray-400 text-xs">${item.duration}</span></td>
+                    <td class="px-4 py-3 text-right text-gray-400">${QuoteUtils.formatCurrency(item.price)}</td>
+                    <td class="px-4 py-3 text-center">${item.quantity}</td>
+                    <td class="px-4 py-3 text-right font-medium text-white">${QuoteUtils.formatCurrency(item.total)}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="window.quoteManagerInstance.removeItem(${idx})" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            });
+            this.els.itemsTableBody.innerHTML = html;
+            this.els.sumTotal.innerText = QuoteUtils.formatCurrency(sum) + ' đ';
         }
+        
+        const hasItems = this.state.items.length > 0;
+        this.els.btnImg.disabled = !hasItems;
+        this.els.btnWord.disabled = !hasItems;
     }
 
     updatePreview() {
@@ -348,55 +390,40 @@ class QuoteManager {
         document.getElementById('pv-mst').innerText = this.state.mst || '...';
         document.getElementById('pv-receiver').innerText = this.state.receiver || '...';
         
-        const serviceMap = {
-            'Hóa đơn điện tử': 'HÓA ĐƠN ĐIỆN TỬ',
-            'Chữ ký số': 'CHỮ KÝ SỐ CHUYÊN DÙNG CA2',
-            'Bảo hiểm EBH': 'PHẦN MỀM BẢO HIỂM EBH'
-        };
-        document.getElementById('pv-title').innerText = `BÁO GIÁ ${serviceMap[this.state.service] || 'DỊCH VỤ'}`;
-        document.getElementById('pv-subtitle').innerText = (this.state.service === 'Hóa đơn điện tử') ? 'CA2 - EINVOICE' : '';
-
         const tbody = document.getElementById('quote-preview-body');
         if (!tbody) return;
 
-        if (this.state.packageId === 'ALL') {
-            const pkgs = PricingEngine.getPackages(this.state.service);
+        if (this.state.items.length === 0) {
+            tbody.innerHTML = `
+            <tr class="hover:bg-gray-50">
+                <td colspan="4" class="border border-gray-300 px-3 py-2 text-center text-gray-500 italic">Chưa có dịch vụ</td>
+            </tr>`;
+            document.getElementById('pv-final-total').innerText = '0';
+        } else {
             let html = '';
-            pkgs.forEach(pkg => {
+            let sum = 0;
+            this.state.items.forEach(item => {
+                sum += item.total;
                 html += `
-                <tr class="hover:bg-gray-50 border-b border-gray-100">
-                    <td class="border border-gray-300 px-3 py-2 text-left font-medium">${pkg.name}</td>
-                    <td class="border border-gray-300 px-3 py-2 text-center">${pkg.quantity || 1}</td>
-                    <td class="border border-gray-300 px-3 py-2 text-right">${QuoteUtils.formatCurrency(pkg.price)}</td>
-                    <td class="border border-gray-300 px-3 py-2 text-right font-medium text-blue-600">${QuoteUtils.formatCurrency(pkg.price * (pkg.quantity || 1))}</td>
+                <tr class="hover:bg-gray-50">
+                    <td class="border border-gray-300 px-3 py-2 text-left">
+                        <span class="font-bold text-gray-800">${item.service}</span> <span class="text-xs text-gray-500 uppercase">(${item.variant})</span><br>
+                        <span class="text-xs text-gray-600">${item.duration}</span>
+                    </td>
+                    <td class="border border-gray-300 px-3 py-2 text-center">${item.quantity}</td>
+                    <td class="border border-gray-300 px-3 py-2 text-right">${QuoteUtils.formatCurrency(item.price)}</td>
+                    <td class="border border-gray-300 px-3 py-2 text-right font-medium">${QuoteUtils.formatCurrency(item.total)}</td>
                 </tr>`;
             });
             tbody.innerHTML = html;
-            document.getElementById('pv-final-total').innerText = 'Theo bảng giá';
-        } else {
-            const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
-            tbody.innerHTML = `
-            <tr class="hover:bg-gray-50">
-                <td class="border border-gray-300 px-3 py-2 text-left font-medium">${pkg ? pkg.name : '-'}</td>
-                <td class="border border-gray-300 px-3 py-2 text-center">${this.state.quantity > 0 ? QuoteUtils.formatCurrency(this.state.quantity) : '-'}</td>
-                <td class="border border-gray-300 px-3 py-2 text-right">${this.state.price > 0 ? QuoteUtils.formatCurrency(this.state.price) : '-'}</td>
-                <td class="border border-gray-300 px-3 py-2 text-right font-medium">${this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '-'}</td>
-            </tr>`;
-            document.getElementById('pv-final-total').innerText = this.state.total > 0 ? QuoteUtils.formatCurrency(this.state.total) : '0';
+            document.getElementById('pv-final-total').innerText = QuoteUtils.formatCurrency(sum);
         }
     }
 
-    // --- API LIST MANAGEMENT ---
     async loadList() {
         const listContainer = document.getElementById('quotation-list');
         if (!listContainer) return;
-
         this.state.isLoading = true;
-        console.log('[DEBUG] loading: true (loadList starting)');
-        console.log('[DEBUG] render component (Quotation List - Loading state)');
-
-        // Show loading state (Skeleton-like placeholder)
-        console.log('[FORCE-LOG] Injecting spinner into quotation-list');
         listContainer.innerHTML = `
             <tr>
                 <td colspan="6" class="px-8 py-20 text-center pointer-events-none">
@@ -405,47 +432,23 @@ class QuoteManager {
                         <p class="text-gray-500 font-bold italic text-sm">Đang tải danh sách báo giá...</p>
                     </div>
                 </td>
-            </tr>
-        `;
-
+            </tr>`;
         try {
-            // 5s Safety Fallback (Requirement #1)
-            const safetyTimeout = setTimeout(() => {
-                if (this.state.isLoading) {
-                    console.warn('[DEBUG] Safety Timeout triggered after 5s. Forcing loading = false.');
-                    this.state.isLoading = false;
-                    this.renderError('Kết nối chậm. Vui lòng Tải lại.');
-                }
-            }, 5000);
-
-            // 15s API Timeout protection
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Kết nối quá hạn (Timeout). Vui lòng thử lại.')), 15000)
-            );
-
-            const res = await Promise.race([
-                authedFetch('/api/quotations'),
-                timeoutPromise
-            ]);
-
-            clearTimeout(safetyTimeout);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Kết nối quá hạn (Timeout).')), 15000));
+            const res = await Promise.race([authedFetch('/api/quotations'), timeoutPromise]);
             if (!res.ok) throw new Error(`Lỗi máy chủ: ${res.status}`);
-            
             const data = await res.json();
             this.state.quotations = Array.isArray(data) ? data : [];
-            console.log('[QuoteManager] Loaded Quotes:', this.state.quotations);
             this.renderList();
         } catch (e) {
             console.error('[QuoteManager] Load List Error:', e);
             this.renderError(e.message);
         } finally {
             this.state.isLoading = false;
-            console.log('[DEBUG] loading: false (loadList finished)');
         }
     }
 
     renderError(msg) {
-        console.log('[DEBUG] render component (Quotation List - Error State):', msg);
         const list = document.getElementById('quotation-list');
         if (!list) return;
         list.innerHTML = `
@@ -455,26 +458,16 @@ class QuoteManager {
                         <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
-                        <div class="space-y-1">
-                            <p class="text-white font-black">KHÔNG THỂ TẢI DỮ LIỆU</p>
-                            <p class="text-xs text-gray-500">${msg}</p>
-                        </div>
-                        <button onclick="window.quoteManagerInstance.loadList(); console.log('[DEBUG] RELOAD CLICKED')" class="mt-4 px-8 py-3 bg-white/5 hover:bg-orange-500 hover:text-white border border-white/10 rounded-2xl text-xs font-black transition-all shadow-xl">
-                            TẢI LẠI DANH SÁCH (RELOAD)
-                        </button>
+                        <p class="text-white font-black">KHÔNG THỂ TẢI DỮ LIỆU</p>
+                        <button onclick="window.quoteManagerInstance.loadList()" class="px-8 py-3 bg-white/5 hover:bg-orange-500 rounded-2xl text-xs font-black transition-all">TẢI LẠI</button>
                     </div>
                 </td>
-            </tr>
-        `;
+            </tr>`;
     }
 
     renderList() {
         const list = document.getElementById('quotation-list');
         if (!list) return;
-
-        console.log('[QuoteManager] Rendering List. Quotes:', this.state.quotations);
-        console.log('[QuoteManager] State Loading:', this.state.isLoading);
-
         try {
             const search = (document.getElementById('quotation-search')?.value || '').toLowerCase();
             const filtered = (this.state.quotations || []).filter(q => 
@@ -483,25 +476,32 @@ class QuoteManager {
             );
 
             if (filtered.length === 0) {
-                list.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center text-gray-500 italic font-medium">Chưa có báo giá nào phù hợp.</td></tr>`;
+                list.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center text-gray-500 italic">Chưa có báo giá nào.</td></tr>`;
                 return;
             }
 
             list.innerHTML = filtered.map(q => {
-                const displayPrice = q.total || q.price || 0;
-                const date = q.created_at ? new Date(q.created_at).toLocaleDateString('vi-VN') : 'N/A';
+                // If the backend returns items array, compute display string
+                let serviceDisplay = q.service || 'Dịch vụ';
+                let totalDisplay = q.total || q.price || 0;
                 
+                if (q.items && q.items.length > 0) {
+                    serviceDisplay = q.items.length > 1 ? `${q.items[0].service} + ${q.items.length - 1} khác` : q.items[0].service;
+                    totalDisplay = q.items.reduce((sum, it) => sum + it.total, 0);
+                }
+
+                const date = q.created_at ? new Date(q.created_at).toLocaleDateString('vi-VN') : 'N/A';
                 return `
                     <tr class="hover:bg-white/2 transition-colors border-b border-white/5">
                         <td class="px-8 py-6">
                             <p class="text-sm font-bold text-white">${q.customer_name || 'N/A'}</p>
-                            <p class="text-[10px] text-gray-500 font-mono tracking-widest">${q.mst || 'KHÔNG CÓ MST'}</p>
+                            <p class="text-[10px] text-gray-500 font-mono tracking-widest">${q.mst || '-'}</p>
                         </td>
                         <td class="px-8 py-6">
-                            <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20">${q.service || 'Dịch vụ'}</span>
+                            <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase border border-blue-500/20">${serviceDisplay}</span>
                         </td>
                         <td class="px-8 py-6 text-right">
-                            <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(displayPrice)}</p>
+                            <p class="text-sm font-black text-orange-gradient">${QuoteUtils.formatCurrency(totalDisplay)}</p>
                             <p class="text-[10px] text-gray-500 font-bold uppercase">VNĐ</p>
                         </td>
                         <td class="px-8 py-6 text-center text-xs text-gray-400 font-medium">${date}</td>
@@ -513,10 +513,10 @@ class QuoteManager {
                         </td>
                         <td class="px-8 py-6 text-right space-x-2">
                             ${q.file_url ? 
-                                `<a href="${q.file_url}" target="_blank" class="w-10 h-10 inline-flex items-center justify-center bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all" title="Xem file"><i class="fas fa-external-link-alt text-xs"></i></a>` : 
-                                `<button onclick="window.quoteManagerInstance.generateFile('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl transition-all" title="Xuất File"><i class="fas fa-file-export text-xs"></i></button>`
+                                `<a href="${q.file_url}" target="_blank" class="w-10 h-10 inline-flex items-center justify-center bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all"><i class="fas fa-external-link-alt"></i></a>` : 
+                                `<button onclick="window.quoteManagerInstance.generateFile('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-white rounded-xl transition-all"><i class="fas fa-file-export"></i></button>`
                             }
-                            <button onclick="window.quoteManagerInstance.deleteQuote('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                            <button onclick="window.quoteManagerInstance.deleteQuote('${q.id}')" class="w-10 h-10 inline-flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -532,20 +532,25 @@ class QuoteManager {
             alert('Vui lòng nhập tên khách hàng');
             return;
         }
+        if (this.state.items.length === 0) {
+            alert('Vui lòng thêm ít nhất 1 dịch vụ vào báo giá');
+            return;
+        }
 
-        // Extract duration from selected package name
-        const pkg = PricingEngine.getPackageDetails(this.state.service, this.state.packageId);
-        const duration = pkg ? pkg.name : '';
+        const sumTotal = this.state.items.reduce((s, it) => s + it.total, 0);
 
+        // Prepare data with items array for backend
         const data = {
             customer_name: this.state.company,
             mst: this.state.mst,
-            service: this.state.service,
-            package_id: this.state.packageId,
-            duration: duration,
-            quantity: this.state.quantity,
-            price: this.state.price,
-            total: this.state.total
+            items: this.state.items,
+            // Fallbacks for older systems:
+            service: 'Báo giá tổng hợp',
+            duration: `${this.state.items.length} dịch vụ`,
+            price: sumTotal,
+            package_id: 'MULTI',
+            quantity: 1,
+            total: sumTotal
         };
 
         const btn = this.els.btnSave;
@@ -561,7 +566,6 @@ class QuoteManager {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-
             if (res.ok) {
                 window.closeQuotationModal();
                 this.loadList();
@@ -570,62 +574,47 @@ class QuoteManager {
                 alert('Lỗi: ' + (err.error || 'Không thể lưu báo giá'));
             }
         } catch (e) {
-            console.error('[QuoteManager] Save Quotation Error:', e);
+            console.error('[QuoteManager] Save Error:', e);
             alert('Lỗi kết nối máy chủ');
         } finally {
             if (btn) {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
             }
-            console.log('[QuoteManager] Save operation finished.');
         }
     }
 
     async generateFile(id) {
         const btn = event?.currentTarget;
         const oldHtml = btn ? btn.innerHTML : '';
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
-            btn.disabled = true;
-        }
-
+        if (btn) { btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>'; btn.disabled = true; }
         try {
-            console.log(`[QuoteManager] Generating file for quote ID: ${id}`);
             const res = await authedFetch(`/api/quotations/${id}/generate`, { method: 'POST' });
             if (res.ok) {
-                console.log('[QuoteManager] File generated successfully.');
                 this.loadList();
             } else {
                 const data = await res.json();
-                console.warn('[QuoteManager] Generation failed:', data.error);
                 alert('Lỗi xuất file: ' + (data.error || 'Unknown error'));
             }
         } catch (e) {
-            console.error('[QuoteManager] Generate File Critical Error:', e);
+            console.error('Generate File Error:', e);
             alert('Lỗi hệ thống khi xuất file');
         } finally {
-            if (btn) {
-                btn.innerHTML = oldHtml;
-                btn.disabled = false;
-            }
+            if (btn) { btn.innerHTML = oldHtml; btn.disabled = false; }
         }
     }
 
     async deleteQuote(id) {
         if (!confirm('Bạn có chắc chắn muốn xóa báo giá này?')) return;
-        
-        console.log(`[QuoteManager] Deleting quote ID: ${id}`);
         try {
             const res = await authedFetch(`/api/quotations/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                console.log('[QuoteManager] Quote deleted.');
                 this.loadList();
             } else {
                 const data = await res.json();
                 alert('Lỗi khi xóa: ' + (data.error || 'Lỗi không xác định'));
             }
         } catch (e) {
-            console.error('[QuoteManager] Delete Quote Error:', e);
             alert('Lỗi kết nối khi xóa báo giá');
         }
     }

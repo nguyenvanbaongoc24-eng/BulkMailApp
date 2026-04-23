@@ -737,23 +737,31 @@ app.get('/api/quotations', authenticate, async (req, res) => {
 
 app.post('/api/quotations', authenticate, async (req, res) => {
     try {
-        const { customer_name, mst, service, duration, price, package_id, quantity, total } = req.body;
+        const { customer_name, mst, service, duration, price, package_id, quantity, total, items } = req.body;
         
         console.log(`[API] Creating quotation for: ${customer_name} (MST: ${mst})`);
         
+        // Prepare data object, including items (fallback to stringified JSON if needed, but JSONB is preferred)
+        const insertData = {
+            user_id: req.user.id,
+            customer_name,
+            mst,
+            service,
+            duration,
+            price,
+            package_id,
+            quantity,
+            total
+        };
+
+        // If items array is provided, add it to the insert payload
+        if (items && Array.isArray(items)) {
+            insertData.items = items;
+        }
+
         const { data, error } = await supabase
             .from('quotations')
-            .insert([{
-                user_id: req.user.id,
-                customer_name,
-                mst,
-                service,
-                duration,
-                price,
-                package_id,
-                quantity,
-                total
-            }])
+            .insert([insertData])
             .select();
         
         if (error) {
