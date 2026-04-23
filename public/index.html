@@ -2336,7 +2336,7 @@
                             <option value="quotation-templates">Mẫu Báo giá (.html)</option>
                         </select>
                     </div>
-                    <div id="doc-drop-zone" class="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group">
+                    <div id="doc-drop-zone" onclick="document.getElementById('doc-file-input').click()" class="border-2 border-dashed border-white/10 rounded-[32px] p-12 text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group">
                         <input type="file" id="doc-file-input" class="hidden" onchange="handleDocFileChange(event)">
                         <div class="w-16 h-16 bg-blue-500/10 rounded-2xl mx-auto flex items-center justify-center text-blue-500 text-2xl mb-4 group-hover:scale-110 transition-transform">
                             <i class="fas fa-cloud-upload-alt"></i>

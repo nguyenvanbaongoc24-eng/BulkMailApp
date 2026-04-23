@@ -2826,6 +2826,43 @@ function openUploadDocModal() {
     document.getElementById('modal-upload-doc').classList.remove('hidden');
     document.getElementById('doc-file-name').innerText = 'Chọn file hoặc kéo thả vào đây';
     selectedUploadFile = null;
+    
+    // Setup Drag and Drop
+    const dropZone = document.getElementById('doc-drop-zone');
+    if (dropZone && !dropZone._dragSetup) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('border-blue-500', 'bg-blue-500/10');
+                dropZone.classList.remove('border-white/10');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+                dropZone.classList.add('border-white/10');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) {
+                selectedUploadFile = file;
+                document.getElementById('doc-file-name').innerText = file.name;
+                console.log('[UPLOAD] File dropped:', file.name);
+            }
+        }, false);
+        
+        dropZone._dragSetup = true;
+    }
 }
 
 function handleDocFileChange(e) {

@@ -738,6 +738,9 @@ app.get('/api/quotations', authenticate, async (req, res) => {
 app.post('/api/quotations', authenticate, async (req, res) => {
     try {
         const { customer_name, mst, service, duration, price, package_id, quantity, total } = req.body;
+        
+        console.log(`[API] Creating quotation for: ${customer_name} (MST: ${mst})`);
+        
         const { data, error } = await supabase
             .from('quotations')
             .insert([{
@@ -753,11 +756,19 @@ app.post('/api/quotations', authenticate, async (req, res) => {
             }])
             .select();
         
-        if (error) throw error;
+        if (error) {
+            console.error('[API] Supabase Insert Error:', error);
+            throw error;
+        }
+        
+        console.log(`[API] Quotation created successfully: ${data[0].id}`);
         res.json(data[0]);
     } catch (err) {
-        console.error('[API] Create Quotation Error:', err);
-        res.status(500).json({ error: err.message });
+        console.error('[API] Create Quotation Exception:', err);
+        res.status(500).json({ 
+            error: err.message,
+            details: err.details || 'No additional details'
+        });
     }
 });
 
