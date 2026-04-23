@@ -1063,15 +1063,6 @@ function calculatePrice() {
 }
 
 
-    // Simplified: Focus only on registration type for bonus logic
-    let regType = 'cap_moi';
-    if (service.includes('Gia hạn dùng thử')) regType = 'gia_han_thu';
-    else if (service.includes('Gia hạn')) regType = 'gia_han';
-    
-    // Update labels/options for duration based on type
-    updateCKSDurationByType(regType, durationSelect.value);
-}
-
 async function saveCA2CRM() {
     const id = document.getElementById('ca2-crm-id').value;
     const serviceType = document.getElementById('ca2-crm-service').value;
