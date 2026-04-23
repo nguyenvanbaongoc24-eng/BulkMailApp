@@ -1087,6 +1087,9 @@ header::after {
     background-size: 14px !important;
     margin: 0 !important;
 }
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    min-width: 100px !important; /* LỖI 3 - Đảm bảo text không bị cắt */
+}
 .flatpickr-current-month .flatpickr-monthDropdown-months:hover,
 .flatpickr-current-month .numInputWrapper:hover {
     background-color: rgba(255, 255, 255, 0.12) !important;
@@ -1227,10 +1230,10 @@ span.flatpickr-weekday {
 
 /* Connect to start and end properly for range selection */
 .flatpickr-day.startRange {
-    border-radius: 20px 0 0 20px !important;
+    border-radius: 50% 0 0 50% !important; /* Bo nửa trái */
 }
 .flatpickr-day.endRange {
-    border-radius: 0 20px 20px 0 !important;
+    border-radius: 0 50% 50% 0 !important; /* Bo nửa phải */
 }
 
 /* Perfect circle for single day selection */
@@ -1245,9 +1248,24 @@ span.flatpickr-weekday {
 
 /* 6. TODAY */
 .flatpickr-day.today {
-    border: 1px solid #F47920 !important;
+    border: 2px solid #F47920 !important;
     color: #F47920 !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
+    position: relative !important;
+    box-shadow: none !important; /* LỖI 2 - Bỏ glow/shadow */
+}
+/* Chấm nhỏ bên dưới số */
+.flatpickr-day.today::after {
+    content: '';
+    display: block !important;
+    width: 4px !important;
+    height: 4px !important;
+    border-radius: 50% !important;
+    background: #F47920 !important;
+    position: absolute !important;
+    bottom: 3px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
 }
 
 /* 7. NGÀY KHÁC THÁNG */
@@ -1273,15 +1291,66 @@ span.flatpickr-weekday {
 .flatpickr-day.today.inRange,
 .flatpickr-day:hover.inRange,
 .flatpickr-day:focus.inRange {
-    background: rgba(244, 121, 32, 0.15) !important;
+    background: rgba(244, 121, 32, 0.13) !important;
     border-color: transparent !important;
     border-radius: 0 !important; /* square in the middle */
     box-shadow: none !important;
-    color: var(--ds-text) !important;
+    color: #dda87a !important;
     transform: none !important;
 }
-.flatpickr-day.inRange:hover {
-    background: rgba(244, 121, 32, 0.25) !important;
+
+/* Xử lý đầu hàng (cột T2) - LỖI 5 */
+.flatpickr-day.inRange:nth-child(7n+1),
+.flatpickr-day.endRange:nth-child(7n+1) {
+    border-radius: 50% 0 0 50% !important;
+}
+
+/* Xử lý cuối hàng (cột CN) - LỖI 5 */
+.flatpickr-day.inRange:nth-child(7n),
+.flatpickr-day.startRange:nth-child(7n) {
+    border-radius: 0 50% 50% 0 !important;
+}
+
+/* LỖI 4 - NÚT HỦY & ÁP DỤNG (Nếu có plugin/custom buttons) */
+.btn-cancel {
+  flex: 1 !important;
+  padding: 10px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: transparent !important;
+  color: #5a6480 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all .15s !important;
+}
+.btn-cancel:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #8892b0 !important;
+}
+
+.btn-apply {
+  flex: 1 !important;
+  padding: 10px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  background: #f47920 !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 14px rgba(244, 121, 32, 0.35) !important;
+  transition: all .15s !important;
+}
+.btn-apply:hover {
+  background: #ff8c35 !important;
+  box-shadow: 0 3px 20px rgba(244, 121, 32, 0.45) !important;
+}
+.btn-apply:disabled {
+  background: #2a2010 !important;
+  color: #4a3820 !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
 }
 
 /* 10. FIX INPUT (Từ ngày - Đến ngày) */
