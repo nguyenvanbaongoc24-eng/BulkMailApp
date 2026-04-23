@@ -270,12 +270,17 @@ tbody td {
 /* Sortable header hover */
 th[onclick] {
     cursor: pointer;
-    transition: background-color var(--ds-duration-fast) ease,
-                color var(--ds-duration-fast) ease;
+    transition: background-color var(--ds-duration-fast) var(--ds-ease),
+                color var(--ds-duration-fast) var(--ds-ease);
 }
 th[onclick]:hover {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(255,255,255,0.04) !important;
     color: #f8fafc;
+}
+
+/* Row height — comfortable spacing */
+tbody tr {
+    min-height: 52px;
 }
 
 /* ── Status Badges ── */
@@ -301,25 +306,25 @@ th[onclick]:hover {
 }
 
 .badge-success {
-    color: var(--ds-green);
-    background: rgba(34,197,94,0.1);
-    border-color: rgba(34,197,94,0.2);
+    color: #4ade80;
+    background: rgba(34,197,94,0.08);
+    border-color: rgba(34,197,94,0.15);
 }
-.badge-success::before { background: var(--ds-green); box-shadow: 0 0 6px var(--ds-green-glow); }
+.badge-success::before { background: #4ade80; box-shadow: 0 0 6px var(--ds-green-glow); }
 
 .badge-fail, .badge-error {
-    color: var(--ds-red);
-    background: rgba(239,68,68,0.1);
-    border-color: rgba(239,68,68,0.2);
+    color: #f87171;
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.15);
 }
-.badge-fail::before, .badge-error::before { background: var(--ds-red); box-shadow: 0 0 6px var(--ds-red-glow); }
+.badge-fail::before, .badge-error::before { background: #f87171; box-shadow: 0 0 6px var(--ds-red-glow); }
 
 .badge-pending, .badge-warning {
-    color: var(--ds-amber);
-    background: rgba(245,158,11,0.1);
-    border-color: rgba(245,158,11,0.2);
+    color: #fbbf24;
+    background: rgba(245,158,11,0.08);
+    border-color: rgba(245,158,11,0.15);
 }
-.badge-pending::before, .badge-warning::before { background: var(--ds-amber); box-shadow: 0 0 6px var(--ds-amber-glow); }
+.badge-pending::before, .badge-warning::before { background: #fbbf24; box-shadow: 0 0 6px var(--ds-amber-glow); }
 
 /* Service Badge Styling (CRM) */
 .badge-service {
@@ -343,29 +348,29 @@ th[onclick]:hover {
 }
 
 .badge-cks {
-    border-color: rgba(249,115,22,0.25);
-    color: #fb923c;
-    background: rgba(249,115,22,0.08);
+    border-color: rgba(249,115,22,0.15);
+    color: #fdba74;
+    background: rgba(249,115,22,0.06);
 }
 .badge-hddt {
-    border-color: rgba(14,165,233,0.25);
-    color: #38bdf8;
-    background: rgba(14,165,233,0.08);
+    border-color: rgba(14,165,233,0.15);
+    color: #7dd3fc;
+    background: rgba(14,165,233,0.06);
 }
 .badge-ebh {
-    border-color: rgba(16,185,129,0.25);
-    color: #34d399;
-    background: rgba(16,185,129,0.08);
+    border-color: rgba(16,185,129,0.15);
+    color: #6ee7b7;
+    background: rgba(16,185,129,0.06);
 }
 .badge-invoice {
-    border-color: rgba(168,85,247,0.25);
-    color: #c084fc;
-    background: rgba(168,85,247,0.08);
+    border-color: rgba(168,85,247,0.15);
+    color: #d8b4fe;
+    background: rgba(168,85,247,0.06);
 }
 .badge-other {
-    border-color: rgba(244,63,94,0.25);
-    color: #fb7185;
-    background: rgba(244,63,94,0.08);
+    border-color: rgba(244,63,94,0.15);
+    color: #fda4af;
+    background: rgba(244,63,94,0.06);
 }
 
 
@@ -795,25 +800,34 @@ input:-webkit-autofill:active {
 
 
 /* ==========================================================
-   13. MICRO INTERACTIONS
+   13. MICRO INTERACTIONS & ICON SYSTEM
    ========================================================== */
-/* Icon hover scale */
+/* Icon base — consistent sizing */
 i.fas, i.far, i.fab, .fa-solid, .fa-regular {
     transition: transform var(--ds-duration) var(--ds-ease),
-                color var(--ds-duration) ease;
+                color var(--ds-duration) var(--ds-ease),
+                filter var(--ds-duration) var(--ds-ease);
 }
+
+/* Icon sizes — standardized */
+.icon-sm { font-size: 14px; } /* text-level */
+.icon-md { font-size: 18px; } /* button-level */
+.icon-lg { font-size: 22px; } /* header-level */
+
+/* Icon hover — brightness glow */
 button:hover i.fas,
 button:hover i.far,
 a:hover i.fas,
 a:hover i.far {
-    transform: scale(1.12);
+    transform: scale(1.1);
+    filter: brightness(1.2);
 }
 
 /* Emoji hover */
 span[class*="text-lg"]:hover,
 span[class*="text-xl"]:hover,
 span[class*="text-2xl"]:hover {
-    transform: scale(1.2) rotate(-5deg);
+    transform: scale(1.15) rotate(-4deg);
     transition: transform var(--ds-duration) var(--ds-ease);
     display: inline-block;
 }
@@ -1375,4 +1389,165 @@ span.flatpickr-weekday {
 
 .btn-action-premium:active {
     transform: scale(0.92);
+}
+
+
+/* ==========================================================
+   25. TYPOGRAPHY SYSTEM
+   ========================================================== */
+/* Title — bold, tight tracking */
+.typo-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    color: var(--ds-text);
+}
+
+.typo-subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ds-text-secondary);
+    opacity: 0.7;
+}
+
+.typo-meta {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ds-text-muted);
+    opacity: 0.5;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.typo-body {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ds-text-secondary);
+    line-height: 1.6;
+}
+
+
+/* ==========================================================
+   26. SPACING UTILITIES
+   ========================================================== */
+.space-card    { padding: 20px 24px; }
+.space-section { padding: 32px; }
+.gap-block     { gap: 20px; }
+
+
+/* ==========================================================
+   27. BUTTON VARIANTS (Modern, not flat)
+   ========================================================== */
+/* Secondary button */
+.btn-secondary {
+    background: transparent;
+    border: 1px solid var(--ds-border);
+    color: var(--ds-text-secondary);
+    padding: 10px 20px;
+    border-radius: var(--ds-radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all var(--ds-duration) var(--ds-ease);
+}
+.btn-secondary:hover {
+    border-color: var(--ds-border-hover);
+    background: var(--ds-surface-hover);
+    color: var(--ds-text);
+    transform: translateY(-1px);
+}
+
+/* Danger button — soft red, not aggressive */
+.btn-danger {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    padding: 10px 20px;
+    border-radius: var(--ds-radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all var(--ds-duration) var(--ds-ease);
+}
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+/* Light mode buttons */
+.light-mode .btn-secondary {
+    border-color: rgba(0,0,0,0.1);
+    color: #475569;
+}
+.light-mode .btn-secondary:hover {
+    border-color: rgba(0,0,0,0.15);
+    background: rgba(0,0,0,0.03);
+    color: #0f172a;
+}
+.light-mode .btn-danger {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+.light-mode .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+
+/* ==========================================================
+   28. TOGGLE SWITCH (Smooth iOS-style)
+   ========================================================== */
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background var(--ds-duration) var(--ds-ease);
+    border: 1px solid var(--ds-border);
+}
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform var(--ds-duration) var(--ds-ease);
+}
+.toggle-switch.active {
+    background: var(--ds-orange);
+    border-color: var(--ds-orange);
+}
+.toggle-switch.active::after {
+    transform: translateX(20px);
+}
+
+.light-mode .toggle-switch {
+    background: rgba(0,0,0,0.08);
+}
+
+
+/* ==========================================================
+   29. PERFORMANCE HINTS
+   ========================================================== */
+/* Use transform/opacity only for animations — no layout shifts */
+.perf-gpu {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* Reduce paint area for frequently animated elements */
+.bg-glass,
+.card-glow,
+.glass-card-premium,
+.btn-action-premium {
+    contain: layout style;
 }
