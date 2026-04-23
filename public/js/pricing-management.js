@@ -17,7 +17,7 @@ class PricingManager {
     static async loadConfig() {
         try {
             const res = await fetch('/api/services-config', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-access-token')}` }
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` }
             });
             this.servicesConfig = await res.json();
         } catch (err) {
@@ -28,7 +28,7 @@ class PricingManager {
     static async loadActivePricing() {
         try {
             const res = await fetch('/api/pricing/active', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-access-token')}` }
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` }
             });
             const data = await res.json();
             this.pricingData = data;
@@ -206,7 +206,7 @@ class PricingManager {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('sb-access-token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('sb-token')}`
                 },
                 body: JSON.stringify({
                     name: `Bảng giá ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}`,
@@ -233,6 +233,69 @@ class PricingManager {
             btn.disabled = false;
             btn.innerHTML = 'Đồng ý & Lưu';
         }
+    }
+
+    static handleImageUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64 = e.target.result;
+            await this.analyzeImage(base64);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    static async analyzeImage(base64) {
+        showToast('🚀 Đang phân tích ảnh bằng AI...', 'info');
+        
+        try {
+            const res = await fetch('/api/pricing/analyze-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('sb-token')}`
+                },
+                body: JSON.stringify({ image: base64 })
+            });
+
+            const result = await res.json();
+            if (!result.success) throw new Error(result.error);
+
+            // Merge AI data into draftItems
+            result.data.forEach(aiSvc => {
+                // Find matching service in config
+                const svcMatch = this.findServiceMatch(aiSvc.service_name);
+                if (svcMatch) {
+                    this.draftItems[svcMatch.id] = aiSvc.items.map(item => ({
+                        duration: item.duration,
+                        price: item.price,
+                        description: ''
+                    }));
+                }
+            });
+
+            showToast('✅ Đã trích xuất dữ liệu thành công!', 'success');
+            this.render();
+
+        } catch (err) {
+            console.error('[PRICING] Analysis error:', err);
+            showToast('❌ Lỗi AI: ' + err.message, 'error');
+        }
+    }
+
+    static findServiceMatch(name) {
+        if (!this.servicesConfig) return null;
+        const search = name.toLowerCase();
+        
+        for (const cat of this.servicesConfig) {
+            for (const svc of cat.pricing_services) {
+                const svcName = svc.name.toLowerCase();
+                if (svcName.includes(search) || search.includes(svcName)) return svc;
+            }
+        }
+        return null;
     }
 }
 

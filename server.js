@@ -940,6 +940,69 @@ app.post('/api/pricing/version', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * POST /api/pricing/analyze-image
+ * Phân tích ảnh bảng giá bằng AI (Groq Vision)
+ */
+app.post('/api/pricing/analyze-image', authenticate, async (req, res) => {
+    try {
+        const { image } = req.body; // base64 image
+        if (!image) return res.status(400).json({ error: 'Thiếu dữ liệu hình ảnh' });
+
+        if (!process.env.GROQ_API_KEY) {
+            return res.status(500).json({ error: 'AI Service (Groq) chưa được cấu hình' });
+        }
+
+        console.log('[AI VISION] Analyzing pricing image...');
+        
+        // Prepare prompt for the Vision model
+        const prompt = `Bạn là một trợ lý AI chuyên nghiệp. Hãy phân tích hình ảnh bảng giá dịch vụ này và trích xuất dữ liệu thành định dạng JSON.
+Yêu cầu:
+1. Trích xuất chính xác các Gói dịch vụ, Thời hạn và Giá tiền.
+2. Output CHỈ trả về một mảng JSON duy nhất theo cấu trúc: 
+   [{"service_name": "Tên dịch vụ", "items": [{"duration": "1 năm", "price": 1000000}]}]
+3. Tên dịch vụ phải khớp hoặc tương tự với các dịch vụ: CKS, Hóa đơn điện tử, BHXH, Remote Signing.
+4. Giá tiền phải là số nguyên (không chứa dấu chấm/phẩy).
+5. Nếu không tìm thấy dữ liệu, trả về [].`;
+
+        const groqResponse = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+            model: 'llama-3.2-11b-vision-preview',
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        { type: 'image_url', image_url: { url: image } }
+                    ]
+                }
+            ],
+            temperature: 0.1,
+            max_tokens: 1024
+        }, {
+            headers: {
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        let content = groqResponse.data.choices[0].message.content;
+        console.log('[AI VISION] raw response:', content);
+
+        // Extract JSON block if present
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const pricingData = JSON.parse(jsonMatch[0]);
+            res.json({ success: true, data: pricingData });
+        } else {
+            res.status(500).json({ error: 'Không thể trích xuất dữ liệu JSON từ phản hồi của AI' });
+        }
+
+    } catch (err) {
+        console.error('[AI VISION] Error:', err.message);
+        res.status(500).json({ error: 'Lỗi phân tích ảnh: ' + err.message });
+    }
+});
+
 app.post('/api/quotations/:id/generate', authenticate, async (req, res) => {
     try {
         const { id } = req.params;

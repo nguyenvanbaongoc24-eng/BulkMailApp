@@ -1720,6 +1720,11 @@
                     <p class="text-gray-400 mt-2 font-medium italic">Quản lý bảng giá dịch vụ tập trung, áp dụng realtime toàn hệ thống</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <input type="file" id="pricing-image-upload" class="hidden" accept="image/*" onchange="PricingManager.handleImageUpload(this)">
+                    <button onclick="document.getElementById('pricing-image-upload').click()" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-6 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-600/30 transition-all">
+                        <i class="fas fa-magic"></i>
+                        QUÉT ẢNH AI
+                    </button>
                     <div id="active-version-badge" class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-black uppercase tracking-widest">
                         Phiên bản: <span id="current-version-name">Đang tải...</span>
                     </div>
