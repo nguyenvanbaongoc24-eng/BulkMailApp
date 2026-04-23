@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     loadCRMPrices(); // Initial pricing load
     PricingManager.init(); // NEW: Pricing System
+    if (window.PricingEngine) PricingEngine.init();
 
 
     // Initialize PremiumDatePicker (Single mode — CRM Modal)
@@ -950,27 +951,20 @@ let pricingCacheTime = 0;
 
 async function loadCRMPrices() {
     try {
-        // Use the new PricingManager to get active version
-        if (!PricingManager.pricingData) {
+        if (!PricingManager.pricingData || PricingManager.pricingData.length === 0) {
             await PricingManager.loadActivePricing();
         }
         
-        // Flatten for compatibility with old code if needed
-        const flattened = [];
-        PricingManager.pricingData.categories.forEach(cat => {
-            cat.services.forEach(svc => {
-                svc.items.forEach(item => {
-                    flattened.push({
-                        id: item.id,
-                        service_name: svc.name,
-                        package_name: item.duration,
-                        price: item.price,
-                        category: cat.name,
-                        is_active: true
-                    });
-                });
-            });
-        });
+        // Map new schema to legacy format for CRM compatibility
+        const flattened = PricingManager.pricingData.map(item => ({
+            id: item.id,
+            service_name: item.product_group, // CKS, RS, etc.
+            package_name: item.package_name,
+            price: item.total_price,
+            category: item.subject_type, // "Công ty", "Cá nhân", etc.
+            is_active: item.is_active,
+            product_code: item.product_code
+        }));
 
         CRM_PRICE_LIST = flattened;
         console.log('[CRM] Pricing updated from Versioned System:', CRM_PRICE_LIST.length, 'items');
@@ -1015,7 +1009,7 @@ function getCRMPrice(service, type, pkg) {
 }
 
 function updateCRMPackages() {
-    const service = document.getElementById('ca2-crm-service').value;
+    const serviceVal = document.getElementById('ca2-crm-service').value;
     const customerType = document.getElementById('ca2-crm-customer-type').value;
     const pkgSelect = document.getElementById('ca2-crm-package');
     if (!pkgSelect) return;
@@ -1023,18 +1017,31 @@ function updateCRMPackages() {
     const oldVal = pkgSelect.value;
     pkgSelect.innerHTML = '';
 
-    // Filter by Service AND Customer Type (Company vs Individual)
-    const filtered = CRM_PRICE_LIST.filter(p => 
-        p.service_name === service && 
-        p.category === customerType
-    );
+    // Map CRM select value to Product Group and Transaction Type
+    const mapping = mapCRMServiceToPricing(serviceVal);
     
-    if (filtered.length === 0) {
+    // Filter by Service Group, Subject Type, and Transaction Type
+    const filtered = CRM_PRICE_LIST.filter(p => 
+        p.service_name === mapping.group && 
+        p.category.includes(customerType) &&
+        (mapping.transaction === 'all' || p.package_name.includes(mapping.transaction) || (p.id && p.id.includes(mapping.transaction)))
+    );
+
+    // If no exact transaction match, try filtering by group and category only
+    let itemsToDisplay = filtered;
+    if (itemsToDisplay.length === 0) {
+        itemsToDisplay = CRM_PRICE_LIST.filter(p => 
+            p.service_name === mapping.group && 
+            p.category.includes(customerType)
+        );
+    }
+    
+    if (itemsToDisplay.length === 0) {
         pkgSelect.innerHTML = '<option value="">Chưa có gói</option>';
         return;
     }
 
-    filtered.forEach(p => {
+    itemsToDisplay.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.package_name;
         opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price)}đ`;
@@ -1047,16 +1054,31 @@ function updateCRMPackages() {
     calculatePrice();
 }
 
+function mapCRMServiceToPricing(val) {
+    if (val.includes('CKS – Cấp mới')) return { group: 'CKS', transaction: 'Cấp mới' };
+    if (val.includes('CKS – Gia hạn')) return { group: 'CKS', transaction: 'Gia hạn' };
+    if (val.includes('CKS - Gia hạn dùng thử')) return { group: 'CKS', transaction: 'Gia hạn dùng thử' };
+    if (val.includes('Remote Signing')) return { group: 'RS', transaction: 'all' };
+    if (val.includes('Hóa đơn điện tử') && val.includes('Cấp mới')) return { group: 'eINVOICE', transaction: 'Cấp mới' };
+    if (val.includes('Hóa đơn điện tử') && val.includes('Gia hạn')) return { group: 'eINVOICE', transaction: 'Gia hạn' };
+    if (val.includes('Hóa đơn điện tử')) return { group: 'eINVOICE', transaction: 'all' };
+    if (val.includes('EBH')) return { group: 'EBH', transaction: 'all' };
+    if (val.includes('Sign Platform')) return { group: 'SP', transaction: 'all' };
+    return { group: val, transaction: 'all' };
+}
+
 function calculatePrice() {
-    const service = document.getElementById('ca2-crm-service').value;
+    const serviceVal = document.getElementById('ca2-crm-service').value;
     const customerType = document.getElementById('ca2-crm-customer-type').value;
     const pkg = document.getElementById('ca2-crm-package').value;
     const amountInput = document.getElementById('ca2-crm-amount');
     const durationSelect = document.getElementById('ca2-crm-duration');
 
+    const mapping = mapCRMServiceToPricing(serviceVal);
+
     const match = CRM_PRICE_LIST.find(p => 
-        p.service_name === service && 
-        p.category === customerType &&
+        p.service_name === mapping.group && 
+        p.category.includes(customerType) &&
         p.package_name === pkg
     );
     if (match) {

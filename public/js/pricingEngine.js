@@ -4,50 +4,42 @@
 class PricingEngine {
     static getPRICING_DATA() {
         const data = {};
+        const items = window.PricingManager && window.PricingManager.pricingData ? window.PricingManager.pricingData : [];
         
-        if (window.PricingManager && window.PricingManager.pricingData && window.PricingManager.pricingData.categories) {
-            window.PricingManager.pricingData.categories.forEach(cat => {
-                if (!cat.services) return;
-                cat.services.forEach(svc => {
-                    if (!data[svc.name]) {
-                        data[svc.name] = {
-                            icon: this.getIconForService(svc.name),
-                            packages: []
-                        };
-                    }
-                    if (!svc.items) return;
-                    svc.items.forEach(item => {
-                        data[svc.name].packages.push({
-                            id: item.id,
-                            name: item.duration,
-                            quantity: 1, // Legacy compatibility
-                            price: item.price,
-                            requiresCustomQuantity: svc.name.includes('Platform') || item.duration.includes('>')
-                        });
-                    });
-                });
+        items.forEach(item => {
+            if (!item.is_active) return;
+
+            let groupName = this.getFriendlyGroupName(item.product_group);
+            
+            if (!data[groupName]) {
+                data[groupName] = {
+                    icon: this.getIconForService(groupName),
+                    packages: []
+                };
+            }
+
+            data[groupName].packages.push({
+                id: item.id || `pkg-${item.product_code}`,
+                name: `${item.package_name} (${item.transaction_type} - ${item.subject_type})`,
+                quantity: 1,
+                price: item.total_price,
+                requiresCustomQuantity: item.product_group === 'SP' || item.package_name.includes('>')
             });
-        } else {
-            // Fallback to CRM_PRICE_LIST if PricingManager data is not loaded yet
-            const list = Array.isArray(window.CRM_PRICE_LIST) ? window.CRM_PRICE_LIST : [];
-            list.forEach(p => {
-                if (!p.is_active) return;
-                if (!data[p.service_name]) {
-                    data[p.service_name] = {
-                        icon: this.getIconForService(p.service_name),
-                        packages: []
-                    };
-                }
-                data[p.service_name].packages.push({
-                    id: p.id || `pkg-${p.service_name}-${p.package_name}`,
-                    name: p.package_name,
-                    quantity: p.duration_months || 1,
-                    price: p.price,
-                    requiresCustomQuantity: p.service_name.includes('Platform') || p.package_name.includes('>')
-                });
-            });
-        }
+        });
+
         return data;
+    }
+
+    static getFriendlyGroupName(group) {
+        const map = {
+            'CKS': 'Chữ ký số CA2 (Token)',
+            'RS': 'Remote Signing',
+            'SP': 'Sign Platform',
+            'eINVOICE': 'Hóa đơn điện tử',
+            'IVM': 'Quản lý HĐ đầu vào',
+            'EBH': 'Bảo hiểm xã hội'
+        };
+        return map[group] || group;
     }
 
     static getIconForService(name) {
@@ -75,6 +67,16 @@ class PricingEngine {
     static calculateTotal(price, quantity) {
         if (!price || !quantity) return 0;
         return price * quantity;
+    }
+    static async init() {
+        if (window.PricingManager && (!window.PricingManager.pricingData || window.PricingManager.pricingData.length === 0)) {
+            await window.PricingManager.loadActivePricing();
+        }
+        
+        // Refresh quotation UI if it exists
+        if (window.quoteManagerInstance && typeof window.quoteManagerInstance.populateServices === 'function') {
+            window.quoteManagerInstance.populateServices();
+        }
     }
 }
 

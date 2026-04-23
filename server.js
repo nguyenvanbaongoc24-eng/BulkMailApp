@@ -811,60 +811,17 @@ app.get('/api/pricing/active', authenticate, async (req, res) => {
         }
 
         // 2. Get all items for this version
-        // We join with pricing_services and service_categories
         const { data: items, error: iErr } = await supabase
             .from('pricing_items')
-            .select(`
-                id, duration, price, description,
-                pricing_services (
-                    id, name,
-                    service_categories (id, name)
-                )
-            `)
-            .eq('version_id', version.id);
+            .select('*')
+            .eq('version_id', version.id)
+            .eq('is_active', true);
 
         if (iErr) throw iErr;
 
-        // 3. Group data for UI
-        const categoriesMap = {};
-
-        items.forEach(item => {
-            const service = item.pricing_services;
-            const category = service.service_categories;
-
-            if (!categoriesMap[category.id]) {
-                categoriesMap[category.id] = {
-                    id: category.id,
-                    name: category.name,
-                    services: {}
-                };
-            }
-
-            if (!categoriesMap[category.id].services[service.id]) {
-                categoriesMap[category.id].services[service.id] = {
-                    id: service.id,
-                    name: service.name,
-                    items: []
-                };
-            }
-
-            categoriesMap[category.id].services[service.id].items.push({
-                id: item.id,
-                duration: item.duration,
-                price: item.price,
-                description: item.description
-            });
-        });
-
-        // Convert maps to arrays for easier frontend consumption
-        const result = Object.values(categoriesMap).map(cat => ({
-            ...cat,
-            services: Object.values(cat.services)
-        }));
-
         res.json({
             version: version,
-            categories: result
+            items: items
         });
     } catch (err) {
         console.error('[PRICING] GET active error:', err);
@@ -929,10 +886,18 @@ app.post('/api/pricing/version', authenticate, async (req, res) => {
         // 3. Insert items
         const itemsToInsert = items.map(item => ({
             version_id: newVersion.id,
-            service_id: item.service_id,
-            duration: item.duration,
-            price: item.price,
-            description: item.description
+            product_group: item.product_group,
+            subject_type: item.subject_type,
+            transaction_type: item.transaction_type,
+            product_code: item.product_code,
+            package_name: item.package_name,
+            service_fee: item.service_fee || 0,
+            token_fee: item.token_fee || 0,
+            vat_fee: item.vat_fee || 0,
+            total_price: item.total_price,
+            notes: item.notes,
+            is_active: item.is_active !== undefined ? item.is_active : true,
+            effective_date: item.effective_date || new Date().toISOString().split('T')[0]
         }));
 
         const { error: iErr } = await supabase

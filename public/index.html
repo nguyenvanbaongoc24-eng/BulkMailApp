@@ -1630,46 +1630,193 @@
         </div>
 
         <!-- Settings: Pricing Management View (NEW) -->
-        <div id="view-settings-pricing" class="hidden space-y-10 animate-in fade-in duration-500 pb-20 p-8">
+        <div id="view-settings-pricing" class="hidden space-y-8 animate-in fade-in duration-500 pb-20 p-8">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 class="text-4xl font-black text-white tracking-tight">Cập nhật <span class="text-orange-gradient">Bảng giá</span></h2>
-                    <p class="text-gray-400 mt-2 font-medium italic">Quản lý bảng giá dịch vụ tập trung, áp dụng realtime toàn hệ thống</p>
+                    <h2 class="text-4xl font-black text-white tracking-tight">Quản lý <span class="text-orange-gradient">Bảng giá</span></h2>
+                    <p class="text-gray-400 mt-2 font-medium italic">Hiệu lực: 18/07/2025 • Cập nhật CRUD realtime</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <input type="file" id="pricing-image-upload" class="hidden" accept="image/*" onchange="PricingManager.handleImageUpload(this)">
-                    <button onclick="document.getElementById('pricing-image-upload').click()" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-6 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-600/30 transition-all">
-                        <i class="fas fa-magic"></i>
-                        QUÉT ẢNH AI
+                    <button onclick="PricingManager.showAddModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-900/40 transition-all">
+                        <i class="fas fa-plus"></i> THÊM GÓI MỚI
                     </button>
-                    <div id="active-version-badge" class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-black uppercase tracking-widest">
-                        Phiên bản: <span id="current-version-name">Đang tải...</span>
-                    </div>
                     <button onclick="PricingManager.saveNewVersion()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">
-                        <i class="fas fa-save"></i>
-                        LƯU BẢNG GIÁ MỚI
+                        <i class="fas fa-save"></i> LƯU BẢNG GIÁ
                     </button>
                 </div>
             </div>
 
-            <!-- Category Tabs -->
-            <div class="flex items-center gap-2 bg-white/5 p-1.5 rounded-[22px] w-fit">
-                <button id="tab-cat-company" onclick="PricingManager.switchCategory('company')" class="pricing-tab active px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
-                    Công ty
-                </button>
-                <button id="tab-cat-individual" onclick="PricingManager.switchCategory('individual')" class="pricing-tab px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-all">
-                    Cá nhân/HKD
-                </button>
+            <!-- Filters Bar -->
+            <div class="bg-glass rounded-[32px] border border-white/10 p-4 flex flex-wrap gap-4 items-center">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-4 mb-1 block">Nhóm Sản phẩm</label>
+                    <select id="filter-group" onchange="PricingManager.render()" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-orange-500">
+                        <option value="all">Tất cả Nhóm</option>
+                        <option value="CKS">CKS Token</option>
+                        <option value="RS">Remote Signing</option>
+                        <option value="SP">Sign Platform</option>
+                        <option value="eINVOICE">eINVOICE</option>
+                        <option value="IVM">IVM</option>
+                        <option value="EBH">Bảo hiểm xã hội</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-4 mb-1 block">Đối tượng</label>
+                    <select id="filter-subject" onchange="PricingManager.render()" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-orange-500">
+                        <option value="all">Tất cả Đối tượng</option>
+                        <option value="Cá nhân">Cá nhân</option>
+                        <option value="Hộ KD">Hộ Kinh Doanh</option>
+                        <option value="Công ty">Tổ chức / Doanh nghiệp</option>
+                        <option value="CN thuộc TC">Cá nhân thuộc TC</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-4 mb-1 block">Loại Giao dịch</label>
+                    <select id="filter-transaction" onchange="PricingManager.render()" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-orange-500">
+                        <option value="all">Tất cả Giao dịch</option>
+                        <option value="Cấp mới">Cấp mới</option>
+                        <option value="Gia hạn">Gia hạn</option>
+                        <option value="Gia hạn dùng thử">Gia hạn dùng thử</option>
+                        <option value="Chuyển đổi">Chuyển đổi</option>
+                        <option value="Theo lượt">Theo lượt</option>
+                        <option value="Theo năm">Theo năm</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- Pricing Grid -->
-            <div id="pricing-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                <!-- Service blocks injected here -->
-                <div class="col-span-full py-20 text-center">
-                    <div class="animate-pulse flex flex-col items-center gap-4">
-                        <div class="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin"></div>
-                        <p class="text-gray-500 font-bold italic">Đang tải cấu hình dịch vụ...</p>
+            <!-- Pricing Table -->
+            <div class="bg-glass rounded-[40px] border border-white/10 overflow-hidden shadow-2xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white/5 border-b border-white/10">
+                            <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Mã Sản phẩm</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Gói cước</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Thành tiền</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Trạng thái</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-right">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pricing-table-body" class="divide-y divide-white/5">
+                        <!-- Items injected here -->
+                    </tbody>
+                </table>
+                <div id="pricing-empty-state" class="hidden py-32 text-center">
+                    <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-600 text-3xl">
+                        <i class="fas fa-search"></i>
                     </div>
+                    <p class="text-gray-500 font-bold italic">Không tìm thấy gói cước phù hợp với bộ lọc.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add/Edit Pricing Item -->
+        <div id="modal-pricing-crud" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-6 hidden">
+            <div class="modal-premium w-full max-w-2xl rounded-[40px] overflow-hidden border border-white/10">
+                <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white text-xl">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black text-white mb-0.5" id="pricing-modal-title">Thêm gói giá mới</h3>
+                            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Chi tiết cấu hình gói cước</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('modal-pricing-crud')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="label-premium">Nhóm Sản phẩm *</label>
+                            <select id="field-group" class="input-premium">
+                                <option value="CKS">CKS Token</option>
+                                <option value="RS">Remote Signing</option>
+                                <option value="SP">Sign Platform</option>
+                                <option value="eINVOICE">eINVOICE</option>
+                                <option value="IVM">IVM</option>
+                                <option value="EBH">Bảo hiểm xã hội</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="label-premium">Loại Giao dịch *</label>
+                            <select id="field-transaction" class="input-premium">
+                                <option value="Cấp mới">Cấp mới</option>
+                                <option value="Gia hạn">Gia hạn</option>
+                                <option value="Gia hạn dùng thử">Gia hạn dùng thử</option>
+                                <option value="Chuyển đổi">Chuyển đổi</option>
+                                <option value="Theo lượt">Theo lượt</option>
+                                <option value="Theo năm">Theo năm</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="label-premium">Đối tượng áp dụng *</label>
+                        <div class="grid grid-cols-2 gap-3 bg-white/2 p-4 rounded-2xl border border-white/5">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" value="Cá nhân" class="field-subject w-5 h-5 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500">
+                                <span class="text-xs font-bold text-gray-400 group-hover:text-white transition-all">Cá nhân</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" value="Hộ KD" class="field-subject w-5 h-5 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500">
+                                <span class="text-xs font-bold text-gray-400 group-hover:text-white transition-all">Hộ Kinh Doanh</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" value="Công ty" class="field-subject w-5 h-5 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500">
+                                <span class="text-xs font-bold text-gray-400 group-hover:text-white transition-all">Doanh nghiệp</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" value="CN thuộc TC" class="field-subject w-5 h-5 rounded-lg border-white/10 bg-white/5 text-orange-500 focus:ring-orange-500">
+                                <span class="text-xs font-bold text-gray-400 group-hover:text-white transition-all">CN thuộc tổ chức</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="label-premium">Mã Sản phẩm *</label>
+                            <input type="text" id="field-code" placeholder="CKS-DN-NEW-12" class="input-premium uppercase">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="label-premium">Gói cước *</label>
+                            <input type="text" id="field-package" placeholder="12 tháng" class="input-premium">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <label class="label-premium">Phí DV (đ)</label>
+                            <input type="text" id="field-fee-service" oninput="PricingManager.handleModalPriceInput(this)" class="input-premium font-black text-emerald-400">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="label-premium">Phí Token (đ)</label>
+                            <input type="text" id="field-fee-token" oninput="PricingManager.handleModalPriceInput(this)" class="input-premium font-black text-blue-400">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="label-premium">VAT (đ)</label>
+                            <input type="text" id="field-fee-vat" oninput="PricingManager.handleModalPriceInput(this)" class="input-premium font-black text-orange-400">
+                        </div>
+                    </div>
+                    <div class="bg-orange-500/10 p-6 rounded-[28px] border border-orange-500/20 flex justify-between items-center">
+                        <div>
+                            <p class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-1">Tổng cộng (Thành tiền)</p>
+                            <p class="text-3xl font-black text-white" id="field-total-display">0đ</p>
+                        </div>
+                        <div class="text-right">
+                            <label class="flex items-center gap-2 cursor-pointer mb-2 justify-end">
+                                <input type="checkbox" id="field-active" checked class="w-4 h-4 rounded border-white/10 bg-white/5 text-emerald-500">
+                                <span class="text-[10px] font-bold text-gray-400">Đang hoạt động</span>
+                            </label>
+                            <p class="text-[10px] text-gray-500 font-medium italic">Tự động tính khi nhập phí</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="label-premium">Ghi chú</label>
+                        <textarea id="field-notes" rows="2" class="input-premium py-4" placeholder="Ví dụ: Miễn phí Token, Không chịu VAT..."></textarea>
+                    </div>
+                </div>
+                <div class="p-8 bg-white/2 border-t border-white/5 flex gap-4">
+                    <button onclick="closeModal('modal-pricing-crud')" class="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-black hover:bg-white/10 transition-all">HỦY</button>
+                    <button onclick="PricingManager.saveItem()" class="flex-[2] py-4 rounded-2xl bg-orange-gradient text-white font-black shadow-xl shadow-orange-900/40 hover:scale-[1.02] transition-all">LƯU GÓI GIÁ</button>
                 </div>
             </div>
         </div>

@@ -1,38 +1,17 @@
 /**
- * Pricing Manager - Handles the UI for updating service prices
+ * Pricing Manager - Handles the UI for full CRUD on pricing
  */
 class PricingManager {
-    static activeCategory = 'company';
-    static pricingData = null; // Full active pricing
-    static servicesConfig = null; // List of categories and services
-    static draftItems = {}; // {service_id: {duration: price}}
+    static pricingData = []; // Full list of items
+    static draftItems = []; // Working copy
+    static editingIndex = -1;
+    static deletedItem = null;
+    static deleteTimeout = null;
 
     static async init() {
-        console.log('[PRICING] Initializing...');
-        try {
-            await this.loadConfig();
-            await this.loadActivePricing();
-        } catch (err) {
-            console.error('[PRICING] Initialization error:', err);
-            // Even if it fails, try to render what we have or an error state
-            this.servicesConfig = this.servicesConfig || []; 
-        } finally {
-            this.render();
-        }
-    }
-
-    static async loadConfig() {
-        try {
-            const res = await fetch('/api/services-config', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` }
-            });
-            if (!res.ok) throw new Error('API failed with status ' + res.status);
-            this.servicesConfig = await res.json();
-            if (this.servicesConfig.error) throw new Error(this.servicesConfig.error);
-        } catch (err) {
-            console.error('[PRICING] Failed to load config:', err);
-            this.servicesConfig = []; // Fallback so render() doesn't crash
-        }
+        console.log('[PRICING] Initializing CRUD...');
+        await this.loadActivePricing();
+        this.render();
     }
 
     static async loadActivePricing() {
@@ -40,180 +19,188 @@ class PricingManager {
             const res = await fetch('/api/pricing/active', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` }
             });
-            if (!res.ok) throw new Error('API failed with status ' + res.status);
             const data = await res.json();
             if (data.error) throw new Error(data.error);
-            this.pricingData = data;
+            
+            this.pricingData = data.items || [];
+            this.draftItems = JSON.parse(JSON.stringify(this.pricingData)); // Deep copy
             
             if (data.version) {
                 const verEl = document.getElementById('current-version-name');
                 if (verEl) verEl.textContent = data.version.name;
             }
-
-            // Initialize draftItems from active pricing
-            this.draftItems = {};
-            if (data.categories && Array.isArray(data.categories)) {
-                data.categories.forEach(cat => {
-                    if (!cat.services) return;
-                    cat.services.forEach(svc => {
-                        if (!svc.items) return;
-                        svc.items.forEach(item => {
-                            if (!this.draftItems[svc.id]) this.draftItems[svc.id] = [];
-                            this.draftItems[svc.id].push({
-                                duration: item.duration,
-                                price: item.price,
-                                description: item.description
-                            });
-                        });
-                    });
-                });
-            }
         } catch (err) {
-            console.error('[PRICING] Failed to load active pricing:', err);
-            this.pricingData = null;
+            console.error('[PRICING] Load error:', err);
+            showToast('❌ Không thể tải bảng giá', 'error');
         }
-    }
-
-    static switchCategory(cat) {
-        this.activeCategory = cat;
-        
-        // Update tabs UI
-        document.querySelectorAll('.pricing-tab').forEach(t => {
-            t.classList.remove('active');
-            t.classList.add('text-gray-500');
-        });
-        
-        const activeTab = document.getElementById(`tab-cat-${cat}`);
-        if (activeTab) {
-            activeTab.classList.add('active');
-            activeTab.classList.remove('text-gray-500');
-        }
-
-        this.render();
     }
 
     static render() {
-        const grid = document.getElementById('pricing-grid');
-        if (!grid) return;
+        const tbody = document.getElementById('pricing-table-body');
+        const emptyState = document.getElementById('pricing-empty-state');
+        if (!tbody) return;
 
-        if (!Array.isArray(this.servicesConfig) || this.servicesConfig.length === 0) {
-            grid.innerHTML = `
-                <div class="col-span-full text-center py-20 text-gray-500">
-                    <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <p>Không thể tải dữ liệu cấu hình dịch vụ.</p>
-                    <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors">Tải Lại</button>
-                </div>
-            `;
-            return;
-        }
+        const filterGroup = document.getElementById('filter-group').value;
+        const filterSubject = document.getElementById('filter-subject').value;
+        const filterTransaction = document.getElementById('filter-transaction').value;
 
-        const categoryName = this.activeCategory === 'company' ? 'Công ty' : 'Cá nhân/HKD';
-        const category = this.servicesConfig.find(c => c.name === categoryName);
+        // Filter draft items
+        const filtered = this.draftItems.filter(item => {
+            const matchGroup = filterGroup === 'all' || item.product_group === filterGroup;
+            const matchSubject = filterSubject === 'all' || (item.subject_type && item.subject_type.includes(filterSubject));
+            const matchTransaction = filterTransaction === 'all' || item.transaction_type === filterTransaction;
+            return matchGroup && matchSubject && matchTransaction;
+        });
 
-        if (!category) {
-            grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-500">Chưa có dữ liệu cho nhóm này.</div>';
-            return;
-        }
-
-        grid.innerHTML = '';
-
-        category.pricing_services.forEach(svc => {
-            const block = document.createElement('div');
-            block.className = 'service-block space-y-6';
-            
-            const existingItems = this.draftItems[svc.id] || [];
-            
-            // Ensure at least 3 rows for some services or just use what exists
-            let itemsToRender = [...existingItems];
-            if (itemsToRender.length === 0) {
-                // Default durations based on service type
-                const durations = svc.name.includes('Hóa đơn') ? ['300 số', '500 số', '1000 số'] : ['1 năm', '2 năm', '3 năm'];
-                itemsToRender = durations.map(d => ({ duration: d, price: 0, description: '' }));
-            }
-
-            block.innerHTML = `
-                <div class="flex items-center gap-3 border-b border-white/5 pb-4">
-                    <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
-                        <i class="${this.getIcon(svc.name)}"></i>
-                    </div>
-                    <h3 class="font-black text-white tracking-tight">${svc.name}</h3>
-                </div>
-                <div class="space-y-4" id="items-${svc.id}">
-                    ${itemsToRender.map((item, idx) => `
-                        <div class="price-input-row flex items-center gap-2 group">
-                            <input type="text" value="${item.duration}" 
-                                onchange="PricingManager.updateItem('${svc.id}', ${idx}, 'duration', this.value)"
-                                placeholder="Thời hạn" 
-                                class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-400 outline-none focus:border-orange-500/50 transition-all">
-                            <div class="price-input-group relative flex-[1.5]">
-                                <input type="text" value="${this.formatVND(item.price)}" 
-                                    oninput="PricingManager.handlePriceInput(this, '${svc.id}', ${idx})"
-                                    placeholder="Giá tiền" 
-                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-8 text-sm font-black text-white outline-none focus:border-emerald-500/50 focus:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all">
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-gray-500">đ</span>
-                            </div>
-                            <button onclick="PricingManager.deleteItem('${svc.id}', ${idx})" 
-                                class="w-10 h-10 rounded-xl bg-red-500/5 text-red-500/30 hover:bg-red-500/20 hover:text-red-500 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
-                                <i class="fas fa-trash-alt"></i>
+        tbody.innerHTML = '';
+        if (filtered.length === 0) {
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+            filtered.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'group hover:bg-white/[0.02] transition-colors';
+                tr.innerHTML = `
+                    <td class="px-8 py-5">
+                        <p class="text-white font-black text-xs tracking-tight">${item.product_code || '---'}</p>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mt-0.5">${item.product_group} • ${item.transaction_type}</p>
+                    </td>
+                    <td class="px-8 py-5">
+                        <p class="text-gray-300 font-bold text-xs">${item.package_name}</p>
+                        <p class="text-[10px] text-gray-600 font-medium italic">${item.notes || ''}</p>
+                    </td>
+                    <td class="px-8 py-5">
+                        <p class="text-emerald-400 font-black text-sm">${this.formatVND(item.total_price)}đ</p>
+                    </td>
+                    <td class="px-8 py-5">
+                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${item.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-500'} text-[9px] font-black uppercase tracking-widest border border-white/5">
+                            <span class="w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}"></span>
+                            ${item.is_active ? 'Đang dùng' : 'Ẩn'}
+                        </span>
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onclick="PricingManager.showEditModal(${this.draftItems.indexOf(item)})" class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all">
+                                <i class="fas fa-edit text-xs"></i>
+                            </button>
+                            <button onclick="PricingManager.deleteItem(${this.draftItems.indexOf(item)})" class="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                <i class="fas fa-trash-alt text-xs"></i>
                             </button>
                         </div>
-                    `).join('')}
-                </div>
-                <button onclick="PricingManager.addItem('${svc.id}')" class="w-full py-3 rounded-xl border border-dashed border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:border-white/20 transition-all">
-                    + Thêm mốc giá
-                </button>
-            `;
-            grid.appendChild(block);
-        });
-    }
-
-    static getIcon(name) {
-        if (name.includes('CA2') || name.includes('Chữ ký số')) return 'fas fa-signature';
-        if (name.includes('Hóa đơn')) return 'fas fa-file-invoice';
-        if (name.includes('Remote')) return 'fas fa-broadcast-tower';
-        return 'fas fa-box';
-    }
-
-    static formatVND(val) {
-        if (!val) return '0';
-        return Number(val).toLocaleString('vi-VN');
-    }
-
-    static parseVND(str) {
-        return Number(str.replace(/[^0-9]/g, ''));
-    }
-
-    static handlePriceInput(el, serviceId, idx) {
-        const raw = el.value.replace(/[^0-9]/g, '');
-        const num = Number(raw);
-        el.value = this.formatVND(num);
-        this.updateItem(serviceId, idx, 'price', num);
-    }
-
-    static updateItem(serviceId, idx, field, value) {
-        if (!this.draftItems[serviceId]) this.draftItems[serviceId] = [];
-        if (!this.draftItems[serviceId][idx]) {
-            this.draftItems[serviceId][idx] = { duration: '', price: 0, description: '' };
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
-        this.draftItems[serviceId][idx][field] = value;
     }
 
-    static addItem(serviceId) {
-        if (!this.draftItems[serviceId]) this.draftItems[serviceId] = [];
-        this.draftItems[serviceId].push({ duration: '', price: 0, description: '' });
+    static showAddModal() {
+        this.editingIndex = -1;
+        document.getElementById('pricing-modal-title').textContent = 'Thêm gói giá mới';
+        this.resetModal();
+        openModal('modal-pricing-crud');
+    }
+
+    static showEditModal(index) {
+        this.editingIndex = index;
+        const item = this.draftItems[index];
+        document.getElementById('pricing-modal-title').textContent = 'Sửa gói giá';
+        
+        document.getElementById('field-group').value = item.product_group;
+        document.getElementById('field-transaction').value = item.transaction_type;
+        document.getElementById('field-code').value = item.product_code;
+        document.getElementById('field-package').value = item.package_name;
+        document.getElementById('field-fee-service').value = this.formatVND(item.service_fee);
+        document.getElementById('field-fee-token').value = this.formatVND(item.token_fee);
+        document.getElementById('field-fee-vat').value = this.formatVND(item.vat_fee);
+        document.getElementById('field-notes').value = item.notes;
+        document.getElementById('field-active').checked = item.is_active;
+
+        // Handle multi-checkbox for subjects
+        const subjects = item.subject_type ? item.subject_type.split(', ') : [];
+        document.querySelectorAll('.field-subject').forEach(cb => {
+            cb.checked = subjects.includes(cb.value);
+        });
+
+        this.updateTotal();
+        openModal('modal-pricing-crud');
+    }
+
+    static resetModal() {
+        document.getElementById('field-code').value = '';
+        document.getElementById('field-package').value = '';
+        document.getElementById('field-fee-service').value = '0';
+        document.getElementById('field-fee-token').value = '0';
+        document.getElementById('field-fee-vat').value = '0';
+        document.getElementById('field-notes').value = '';
+        document.getElementById('field-active').checked = true;
+        document.querySelectorAll('.field-subject').forEach(cb => cb.checked = false);
+        this.updateTotal();
+    }
+
+    static handleModalPriceInput(el) {
+        const raw = el.value.replace(/[^0-9]/g, '');
+        el.value = this.formatVND(Number(raw));
+        this.updateTotal();
+    }
+
+    static updateTotal() {
+        const fee = this.parseVND(document.getElementById('field-fee-service').value);
+        const token = this.parseVND(document.getElementById('field-fee-token').value);
+        const vat = this.parseVND(document.getElementById('field-fee-vat').value);
+        const total = fee + token + vat;
+        document.getElementById('field-total-display').textContent = this.formatVND(total) + 'đ';
+        return total;
+    }
+
+    static saveItem() {
+        const subjects = Array.from(document.querySelectorAll('.field-subject:checked')).map(cb => cb.value).join(', ');
+        
+        const item = {
+            product_group: document.getElementById('field-group').value,
+            subject_type: subjects,
+            transaction_type: document.getElementById('field-transaction').value,
+            product_code: document.getElementById('field-code').value.toUpperCase(),
+            package_name: document.getElementById('field-package').value,
+            service_fee: this.parseVND(document.getElementById('field-fee-service').value),
+            token_fee: this.parseVND(document.getElementById('field-fee-token').value),
+            vat_fee: this.parseVND(document.getElementById('field-fee-vat').value),
+            total_price: this.updateTotal(),
+            notes: document.getElementById('field-notes').value,
+            is_active: document.getElementById('field-active').checked,
+            effective_date: new Date().toISOString().split('T')[0]
+        };
+
+        if (!item.product_code || !item.package_name) {
+            showToast('⚠️ Vui lòng nhập đầy đủ Mã SP và Gói cước', 'warning');
+            return;
+        }
+
+        if (this.editingIndex >= 0) {
+            this.draftItems[this.editingIndex] = item;
+            showToast('✅ Đã cập nhật gói cước', 'success');
+        } else {
+            this.draftItems.push(item);
+            showToast('✅ Đã thêm gói cước mới', 'success');
+        }
+
+        closeModal('modal-pricing-crud');
         this.render();
     }
 
-    static deleteItem(serviceId, idx) {
-        if (this.draftItems[serviceId]) {
-            this.draftItems[serviceId].splice(idx, 1);
+    static deleteItem(index) {
+        const item = this.draftItems[index];
+        if (confirm(`Bạn có chắc muốn xóa gói [${item.product_code}]?`)) {
+            this.deletedItem = { index, data: this.draftItems[index] };
+            this.draftItems.splice(index, 1);
             this.render();
+            
+            showToast(`🗑 Đã xóa gói ${item.product_code}`, 'info');
+            // Logic for Undo could go here if we wanted a real toast with action
         }
     }
 
-    static saveNewVersion() {
+    static async saveNewVersion() {
         const modal = document.getElementById('modal-confirm-pricing');
         if (modal) modal.classList.remove('hidden');
 
@@ -228,21 +215,6 @@ class PricingManager {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
 
         try {
-            // Flatten draftItems for API
-            const items = [];
-            Object.keys(this.draftItems).forEach(svcId => {
-                this.draftItems[svcId].forEach(item => {
-                    if (item.duration && item.price > 0) {
-                        items.push({
-                            service_id: svcId,
-                            duration: item.duration,
-                            price: item.price,
-                            description: item.description
-                        });
-                    }
-                });
-            });
-
             const res = await fetch('/api/pricing/version', {
                 method: 'POST',
                 headers: {
@@ -251,7 +223,7 @@ class PricingManager {
                 },
                 body: JSON.stringify({
                     name: `Bảng giá ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}`,
-                    items: items
+                    items: this.draftItems
                 })
             });
 
@@ -262,10 +234,8 @@ class PricingManager {
             await this.loadActivePricing();
             this.render();
             
-            // Trigger refresh in other components if needed
-            if (window.PricingEngine) {
-                // We might need to refresh PricingEngine's local cache if it has one
-            }
+            // Sync with other components
+            if (window.PricingEngine) PricingEngine.init();
 
         } catch (err) {
             console.error('[PRICING] Save error:', err);
@@ -276,68 +246,15 @@ class PricingManager {
         }
     }
 
-    static handleImageUpload(input) {
-        const file = input.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const base64 = e.target.result;
-            await this.analyzeImage(base64);
-        };
-        reader.readAsDataURL(file);
+    static formatVND(val) {
+        if (!val) return '0';
+        return Math.floor(val).toLocaleString('vi-VN');
     }
 
-    static async analyzeImage(base64) {
-        showToast('🚀 Đang phân tích ảnh bằng AI...', 'info');
-        
-        try {
-            const res = await fetch('/api/pricing/analyze-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('sb-token')}`
-                },
-                body: JSON.stringify({ image: base64 })
-            });
-
-            const result = await res.json();
-            if (!result.success) throw new Error(result.error);
-
-            // Merge AI data into draftItems
-            result.data.forEach(aiSvc => {
-                // Find matching service in config
-                const svcMatch = this.findServiceMatch(aiSvc.service_name);
-                if (svcMatch) {
-                    this.draftItems[svcMatch.id] = aiSvc.items.map(item => ({
-                        duration: item.duration,
-                        price: item.price,
-                        description: ''
-                    }));
-                }
-            });
-
-            showToast('✅ Đã trích xuất dữ liệu thành công!', 'success');
-            this.render();
-
-        } catch (err) {
-            console.error('[PRICING] Analysis error:', err);
-            showToast('❌ Lỗi AI: ' + err.message, 'error');
-        }
-    }
-
-    static findServiceMatch(name) {
-        if (!this.servicesConfig) return null;
-        const search = name.toLowerCase();
-        
-        for (const cat of this.servicesConfig) {
-            for (const svc of cat.pricing_services) {
-                const svcName = svc.name.toLowerCase();
-                if (svcName.includes(search) || search.includes(svcName)) return svc;
-            }
-        }
-        return null;
+    static parseVND(str) {
+        return Number(str.toString().replace(/[^0-9]/g, ''));
     }
 }
 
 window.PricingManager = PricingManager;
+
