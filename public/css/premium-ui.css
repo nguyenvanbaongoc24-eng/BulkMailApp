@@ -1221,19 +1221,26 @@ span.flatpickr-weekday {
     border: 1px solid #F47920 !important;
     box-shadow: 0 0 12px rgba(244,121,32,0.4) !important;
     color: white !important;
+    font-weight: 700 !important;
     transform: scale(1) !important;
-    border-radius: 20px !important;
 }
 
-/* Connect to start and end properly */
+/* Connect to start and end properly for range selection */
 .flatpickr-day.startRange {
     border-radius: 20px 0 0 20px !important;
 }
 .flatpickr-day.endRange {
     border-radius: 0 20px 20px 0 !important;
 }
+
+/* Perfect circle for single day selection */
+.flatpickr-day.selected,
 .flatpickr-day.startRange.endRange {
-    border-radius: 20px !important;
+    width: 36px !important;
+    height: 36px !important;
+    max-width: 36px !important;
+    margin: 0 auto !important;
+    border-radius: 50% !important; /* ← hình tròn */
 }
 
 /* 6. TODAY */
