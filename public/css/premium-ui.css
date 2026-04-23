@@ -996,14 +996,14 @@ header::after {
 
 /* 2. NÂNG CẤP CONTAINER (Glass effect chuẩn) */
 .flatpickr-calendar {
-    width: 320px !important;
+    width: 340px !important; /* Wider to prevent cutoff */
     background: rgba(15, 23, 42, 0.75) !important;
     backdrop-filter: blur(18px) !important;
     -webkit-backdrop-filter: blur(18px) !important;
     border-radius: 16px !important;
     border: 1px solid rgba(255,255,255,0.08) !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-    padding: 16px !important;
+    padding: 16px 20px !important; /* Better side padding */
     margin-top: 8px !important;
     overflow: hidden !important;
     
@@ -1046,6 +1046,14 @@ header::after {
     margin-bottom: 12px !important;
     background: transparent !important;
     padding: 0 !important;
+    width: 100% !important;
+}
+.flatpickr-month {
+    display: flex !important;
+    flex: 1 !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    height: auto !important;
 }
 .flatpickr-current-month {
     font-weight: 600 !important;
@@ -1058,6 +1066,7 @@ header::after {
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
+    width: auto !important; /* Override 75% default */
 }
 .flatpickr-current-month .flatpickr-monthDropdown-months,
 .flatpickr-current-month .numInputWrapper {
@@ -1083,7 +1092,7 @@ header::after {
     background-color: rgba(255, 255, 255, 0.12) !important;
 }
 .flatpickr-current-month .numInputWrapper {
-    width: 80px !important; /* enough space for year */
+    width: 90px !important; /* Increased space for year to prevent squishing */
 }
 .flatpickr-current-month .numInputWrapper input {
     background: transparent !important;
@@ -1154,6 +1163,7 @@ span.flatpickr-weekday {
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
 }
 .flatpickr-days {
     width: 100% !important;
@@ -1162,8 +1172,10 @@ span.flatpickr-weekday {
 .dayContainer {
     display: grid !important;
     grid-template-columns: repeat(7, 1fr) !important;
-    gap: 8px !important;
+    gap: 6px !important;
     width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     justify-content: stretch !important;
     padding: 0 !important;
 }
