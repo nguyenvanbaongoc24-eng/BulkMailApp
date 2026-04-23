@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize premium date range picker (Dashboard Filter)
     const rangeInput = document.getElementById('crm-date-range-picker');
     if (rangeInput && window.flatpickr) {
-        flatpickr(rangeInput, {
+        const fpInstance = flatpickr(rangeInput, {
             mode: "range",
             dateFormat: "Y-m-d",
             locale: "vn",
@@ -183,47 +183,62 @@ document.addEventListener('DOMContentLoaded', () => {
             theme: "dark",
             disableMobile: true,
             onChange: function(selectedDates, dateStr, instance) {
-                // selectedDates is an array: [startDate, endDate]
                 const startLabel = document.getElementById('crm-date-start-label');
                 const endLabel = document.getElementById('crm-date-end-label');
                 const fromInput = document.getElementById('crm-filter-from-date');
                 const toInput = document.getElementById('crm-filter-to-date');
+                const clearBtn = document.getElementById('crm-date-clear-btn');
 
-                if (selectedDates.length > 0) {
+                if (selectedDates.length === 1) {
                     const startObj = selectedDates[0];
                     startLabel.innerText = flatpickr.formatDate(startObj, "d/m/Y");
-                    startLabel.classList.remove('opacity-70');
-                    startLabel.classList.add('text-orange-400');
+                    startLabel.classList.remove('opacity-70', 'text-orange-400');
+                    startLabel.classList.add('text-white', 'opacity-50');
                     fromInput.value = flatpickr.formatDate(startObj, "Y-m-d");
 
-                    if (selectedDates.length === 2) {
-                        const endObj = selectedDates[1];
-                        endLabel.innerText = flatpickr.formatDate(endObj, "d/m/Y");
-                        endLabel.classList.remove('opacity-70');
-                        endLabel.classList.add('text-orange-400');
-                        toInput.value = flatpickr.formatDate(endObj, "Y-m-d");
-                        
-                        // Auto trigger filter when range is fully selected
-                        renderCA2CRM();
-                    } else {
-                        endLabel.innerText = "Đến ngày";
-                        endLabel.classList.add('opacity-70');
-                        endLabel.classList.remove('text-orange-400');
-                        toInput.value = "";
-                    }
+                    endLabel.innerText = "Đến ngày";
+                    endLabel.classList.remove('opacity-70', 'text-white', 'opacity-50');
+                    endLabel.classList.add('text-orange-400'); // Highlight end label
+                    toInput.value = "";
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                } else if (selectedDates.length === 2) {
+                    const startObj = selectedDates[0];
+                    const endObj = selectedDates[1];
+                    startLabel.innerText = flatpickr.formatDate(startObj, "d/m/Y");
+                    startLabel.classList.remove('opacity-70', 'opacity-50', 'text-orange-400');
+                    startLabel.classList.add('text-white');
+                    fromInput.value = flatpickr.formatDate(startObj, "Y-m-d");
+
+                    endLabel.innerText = flatpickr.formatDate(endObj, "d/m/Y");
+                    endLabel.classList.remove('opacity-70', 'opacity-50', 'text-orange-400');
+                    endLabel.classList.add('text-white');
+                    toInput.value = flatpickr.formatDate(endObj, "Y-m-d");
+                    
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                    renderCA2CRM();
                 } else {
                     startLabel.innerText = "Từ ngày";
                     endLabel.innerText = "Đến ngày";
                     startLabel.classList.add('opacity-70');
                     endLabel.classList.add('opacity-70');
-                    startLabel.classList.remove('text-orange-400');
-                    endLabel.classList.remove('text-orange-400');
+                    startLabel.classList.remove('text-orange-400', 'text-white', 'opacity-50');
+                    endLabel.classList.remove('text-orange-400', 'text-white', 'opacity-50');
                     fromInput.value = "";
                     toInput.value = "";
+                    if (clearBtn) clearBtn.classList.add('hidden');
                     renderCA2CRM(); // Reset filter
                 }
             }
         });
+
+        // Handle clear button click
+        const clearBtn = document.getElementById('crm-date-clear-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function(e) {
+                e.stopPropagation(); // prevent opening flatpickr
+                fpInstance.clear();
+            });
+        }
     }
 
     // Theme initialization

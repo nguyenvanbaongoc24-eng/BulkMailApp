@@ -1078,12 +1078,12 @@ header::after {
     appearance: none !important;
     -webkit-appearance: none !important;
     cursor: pointer !important;
-    padding: 6px 28px 6px 12px !important;
+    padding: 6px 24px 6px 8px !important;
     height: 34px !important;
     transition: all 0.2s ease !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
-    background-position: right 8px center !important;
+    background-position: right 6px center !important;
     background-size: 14px !important;
     margin: 0 !important;
 }
@@ -1092,7 +1092,8 @@ header::after {
     background-color: rgba(255, 255, 255, 0.12) !important;
 }
 .flatpickr-current-month .numInputWrapper {
-    width: 90px !important; /* Increased space for year to prevent squishing */
+    width: 96px !important; /* Tăng min-width của dropdown năm đủ để hiển thị 4 chữ số */
+    min-width: 96px !important;
 }
 .flatpickr-current-month .numInputWrapper input {
     background: transparent !important;
@@ -1100,10 +1101,12 @@ header::after {
     color: white !important;
     font-weight: 600 !important;
     width: 100% !important;
+    min-width: 100% !important;
     cursor: pointer !important;
     padding: 0 !important;
     box-shadow: none !important;
     outline: none !important;
+    text-overflow: clip !important;
 }
 .flatpickr-current-month .flatpickr-monthDropdown-months option {
     background: #1e293b !important;
@@ -1172,7 +1175,7 @@ span.flatpickr-weekday {
 .dayContainer {
     display: grid !important;
     grid-template-columns: repeat(7, 1fr) !important;
-    gap: 6px !important;
+    gap: 6px 0 !important; /* 0 horizontal gap for continuous range band */
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
@@ -1214,17 +1217,30 @@ span.flatpickr-weekday {
 .flatpickr-day.selected:hover,
 .flatpickr-day.startRange:hover,
 .flatpickr-day.endRange:hover {
-    background: rgba(255,140,0,0.15) !important;
-    border: 1px solid #ff8c00 !important;
-    box-shadow: 0 0 12px rgba(255,140,0,0.4) !important;
+    background: #F47920 !important;
+    border: 1px solid #F47920 !important;
+    box-shadow: 0 0 12px rgba(244,121,32,0.4) !important;
     color: white !important;
     transform: scale(1) !important;
-    border-radius: 10px !important;
+    border-radius: 20px !important;
+}
+
+/* Connect to start and end properly */
+.flatpickr-day.startRange {
+    border-radius: 20px 0 0 20px !important;
+}
+.flatpickr-day.endRange {
+    border-radius: 0 20px 20px 0 !important;
+}
+.flatpickr-day.startRange.endRange {
+    border-radius: 20px !important;
 }
 
 /* 6. TODAY */
 .flatpickr-day.today {
-    border: 1px dashed rgba(255,255,255,0.4) !important;
+    border: 1px solid #F47920 !important;
+    color: #F47920 !important;
+    font-weight: 600 !important;
 }
 
 /* 7. NGÀY KHÁC THÁNG */
@@ -1243,17 +1259,22 @@ span.flatpickr-weekday {
     transform: none !important;
 }
 
-/* Range Connections (if used) */
+/* Range Connections */
 .flatpickr-day.inRange,
 .flatpickr-day.prevMonthDay.inRange,
 .flatpickr-day.nextMonthDay.inRange,
 .flatpickr-day.today.inRange,
 .flatpickr-day:hover.inRange,
 .flatpickr-day:focus.inRange {
-    background: rgba(255,140,0,0.08) !important;
+    background: rgba(244, 121, 32, 0.15) !important;
     border-color: transparent !important;
-    border-radius: 0 !important;
+    border-radius: 0 !important; /* square in the middle */
     box-shadow: none !important;
+    color: var(--ds-text) !important;
+    transform: none !important;
+}
+.flatpickr-day.inRange:hover {
+    background: rgba(244, 121, 32, 0.25) !important;
 }
 
 /* 10. FIX INPUT (Từ ngày - Đến ngày) */
