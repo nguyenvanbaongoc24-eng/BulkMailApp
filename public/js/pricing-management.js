@@ -142,17 +142,22 @@ class PricingManager {
                 </div>
                 <div class="space-y-4" id="items-${svc.id}">
                     ${itemsToRender.map((item, idx) => `
-                        <div class="price-input-row">
+                        <div class="price-input-row flex items-center gap-2 group">
                             <input type="text" value="${item.duration}" 
                                 onchange="PricingManager.updateItem('${svc.id}', ${idx}, 'duration', this.value)"
                                 placeholder="Thời hạn" 
-                                class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-400 outline-none focus:border-orange-500/50 transition-all">
-                            <div class="price-input-group">
+                                class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-gray-400 outline-none focus:border-orange-500/50 transition-all">
+                            <div class="price-input-group relative flex-[1.5]">
                                 <input type="text" value="${this.formatVND(item.price)}" 
                                     oninput="PricingManager.handlePriceInput(this, '${svc.id}', ${idx})"
                                     placeholder="Giá tiền" 
                                     class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-8 text-sm font-black text-white outline-none focus:border-emerald-500/50 focus:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-gray-500">đ</span>
                             </div>
+                            <button onclick="PricingManager.deleteItem('${svc.id}', ${idx})" 
+                                class="w-10 h-10 rounded-xl bg-red-500/5 text-red-500/30 hover:bg-red-500/20 hover:text-red-500 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -199,6 +204,13 @@ class PricingManager {
         if (!this.draftItems[serviceId]) this.draftItems[serviceId] = [];
         this.draftItems[serviceId].push({ duration: '', price: 0, description: '' });
         this.render();
+    }
+
+    static deleteItem(serviceId, idx) {
+        if (this.draftItems[serviceId]) {
+            this.draftItems[serviceId].splice(idx, 1);
+            this.render();
+        }
     }
 
     static saveNewVersion() {
