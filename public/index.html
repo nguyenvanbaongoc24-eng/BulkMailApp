@@ -1441,9 +1441,6 @@
                         <button onclick="switchSettingsTab('system')" id="tab-settings-system" class="px-8 py-3 rounded-2xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2">
                             <i class="fas fa-server"></i> Hệ thống & Admin
                         </button>
-                        <button onclick="switchSettingsTab('pricing')" id="tab-settings-pricing" class="px-8 py-3 rounded-2xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2">
-                            <i class="fas fa-tags"></i> Bảng giá dịch vụ
-                        </button>
                     </div>
 
                     <div class="p-10">
@@ -1537,27 +1534,7 @@
                                 </div>
                             </div>
 
-                            <!-- Pricing Management -->
-                            <div class="space-y-6">
-                                <h4 class="text-xl font-black text-white flex items-center gap-3">
-                                    <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-sm"><i class="fas fa-tags"></i></span>
-                                    Quản lý Bảng giá Dịch vụ
-                                </h4>
-                                <div class="glass-card-premium space-y-4">
-                                    <p class="text-sm text-gray-400 font-medium">Chỉnh sửa bảng giá dịch vụ CRM (Định dạng JSON). Cẩn thận khi thay đổi cấu trúc.</p>
-                                    <div class="input-group-premium">
-                                        <textarea id="settings-pricing-json" class="input-premium min-h-[400px] font-mono text-xs leading-relaxed" placeholder="Đang tải bảng giá..."></textarea>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <div class="text-[10px] text-orange-500 font-bold uppercase tracking-widest italic">
-                                            <i class="fas fa-exclamation-triangle"></i> Lưu ý: Thay đổi sẽ ảnh hưởng đến tính toán giá CRM ngay lập tức.
-                                        </div>
-                                        <button onclick="savePricingSettings()" class="px-10 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-900/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                                            <i class="fas fa-save"></i> Cập nhật bảng giá
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+
 
 
                             <!-- User Management (Only for Admin) -->
@@ -1601,67 +1578,7 @@
                             </div>
                         </div>
 
-                        <!-- Tab 4: Service Pricing (Phần 1 & 8) -->
-                        <div id="settings-tab-pricing" class="hidden space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-                            <div class="flex items-center justify-between">
-                                <div class="space-y-1">
-                                    <h4 class="text-xl font-black text-white flex items-center gap-3">
-                                        <span class="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-500 flex items-center justify-center text-sm"><i class="fas fa-money-bill-wave"></i></span>
-                                        Quản lý Bảng giá Dịch vụ
-                                    </h4>
-                                    <p class="text-xs text-gray-500 font-medium italic">Admin: Cập nhật giá để đồng bộ CRM & Báo giá</p>
-                                </div>
-                                <div class="flex gap-3">
-                                    <button onclick="resetPricingToDefault()" class="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 font-bold rounded-xl border border-white/5 transition-all text-xs">Reset mặc định</button>
-                                    <button onclick="openAddPricingModal()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-lg shadow-blue-900/40 transition-all text-xs flex items-center gap-2">
-                                        <i class="fas fa-plus"></i> Thêm gói mới
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div class="glass-card-premium !p-0 overflow-hidden">
-                                <div class="p-6 border-b border-white/5 bg-white/2 flex items-center gap-4">
-                                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-500">Lọc theo dịch vụ:</label>
-                                    <select id="pricing-service-filter" onchange="renderPricingTable()" class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none">
-                                        <option value="all">Tất cả dịch vụ</option>
-                                        <option value="CKS – Cấp mới">CKS – Cấp mới</option>
-                                        <option value="CKS – Gia hạn">CKS – Gia hạn</option>
-                                        <option value="CA2 Remote Signing">CA2 Remote Signing</option>
-                                        <option value="Hóa đơn điện tử">Hóa đơn điện tử</option>
-                                        <option value="Hóa đơn đầu vào">Hóa đơn đầu vào</option>
-                                        <option value="Phần mềm kế toán">Phần mềm kế toán</option>
-                                        <option value="CA2 Sign Platform">CA2 Sign Platform</option>
-                                        <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="overflow-x-auto min-h-[400px]">
-                                    <table class="w-full text-left">
-                                        <thead>
-                                            <tr class="bg-white/5 border-b border-white/5">
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Dịch vụ / Gói</th>
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Đối tượng</th>
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Thời hạn</th>
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Giá niêm yết</th>
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Mô tả</th>
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Status</th>
-                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="pricing-table-body" class="divide-y divide-white/2">
-                                            <!-- Injected via JS -->
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div class="p-8 border-t border-white/5 bg-white/2 flex justify-between items-center">
-                                    <p class="text-[10px] text-gray-500 italic">* Click vào dòng để chỉnh sửa trực tiếp (Inline Edit)</p>
-                                    <button onclick="saveAllPricing()" class="px-12 py-3.5 bg-orange-gradient text-white font-black rounded-2xl shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                                        <i class="fas fa-cloud-upload-alt"></i> Lưu toàn bộ thay đổi
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
 
                     </div>
                 </div>
