@@ -5,26 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation CA2 - Giải pháp automation gửi email hàng loạt</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
-    <link rel="stylesheet" href="css/premium-ui.css?v=2.0.0">
+    <link rel="stylesheet" href="css/premium-ui.css?v=3.0.0">
     <style>
         :root {
-            --bg-color: #0B0F1A;
-            --sidebar-bg: #0a1020;
+            --bg-color: #020617;
+            --sidebar-bg: #020617;
             --text-main: #f0f4f8;
-            --text-muted: #8b9cb8;
-            --glass-bg: rgba(17, 24, 39, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
             --input-bg: rgba(255, 255, 255, 0.03);
-            --input-border: rgba(255, 255, 255, 0.08);
+            --input-border: rgba(255, 255, 255, 0.06);
             --input-text: #f0f4f8;
-            --card-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.4);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             --brand-orange: #f97316;
             --line-height: 1.6;
         }
@@ -34,21 +34,21 @@
             --sidebar-bg: #ffffff;
             --text-main: #1e293b; /* Dark Slate for better reading */
             --text-muted: #64748b;
-            --glass-bg: rgba(255, 255, 255, 0.95);
-            --glass-border: rgba(0, 0, 0, 0.1);
+            --glass-bg: #ffffff;
+            --glass-border: rgba(0, 0, 0, 0.06);
             --input-bg: #ffffff;
-            --input-border: #cbd5e1;
+            --input-border: rgba(0, 0, 0, 0.1);
             --input-text: #0f172a;
-            --brand-orange: #ea580c; /* High contrast orange for light mode */
-            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            --brand-orange: #ea580c;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
         body { 
-            font-family: 'Be Vietnam Pro', sans-serif; 
+            font-family: 'Inter', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif; 
             background-color: var(--bg-color);
             color: var(--text-main);
             line-height: var(--line-height);
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             text-rendering: optimizeLegibility;
@@ -131,9 +131,9 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         
         .card-glow:hover {
-            box-shadow: 0 0 20px rgba(255, 140, 0, 0.15);
-            border-color: rgba(255, 140, 0, 0.3);
-            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.1);
+            border-color: rgba(255, 140, 0, 0.2);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         input, select, textarea {
@@ -161,24 +161,24 @@
         
         .light-mode .bg-glass, .light-mode .bg-glass\/40, .light-mode .bg-white\/5, .light-mode .bg-white\/2 { 
             background-color: #ffffff !important;
-            border-color: #000000 !important;
-            border-width: 1.5px !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            border-color: rgba(0, 0, 0, 0.06) !important;
+            border-width: 1px !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
         }
         .light-mode aside {
-            border-right: 2px solid #e2e8f0 !important;
+            border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
         }
         .light-mode aside nav a:not(.sidebar-item-active) {
-            color: #1e293b !important;
-            font-weight: 700 !important;
+            color: #334155 !important;
+            font-weight: 600 !important;
         }
         .light-mode aside nav a:not(.sidebar-item-active):hover {
-            background: #f8fafc !important;
-            color: #000000 !important;
+            background: rgba(0, 0, 0, 0.03) !important;
+            color: #0f172a !important;
         }
         .light-mode .card-glow:hover {
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
-            border-color: #ff8c00 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+            border-color: rgba(249, 115, 22, 0.2) !important;
         }
         
         select option {
@@ -231,18 +231,18 @@
             box-shadow: var(--card-shadow);
         }
         .light-mode .modal-premium {
-            border: 2px solid var(--glass-border);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
         }
         .input-group-premium {
             background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 14px;
-            transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-                        background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-                        box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+            transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                        background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             padding: 4px;
-            /* NO overflow:hidden — dropdown menus must be able to escape */
         }
 
         .input-group-premium:focus-within {
@@ -496,7 +496,7 @@
         <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] -z-10 rounded-full"></div>
 
         <!-- Header -->
-        <header class="h-20 border-b border-white/5 flex items-center justify-between px-10 bg-[#050510]/80 backdrop-blur-md z-20">
+        <header class="h-20 border-b border-white/5 flex items-center justify-between px-10 bg-[#020617]/90 backdrop-blur-xl z-20">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white transition-all">
                     <i class="fas fa-bars"></i>

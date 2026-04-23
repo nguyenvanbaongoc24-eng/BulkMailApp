@@ -7,9 +7,9 @@
 (function () {
     'use strict';
 
-    // Design system motion constants
-    const DS_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
-    const DS_DURATION = 200; // ms
+    // Design system motion constants (iOS-smooth)
+    const DS_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    const DS_DURATION = 250; // ms
 
     // ----------------------------------------------------------
     // 1. RIPPLE EFFECT ON BUTTONS (refined, lighter)
@@ -139,12 +139,14 @@
     // ----------------------------------------------------------
     document.querySelectorAll('aside nav a span:first-child').forEach((icon) => {
         icon.style.display = 'inline-block';
-        icon.style.transition = `transform ${DS_DURATION}ms ${DS_EASE}`;
+        icon.style.transition = `transform ${DS_DURATION}ms ${DS_EASE}, filter ${DS_DURATION}ms ${DS_EASE}`;
         icon.parentElement.addEventListener('mouseenter', () => {
-            icon.style.transform = 'scale(1.25) rotate(-8deg)';
+            icon.style.transform = 'scale(1.2) rotate(-6deg)';
+            icon.style.filter = 'brightness(1.3)';
         });
         icon.parentElement.addEventListener('mouseleave', () => {
             icon.style.transform = 'scale(1) rotate(0deg)';
+            icon.style.filter = 'brightness(1)';
         });
     });
 
@@ -365,5 +367,5 @@
     }
 
     // Log that premium UI is loaded
-    console.log('%c✨ Premium Design System v2.0 loaded', 'color: #3b82f6; font-weight: bold; font-size: 12px;');
+    console.log('%c✨ Premium Design System v3.0 loaded', 'color: #3b82f6; font-weight: bold; font-size: 12px;');
 })();

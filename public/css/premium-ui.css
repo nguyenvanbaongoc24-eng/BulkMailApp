@@ -1,7 +1,7 @@
 /* ============================================================
    PREMIUM DESIGN SYSTEM — SaaS-Grade UI/UX
-   Version: 2.0.0
-   Aesthetic: Stripe / Linear / Notion
+   Version: 3.0.0
+   Aesthetic: Stripe / Linear / Notion — iOS-smooth
    NOTE: This file is PURELY visual. No backend logic is modified.
    ============================================================ */
 
@@ -9,43 +9,45 @@
    0. DESIGN TOKENS
    ========================================================== */
 :root {
-    /* ── Surfaces ── */
-    --ds-bg:              #0B0F1A;
-    --ds-surface:         #111827;
-    --ds-surface-elevated:#1a2235;
+    /* ── Surfaces (Deep Dark) ── */
+    --ds-bg:              #020617;
+    --ds-bg-gradient:     linear-gradient(180deg, #020617 0%, #030712 100%);
+    --ds-surface:         rgba(15, 23, 42, 0.7);
+    --ds-surface-solid:   #0f172a;
+    --ds-surface-elevated:rgba(30, 41, 59, 0.6);
     --ds-surface-hover:   rgba(255,255,255,0.04);
-    --ds-surface-active:  rgba(255,255,255,0.06);
+    --ds-surface-active:  rgba(255,255,255,0.07);
 
     /* ── Borders ── */
-    --ds-border:          rgba(255,255,255,0.08);
-    --ds-border-hover:    rgba(255,255,255,0.14);
+    --ds-border:          rgba(255,255,255,0.05);
+    --ds-border-hover:    rgba(255,255,255,0.12);
     --ds-border-focus:    rgba(59,130,246,0.5);
 
     /* ── Typography ── */
     --ds-text:            #f0f4f8;
-    --ds-text-secondary:  #8b9cb8;
-    --ds-text-muted:      #556880;
-    --ds-text-placeholder:#3d4f66;
+    --ds-text-secondary:  #94a3b8;
+    --ds-text-muted:      #64748b;
+    --ds-text-placeholder:#475569;
 
     /* ── Accents ── */
     --ds-blue:            #3b82f6;
-    --ds-blue-glow:       rgba(59,130,246,0.25);
+    --ds-blue-glow:       rgba(59,130,246,0.2);
     --ds-orange:          #f97316;
-    --ds-orange-glow:     rgba(249,115,22,0.25);
+    --ds-orange-glow:     rgba(249,115,22,0.2);
     --ds-green:           #22c55e;
-    --ds-green-glow:      rgba(34,197,94,0.25);
+    --ds-green-glow:      rgba(34,197,94,0.2);
     --ds-red:             #ef4444;
-    --ds-red-glow:        rgba(239,68,68,0.25);
+    --ds-red-glow:        rgba(239,68,68,0.2);
     --ds-amber:           #f59e0b;
-    --ds-amber-glow:      rgba(245,158,11,0.25);
+    --ds-amber-glow:      rgba(245,158,11,0.2);
     --ds-purple:          #a855f7;
 
-    /* ── Shadows ── */
-    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.18);
-    --ds-shadow-md:       0 8px 24px rgba(0,0,0,0.22);
-    --ds-shadow-lg:       0 16px 48px rgba(0,0,0,0.35);
-    --ds-shadow-glow-orange: 0 8px 30px -4px rgba(249,115,22,0.4);
-    --ds-shadow-glow-blue:   0 8px 30px -4px rgba(59,130,246,0.35);
+    /* ── Shadows (Deeper) ── */
+    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.25);
+    --ds-shadow-md:       0 10px 30px rgba(0,0,0,0.4);
+    --ds-shadow-lg:       0 20px 50px rgba(0,0,0,0.5);
+    --ds-shadow-glow-orange: 0 8px 30px -4px rgba(249,115,22,0.35);
+    --ds-shadow-glow-blue:   0 8px 30px -4px rgba(59,130,246,0.3);
 
     /* ── Radii ── */
     --ds-radius-sm:       8px;
@@ -54,33 +56,36 @@
     --ds-radius-xl:       24px;
     --ds-radius-pill:     9999px;
 
-    /* ── Motion ── */
-    --ds-ease:            cubic-bezier(0.22, 1, 0.36, 1);
+    /* ── Motion (iOS-smooth) ── */
+    --ds-ease:            cubic-bezier(0.4, 0, 0.2, 1);
+    --ds-ease-spring:     cubic-bezier(0.22, 1, 0.36, 1);
     --ds-ease-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1);
     --ds-duration-fast:   150ms;
-    --ds-duration:        200ms;
-    --ds-duration-slow:   300ms;
+    --ds-duration:        250ms;
+    --ds-duration-slow:   350ms;
 }
 
-/* ── Light Mode Design Tokens ── */
+/* ── Light Mode Design Tokens (Clean, no plastic) ── */
 .light-mode {
     --ds-bg:              #f8fafc;
+    --ds-bg-gradient:     linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
     --ds-surface:         #ffffff;
-    --ds-surface-elevated:#f1f5f9;
-    --ds-surface-hover:   rgba(0,0,0,0.03);
-    --ds-surface-active:  rgba(0,0,0,0.06);
+    --ds-surface-solid:   #ffffff;
+    --ds-surface-elevated:#f8fafc;
+    --ds-surface-hover:   rgba(0,0,0,0.02);
+    --ds-surface-active:  rgba(0,0,0,0.04);
 
-    --ds-border:          rgba(0,0,0,0.08);
-    --ds-border-hover:    rgba(0,0,0,0.14);
+    --ds-border:          rgba(0,0,0,0.06);
+    --ds-border-hover:    rgba(0,0,0,0.1);
 
     --ds-text:            #0f172a;
     --ds-text-secondary:  #475569;
     --ds-text-muted:      #64748b;
     --ds-text-placeholder:#94a3b8;
 
-    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.05);
-    --ds-shadow-md:       0 8px 24px rgba(0,0,0,0.08);
-    --ds-shadow-lg:       0 16px 48px rgba(0,0,0,0.12);
+    --ds-shadow-sm:       0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --ds-shadow-md:       0 4px 20px rgba(0,0,0,0.08);
+    --ds-shadow-lg:       0 12px 40px rgba(0,0,0,0.1);
 }
 
 
@@ -129,36 +134,40 @@ button, [role="button"], a[onclick],
 
 
 /* ==========================================================
-   3. BUTTON EFFECTS (Hover glow + Click scale)
+   3. BUTTON EFFECTS (iOS-smooth hover + click)
    ========================================================== */
 button, [role="button"], a[onclick] {
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    transition: transform var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease),
+                filter var(--ds-duration) var(--ds-ease),
+                background-color var(--ds-duration) var(--ds-ease);
 }
 
-/* Hover: lift + shadow */
+/* Hover: lift + glow */
 button:hover, [role="button"]:hover {
-    transform: translateY(-1px);
-    transition: transform var(--ds-duration) var(--ds-ease),
-                box-shadow var(--ds-duration) var(--ds-ease);
+    transform: translateY(-1px) scale(1.02);
+    filter: brightness(1.05);
 }
 
 /* Active: press down */
 button:active, [role="button"]:active {
-    transform: scale(0.97) translateY(0);
+    transform: scale(0.98) translateY(0);
+    filter: brightness(0.98);
     transition-duration: 100ms;
 }
 
-/* Primary gradient buttons — enhanced glow on hover */
+/* Primary gradient buttons — glow on hover */
 .bg-orange-gradient:hover {
     box-shadow: var(--ds-shadow-glow-orange),
-                0 0 20px rgba(249,115,22,0.12);
-    transform: translateY(-2px) scale(1.01);
+                0 0 40px rgba(249,115,22,0.1);
+    transform: translateY(-2px) scale(1.02);
 }
 .bg-orange-gradient:active {
-    box-shadow: 0 2px 8px rgba(249,115,22,0.25);
-    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(249,115,22,0.2);
+    transform: scale(0.98);
 }
 
 /* Ripple effect */
@@ -181,33 +190,36 @@ button:active, [role="button"]:active {
 
 
 /* ==========================================================
-   4. CARD / GLASS PANEL HOVER (Depth, not plastic)
+   4. CARD / GLASS PANEL HOVER (Deep, layered)
    ========================================================== */
 .bg-glass,
 .bg-glass\/40,
 [class*="bg-glass"] {
-    transition: transform var(--ds-duration-slow) var(--ds-ease),
-                box-shadow var(--ds-duration-slow) var(--ds-ease),
-                border-color var(--ds-duration-slow) var(--ds-ease);
+    transition: transform var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease),
+                border-color var(--ds-duration) var(--ds-ease),
+                background-color var(--ds-duration) var(--ds-ease);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .bg-glass:hover,
 .bg-glass\/40:hover {
     transform: translateY(-2px);
-    box-shadow: var(--ds-shadow-md),
-                0 0 0 1px var(--ds-border-hover);
+    box-shadow: var(--ds-shadow-md);
+    border-color: var(--ds-border-hover);
 }
 
 .card-glow {
-    transition: transform var(--ds-duration-slow) var(--ds-ease),
-                box-shadow var(--ds-duration-slow) var(--ds-ease),
-                border-color var(--ds-duration-slow) var(--ds-ease);
+    transition: transform var(--ds-duration) var(--ds-ease),
+                box-shadow var(--ds-duration) var(--ds-ease),
+                border-color var(--ds-duration) var(--ds-ease);
 }
 .card-glow:hover {
     transform: translateY(-3px);
-    box-shadow: 0 0 30px rgba(255,140,0,0.1),
+    box-shadow: 0 0 30px rgba(255,140,0,0.08),
                 var(--ds-shadow-md);
-    border-color: rgba(255,140,0,0.2);
+    border-color: rgba(255,140,0,0.15);
 }
 
 
@@ -220,36 +232,39 @@ thead th {
     position: sticky;
     top: 0;
     z-index: 10;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(2, 6, 23, 0.85);
 }
 
-/* Zebra striping — extremely subtle */
+/* Zebra striping — subtle */
 tbody tr:nth-child(even) {
     background: rgba(255,255,255,0.015);
 }
 
-/* Row hover */
+/* Row hover — smooth highlight */
 tbody tr {
-    transition: background-color var(--ds-duration-fast) ease;
+    transition: background-color var(--ds-duration-fast) var(--ds-ease),
+                transform var(--ds-duration-fast) var(--ds-ease);
     position: relative;
 }
 tbody tr:hover {
-    background: rgba(255,255,255,0.035) !important;
+    background: rgba(255,255,255,0.04) !important;
 }
 tbody tr:hover td:first-child {
-    box-shadow: inset 3px 0 0 0 rgba(249,115,22,0.6);
+    box-shadow: inset 3px 0 0 0 rgba(249,115,22,0.5);
 }
 tbody tr:active {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(255,255,255,0.06) !important;
 }
 
-/* Table text clarity */
+/* Table text — increased padding */
 tbody td {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--ds-text-secondary);
     line-height: 1.5;
+    padding: 14px 16px;
 }
 
 /* Sortable header hover */
@@ -360,12 +375,18 @@ th[onclick]:hover {
 aside nav a {
     transition: transform var(--ds-duration) var(--ds-ease),
                 background-color var(--ds-duration) var(--ds-ease),
-                color var(--ds-duration) var(--ds-ease);
+                color var(--ds-duration) var(--ds-ease),
+                filter var(--ds-duration) var(--ds-ease);
     position: relative;
+    border-radius: var(--ds-radius-md);
 }
 aside nav a:hover {
     transform: translateX(4px);
     background: var(--ds-surface-hover);
+    filter: brightness(1.1);
+}
+aside nav a:hover span:first-child {
+    filter: brightness(1.3);
 }
 aside nav a:active {
     transform: translateX(2px) scale(0.98);
@@ -806,21 +827,17 @@ span[class*="text-2xl"]:hover {
 /* ==========================================================
    14. DARK MODE POLISH (Depth, not flat)
    ========================================================== */
-/* Subtle ambient gradient background for depth */
+/* Deep ambient gradient background */
 body::before {
     content: '';
     position: fixed;
     inset: 0;
     background:
-        radial-gradient(ellipse at top right, rgba(249,115,22,0.025) 0%, transparent 60%),
-        radial-gradient(ellipse at bottom left, rgba(147,51,234,0.025) 0%, transparent 60%);
+        var(--ds-bg-gradient),
+        radial-gradient(ellipse 80% 50% at 20% 80%, rgba(59,130,246,0.04) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(249,115,22,0.03) 0%, transparent 70%);
     pointer-events: none;
     z-index: -1;
-}
-
-/* Better text contrast in dark mode */
-.text-gray-400 {
-    color: #a1a1aa !important;
 }
 
 /* Stat numbers — subtle glow */
@@ -1223,18 +1240,21 @@ span.flatpickr-weekday {
     background: rgba(0,0,0,0.02) !important;
 }
 .light-mode tbody tr:hover td:first-child {
-    box-shadow: inset 3px 0 0 0 rgba(249,115,22,0.8);
+    box-shadow: inset 3px 0 0 0 rgba(249,115,22,0.6);
+}
+
+.light-mode thead th {
+    background: rgba(248, 250, 252, 0.92);
 }
 
 .light-mode .bg-glass:hover,
 .light-mode .bg-glass\/40:hover {
-    box-shadow: 0 12px 40px -8px rgba(0,0,0,0.1),
-                0 0 0 1px rgba(0,0,0,0.05);
+    box-shadow: var(--ds-shadow-md);
 }
 
 .light-mode .card-glow:hover {
-    box-shadow: 0 0 30px rgba(255,140,0,0.06),
-                0 12px 40px -8px rgba(0,0,0,0.12);
+    box-shadow: 0 0 20px rgba(255,140,0,0.05),
+                var(--ds-shadow-md);
 }
 
 .light-mode aside nav a:hover {
@@ -1242,9 +1262,7 @@ span.flatpickr-weekday {
 }
 
 .light-mode body::before {
-    background:
-        radial-gradient(ellipse at top right, rgba(249,115,22,0.015) 0%, transparent 60%),
-        radial-gradient(ellipse at bottom left, rgba(59,130,246,0.015) 0%, transparent 60%);
+    background: var(--ds-bg-gradient);
 }
 
 .light-mode .skeleton {
@@ -1265,17 +1283,19 @@ span.flatpickr-weekday {
 /* Light-mode custom select */
 .light-mode .custom-select-trigger {
     background: #fff;
-    border-color: #e2e8f0;
+    border-color: rgba(0,0,0,0.08);
     color: #0f172a;
+    box-shadow: var(--ds-shadow-sm);
 }
 .light-mode .custom-select-trigger:hover {
     background: #f8fafc;
-    border-color: #cbd5e1;
+    border-color: rgba(0,0,0,0.12);
+    box-shadow: var(--ds-shadow-md);
 }
 .light-mode .custom-select-menu {
     background: #fff;
-    border-color: #e2e8f0;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+    border-color: rgba(0,0,0,0.06);
+    box-shadow: var(--ds-shadow-lg);
 }
 .light-mode .custom-select-option {
     color: #334155;
