@@ -1393,6 +1393,27 @@ span.flatpickr-weekday:nth-child(7) {
 .light-mode .flatpickr-day.prevMonthDay,
 .light-mode .flatpickr-day.nextMonthDay {
     color: rgba(0, 0, 0, 0.15) !important;
+
+/* 11. PRICING GROUP TOGGLE */
+.pricing-group-btn {
+    color: rgba(255, 255, 255, 0.4);
+    background: transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pricing-group-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.pricing-group-btn.active {
+    background: rgba(244, 121, 32, 0.1);
+    color: #F47920;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.light-mode .pricing-group-btn.active {
+    background: rgba(244, 121, 32, 0.05);
+    color: #ea580c;
 }
 
 

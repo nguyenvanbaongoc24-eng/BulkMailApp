@@ -782,6 +782,164 @@ app.delete('/api/quotations/:id', authenticate, async (req, res) => {
     res.json({ success: true });
 });
 
+// --- PRICING SYSTEM ROUTES ---
+
+/**
+ * GET /api/pricing/active
+ * Lấy bảng giá đang hoạt động, group theo category và service
+ */
+app.get('/api/pricing/active', authenticate, async (req, res) => {
+    try {
+        // 1. Get active version
+        const { data: version, error: vErr } = await supabase
+            .from('pricing_versions')
+            .select('*')
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (vErr) throw vErr;
+        if (!version) {
+            return res.json({ version: null, categories: [] });
+        }
+
+        // 2. Get all items for this version
+        // We join with pricing_services and service_categories
+        const { data: items, error: iErr } = await supabase
+            .from('pricing_items')
+            .select(`
+                id, duration, price, description,
+                pricing_services (
+                    id, name,
+                    service_categories (id, name)
+                )
+            `)
+            .eq('version_id', version.id);
+
+        if (iErr) throw iErr;
+
+        // 3. Group data for UI
+        const categoriesMap = {};
+
+        items.forEach(item => {
+            const service = item.pricing_services;
+            const category = service.service_categories;
+
+            if (!categoriesMap[category.id]) {
+                categoriesMap[category.id] = {
+                    id: category.id,
+                    name: category.name,
+                    services: {}
+                };
+            }
+
+            if (!categoriesMap[category.id].services[service.id]) {
+                categoriesMap[category.id].services[service.id] = {
+                    id: service.id,
+                    name: service.name,
+                    items: []
+                };
+            }
+
+            categoriesMap[category.id].services[service.id].items.push({
+                id: item.id,
+                duration: item.duration,
+                price: item.price,
+                description: item.description
+            });
+        });
+
+        // Convert maps to arrays for easier frontend consumption
+        const result = Object.values(categoriesMap).map(cat => ({
+            ...cat,
+            services: Object.values(cat.services)
+        }));
+
+        res.json({
+            version: version,
+            categories: result
+        });
+    } catch (err) {
+        console.error('[PRICING] GET active error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /api/services-config
+ * Lấy danh sách services và categories để setup bảng giá
+ */
+app.get('/api/services-config', authenticate, async (req, res) => {
+    try {
+        const { data: categories, error: cErr } = await supabase
+            .from('service_categories')
+            .select(`
+                id, name,
+                pricing_services (id, name)
+            `);
+        
+        if (cErr) throw cErr;
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * POST /api/pricing/version
+ * Tạo bảng giá mới (Version mới)
+ */
+app.post('/api/pricing/version', authenticate, async (req, res) => {
+    try {
+        const { name, items } = req.body; // items: [{service_id, duration, price, description}]
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Danh sách giá không được để trống' });
+        }
+
+        // 1. Start a "transaction" via sequence of calls
+        // Note: Supabase JS doesn't have true transactions across tables easily without RPC, 
+        // but we can manage flags carefully.
+
+        // Deactivate all old versions
+        await supabase
+            .from('pricing_versions')
+            .update({ is_active: false })
+            .eq('is_active', true);
+
+        // 2. Create new version
+        const { data: newVersion, error: vErr } = await supabase
+            .from('pricing_versions')
+            .insert({ 
+                name: name || `Bảng giá ${new Date().toLocaleDateString('vi-VN')}`,
+                is_active: true 
+            })
+            .select()
+            .single();
+
+        if (vErr) throw vErr;
+
+        // 3. Insert items
+        const itemsToInsert = items.map(item => ({
+            version_id: newVersion.id,
+            service_id: item.service_id,
+            duration: item.duration,
+            price: item.price,
+            description: item.description
+        }));
+
+        const { error: iErr } = await supabase
+            .from('pricing_items')
+            .insert(itemsToInsert);
+
+        if (iErr) throw iErr;
+
+        res.json({ success: true, version: newVersion });
+    } catch (err) {
+        console.error('[PRICING] POST version error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/quotations/:id/generate', authenticate, async (req, res) => {
     try {
         const { id } = req.params;

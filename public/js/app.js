@@ -159,6 +159,7 @@ function saveCurrentSession(token, user) {
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     loadCRMPrices(); // Initial pricing load
+    PricingManager.init(); // NEW: Pricing System
 
 
     // Initialize premium date picker (Single/Modal)
@@ -627,7 +628,8 @@ function showPage(pageId) {
         'lookup-tools': 'Cổng Tra Cứu Nghiệp Vụ',
         'settings': 'Cài đặt hệ thống',
         'quotations': 'Hợp đồng & Báo giá',
-        'documents': 'Kho Tài liệu Sales'
+        'documents': 'Kho Tài liệu Sales',
+        'settings-pricing': 'Cập nhật Bảng giá'
     };
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
@@ -655,6 +657,7 @@ function showPage(pageId) {
     if (pageId === 'seo-news') loadTaxNews();
     if (pageId === 'seo-posts') loadMySavedPosts();
     if (pageId === 'settings') loadSettingsPage();
+    if (pageId === 'settings-pricing') PricingManager.render();
 }
 
 function toggleSidebar() {
@@ -980,37 +983,33 @@ let pricingCacheTime = 0;
 
 async function loadCRMPrices() {
     try {
-        // Cache Check (Phần 5)
-        const cached = localStorage.getItem('crm_pricing_data');
-        const cachedTime = localStorage.getItem('crm_pricing_time');
-        const now = Date.now();
-        
-        if (cached && cachedTime && (now - cachedTime < 3600000)) { // 1h TTL
-            CRM_PRICE_LIST = JSON.parse(cached);
-            console.log('[CRM] Pricing loaded from cache');
-            refreshPricingUI();
-            return;
+        // Use the new PricingManager to get active version
+        if (!PricingManager.pricingData) {
+            await PricingManager.loadActivePricing();
         }
+        
+        // Flatten for compatibility with old code if needed
+        const flattened = [];
+        PricingManager.pricingData.categories.forEach(cat => {
+            cat.services.forEach(svc => {
+                svc.items.forEach(item => {
+                    flattened.push({
+                        id: item.id,
+                        service_name: svc.name,
+                        package_name: item.duration,
+                        price: item.price,
+                        category: cat.name,
+                        is_active: true
+                    });
+                });
+            });
+        });
 
-        const response = await fetch('/api/crm/prices');
-        if (!response.ok) throw new Error('Failed to fetch prices');
-        CRM_PRICE_LIST = await response.json();
-        
-        // Save to cache
-        localStorage.setItem('crm_pricing_data', JSON.stringify(CRM_PRICE_LIST));
-        localStorage.setItem('crm_pricing_time', now.toString());
-        
-        console.log('[CRM] Pricing list loaded from DB:', CRM_PRICE_LIST.length, 'items');
+        CRM_PRICE_LIST = flattened;
+        console.log('[CRM] Pricing updated from Versioned System:', CRM_PRICE_LIST.length, 'items');
         refreshPricingUI();
     } catch (err) {
         console.error('[CRM] Error loading prices:', err);
-        // Fallback to legacy default if possible (Phần 5)
-        if (!CRM_PRICE_LIST || CRM_PRICE_LIST.length === 0) {
-            CRM_PRICE_LIST = [
-                { service_name: "CKS – Cấp mới", package_name: "Công ty", duration_months: 12, price: 1793880 },
-                { service_name: "Hóa đơn điện tử", package_name: "300 tờ", duration_months: 0, price: 800000 }
-            ];
-        }
     }
 }
 
@@ -1047,13 +1046,18 @@ function getCRMPrice(service, type, pkg) {
 
 function updateCRMPackages() {
     const service = document.getElementById('ca2-crm-service').value;
+    const customerType = document.getElementById('ca2-crm-customer-type').value;
     const pkgSelect = document.getElementById('ca2-crm-package');
     if (!pkgSelect) return;
 
     const oldVal = pkgSelect.value;
     pkgSelect.innerHTML = '';
 
-    const filtered = CRM_PRICE_LIST.filter(p => p.service_name === service && p.is_active !== false);
+    // Filter by Service AND Customer Type (Company vs Individual)
+    const filtered = CRM_PRICE_LIST.filter(p => 
+        p.service_name === service && 
+        p.category === customerType
+    );
     
     if (filtered.length === 0) {
         pkgSelect.innerHTML = '<option value="">Chưa có gói</option>';
@@ -1075,20 +1079,20 @@ function updateCRMPackages() {
 
 function calculatePrice() {
     const service = document.getElementById('ca2-crm-service').value;
+    const customerType = document.getElementById('ca2-crm-customer-type').value;
     const pkg = document.getElementById('ca2-crm-package').value;
     const amountInput = document.getElementById('ca2-crm-amount');
     const durationSelect = document.getElementById('ca2-crm-duration');
 
-    const match = CRM_PRICE_LIST.find(p => p.service_name === service && p.package_name === pkg);
+    const match = CRM_PRICE_LIST.find(p => 
+        p.service_name === service && 
+        p.category === customerType &&
+        p.package_name === pkg
+    );
     if (match) {
         amountInput.value = new Intl.NumberFormat('vi-VN').format(match.price);
         if (durationSelect) {
-            if (match.duration_months > 0) {
-                const years = Math.ceil(match.duration_months / 12);
-                durationSelect.value = `${years} năm`;
-            } else {
-                durationSelect.value = match.package_name;
-            }
+            durationSelect.value = match.package_name;
         }
     }
 }
@@ -2629,6 +2633,11 @@ function renderPricingTable() {
                 <div class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">${item.package_name}</div>
             </td>
             <td class="px-8 py-4 text-center">
+                <span class="px-3 py-1 rounded-lg bg-blue-500/10 text-[10px] font-black text-blue-400 uppercase tracking-tighter">
+                    ${item.customer_group || 'Công ty'}
+                </span>
+            </td>
+            <td class="px-8 py-4 text-center">
                 <span class="px-3 py-1 rounded-lg bg-white/5 text-xs font-bold text-gray-300">${item.duration_months} tháng</span>
             </td>
             <td class="px-8 py-4 text-right">
@@ -2668,8 +2677,16 @@ function togglePricingStatus(index) {
     renderPricingTable();
 }
 
+function setPricingGroup(group) {
+    document.getElementById('add-pricing-group').value = group;
+    // UI Update
+    document.getElementById('btn-group-company').classList.toggle('active', group === 'Công ty');
+    document.getElementById('btn-group-individual').classList.toggle('active', group === 'Cá nhân/HKD');
+}
+
 function openAddPricingModal() {
     document.getElementById('modal-add-pricing').classList.remove('hidden');
+    setPricingGroup('Công ty'); // Default
 }
 
 function closeAddPricingModal() {
@@ -2678,6 +2695,7 @@ function closeAddPricingModal() {
 
 async function handleAddPricingSubmit() {
     const service = document.getElementById('add-pricing-service').value;
+    const group = document.getElementById('add-pricing-group').value; // New field
     const pkg = document.getElementById('add-pricing-package').value;
     const duration = parseInt(document.getElementById('add-pricing-duration').value);
     const price = parseInt(document.getElementById('add-pricing-price').value);
@@ -2688,24 +2706,26 @@ async function handleAddPricingSubmit() {
         return;
     }
 
-    // Safety (Phần 7): No duplicate duration for same service/package
-    const duplicate = CRM_PRICE_LIST.find(p => p.service_name === service && p.package_name === pkg && p.duration_months === duration);
+    // Safety: No duplicate for same service/package/duration/group
+    const duplicate = CRM_PRICE_LIST.find(p => p.service_name === service && p.package_name === pkg && p.duration_months === duration && p.customer_group === group);
     if (duplicate) {
         showToast('Gói này đã tồn tại!', 'warning');
         return;
     }
 
     const newItem = {
+        id: 'new-' + Date.now(),
         service_name: service,
+        customer_group: group,
         package_name: pkg,
-        duration_months: duration,
+        duration_months: duration || 0,
         price: price,
         description: desc,
         is_active: true
     };
 
     CRM_PRICE_LIST.push(newItem);
-    showToast('Đã thêm gói mới tạm thời. Nhấn Lưu để đồng bộ!', 'success');
+    showToast('Đã thêm gói mới. Nhấn "Lưu thay đổi" để đồng bộ database!', 'success');
     closeAddPricingModal();
     renderPricingTable();
 }

@@ -465,6 +465,9 @@
                 <a href="javascript:void(0)" onclick="showPage('settings'); return false;" id="nav-settings" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                     <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold text-sm">Cài đặt hệ thống</span>
                 </a>
+                <a href="javascript:void(0)" onclick="showPage('settings-pricing'); return false;" id="nav-settings-pricing" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+                    <span class="mr-3 text-lg text-orange-500">🏷️</span> <span class="font-semibold text-sm text-orange-500/80">Cập nhật bảng giá</span>
+                </a>
             </div>
 
             <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
@@ -1624,7 +1627,11 @@
                                         <option value="all">Tất cả dịch vụ</option>
                                         <option value="CKS – Cấp mới">CKS – Cấp mới</option>
                                         <option value="CKS – Gia hạn">CKS – Gia hạn</option>
+                                        <option value="CA2 Remote Signing">CA2 Remote Signing</option>
                                         <option value="Hóa đơn điện tử">Hóa đơn điện tử</option>
+                                        <option value="Hóa đơn đầu vào">Hóa đơn đầu vào</option>
+                                        <option value="Phần mềm kế toán">Phần mềm kế toán</option>
+                                        <option value="CA2 Sign Platform">CA2 Sign Platform</option>
                                         <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
                                     </select>
                                 </div>
@@ -1634,6 +1641,7 @@
                                         <thead>
                                             <tr class="bg-white/5 border-b border-white/5">
                                                 <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Dịch vụ / Gói</th>
+                                                <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Đối tượng</th>
                                                 <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Thời hạn</th>
                                                 <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Giá niêm yết</th>
                                                 <th class="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Mô tả</th>
@@ -2446,67 +2454,93 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/pricingEngine.js"></script>
+    <script src="js/pricing-management.js"></script>
     <script src="js/quote-components.js"></script>
     <script src="js/app.js?v=1.2.0"></script>
     <script src="js/seo.js?v=1.1.0"></script>
     <script src="js/premium-ui.js?v=2.0.0"></script>
-    <!-- Modal: Add Pricing Package -->
+    <!-- Modal: Add Pricing Package (Redesigned) -->
     <div id="modal-add-pricing" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000003] flex items-center justify-center p-6 hidden">
-        <div class="modal-premium w-full max-w-lg rounded-[40px] overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in duration-200">
-            <div class="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-500/10 to-transparent">
+        <div class="modal-premium w-full max-w-xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in duration-200">
+            <div class="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-orange-500/10 to-transparent">
                 <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-xl shadow-lg shadow-blue-900/30">
-                        <i class="fas fa-plus-circle"></i>
+                    <div class="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center text-white text-xl shadow-lg shadow-orange-900/30">
+                        <i class="fas fa-box-open"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-black tracking-tight text-white mb-1">Thêm gói dịch vụ</h3>
-                        <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Cấu hình bảng giá mới</p>
+                        <h3 class="text-2xl font-black tracking-tight text-white mb-1">Cấu hình Gói dịch vụ</h3>
+                        <p class="text-[10px] text-orange-400 font-bold uppercase tracking-widest">Tạo bảng giá mới cho hệ thống</p>
                     </div>
                 </div>
                 <button onclick="closeAddPricingModal()" class="w-10 h-10 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 rounded-2xl transition-all flex items-center justify-center"><i class="fas fa-times"></i></button>
             </div>
             
-            <div class="p-10 space-y-6">
-                <div class="space-y-2">
-                    <label class="label-premium">Tên Dịch vụ</label>
-                    <select id="add-pricing-service" class="input-premium">
-                        <option value="CKS – Cấp mới">CKS – Cấp mới</option>
-                        <option value="CKS – Gia hạn">CKS – Gia hạn</option>
-                        <option value="Hóa đơn điện tử">Hóa đơn điện tử</option>
-                        <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
-                        <option value="CA2 Remote Signing">CA2 Remote Signing</option>
-                        <option value="CA2 Sign Platform">CA2 Sign Platform</option>
-                    </select>
+            <div class="p-10 space-y-8">
+                <!-- Phân loại nhóm khách hàng -->
+                <div class="space-y-3">
+                    <label class="label-premium">Phân loại khách hàng</label>
+                    <div class="grid grid-cols-2 gap-3 p-1 bg-white/5 rounded-2xl border border-white/5">
+                        <button onclick="setPricingGroup('Công ty')" id="btn-group-company" class="pricing-group-btn active flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all text-sm">
+                            <i class="fas fa-building text-xs"></i> Công ty
+                        </button>
+                        <button onclick="setPricingGroup('Cá nhân/HKD')" id="btn-group-individual" class="pricing-group-btn flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all text-sm">
+                            <i class="fas fa-user-tie text-xs"></i> Cá nhân/HKD
+                        </button>
+                    </div>
+                    <input type="hidden" id="add-pricing-group" value="Công ty">
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4">
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="label-premium">Dịch vụ</label>
+                        <select id="add-pricing-service" class="input-premium">
+                            <optgroup label="Chữ ký số (CKS)">
+                                <option value="CKS – Cấp mới">CKS – Cấp mới</option>
+                                <option value="CKS – Gia hạn">CKS – Gia hạn</option>
+                                <option value="CA2 Remote Signing">CA2 Remote Signing</option>
+                            </optgroup>
+                            <optgroup label="Hóa đơn & Kế toán">
+                                <option value="Hóa đơn điện tử">Hóa đơn điện tử</option>
+                                <option value="Hóa đơn đầu vào">Hóa đơn đầu vào</option>
+                                <option value="Phần mềm kế toán">Phần mềm kế toán</option>
+                            </optgroup>
+                            <optgroup label="Nền tảng & Khác">
+                                <option value="CA2 Sign Platform">CA2 Sign Platform</option>
+                                <option value="Phần mềm bảo hiểm EBH">Phần mềm bảo hiểm EBH</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
                     <div class="space-y-2">
                         <label class="label-premium">Tên Gói</label>
-                        <input id="add-pricing-package" type="text" placeholder="VD: Công ty, 300 tờ..." class="input-premium">
+                        <input id="add-pricing-package" type="text" placeholder="VD: 300 tờ, 1 năm..." class="input-premium">
                     </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label class="label-premium">Thời hạn (Tháng)</label>
                         <input id="add-pricing-duration" type="number" placeholder="12" class="input-premium">
                     </div>
+                    <div class="space-y-2">
+                        <label class="label-premium">Giá tiền (VNĐ)</label>
+                        <input id="add-pricing-price" type="number" placeholder="1.000.000" class="input-premium">
+                    </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="label-premium">Giá tiền (VNĐ)</label>
-                    <input id="add-pricing-price" type="number" placeholder="1.000.000" class="input-premium">
-                </div>
-
-                <div class="space-y-2">
-                    <label class="label-premium">Mô tả</label>
-                    <textarea id="add-pricing-desc" class="input-premium h-24" placeholder="Thông tin thêm..."></textarea>
+                    <label class="label-premium">Mô tả gói dịch vụ</label>
+                    <textarea id="add-pricing-desc" class="input-premium h-20 pt-3" placeholder="Nhập ghi chú hoặc ưu đãi kèm theo..."></textarea>
                 </div>
             </div>
 
             <div class="p-8 border-t border-white/5 bg-white/2 flex justify-end gap-3">
-                <button onclick="closeAddPricingModal()" class="px-8 py-3 rounded-2xl bg-white/5 font-bold hover:bg-white/10 transition-all text-sm">Hủy</button>
-                <button onclick="handleAddPricingSubmit()" class="px-10 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-900/40 hover:scale-105 active:scale-95 transition-all">Tạo gói mới</button>
+                <button onclick="closeAddPricingModal()" class="px-8 py-3 rounded-2xl bg-white/5 font-bold hover:bg-white/10 transition-all text-sm text-gray-400">Đóng</button>
+                <button onclick="handleAddPricingSubmit()" class="px-10 py-3 bg-orange-gradient text-white font-black rounded-2xl shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">LƯU GÓI DỊCH VỤ</button>
             </div>
         </div>
     </div>
+
 
     <script>
 
@@ -2546,3 +2580,101 @@
 </body>
 </html>
 
+            <!-- Settings: Pricing Management View (NEW) -->
+            <div id="view-settings-pricing" class="hidden space-y-10 animate-in fade-in duration-500 pb-20">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-4xl font-black text-white tracking-tight">Cập nhật <span class="text-orange-gradient">Bảng giá</span></h2>
+                        <p class="text-gray-400 mt-2 font-medium italic">Quản lý bảng giá dịch vụ tập trung, áp dụng realtime toàn hệ thống</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="active-version-badge" class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-black uppercase tracking-widest">
+                            Phiên bản: <span id="current-version-name">Đang tải...</span>
+                        </div>
+                        <button onclick="PricingManager.saveNewVersion()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all">
+                            <i class="fas fa-save"></i>
+                            LƯU BẢNG GIÁ MỚI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category Tabs -->
+                <div class="flex items-center gap-2 bg-white/5 p-1.5 rounded-[22px] w-fit">
+                    <button id="tab-cat-company" onclick="PricingManager.switchCategory('company')" class="pricing-tab active px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
+                        Công ty
+                    </button>
+                    <button id="tab-cat-individual" onclick="PricingManager.switchCategory('individual')" class="pricing-tab px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-all">
+                        Cá nhân/HKD
+                    </button>
+                </div>
+
+                <!-- Pricing Grid -->
+                <div id="pricing-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <!-- Service blocks injected here -->
+                    <div class="col-span-full py-20 text-center">
+                        <div class="animate-pulse flex flex-col items-center gap-4">
+                            <div class="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin"></div>
+                            <p class="text-gray-500 font-bold italic">Đang tải cấu hình dịch vụ...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .pricing-tab.active {
+                    background: var(--brand-orange);
+                    color: white;
+                    box-shadow: 0 10px 20px rgba(249, 115, 22, 0.3);
+                }
+                .service-block {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 24px;
+                    padding: 24px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .service-block:hover {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(249, 115, 22, 0.3);
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                    transform: translateY(-5px);
+                }
+                .price-input-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1.5fr;
+                    gap: 12px;
+                    align-items: center;
+                }
+                .price-input-group {
+                    position: relative;
+                }
+                .price-input-group::after {
+                    content: 'đ';
+                    position: absolute;
+                    right: 16px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: rgba(255, 255, 255, 0.3);
+                    font-weight: 800;
+                    font-size: 10px;
+                }
+            </style>
+
+            <!-- Confirm Save Modal -->
+            <div id="modal-confirm-pricing" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[1000005] flex items-center justify-center p-6 hidden">
+                <div class="modal-premium w-full max-w-md rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
+                    <div class="p-10 text-center space-y-6">
+                        <div class="w-20 h-20 bg-orange-500/20 rounded-full mx-auto flex items-center justify-center text-4xl text-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.3)]">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black text-white mb-2">Xác nhận cập nhật</h3>
+                            <p class="text-gray-400 text-sm">Bạn đang tạo bảng giá mới, hệ thống sẽ áp dụng cho toàn bộ dữ liệu mới. Báo giá cũ vẫn giữ nguyên giá snapshot.</p>
+                        </div>
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="closeModal('modal-confirm-pricing')" class="flex-1 px-6 py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black text-xs transition-all uppercase tracking-widest">Hủy bỏ</button>
+                            <button id="btn-do-save-pricing" class="flex-[1.5] px-6 py-4 rounded-2xl bg-orange-gradient text-white font-black text-xs shadow-xl shadow-orange-900/40 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">Đồng ý & Lưu</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
