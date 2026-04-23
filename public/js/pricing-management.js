@@ -9,9 +9,16 @@ class PricingManager {
 
     static async init() {
         console.log('[PRICING] Initializing...');
-        await this.loadConfig();
-        await this.loadActivePricing();
-        this.render();
+        try {
+            await this.loadConfig();
+            await this.loadActivePricing();
+        } catch (err) {
+            console.error('[PRICING] Initialization error:', err);
+            // Even if it fails, try to render what we have or an error state
+            this.servicesConfig = this.servicesConfig || []; 
+        } finally {
+            this.render();
+        }
     }
 
     static async loadConfig() {
@@ -19,9 +26,12 @@ class PricingManager {
             const res = await fetch('/api/services-config', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` }
             });
+            if (!res.ok) throw new Error('API failed with status ' + res.status);
             this.servicesConfig = await res.json();
+            if (this.servicesConfig.error) throw new Error(this.servicesConfig.error);
         } catch (err) {
             console.error('[PRICING] Failed to load config:', err);
+            this.servicesConfig = []; // Fallback so render() doesn't crash
         }
     }
 
@@ -30,29 +40,37 @@ class PricingManager {
             const res = await fetch('/api/pricing/active', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` }
             });
+            if (!res.ok) throw new Error('API failed with status ' + res.status);
             const data = await res.json();
+            if (data.error) throw new Error(data.error);
             this.pricingData = data;
             
             if (data.version) {
-                document.getElementById('current-version-name').textContent = data.version.name;
+                const verEl = document.getElementById('current-version-name');
+                if (verEl) verEl.textContent = data.version.name;
             }
 
             // Initialize draftItems from active pricing
             this.draftItems = {};
-            data.categories.forEach(cat => {
-                cat.services.forEach(svc => {
-                    svc.items.forEach(item => {
-                        if (!this.draftItems[svc.id]) this.draftItems[svc.id] = [];
-                        this.draftItems[svc.id].push({
-                            duration: item.duration,
-                            price: item.price,
-                            description: item.description
+            if (data.categories && Array.isArray(data.categories)) {
+                data.categories.forEach(cat => {
+                    if (!cat.services) return;
+                    cat.services.forEach(svc => {
+                        if (!svc.items) return;
+                        svc.items.forEach(item => {
+                            if (!this.draftItems[svc.id]) this.draftItems[svc.id] = [];
+                            this.draftItems[svc.id].push({
+                                duration: item.duration,
+                                price: item.price,
+                                description: item.description
+                            });
                         });
                     });
                 });
-            });
+            }
         } catch (err) {
             console.error('[PRICING] Failed to load active pricing:', err);
+            this.pricingData = null;
         }
     }
 
@@ -78,7 +96,18 @@ class PricingManager {
         const grid = document.getElementById('pricing-grid');
         if (!grid) return;
 
-        if (!this.servicesConfig) return;
+        if (!Array.isArray(this.servicesConfig) || this.servicesConfig.length === 0) {
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-20 text-gray-500">
+                    <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <p>Không thể tải dữ liệu cấu hình dịch vụ.</p>
+                    <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors">Tải Lại</button>
+                </div>
+            `;
+            return;
+        }
 
         const categoryName = this.activeCategory === 'company' ? 'Công ty' : 'Cá nhân/HKD';
         const category = this.servicesConfig.find(c => c.name === categoryName);
