@@ -1104,15 +1104,25 @@ app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
     }
 });
 
-// --- CRM PRICING CONFIG ---
+// --- CRM PRICING CONFIG (DATABASE BACKED) ---
 app.get('/api/crm/prices', async (req, res) => {
     try {
-        const filePath = path.join(__dirname, 'data', 'crm_prices.json');
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ error: 'Pricing file not found' });
+        // Try DB first
+        const { data, error } = await supabase.from('service_pricing').select('*').order('service_name', { ascending: true });
+        
+        if (!error && data && data.length > 0) {
+            return res.json(data);
         }
-        const data = fs.readFileSync(filePath, 'utf8');
-        res.json(JSON.parse(data));
+
+        // Fallback to JSON file if DB empty or error
+        const filePath = path.join(__dirname, 'data', 'crm_prices.json');
+        if (fs.existsSync(filePath)) {
+            const fileData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            // Convert legacy JSON to flat structure if needed, or just return as is
+            return res.json(fileData);
+        }
+        
+        res.status(404).json({ error: 'No pricing data found' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1120,15 +1130,31 @@ app.get('/api/crm/prices', async (req, res) => {
 
 app.post('/api/crm/prices', authenticate, async (req, res) => {
     try {
-        // Verify admin role if possible, but for now allow all authenticated users
-        const filePath = path.join(__dirname, 'data', 'crm_prices.json');
-        const newPrices = req.body;
-        
-        if (!newPrices || typeof newPrices !== 'object') {
-            throw new Error('Invalid pricing data format');
-        }
+        const items = req.body; // Expecting array of pricing objects
+        if (!Array.isArray(items)) throw new Error('Data must be an array');
 
-        fs.writeFileSync(filePath, JSON.stringify(newPrices, null, 4), 'utf8');
+        // Backup existing to JSON file before sync
+        const filePath = path.join(__dirname, 'data', 'crm_prices_backup.json');
+        const { data: current } = await supabase.from('service_pricing').select('*');
+        fs.writeFileSync(filePath, JSON.stringify(current, null, 4));
+
+        // Perform upsert
+        const { data, error } = await supabase.from('service_pricing').upsert(
+            items.map(i => ({ ...i, updated_at: new Date().toISOString() })),
+            { onConflict: 'id' }
+        ).select();
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/crm/prices/:id', authenticate, async (req, res) => {
+    try {
+        const { error } = await supabase.from('service_pricing').delete().eq('id', req.params.id);
+        if (error) throw error;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
