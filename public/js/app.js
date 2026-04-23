@@ -158,6 +158,8 @@ function saveCurrentSession(token, user) {
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
+    loadCRMPrices(); // Initial pricing load
+
 
     // Initialize premium date picker (Single/Modal)
     const startInput = document.getElementById('ca2-crm-start');
@@ -942,36 +944,25 @@ function formatDate(dateStr) {
     } catch (e) { return dateStr; }
 }
 // --- ENHANCED CRM PRICING ENGINE ---
-const CRM_PRICE_LIST = {
-    "CKS – Cấp mới": {
-        "Công ty": { "12 tháng": 1793880, "24 tháng": 2691360, "36 tháng": 3054240 },
-        "Cá nhân / Hộ KD": { "12 tháng": 1069200, "24 tháng": 1501200, "36 tháng": 1944000 }
-    },
-    "CKS – Gia hạn": {
-        "Công ty": { "12 tháng": 1253880, "24 tháng": 2151360, "36 tháng": 2854440 },
-        "Cá nhân / Hộ KD": { "12 tháng": 529200, "24 tháng": 961200, "36 tháng": 1404000 }
-    },
-    "CKS - Gia hạn dùng thử": {
-        "Công ty": { "12 tháng": 1253880, "24 tháng": 2151360, "36 tháng": 2854440 },
-        "Cá nhân / Hộ KD": { "12 tháng": 529200, "24 tháng": 961200, "36 tháng": 1404000 }
-    },
-    "CA2 Remote Signing": {
-        "Cá nhân / Hộ KD": { "1 tháng": 34344, "3 tháng": 63720, "6 tháng": 108000, "1 năm": 196344, "2 năm": 373140, "3 năm": 530280 },
-        "Công ty": { "1 năm": 1226880, "2 năm": 2160000, "3 năm": 2847960 }
-    },
-    "Hóa đơn điện tử": {
-        "Tất cả": { "300 tờ": 800000, "500 tờ": 925000, "1000 tờ": 1175000, "2000 tờ": 1600000, "5000 tờ": 2750000, "10000 tờ": 4000000 }
-    },
-    "Hóa đơn điện tử – Gia hạn": {
-        "Tất cả": { "300 tờ": 300000, "500 tờ": 425000, "1000 tờ": 675000, "2000 tờ": 1100000, "5000 tờ": 2250000, "10000 tờ": 3500000 }
-    },
-    "Phần mềm bảo hiểm EBH": {
-        "Tất cả": { "1 năm": 500000, "2 năm": 880000, "3 năm": 1100000 }
-    },
-    "CA2 Sign Platform": {
-        "Tất cả": { "SP-Lite (10 HĐ)": 0, "SP-100 (100 HĐ)": 250000, "SP-300 (300 HĐ)": 690000, "SP-500 (500 HĐ)": 1110000, "SP-1000 (1000 HĐ)": 2100000, "SP-2000 (2000 HĐ)": 4000000, "SP-5000 (5000 HĐ)": 9500000, "SP-MAX": 0 }
+let CRM_PRICE_LIST = {};
+
+async function loadCRMPrices() {
+    try {
+        const response = await fetch('/api/crm/prices');
+        if (!response.ok) throw new Error('Failed to fetch prices');
+        CRM_PRICE_LIST = await response.json();
+        console.log('[CRM] Pricing list loaded:', Object.keys(CRM_PRICE_LIST).length, 'services');
+        
+        // If we are currently in the CRM view, refresh the packages
+        const crmView = document.getElementById('view-ca2-crm');
+        if (crmView && !crmView.classList.contains('hidden')) {
+            updateCRMPackages();
+        }
+    } catch (err) {
+        console.error('[CRM] Error loading prices:', err);
     }
-};
+}
+
 
 function getCRMPrice(service, type, pkg) {
     if (!service) return 0;
@@ -2604,7 +2595,36 @@ async function loadSettingsPage() {
     // Theme selector UI state
     const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
     updateThemeSelectorUI(currentTheme);
+
+    // Populate Pricing Config
+    const pricingEl = document.getElementById('settings-pricing-json');
+    if (pricingEl) {
+        pricingEl.value = JSON.stringify(CRM_PRICE_LIST, null, 4);
+    }
 }
+
+async function savePricingSettings() {
+    const pricingEl = document.getElementById('settings-pricing-json');
+    if (!pricingEl) return;
+
+    try {
+        const newPrices = JSON.parse(pricingEl.value);
+        
+        const response = await authedFetch('/api/crm/prices', {
+            method: 'POST',
+            body: JSON.stringify(newPrices)
+        });
+
+        if (!response.ok) throw new Error('Failed to save prices');
+        
+        CRM_PRICE_LIST = newPrices;
+        showToast('Cập nhật bảng giá thành công!', 'success');
+        updateCRMPackages(); // Refresh any open CRM UI
+    } catch (err) {
+        showToast('Lỗi định dạng JSON hoặc kết nối: ' + err.message, 'error');
+    }
+}
+
 
 function updateThemeSelectorUI(theme) {
     const darkBtn = document.getElementById('theme-btn-dark');

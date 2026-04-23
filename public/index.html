@@ -1532,6 +1532,29 @@
                                 </div>
                             </div>
 
+                            <!-- Pricing Management -->
+                            <div class="space-y-6">
+                                <h4 class="text-xl font-black text-white flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-sm"><i class="fas fa-tags"></i></span>
+                                    Quản lý Bảng giá Dịch vụ
+                                </h4>
+                                <div class="glass-card-premium space-y-4">
+                                    <p class="text-sm text-gray-400 font-medium">Chỉnh sửa bảng giá dịch vụ CRM (Định dạng JSON). Cẩn thận khi thay đổi cấu trúc.</p>
+                                    <div class="input-group-premium">
+                                        <textarea id="settings-pricing-json" class="input-premium min-h-[400px] font-mono text-xs leading-relaxed" placeholder="Đang tải bảng giá..."></textarea>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="text-[10px] text-orange-500 font-bold uppercase tracking-widest italic">
+                                            <i class="fas fa-exclamation-triangle"></i> Lưu ý: Thay đổi sẽ ảnh hưởng đến tính toán giá CRM ngay lập tức.
+                                        </div>
+                                        <button onclick="savePricingSettings()" class="px-10 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-900/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                                            <i class="fas fa-save"></i> Cập nhật bảng giá
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+
                             <!-- User Management (Only for Admin) -->
                             <div id="admin-user-section" class="space-y-6 hidden">
                                 <div class="flex items-center justify-between">

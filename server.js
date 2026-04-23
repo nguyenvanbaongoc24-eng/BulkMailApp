@@ -1019,7 +1019,7 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
         if (cks_type) insertData.cks_type = cks_type;
         if (req.body.payment_status) insertData.payment_status = req.body.payment_status;
 
-        const { data, error } = await getClient(req.token).from('customers').upsert(insertData, { onConflict: 'mst,user_id' }).select();
+        const { data, error } = await getClient(req.token).from('customers').upsert(insertData, { onConflict: 'user_id,mst,service_type' }).select();
 
         if (error) throw error;
         res.json({ success: true, data: data[0] });
@@ -1098,6 +1098,37 @@ app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
     try {
         const { error } = await getClient(req.token).from('customers').delete().eq('id', req.params.id).eq('user_id', req.user.id);
         if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- CRM PRICING CONFIG ---
+app.get('/api/crm/prices', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'data', 'crm_prices.json');
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Pricing file not found' });
+        }
+        const data = fs.readFileSync(filePath, 'utf8');
+        res.json(JSON.parse(data));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/crm/prices', authenticate, async (req, res) => {
+    try {
+        // Verify admin role if possible, but for now allow all authenticated users
+        const filePath = path.join(__dirname, 'data', 'crm_prices.json');
+        const newPrices = req.body;
+        
+        if (!newPrices || typeof newPrices !== 'object') {
+            throw new Error('Invalid pricing data format');
+        }
+
+        fs.writeFileSync(filePath, JSON.stringify(newPrices, null, 4), 'utf8');
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1477,7 +1508,8 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
             };
 
             if (item.company_name) {
-                uniqueDataMap.set(mst, item);
+                const uniqueKey = `${item.mst}_${item.service_type || 'default'}`;
+                uniqueDataMap.set(uniqueKey, item);
             }
         });
 
@@ -1489,7 +1521,7 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
             await supabase.from('customers').delete().eq('user_id', req.user.id);
         }
 
-        const { error } = await supabase.from('customers').upsert(mappedData, { onConflict: 'user_id,mst' });
+        const { error } = await supabase.from('customers').upsert(mappedData, { onConflict: 'user_id,mst,service_type' });
         if (error) throw error;
 
         res.json({ success: true, count: mappedData.length });
