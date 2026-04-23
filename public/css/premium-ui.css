@@ -991,36 +991,45 @@ header::after {
 
 
 /* ==========================================================
-   20. FLATPICKR OVERRIDES (SaaS / iOS style)
+   20. FLATPICKR OVERRIDES (SaaS / iOS style - v3)
    ========================================================== */
 
-/* Container */
+/* 2. NÂNG CẤP CONTAINER (Glass effect chuẩn) */
 .flatpickr-calendar {
-    width: 340px !important;
-    background: linear-gradient(180deg, #0f172a 0%, #020617 100%) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    width: 320px !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
     border-radius: 16px !important;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    overflow: hidden !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
     padding: 16px !important;
     margin-top: 8px !important;
-
-    /* Open animation */
+    overflow: hidden !important;
+    
+    /* 9. ANIMATION MỞ LỊCH */
     opacity: 0;
-    pointer-events: none; /* CRITICAL FIX for click-blocking */
-    transform: translateY(8px) scale(0.98);
-    transition: opacity 200ms var(--ds-ease),
-                transform 200ms var(--ds-ease) !important;
+    pointer-events: none;
+    display: none;
+}
+
+@keyframes fadeInCalendar {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .flatpickr-calendar.open,
 .flatpickr-calendar.inline {
+    display: block !important;
     opacity: 1;
     pointer-events: auto;
-    transform: scale(1);
-    animation: none !important;
+    animation: fadeInCalendar 0.2s ease !important;
 }
 
 /* Hide arrow */
@@ -1029,139 +1038,129 @@ header::after {
     display: none !important;
 }
 
-/* Header */
+/* 8. FIX HEADER NAV (Tháng + mũi tên) */
 .flatpickr-months {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 10px !important;
     background: transparent !important;
-    padding-bottom: 14px !important;
+    padding: 0 !important;
 }
-.flatpickr-months .flatpickr-month {
-    background: transparent !important;
-    color: var(--ds-text) !important;
+.flatpickr-current-month {
+    font-weight: 600 !important;
+    color: white !important;
+    font-size: 16px !important;
+    position: static !important;
+    padding: 0 !important;
     height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month .numInputWrapper {
+    color: white !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
 }
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
-    fill: var(--ds-text-secondary) !important;
-    color: var(--ds-text-secondary) !important;
-    border-radius: 50% !important;
-    transition: background-color var(--ds-duration) ease,
-                color var(--ds-duration) ease !important;
-    top: 16px !important;
-    padding: 8px !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    padding: 0 !important;
+    fill: var(--ds-text) !important;
+    color: var(--ds-text) !important;
     background: transparent !important;
     border: none !important;
 }
 .flatpickr-months .flatpickr-prev-month:hover,
 .flatpickr-months .flatpickr-next-month:hover {
-    background: var(--ds-surface-active) !important;
-    color: var(--ds-text) !important;
-    fill: var(--ds-text) !important;
-    transform: none !important;
-}
-
-.flatpickr-current-month {
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.3px !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-.flatpickr-current-month .flatpickr-monthDropdown-months,
-.flatpickr-current-month .numInputWrapper {
-    color: var(--ds-text) !important;
-    font-weight: 600 !important;
-    font-size: 16px !important;
-    appearance: none !important;
-    -webkit-appearance: none !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-    padding: 0 4px !important;
+    background: rgba(255,255,255,0.08) !important;
 }
 .flatpickr-current-month .flatpickr-monthDropdown-months:hover,
 .flatpickr-current-month .numInputWrapper:hover {
     background: transparent !important;
 }
+.numInputWrapper span { display: none !important; }
 
-/* Remove up/down arrows on year selector */
-.numInputWrapper span {
-    display: none !important;
-}
-.numInputWrapper input {
-    color: var(--ds-text) !important;
-    font-weight: 600 !important;
-    outline: none !important;
-}
-
-/* WEEKDAYS — FIXED: Full opacity, clear and sharp */
+/* 1. FIX HEADER (T2 → CN) */
 .flatpickr-weekdays {
     background: transparent !important;
-    height: 36px !important;
-    position: relative !important;
-    z-index: 10 !important;
+    height: auto !important;
+    margin-bottom: 8px !important;
+}
+.flatpickr-weekdaycontainer {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    width: 100% !important;
 }
 span.flatpickr-weekday {
-    color: var(--ds-text-secondary) !important;  /* Clear, readable */
+    font-size: 12px !important;
     font-weight: 600 !important;
-    font-size: 11px !important;
-    letter-spacing: 1px !important;
-    text-transform: uppercase !important;
-    opacity: 1 !important;            /* FIXED: No inherited opacity */
+    color: rgba(255,255,255,0.6) !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    background: transparent !important;
+    border: none !important;
 }
 
-/* Grid & Day Items */
+/* 3. FIX GRID NGÀY (spacing + dễ nhìn) */
+.flatpickr-innerContainer {
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
 .flatpickr-days {
+    width: 100% !important;
     border: none !important;
 }
 .dayContainer {
-    gap: 6px !important;
-    justify-content: center;
-    padding: 6px 0;
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    justify-content: stretch !important;
+    padding: 0 !important;
 }
+
+/* 3. & 4. DAY STYLE & HOVER EFFECT */
 .flatpickr-day {
+    height: 36px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 38px !important;
-    height: 38px !important;
-    max-width: 38px !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    transition: all 0.18s ease !important;
+    color: var(--ds-text) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    width: 100% !important;
+    max-width: none !important;
     line-height: normal !important;
     margin: 0 !important;
-    background: transparent !important;
-    border: 1.5px solid transparent !important;
-    border-radius: 50% !important;     /* Perfect circle */
-    color: var(--ds-text) !important;
-    font-weight: 500 !important;
-    font-size: 14px !important;
-    transition: background-color 180ms var(--ds-ease),
-                transform 180ms var(--ds-ease),
-                border-color 180ms var(--ds-ease),
-                box-shadow 180ms var(--ds-ease) !important;
+    box-shadow: none !important;
 }
 
-/* Hover Day */
-.flatpickr-day:not(.selected):not(.disabled):hover {
-    background: var(--ds-surface-active) !important;
-    transform: scale(1.05) !important;
+.flatpickr-day:hover:not(.selected):not(.disabled) {
+    background: rgba(255,255,255,0.06) !important;
+    transform: scale(1.08) !important;
 }
 
-/* Active/Click scale */
-.flatpickr-day:active:not(.disabled) {
-    transform: scale(0.92) !important;
-}
-
-/* Today — distinct amber ring */
-.flatpickr-day.today {
-    border-color: var(--ds-amber) !important;
-    color: var(--ds-amber) !important;
-    font-weight: 600 !important;
-}
-
-/* Selected & Range Edges — gradient + glow */
+/* 5. SELECTED DAY */
 .flatpickr-day.selected,
 .flatpickr-day.startRange,
 .flatpickr-day.endRange,
@@ -1171,49 +1170,24 @@ span.flatpickr-weekday {
 .flatpickr-day.selected:hover,
 .flatpickr-day.startRange:hover,
 .flatpickr-day.endRange:hover {
-    background: linear-gradient(135deg, #f97316, #ea580c) !important; /* Orange to match system */
-    border-color: transparent !important;
-    color: #fff !important;
-    box-shadow: 0 0 16px rgba(249,115,22,0.4),
-                0 4px 10px rgba(249,115,22,0.25) !important;
-    font-weight: 600 !important;
+    background: rgba(255,140,0,0.15) !important;
+    border: 1px solid #ff8c00 !important;
+    box-shadow: 0 0 12px rgba(255,140,0,0.4) !important;
+    color: white !important;
     transform: scale(1) !important;
-    border-radius: 50% !important;
-    z-index: 2 !important;
+    border-radius: 10px !important;
 }
 
-/* In Range (between start and end) */
-.flatpickr-day.inRange,
-.flatpickr-day.prevMonthDay.inRange,
-.flatpickr-day.nextMonthDay.inRange,
-.flatpickr-day.today.inRange,
-.flatpickr-day.prevMonthDay.today.inRange,
-.flatpickr-day.nextMonthDay.today.inRange,
-.flatpickr-day:hover.inRange,
-.flatpickr-day:focus.inRange {
-    background: rgba(249,115,22,0.15) !important; /* Light transparent primary color */
-    border-color: transparent !important;
-    color: var(--ds-text) !important;
-    border-radius: 0 !important; /* Connect seamlessly */
-    box-shadow: -10px 0 0 rgba(249,115,22,0.15), 10px 0 0 rgba(249,115,22,0.15) !important; /* Fill horizontal gaps */
-    transform: none !important;
-    z-index: 1 !important;
+/* 6. TODAY */
+.flatpickr-day.today {
+    border: 1px dashed rgba(255,255,255,0.4) !important;
 }
 
-/* Connect to start and end properly */
-.flatpickr-day.startRange {
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-}
-.flatpickr-day.endRange {
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
-}
-
-/* Prev/Next Month Days */
+/* 7. NGÀY KHÁC THÁNG */
 .flatpickr-day.prevMonthDay,
 .flatpickr-day.nextMonthDay {
-    color: rgba(255,255,255,0.2) !important;
+    opacity: 0.25 !important;
+    color: var(--ds-text) !important;
 }
 
 /* Disabled */
@@ -1222,14 +1196,29 @@ span.flatpickr-weekday {
     opacity: 0.25 !important;
     cursor: not-allowed !important;
     background: transparent !important;
-    color: rgba(255,255,255,0.2) !important;
     transform: none !important;
 }
 
-.flatpickr-innerContainer {
-    border-top: 1px solid rgba(255,255,255,0.05);
-    margin-top: 8px;
-    padding-top: 8px;
+/* Range Connections (if used) */
+.flatpickr-day.inRange,
+.flatpickr-day.prevMonthDay.inRange,
+.flatpickr-day.nextMonthDay.inRange,
+.flatpickr-day.today.inRange,
+.flatpickr-day:hover.inRange,
+.flatpickr-day:focus.inRange {
+    background: rgba(255,140,0,0.08) !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* 10. FIX INPUT (Từ ngày - Đến ngày) */
+.input-date:focus,
+.flatpickr-input:focus,
+.input-group-premium:has(.flatpickr-input:focus) {
+    outline: none !important;
+    border-color: #ff8c00 !important;
+    box-shadow: 0 0 10px rgba(255,140,0,0.4) !important;
 }
 
 /* Fix for Flatpickr inside input-group-premium */
@@ -1238,7 +1227,7 @@ span.flatpickr-weekday {
     display: flex !important;
 }
 
-.input-group-premium input {
+.input-group-premium input.flatpickr-input {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -1356,6 +1345,15 @@ span.flatpickr-weekday {
 .light-mode .flatpickr-current-month .numInputWrapper,
 .light-mode .numInputWrapper input {
     color: #0f172a !important;
+}
+.light-mode .flatpickr-months .flatpickr-prev-month,
+.light-mode .flatpickr-months .flatpickr-next-month {
+    fill: #334155 !important;
+    color: #334155 !important;
+}
+.light-mode .flatpickr-months .flatpickr-prev-month:hover,
+.light-mode .flatpickr-months .flatpickr-next-month:hover {
+    background: rgba(0,0,0,0.05) !important;
 }
 
 
