@@ -190,24 +190,27 @@ button:active, [role="button"]:active {
 
 
 /* ==========================================================
-   4. CARD / GLASS PANEL HOVER (Deep, layered)
+   4. GLASS EFFECT & CARD HOVER
+   Glass: blur(12-16px), subtle bg, thin border, soft shadow
    ========================================================== */
 .bg-glass,
 .bg-glass\/40,
 [class*="bg-glass"] {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     transition: transform var(--ds-duration) var(--ds-ease),
                 box-shadow var(--ds-duration) var(--ds-ease),
-                border-color var(--ds-duration) var(--ds-ease),
-                background-color var(--ds-duration) var(--ds-ease);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+                border-color var(--ds-duration) var(--ds-ease);
 }
 
 .bg-glass:hover,
 .bg-glass\/40:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--ds-shadow-md);
-    border-color: var(--ds-border-hover);
+    transform: scale(1.01);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .card-glow {
@@ -216,10 +219,10 @@ button:active, [role="button"]:active {
                 border-color var(--ds-duration) var(--ds-ease);
 }
 .card-glow:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 30px rgba(255,140,0,0.08),
-                var(--ds-shadow-md);
-    border-color: rgba(255,140,0,0.15);
+    transform: scale(1.01);
+    box-shadow: 0 0 24px rgba(255, 140, 0, 0.06),
+                0 12px 40px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 140, 0, 0.12);
 }
 
 
@@ -530,25 +533,24 @@ select:focus {
     left: 0;
     width: 100%;
     min-width: min-content;
-    background: var(--ds-surface);
-    border: 1px solid var(--ds-border-hover);
-    border-radius: 14px;   /* FIXED: fully rounded corners */
-    overflow: hidden;       /* FIXED: clips inner items to rounded shape */
-    box-shadow: var(--ds-shadow-lg),
-                0 0 0 1px rgba(255,255,255,0.04);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     z-index: 9999;
 
-    /* ── Animation: fade + slide down ── */
+    /* ── Animation: fade + slide (0.2s) ── */
     opacity: 0;
     visibility: hidden;
-    pointer-events: none; /* CRITICAL FIX: Ensure no invisible hit-box overlapping */
-    transform: translateY(6px) scale(0.98);
+    pointer-events: none;
+    transform: translateY(8px);
     transform-origin: top center;
-    transition: opacity var(--ds-duration) var(--ds-ease),
-                visibility var(--ds-duration) var(--ds-ease),
-                transform var(--ds-duration) var(--ds-ease);
+    transition: opacity 0.2s var(--ds-ease),
+                visibility 0.2s var(--ds-ease),
+                transform 0.2s var(--ds-ease);
     max-height: 280px;
     overflow-y: auto;
 }
@@ -596,18 +598,19 @@ select:focus {
 
 
 /* ==========================================================
-   9. INPUT / FORM FOCUS STATES (Consistent, premium)
+   9. INPUT / FORM FOCUS STATES (Glow, not outline)
    ========================================================== */
-input, textarea {
-    transition: border-color var(--ds-duration) var(--ds-ease),
-                box-shadow var(--ds-duration) var(--ds-ease),
-                background-color var(--ds-duration) var(--ds-ease);
+input, textarea, select {
+    transition: border-color 0.2s var(--ds-ease),
+                box-shadow 0.2s var(--ds-ease),
+                background-color 0.2s var(--ds-ease);
+    outline: none !important;
 }
 
-input:focus, textarea:focus {
-    border-color: var(--ds-blue) !important;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.12),
-                0 0 16px rgba(59,130,246,0.06) !important;
+input:focus, textarea:focus, select:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15),
+                0 0 12px rgba(59, 130, 246, 0.05) !important;
     outline: none !important;
 }
 
@@ -706,22 +709,22 @@ input:-webkit-autofill:active {
 @keyframes modal-enter {
     from {
         opacity: 0;
-        transform: scale(0.96) translateY(10px);
+        transform: translateY(8px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
 
 /* ==========================================================
-   11. PAGE TRANSITION ANIMATIONS
+   11. PAGE TRANSITION ANIMATIONS (fade + slide, 0.3s)
    ========================================================== */
 @keyframes page-fade-in {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -730,7 +733,7 @@ input:-webkit-autofill:active {
 }
 
 .page-enter {
-    animation: page-fade-in 0.35s var(--ds-ease) forwards;
+    animation: page-fade-in 0.3s var(--ds-ease) forwards;
 }
 
 /* Staggered child entrance for cards/grid items */
