@@ -1252,7 +1252,13 @@ span.flatpickr-weekday {
     color: #F47920 !important;
     font-weight: 700 !important;
     position: relative !important;
-    box-shadow: none !important; /* LỖI 2 - Bỏ glow/shadow */
+    box-shadow: none !important; /* LỖI 2 - Bỏ hoàn toàn glow/shadow */
+}
+.flatpickr-day.today:hover,
+.flatpickr-day.today.selected,
+.flatpickr-day.today.startRange,
+.flatpickr-day.today.endRange {
+    box-shadow: none !important;
 }
 /* Chấm nhỏ bên dưới số */
 .flatpickr-day.today::after {
@@ -1300,15 +1306,19 @@ span.flatpickr-weekday {
 }
 
 /* Xử lý đầu hàng (cột T2) - LỖI 5 */
-.flatpickr-day.inRange:nth-child(7n+1),
-.flatpickr-day.endRange:nth-child(7n+1) {
+.flatpickr-day.inRange:nth-child(7n+1) {
     border-radius: 50% 0 0 50% !important;
+}
+.flatpickr-day.endRange:nth-child(7n+1) {
+    border-radius: 50% !important; /* Nếu kết thúc ở đầu hàng -> bo tròn cả 2 bên */
 }
 
 /* Xử lý cuối hàng (cột CN) - LỖI 5 */
-.flatpickr-day.inRange:nth-child(7n),
-.flatpickr-day.startRange:nth-child(7n) {
+.flatpickr-day.inRange:nth-child(7n) {
     border-radius: 0 50% 50% 0 !important;
+}
+.flatpickr-day.startRange:nth-child(7n) {
+    border-radius: 50% !important; /* Nếu bắt đầu ở cuối hàng -> bo tròn cả 2 bên */
 }
 
 /* LỖI 4 - NÚT HỦY & ÁP DỤNG (Nếu có plugin/custom buttons) */
