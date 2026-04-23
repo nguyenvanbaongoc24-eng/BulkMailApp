@@ -170,7 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
             appendTo: document.body,
             theme: "dark",
             disableMobile: true,
-            position: "auto above"
+            position: "auto above",
+            onReady: function(selectedDates, dateStr, instance) {
+                const header = document.createElement("div");
+                header.className = "flatpickr-custom-header";
+                header.innerHTML = `<span>CHỌN NGÀY</span><i class="fas fa-calendar-check opacity-30"></i>`;
+                instance.calendarContainer.prepend(header);
+            }
         });
     }
 
@@ -195,6 +201,31 @@ document.addEventListener('DOMContentLoaded', () => {
             appendTo: document.body,
             theme: "dark",
             disableMobile: true,
+            onReady: function(selectedDates, dateStr, instance) {
+                // Prepend Header (Phần 1 & 2)
+                const header = document.createElement("div");
+                header.className = "flatpickr-custom-header";
+                header.innerHTML = `<span>THỜI GIAN LỌC</span><i class="fas fa-calendar-alt opacity-30"></i>`;
+                instance.calendarContainer.prepend(header);
+
+                // Append Footer (Phần 6)
+                const footer = document.createElement("div");
+                footer.className = "flatpickr-footer";
+                footer.innerHTML = `
+                    <button class="flatpickr-btn flatpickr-btn-cancel">Hủy</button>
+                    <button class="flatpickr-btn flatpickr-btn-apply">Áp dụng</button>
+                `;
+                instance.calendarContainer.appendChild(footer);
+
+                // Bind Footer Buttons
+                footer.querySelector('.flatpickr-btn-cancel').addEventListener('click', () => {
+                    instance.clear();
+                    instance.close();
+                });
+                footer.querySelector('.flatpickr-btn-apply').addEventListener('click', () => {
+                    instance.close();
+                });
+            },
             onChange: function(selectedDates, dateStr, instance) {
                 const startLabel = document.getElementById('crm-date-start-label');
                 const endLabel = document.getElementById('crm-date-end-label');
