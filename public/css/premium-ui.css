@@ -1010,9 +1010,9 @@ header::after {
     /* Open animation */
     opacity: 0;
     pointer-events: none; /* CRITICAL FIX for click-blocking */
-    transform: scale(0.95);
-    transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
-                transform 200ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    transform: translateY(8px) scale(0.98);
+    transition: opacity 200ms var(--ds-ease),
+                transform 200ms var(--ds-ease) !important;
 }
 
 .flatpickr-calendar.open,
