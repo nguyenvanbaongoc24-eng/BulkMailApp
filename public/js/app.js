@@ -988,6 +988,9 @@ function refreshPricingUI() {
     if (!document.getElementById('settings-tab-pricing').classList.contains('hidden')) {
         renderPricingTable();
     }
+    if (window.quoteManagerInstance) {
+        window.quoteManagerInstance.populateServices();
+    }
 }
 
 function getCRMPrice(service, type, pkg) {

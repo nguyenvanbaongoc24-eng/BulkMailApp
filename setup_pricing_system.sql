@@ -73,7 +73,8 @@ BEGIN
     INSERT INTO pricing_services (name, category_id) VALUES 
     ('Chữ ký số (CA2)', company_id),
     ('Hóa đơn điện tử', company_id),
-    ('Remote Signing', company_id)
+    ('Remote Signing', company_id),
+    ('Bảo hiểm EBH', company_id)
     ON CONFLICT DO NOTHING;
 
     -- Individual Services
@@ -99,9 +100,13 @@ BEGIN
     -- Add items for CA2 (Company)
     SELECT id INTO service_id FROM pricing_services WHERE name = 'Chữ ký số (CA2)' AND category_id = company_id;
     INSERT INTO pricing_items (version_id, service_id, duration, price) VALUES 
-    (version_id, service_id, '1 năm', 1793880),
-    (version_id, service_id, '2 năm', 2691360),
-    (version_id, service_id, '3 năm', 3054240);
+    (version_id, service_id, 'Cấp mới - 1 năm', 1793880),
+    (version_id, service_id, 'Cấp mới - 2 năm', 2691360),
+    (version_id, service_id, 'Cấp mới - 3 năm', 3054240),
+    (version_id, service_id, 'Gia hạn - 1 năm', 1210000),
+    (version_id, service_id, 'Gia hạn - 2 năm', 1718000),
+    (version_id, service_id, 'Gia hạn - 3 năm', 1888000),
+    (version_id, service_id, 'Gia hạn dùng thử - 1 năm', 900000);
 
     -- Add items for Hóa đơn điện tử (Company)
     SELECT id INTO service_id FROM pricing_services WHERE name = 'Hóa đơn điện tử' AND category_id = company_id;
@@ -129,7 +134,14 @@ BEGIN
     -- Add items for Remote Signing (Individual)
     SELECT id INTO service_id FROM pricing_services WHERE name = 'Remote Signing' AND category_id = individual_id;
     INSERT INTO pricing_items (version_id, service_id, duration, price) VALUES 
-    (version_id, service_id, '1 năm (Cá nhân)', 800000),
-    (version_id, service_id, '2 năm (Cá nhân)', 1500000),
-    (version_id, service_id, '3 năm (Cá nhân)', 2100000);
+    (version_id, service_id, '1 năm', 800000),
+    (version_id, service_id, '2 năm', 1500000),
+    (version_id, service_id, '3 năm', 2100000);
+
+    -- Add items for EBH (Company)
+    SELECT id INTO service_id FROM pricing_services WHERE name = 'Bảo hiểm EBH' AND category_id = company_id;
+    INSERT INTO pricing_items (version_id, service_id, duration, price) VALUES 
+    (version_id, service_id, '1 năm', 900000),
+    (version_id, service_id, '2 năm', 1500000),
+    (version_id, service_id, '3 năm', 1800000);
 END $$;
