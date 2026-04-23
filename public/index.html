@@ -8,11 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
-    <link rel="stylesheet" href="css/premium-ui.css?v=3.0.0">
+    <link rel="stylesheet" href="css/premium-ui.css?v=3.1.0">
+    <link rel="stylesheet" href="css/premium-datepicker.css?v=1.0.0">
     <style>
         :root {
             --bg-color: #020617;
@@ -333,11 +330,6 @@
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
         }
 
-        /* Fix for Flatpickr inner border and width */
-        .input-group-premium .flatpickr {
-            width: 100% !important;
-            display: flex !important;
-        }
 
         .input-group-premium input {
             border: none !important;
@@ -788,7 +780,7 @@
                                     <i class="far fa-calendar-alt"></i>
                                 </div>
                             </div>
-                            <!-- Hidden input for Flatpickr range mode — perfectly constrained -->
+                            <!-- Hidden input for PremiumDatePicker range mode -->
                             <input type="text" id="crm-date-range-picker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                             <!-- Hidden fields to preserve existing backend logic -->
                             <input type="hidden" id="crm-filter-from-date">
@@ -2453,6 +2445,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="js/premium-datepicker.js?v=1.0.0"></script>
     <script src="js/pricingEngine.js"></script>
     <script src="js/pricing-management.js"></script>
     <script src="js/quote-components.js"></script>

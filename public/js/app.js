@@ -162,117 +162,84 @@ document.addEventListener('DOMContentLoaded', () => {
     PricingManager.init(); // NEW: Pricing System
 
 
-    // Initialize premium date picker (Single/Modal)
+    // Initialize PremiumDatePicker (Single mode — CRM Modal)
     const startInput = document.getElementById('ca2-crm-start');
-    if (startInput && window.flatpickr) {
-        flatpickr(startInput, {
-            dateFormat: "Y-m-d",
-            locale: "vn",
-            appendTo: document.body,
-            theme: "dark",
-            disableMobile: true,
-            position: "auto above",
-            onReady: function(selectedDates, dateStr, instance) {
-                const header = document.createElement("div");
-                header.className = "flatpickr-custom-header";
-                header.innerHTML = `<span>CHỌN NGÀY</span><i class="fas fa-calendar-check opacity-30"></i>`;
-                instance.calendarContainer.prepend(header);
+    if (startInput && window.PremiumDatePicker) {
+        PremiumDatePicker.attach(startInput, {
+            mode: 'single',
+            dateFormat: 'Y-m-d',
+            label: 'CHỌN NGÀY',
+            onSelect: (date) => {
+                console.log('[PDP] Start date selected:', PremiumDatePicker.formatDate(date, 'Y-m-d'));
             }
         });
     }
 
-    // Initialize premium date range picker (Dashboard Filter)
+    // Initialize PremiumDatePicker (Range mode — Dashboard Filter)
     const rangeInput = document.getElementById('crm-date-range-picker');
-    if (rangeInput && window.flatpickr) {
-        const fpInstance = flatpickr(rangeInput, {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            locale: {
-                firstDayOfWeek: 1,
-                weekdays: {
-                    shorthand: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"],
-                    longhand: ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"]
-                },
-                months: {
-                    shorthand: ["Th1", "Th2", "Th3", "Th4", "Th5", "Th6", "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"],
-                    longhand: ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"]
-                },
-                rangeSeparator: " → "
-            },
-            appendTo: document.body,
-            theme: "dark",
-            disableMobile: true,
-            onReady: function(selectedDates, dateStr, instance) {
-                // Prepend Header (Phần 1 & 2)
-                const header = document.createElement("div");
-                header.className = "flatpickr-custom-header";
-                header.innerHTML = `<span>THỜI GIAN LỌC</span><i class="fas fa-calendar-alt opacity-30"></i>`;
-                instance.calendarContainer.prepend(header);
-
-                // Append Footer (Phần 6)
-                const footer = document.createElement("div");
-                footer.className = "flatpickr-footer";
-                footer.innerHTML = `
-                    <button class="flatpickr-btn flatpickr-btn-cancel">Hủy</button>
-                    <button class="flatpickr-btn flatpickr-btn-apply">Áp dụng</button>
-                `;
-                instance.calendarContainer.appendChild(footer);
-
-                // Bind Footer Buttons
-                footer.querySelector('.flatpickr-btn-cancel').addEventListener('click', () => {
-                    instance.clear();
-                    instance.close();
-                });
-                footer.querySelector('.flatpickr-btn-apply').addEventListener('click', () => {
-                    instance.close();
-                });
-            },
-            onChange: function(selectedDates, dateStr, instance) {
+    if (rangeInput && window.PremiumDatePicker) {
+        const rangePicker = PremiumDatePicker.attach(rangeInput, {
+            mode: 'range',
+            label: 'THỜI GIAN LỌC',
+            onChange: (dates) => {
                 const startLabel = document.getElementById('crm-date-start-label');
                 const endLabel = document.getElementById('crm-date-end-label');
                 const fromInput = document.getElementById('crm-filter-from-date');
                 const toInput = document.getElementById('crm-filter-to-date');
                 const clearBtn = document.getElementById('crm-date-clear-btn');
 
-                if (selectedDates.length === 1) {
-                    const startObj = selectedDates[0];
-                    startLabel.innerText = flatpickr.formatDate(startObj, "d/m/Y");
+                if (dates.length === 1) {
+                    startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
                     startLabel.classList.remove('opacity-70', 'text-orange-400');
                     startLabel.classList.add('text-white', 'opacity-50');
-                    fromInput.value = flatpickr.formatDate(startObj, "Y-m-d");
+                    fromInput.value = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
 
-                    endLabel.innerText = "Đến ngày";
+                    endLabel.innerText = 'Đến ngày';
                     endLabel.classList.remove('opacity-70', 'text-white', 'opacity-50');
-                    endLabel.classList.add('text-orange-400'); // Highlight end label
-                    toInput.value = "";
+                    endLabel.classList.add('text-orange-400');
+                    toInput.value = '';
                     if (clearBtn) clearBtn.classList.remove('hidden');
-                } else if (selectedDates.length === 2) {
-                    const startObj = selectedDates[0];
-                    const endObj = selectedDates[1];
-                    startLabel.innerText = flatpickr.formatDate(startObj, "d/m/Y");
+                } else if (dates.length === 2) {
+                    startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
                     startLabel.classList.remove('opacity-70', 'opacity-50', 'text-orange-400');
                     startLabel.classList.add('text-white');
-                    fromInput.value = flatpickr.formatDate(startObj, "Y-m-d");
+                    fromInput.value = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
 
-                    endLabel.innerText = flatpickr.formatDate(endObj, "d/m/Y");
+                    endLabel.innerText = PremiumDatePicker.formatDate(dates[1], 'd/m/Y');
                     endLabel.classList.remove('opacity-70', 'opacity-50', 'text-orange-400');
                     endLabel.classList.add('text-white');
-                    toInput.value = flatpickr.formatDate(endObj, "Y-m-d");
-                    
+                    toInput.value = PremiumDatePicker.formatDate(dates[1], 'Y-m-d');
+
                     if (clearBtn) clearBtn.classList.remove('hidden');
                     renderCA2CRM();
                 } else {
-                    startLabel.innerText = "Từ ngày";
-                    endLabel.innerText = "Đến ngày";
+                    startLabel.innerText = 'Từ ngày';
+                    endLabel.innerText = 'Đến ngày';
                     startLabel.classList.add('opacity-70');
                     endLabel.classList.add('opacity-70');
                     startLabel.classList.remove('text-orange-400', 'text-white', 'opacity-50');
                     endLabel.classList.remove('text-orange-400', 'text-white', 'opacity-50');
-                    fromInput.value = "";
-                    toInput.value = "";
+                    fromInput.value = '';
+                    toInput.value = '';
                     if (clearBtn) clearBtn.classList.add('hidden');
-                    renderCA2CRM(); // Reset filter
+                    renderCA2CRM();
                 }
+            },
+            onClear: () => {
+                const startLabel = document.getElementById('crm-date-start-label');
+                const endLabel = document.getElementById('crm-date-end-label');
+                const fromInput = document.getElementById('crm-filter-from-date');
+                const toInput = document.getElementById('crm-filter-to-date');
+                const clearBtn = document.getElementById('crm-date-clear-btn');
+
+                startLabel.innerText = 'Từ ngày';
+                endLabel.innerText = 'Đến ngày';
+                startLabel.className = 'opacity-70 transition-all duration-200';
+                endLabel.className = 'opacity-70 transition-all duration-200';
+                fromInput.value = '';
+                toInput.value = '';
+                if (clearBtn) clearBtn.classList.add('hidden');
+                renderCA2CRM();
             }
         });
 
@@ -280,8 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const clearBtn = document.getElementById('crm-date-clear-btn');
         if (clearBtn) {
             clearBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // prevent opening flatpickr
-                fpInstance.clear();
+                e.stopPropagation();
+                if (rangePicker) rangePicker.clear();
             });
         }
     }
