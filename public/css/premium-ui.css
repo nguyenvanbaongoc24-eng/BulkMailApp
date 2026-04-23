@@ -49,12 +49,15 @@
     --ds-shadow-glow-orange: 0 8px 30px -4px rgba(249,115,22,0.35);
     --ds-shadow-glow-blue:   0 8px 30px -4px rgba(59,130,246,0.3);
 
-    /* ── Radii ── */
+    /* ── Radii (Consistent) ── */
     --ds-radius-sm:       8px;
-    --ds-radius-md:       12px;
+    --ds-radius-md:       10px;
     --ds-radius-lg:       16px;
     --ds-radius-xl:       24px;
     --ds-radius-pill:     9999px;
+    --ds-radius-card:     16px;
+    --ds-radius-btn:      10px;
+    --ds-radius-input:    10px;
 
     /* ── Motion (iOS-smooth) ── */
     --ds-ease:            cubic-bezier(0.4, 0, 0.2, 1);
@@ -101,10 +104,11 @@ html {
     scroll-behavior: smooth;
 }
 
-/* GPU-hint for interactive elements only */
+/* GPU-hint for interactive elements only — transform only */
 button, [role="button"], a[onclick],
-.custom-select-trigger, .custom-select-menu {
-    will-change: transform, opacity;
+.custom-select-trigger, .custom-select-menu,
+.bg-glass, .card-glow, .glass-card-premium {
+    will-change: transform;
 }
 
 
@@ -146,17 +150,16 @@ button, [role="button"], a[onclick] {
                 background-color var(--ds-duration) var(--ds-ease);
 }
 
-/* Hover: lift + glow */
+/* Hover: brightness only — subtle */
 button:hover, [role="button"]:hover {
-    transform: translateY(-1px) scale(1.02);
     filter: brightness(1.05);
 }
 
 /* Active: press down */
 button:active, [role="button"]:active {
-    transform: scale(0.98) translateY(0);
-    filter: brightness(0.98);
-    transition-duration: 100ms;
+    transform: scale(0.97);
+    filter: brightness(0.97);
+    transition-duration: 80ms;
 }
 
 /* Primary gradient buttons — glow on hover */
@@ -464,7 +467,7 @@ select:focus {
     cursor: pointer;
     background: var(--ds-surface);
     border: 1px solid var(--ds-border);
-    border-radius: 14px;  /* FIXED: fully rounded */
+    border-radius: var(--ds-radius-input);
     padding: 0 16px;
     color: var(--ds-text);
     transition: border-color var(--ds-duration) var(--ds-ease),
@@ -535,7 +538,7 @@ select:focus {
     min-width: min-content;
     background: rgba(15, 23, 42, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
+    border-radius: var(--ds-radius-input);
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(16px);
