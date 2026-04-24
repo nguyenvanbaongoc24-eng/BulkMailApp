@@ -861,18 +861,23 @@ app.post('/api/pricing/version', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Danh sách giá không được để trống' });
         }
 
+        // When SUPABASE_SERVICE_ROLE_KEY is not set, we must pass the user's JWT so RLS policies allow writes.
+        // (If the service role key exists, getClient() returns the admin client and bypasses RLS.)
+        const userClient = getClient(req.token);
+
         // 1. Start a "transaction" via sequence of calls
         // Note: Supabase JS doesn't have true transactions across tables easily without RPC, 
         // but we can manage flags carefully.
 
         // Deactivate all old versions
-        await supabase
+        const { error: deactivateErr } = await userClient
             .from('pricing_versions')
             .update({ is_active: false })
             .eq('is_active', true);
+        if (deactivateErr) throw deactivateErr;
 
         // 2. Create new version
-        const { data: newVersion, error: vErr } = await supabase
+        const { data: newVersion, error: vErr } = await userClient
             .from('pricing_versions')
             .insert({ 
                 name: name || `Bảng giá ${new Date().toLocaleDateString('vi-VN')}`,
@@ -900,7 +905,7 @@ app.post('/api/pricing/version', authenticate, async (req, res) => {
             effective_date: item.effective_date || new Date().toISOString().split('T')[0]
         }));
 
-        const { error: iErr } = await supabase
+        const { error: iErr } = await userClient
             .from('pricing_items')
             .insert(itemsToInsert);
 
