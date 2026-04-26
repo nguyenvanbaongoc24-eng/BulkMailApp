@@ -151,8 +151,8 @@ button, [role="button"], a[onclick],
 /* Fix overlapping screens */
 .hidden { display: none !important; }
 
-/* Ensure all view containers display as block */
-.content > *:not(.hidden) {
+/* Only page views should be forced visible when unhidden */
+.content > [id^="view-"]:not(.hidden) {
     display: block;
 }
 
