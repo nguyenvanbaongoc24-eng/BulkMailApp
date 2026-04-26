@@ -223,14 +223,18 @@ class QuoteManager {
             } else {
                 this.els.modelWrapper.classList.add('hidden');
                 this.state.currentItem.model = 'TIME';
-                this.els.modelSel.value = 'TIME';
+                if(this.els.modelSel) this.els.modelSel.value = 'TIME';
             }
+            this.state.currentItem.packageId = '';
+            this.els.packageSel.value = '';
             this.updatePackageOptions();
             this.recalcCurrentItem();
         });
 
         this.els.variantSel.addEventListener('change', (e) => {
             this.state.currentItem.variant = e.target.value;
+            this.state.currentItem.packageId = '';
+            this.els.packageSel.value = '';
             this.updatePackageOptions();
             this.recalcCurrentItem();
         });
@@ -282,7 +286,7 @@ class QuoteManager {
     }
 
     updatePackageOptions() {
-        const { service, variant, model } = this.state.currentItem;
+        const { service, variant } = this.state.currentItem;
         if (!service) {
             this.els.packageSel.innerHTML = '<option value="">-- Trước tiên chọn dịch vụ --</option>';
             this.els.packageSel.disabled = true;
@@ -290,14 +294,23 @@ class QuoteManager {
             return;
         }
         this.els.packageSel.disabled = false;
-        const pkgs = PricingEngine.getPackages(service);
-        let html = '<option value="">Chọn gói/thời hạn...</option>';
+        let pkgs = PricingEngine.getPackages(service);
         
-        // Advanced filtering can be applied here if PricingEngine data is structured with variants
-        // For now, list all and let user override price
+        // Filter by Variant (Cấp mới / Gia hạn)
+        if (variant) {
+            pkgs = pkgs.filter(p => p.name.toLowerCase().includes(variant.toLowerCase()));
+        }
+        
+        let html = '<option value="">Chọn gói/thời hạn...</option>';
         pkgs.forEach(p => {
             html += `<option value="${p.id}">${p.name}</option>`;
         });
+        
+        if (pkgs.length === 0) {
+            html = '<option value="">-- Không có gói phù hợp --</option>';
+            this.els.packageSel.disabled = true;
+        }
+        
         this.els.packageSel.innerHTML = html;
 
         if (typeof window.refreshCustomSelects === 'function') {
@@ -327,6 +340,10 @@ class QuoteManager {
     }
 
     addCurrentItem() {
+        if (!this.state.currentItem.service || !this.state.currentItem.packageId) {
+            alert('Vui lòng chọn Dịch vụ và Gói cước trước khi thêm.');
+            return;
+        }
         const item = { ...this.state.currentItem };
         this.state.items.push(item);
         
@@ -338,7 +355,12 @@ class QuoteManager {
         this.state.currentItem.price = 0;
         this.state.currentItem.quantity = 1;
         this.state.currentItem.total = 0;
+        if(this.els.priceDisplay) this.els.priceDisplay.value = '';
+        if(this.els.totalDisplay) this.els.totalDisplay.value = '';
+        
         this.recalcCurrentItem();
+        
+        if (window.refreshCustomSelects) window.refreshCustomSelects();
         
         this.hideAddForm();
         this.renderItemsTable();

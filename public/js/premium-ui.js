@@ -222,10 +222,14 @@
             this.trigger.innerHTML = `${iconHtml}<span class="select-text"></span><i class="fas fa-chevron-down select-chevron"></i>`;
 
             this.menu = document.createElement('div');
-            this.menu.className = 'custom-select-menu';
+            this.menu.className = 'custom-select-menu portal-menu';
+            this.menu.style.position = 'absolute';
+            this.menu.style.zIndex = '999999';
+            this.menu.style.display = 'none';
 
             this.wrapper.appendChild(this.trigger);
-            this.wrapper.appendChild(this.menu);
+            // Append to body (Portal) instead of wrapper to avoid overflow:hidden cutoffs
+            document.body.appendChild(this.menu);
             this.select.parentNode.insertBefore(this.wrapper, this.select.nextSibling);
 
             this.setupOptions();
@@ -296,27 +300,48 @@
             // Close all others first
             document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
                 w.classList.remove('open');
-                w.style.zIndex = '';
+            });
+            document.querySelectorAll('.portal-menu').forEach(m => {
+                m.style.display = 'none';
+                m.classList.remove('open');
             });
             this.wrapper.classList.add('open');
-            this.wrapper.style.zIndex = '1000';
+            
+            // Calculate position for portal
+            const rect = this.trigger.getBoundingClientRect();
+            this.menu.style.top = `${rect.bottom + window.scrollY + 8}px`;
+            this.menu.style.left = `${rect.left + window.scrollX}px`;
+            this.menu.style.width = `${rect.width}px`;
+            this.menu.style.display = 'block';
+            
+            // Force animation reflow
+            void this.menu.offsetWidth;
+            this.menu.classList.add('open');
         }
 
         close() {
             this.wrapper.classList.remove('open');
-            this.wrapper.style.zIndex = '';
+            this.menu.classList.remove('open');
+            // Timeout to allow animation
+            setTimeout(() => {
+                if (!this.wrapper.classList.contains('open')) {
+                    this.menu.style.display = 'none';
+                }
+            }, 200);
         }
 
         addEvents() {
             this.trigger.addEventListener('click', (e) => {
                 try {
-                    e.stopPropagation(); // RESTORED: Prevents the global document click listener from immediately closing the menu
+                    e.stopPropagation(); // Prevents the global document click listener from immediately closing the menu
                     if (this.wrapper.classList.contains('open')) this.close();
                     else this.open();
                 } catch (err) {
                     console.error('PremiumSelect Click Error:', err);
                 }
             });
+
+            // If an option is clicked, it stops propagation, handled in setupOptions
         }
 
         sync() {
@@ -344,9 +369,21 @@
     document.addEventListener('click', () => {
         document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
             w.classList.remove('open');
-            w.style.zIndex = '';
+        });
+        document.querySelectorAll('.portal-menu.open').forEach(m => {
+            m.classList.remove('open');
+            setTimeout(() => m.style.display = 'none', 200);
         });
     });
+
+    // Close select menus when scrolling
+    window.addEventListener('scroll', () => {
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+        document.querySelectorAll('.portal-menu.open').forEach(m => {
+            m.classList.remove('open');
+            m.style.display = 'none';
+        });
+    }, { passive: true });
 
     // Initialize custom selects globally
     function initAllCustomSelects() {

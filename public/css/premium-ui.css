@@ -532,18 +532,15 @@ select:focus {
 /* ── Menu / Dropdown List ── */
 .custom-select-menu {
     position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    width: 100%;
     min-width: min-content;
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--ds-radius-input);
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    z-index: 9999;
+    z-index: 999999;
 
     /* ── Animation: fade + slide (0.2s) ── */
     opacity: 0;
@@ -558,7 +555,8 @@ select:focus {
     overflow-y: auto;
 }
 
-.custom-select-wrapper.open .custom-select-menu {
+.custom-select-wrapper.open ~ .custom-select-menu,
+.custom-select-menu.open {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -580,7 +578,7 @@ select:focus {
 }
 
 .custom-select-option:hover {
-    background: var(--ds-surface-active);
+    background: linear-gradient(90deg, rgba(59,130,246,0.15), transparent);
     color: var(--ds-text);
 }
 
