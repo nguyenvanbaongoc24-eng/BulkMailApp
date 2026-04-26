@@ -334,7 +334,7 @@ tbody tr {
 
 /* Service Badge Styling (CRM) */
 .badge-service {
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: var(--ds-radius-sm);
     font-size: 10px;
     font-weight: 800;
@@ -698,7 +698,7 @@ input:-webkit-autofill:active {
 .modal-body-premium {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 80px; /* SAFE ZONE: Extra space for popups and legibility */
+    padding-bottom: 16px; /* COMPACT ZONE: Reduced space */
 }
 
 .modal-footer-premium {
@@ -1093,7 +1093,7 @@ header::after {
    26. SPACING UTILITIES
    ========================================================== */
 .space-card    { padding: 20px 24px; }
-.space-section { padding: 32px; }
+.space-section { padding: 16px; }
 .gap-block     { gap: 20px; }
 
 

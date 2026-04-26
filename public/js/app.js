@@ -860,12 +860,12 @@ function renderCA2CRM() {
 
         return `
             <tr class="hover:bg-white/2 transition-colors group">
-                <td class="px-6 py-3">
+                <td class="px-6 py-1.5">
                     <div class="font-bold text-white">${c.company_name || 'N/A'}</div>
                     <div class="text-[10px] text-gray-500 font-black tracking-widest mt-0.5">${c.mst || '---'}</div>
                     <div class="text-[10px] text-gray-400 font-medium">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
                 </td>
-                <td class="px-6 py-3 text-center">
+                <td class="px-6 py-1.5 text-center">
                     ${(() => {
                         const svc = (c.service_type || '').toUpperCase();
                         let badgeClass = 'badge-other';
@@ -888,8 +888,8 @@ function renderCA2CRM() {
                         return `<span class="badge-service ${badgeClass}">${label}</span>`;
                     })()}
                 </td>
-                <td class="px-8 py-5 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.start_date)}</td>
-                <td class="px-6 py-3 font-black text-white text-sm">
+                <td class="px-6 py-1.5 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.start_date)}</td>
+                <td class="px-6 py-1.5 font-black text-white text-sm">
                     ${(() => {
                         if (c.duration && c.duration !== '-') return c.duration;
                         if (!c.start_date || !c.expired_date) return '-';
@@ -919,7 +919,7 @@ function renderCA2CRM() {
                         <option value="paid" ${isPaid ? 'selected' : ''} class="font-black text-green-400" style="background: #0f172a; color: #4ade80;">Đã thanh toán</option>
                     </select>
                 </td>
-                <td class="px-6 py-3 text-right relative z-40">
+                <td class="px-6 py-1.5 text-right relative z-40">
                     <div class="flex justify-end gap-1.5 relative z-50">
                         <button onclick="editCRM('${c.id}')" class="btn-action-premium text-gray-400 hover:text-white" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
                         <button onclick="deleteCRM('${c.id}')" class="btn-action-premium text-red-500 hover:text-red-400" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
@@ -2954,7 +2954,7 @@ async function refreshUserList() {
             const isMe = u.id === currentUser.id;
             
             tr.innerHTML = `
-                <td class="px-6 py-3">
+                <td class="px-6 py-1.5">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-black">${(u.email || 'U').charAt(0).toUpperCase()}</div>
                         <div class="overflow-hidden">
@@ -2970,10 +2970,10 @@ async function refreshUserList() {
                         ${u.role}
                     </span>
                 </td>
-                <td class="px-6 py-3">
+                <td class="px-6 py-1.5">
                     <p class="text-xs font-medium text-gray-400">${new Date(u.created_at).toLocaleDateString('vi-VN')}</p>
                 </td>
-                <td class="px-6 py-3 text-right">
+                <td class="px-6 py-1.5 text-right">
                     ${isMe ? '<span class="text-[9px] text-gray-600 font-black italic">Đang sử dụng</span>' : `
                         <div class="flex justify-end gap-2">
                             <button onclick="changeUserRole('${u.id}', '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-[9px] font-black uppercase text-blue-400 hover:text-white border border-blue-400/30 hover:bg-blue-400 px-3 py-1.5 rounded-lg transition-all">
