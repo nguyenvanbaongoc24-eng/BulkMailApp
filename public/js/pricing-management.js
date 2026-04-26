@@ -96,25 +96,42 @@ class PricingManager {
 
     static showAddModal() {
         this.editingIndex = -1;
-        document.getElementById('pricing-modal-title').textContent = 'Thêm gói giá mới';
+        const title = document.getElementById('pricing-modal-title');
+        if (title) title.textContent = 'Thêm gói giá mới';
         this.resetModal();
-        openModal('modal-pricing-crud');
+        if (typeof openModal === 'function') {
+            openModal('modal-pricing-crud');
+        } else {
+            const el = document.getElementById('modal-pricing-crud');
+            if (el) el.classList.remove('hidden');
+        }
     }
 
     static showEditModal(index) {
         this.editingIndex = index;
         const item = this.draftItems[index];
-        document.getElementById('pricing-modal-title').textContent = 'Sửa gói giá';
+        const title = document.getElementById('pricing-modal-title');
+        if (title) title.textContent = 'Sửa gói giá';
         
-        document.getElementById('field-group').value = item.product_group;
-        document.getElementById('field-transaction').value = item.transaction_type;
-        document.getElementById('field-code').value = item.product_code;
-        document.getElementById('field-package').value = item.package_name;
-        document.getElementById('field-fee-service').value = this.formatVND(item.service_fee);
-        document.getElementById('field-fee-token').value = this.formatVND(item.token_fee);
-        document.getElementById('field-fee-vat').value = this.formatVND(item.vat_fee);
-        document.getElementById('field-notes').value = item.notes;
-        document.getElementById('field-active').checked = item.is_active;
+        const fGroup = document.getElementById('field-group');
+        const fTrans = document.getElementById('field-transaction');
+        const fCode = document.getElementById('field-code');
+        const fPkg = document.getElementById('field-package');
+        const fFeeSvc = document.getElementById('field-fee-service');
+        const fFeeTok = document.getElementById('field-fee-token');
+        const fFeeVat = document.getElementById('field-fee-vat');
+        const fNotes = document.getElementById('field-notes');
+        const fActive = document.getElementById('field-active');
+
+        if (fGroup) fGroup.value = item.product_group;
+        if (fTrans) fTrans.value = item.transaction_type;
+        if (fCode) fCode.value = item.product_code;
+        if (fPkg) fPkg.value = item.package_name;
+        if (fFeeSvc) fFeeSvc.value = this.formatVND(item.service_fee);
+        if (fFeeTok) fFeeTok.value = this.formatVND(item.token_fee);
+        if (fFeeVat) fFeeVat.value = this.formatVND(item.vat_fee);
+        if (fNotes) fNotes.value = item.notes;
+        if (fActive) fActive.checked = item.is_active;
 
         // Handle multi-checkbox for subjects
         const subjects = item.subject_type ? item.subject_type.split(', ') : [];
@@ -123,7 +140,12 @@ class PricingManager {
         });
 
         this.updateTotal();
-        openModal('modal-pricing-crud');
+        if (typeof openModal === 'function') {
+            openModal('modal-pricing-crud');
+        } else {
+            const el = document.getElementById('modal-pricing-crud');
+            if (el) el.classList.remove('hidden');
+        }
     }
 
     static resetModal() {

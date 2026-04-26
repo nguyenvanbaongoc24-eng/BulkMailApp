@@ -603,9 +603,13 @@ function showPage(pageId) {
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
     
     // Page specific loading
-    if (pageId === 'ca2-crm') loadCA2CRMData();
+    if (pageId === 'ca2-crm') {
+        loadCRMPrices(); // Sync prices first
+        loadCA2CRMData();
+    }
     if (pageId === 'dashboard') { loadDashboardStats(); loadRecentCampaigns(); }
     if (pageId === 'quotations') {
+        loadCRMPrices(); // Sync prices for quotation select
         console.log('[FORCE-LOG] Entering Quotations view. Manager status:', !!window.quoteManagerInstance);
         if (!window.quoteManagerInstance) {
             try {
@@ -625,7 +629,10 @@ function showPage(pageId) {
     if (pageId === 'seo-news') loadTaxNews();
     if (pageId === 'seo-posts') loadMySavedPosts();
     if (pageId === 'settings') loadSettingsPage();
-    if (pageId === 'settings-pricing') PricingManager.render();
+    if (pageId === 'settings-pricing') {
+        loadCRMPrices();
+        PricingManager.render();
+    }
 }
 
 function toggleSidebar() {
@@ -1022,11 +1029,19 @@ function updateCRMPackages() {
     const mapping = mapCRMServiceToPricing(serviceVal);
     
     // Filter by Service Group, Subject Type, and Transaction Type
-    const filtered = CRM_PRICE_LIST.filter(p => 
-        p.service_name === mapping.group && 
-        p.category.includes(customerType) &&
-        (mapping.transaction === 'all' || p.package_name.includes(mapping.transaction) || (p.id && p.id.includes(mapping.transaction)))
-    );
+    const filtered = CRM_PRICE_LIST.filter(p => {
+        const groupMatch = p.service_name === mapping.group;
+        const categoryMatch = p.category && (
+            p.category.includes(customerType) || 
+            customerType.includes(p.category) ||
+            (customerType.includes('Công ty') && p.category.includes('Công ty')) ||
+            (customerType.includes('Cá nhân') && p.category.includes('Cá nhân'))
+        );
+        const transactionMatch = mapping.transaction === 'all' || 
+                               (p.package_name && p.package_name.toLowerCase().includes(mapping.transaction.toLowerCase()));
+        
+        return groupMatch && categoryMatch && transactionMatch;
+    });
 
     // If no exact transaction match, try filtering by group and category only
     let itemsToDisplay = filtered;
@@ -1052,6 +1067,16 @@ function updateCRMPackages() {
     if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) {
         pkgSelect.value = oldVal;
     }
+    
+    // Sync cks-type hidden field for duration logic
+    const cksTypeInput = document.getElementById('ca2-crm-cks-type');
+    if (cksTypeInput) {
+        if (serviceVal.includes('Gia hạn dùng thử')) cksTypeInput.value = 'gia_han_thu';
+        else if (serviceVal.includes('Gia hạn')) cksTypeInput.value = 'gia_han';
+        else cksTypeInput.value = 'cap_moi';
+    }
+
+    updateCRMDurationOptions(oldVal);
     calculatePrice();
 }
 
@@ -1077,11 +1102,21 @@ function calculatePrice() {
 
     const mapping = mapCRMServiceToPricing(serviceVal);
 
-    const match = CRM_PRICE_LIST.find(p => 
-        p.service_name === mapping.group && 
-        p.category.includes(customerType) &&
-        p.package_name === pkg
-    );
+    const match = CRM_PRICE_LIST.find(p => {
+        const groupMatch = p.service_name === mapping.group;
+        // Flexible category matching: "Công ty" vs "Tổ chức / Doanh nghiệp", "Cá nhân" vs "Cá nhân / Hộ KD"
+        const categoryMatch = p.category && (
+            p.category.includes(customerType) || 
+            customerType.includes(p.category) ||
+            (customerType.includes('Công ty') && p.category.includes('Công ty')) ||
+            (customerType.includes('Cá nhân') && p.category.includes('Cá nhân'))
+        );
+        const pkgMatch = p.package_name && (
+            p.package_name.toLowerCase().includes(pkg.toLowerCase()) ||
+            pkg.toLowerCase().includes(p.package_name.toLowerCase())
+        );
+        return groupMatch && categoryMatch && pkgMatch;
+    });
     if (match) {
         amountInput.value = new Intl.NumberFormat('vi-VN').format(match.price);
         if (durationSelect) {
@@ -1167,19 +1202,22 @@ function updateCRMDurationOptions(defaultVal = '') {
     
     // Show/hide CKS type section
     if (cksSection) {
-        cksSection.style.display = serviceVal === 'CKS' ? 'block' : 'none';
+        cksSection.style.display = serviceVal.includes('CKS') ? 'block' : 'none';
     }
     
-    if (serviceVal === 'HDDT') {
+    if (serviceVal.includes('HDDT') || serviceVal.includes('Hóa đơn')) {
         ['300 số', '500 số', '1000 số', '2000 số', '5000 số', '10000 số'].forEach(v => {
             durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
         });
         if (!defaultVal || !defaultVal.includes('số')) defaultVal = '500 số';
-    } else if (serviceVal === 'CKS') {
-        // Duration depends on CKS type
+    } else if (serviceVal.includes('CKS')) {
         const cksType = document.getElementById('ca2-crm-cks-type')?.value || 'cap_moi';
         updateCKSDurationByType(cksType, defaultVal);
-        return; // updateCKSDurationByType handles setting value
+        return; 
+    } else if (serviceVal.includes('EBH') || serviceVal.includes('Bảo hiểm')) {
+        const variant = serviceVal.includes('Gia hạn dùng thử') ? 'gia_han_thu' : (serviceVal.includes('Gia hạn') ? 'gia_han' : 'cap_moi');
+        updateGenericDurationOptions(variant, defaultVal);
+        return;
     } else {
         ['1 năm', '2 năm', '3 năm', '4 năm', '5 năm'].forEach(v => {
             durationSelect.innerHTML += `<option value="${v}">${v.replace('năm', 'Năm')}</option>`;
@@ -1187,6 +1225,27 @@ function updateCRMDurationOptions(defaultVal = '') {
         if (!defaultVal || defaultVal.includes('số')) defaultVal = '1 năm';
     }
     durationSelect.value = defaultVal;
+    updateCRMBonusMonths();
+}
+
+function updateGenericDurationOptions(variant, defaultVal = '') {
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (!durationSelect) return;
+    durationSelect.innerHTML = '';
+    
+    let bonus = variant === 'gia_han_thu' ? 6 : 3;
+    let options = [
+        { val: '1 năm', text: `1 Năm (+${bonus} tháng)` },
+        { val: '2 năm', text: `2 Năm (+${bonus * 2} tháng)` },
+        { val: '3 năm', text: `3 Năm (+${bonus * 3} tháng)` }
+    ];
+    
+    options.forEach(opt => {
+        durationSelect.innerHTML += `<option value="${opt.val}">${opt.text}</option>`;
+    });
+    
+    durationSelect.value = defaultVal || '1 năm';
+    updateCRMBonusMonths();
 }
 
 function updateCKSDurationByType(cksType, defaultVal = '') {
@@ -1217,6 +1276,36 @@ function updateCKSDurationByType(cksType, defaultVal = '') {
         defaultVal = '1 năm';
     }
     durationSelect.value = defaultVal;
+    updateCRMBonusMonths();
+}
+
+function updateCRMBonusMonths() {
+    const serviceVal = document.getElementById('ca2-crm-service').value;
+    const durationVal = document.getElementById('ca2-crm-duration').value;
+    const compensateInput = document.getElementById('ca2-crm-compensate');
+    if (!compensateInput) return;
+
+    let bonus = 0;
+    const years = parseInt(durationVal) || 0;
+
+    // Bonus logic based on USER request:
+    // Cấp mới 1 năm -> +3 tháng
+    // Gia hạn 1 năm -> +3 tháng
+    // Gia hạn dùng thử 1 năm -> +6 tháng (CKS) or +6 tháng (EBH)
+
+    if (serviceVal.includes('CKS') || serviceVal.includes('EBH') || serviceVal.includes('Bảo hiểm')) {
+        const isTrial = serviceVal.includes('Gia hạn dùng thử');
+        bonus = years * (isTrial ? 6 : 3);
+        
+        // Special case for CKS trial if years > 1 (optional, keeping User's 1-year rule but scaling)
+        if (serviceVal.includes('CKS') && isTrial) {
+             if (years === 2) bonus = 9;
+             if (years === 3) bonus = 12;
+        }
+    }
+
+    compensateInput.value = bonus;
+    calculatePrice();
 }
 
 function openAddCRMModal() {
@@ -3117,6 +3206,16 @@ async function deleteDoc(bucket, name) {
     } catch (e) { console.error('Delete Doc Error:', e); }
 }
 
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.classList.remove('hidden');
+        // If it's a premium select modal, refresh them
+        if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
+    }
+}
+
 function closeModal(id) {
-    document.getElementById(id).classList.add('hidden');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
 }

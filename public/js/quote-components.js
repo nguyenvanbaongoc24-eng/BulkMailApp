@@ -327,7 +327,7 @@ class QuoteManager {
             this.els.priceDisplay.value = QuoteUtils.formatCurrency(price);
         }
         
-        const isValid = service && packageId;
+        const isValid = service && packageId && price > 0;
         this.els.btnAddItem.disabled = !isValid;
     }
 

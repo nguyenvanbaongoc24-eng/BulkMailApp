@@ -540,7 +540,7 @@ select:focus {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    z-index: 999999;
+    z-index: 99999999 !important;
 
     /* ── Animation: fade + slide (0.2s) ── */
     opacity: 0;
