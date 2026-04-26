@@ -896,45 +896,6 @@
                 </div>
             </div>
 
-            <!-- Quotations View -->
-            <div id="view-quotations" class="hidden space-y-10 animate-in fade-in duration-500">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h2 class="text-4xl font-black text-white tracking-tight">Báo giá</h2>
-                        <p class="text-gray-400 mt-2 font-medium italic">Tạo và quản lý báo giá chuyên nghiệp cho khách hàng</p>
-                    </div>
-                    <button onclick="openCreateQuotationModal()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg shadow-orange-900/40 hover:scale-105 transition-all">
-                        <i class="fas fa-plus"></i> Tạo báo giá mới
-                    </button>
-                </div>
-
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
-                    <div class="p-6 border-b border-white/5 bg-white/5 flex flex-wrap items-center justify-between gap-4">
-                        <div class="relative group w-full sm:w-64">
-                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                            <input type="text" id="quotation-search" onkeyup="renderQuotations()" placeholder="Tìm khách hàng..." class="w-full pl-11 pr-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-sm outline-none focus:border-orange-500/50 transition-all">
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-white/2 border-b border-white/5">
-                                <tr>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Khách hàng</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dịch vụ</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Giá trị</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ngày tạo</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Trạng thái</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody id="quotation-list" class="divide-y divide-white/5">
-                                <!-- JS injected -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
             <!-- Documents View -->
             <div id="view-documents" class="hidden space-y-10 animate-in fade-in duration-500">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">

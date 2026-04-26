@@ -979,7 +979,8 @@ function refreshPricingUI() {
     if (crmView && !crmView.classList.contains('hidden')) {
         updateCRMPackages();
     }
-    if (!document.getElementById('settings-tab-pricing').classList.contains('hidden')) {
+    const pricingView = document.getElementById('view-settings-pricing');
+    if (pricingView && !pricingView.classList.contains('hidden')) {
         renderPricingTable();
     }
     if (window.quoteManagerInstance) {
