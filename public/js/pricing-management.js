@@ -58,38 +58,38 @@ class PricingManager {
         } else {
             emptyState.classList.add('hidden');
             filtered.forEach((item, idx) => {
-                const tr = document.createElement('tr');
-                tr.className = 'group hover:bg-white/[0.02] transition-colors';
-                tr.innerHTML = `
-                    <td class="px-8 py-5">
-                        <p class="text-white font-black text-xs tracking-tight">${item.product_code || '---'}</p>
-                        <p class="text-[10px] text-gray-500 font-bold uppercase mt-0.5">${item.product_group} • ${item.transaction_type}</p>
-                    </td>
-                    <td class="px-8 py-5">
-                        <p class="text-gray-300 font-bold text-xs">${item.package_name}</p>
-                        <p class="text-[10px] text-gray-600 font-medium italic">${item.notes || ''}</p>
-                    </td>
-                    <td class="px-8 py-5">
-                        <p class="text-emerald-400 font-black text-sm">${this.formatVND(item.total_price)}đ</p>
-                    </td>
-                    <td class="px-8 py-5">
-                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full ${item.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-500'} text-[9px] font-black uppercase tracking-widest border border-white/5">
-                            <span class="w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}"></span>
+                const card = document.createElement('div');
+                card.className = 'list-item group';
+                card.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-orange-gradient/10 text-orange-500 flex items-center justify-center text-xs font-black">
+                            ${item.product_code || '??'}
+                        </div>
+                        <div>
+                            <div class="list-item-title">${item.package_name}</div>
+                            <div class="list-item-meta">${item.product_group} • ${item.transaction_type}</div>
+                        </div>
+                    </div>
+                    <div class="flex-1 px-4">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Ghi chú</p>
+                        <p class="text-[11px] text-gray-400 italic line-clamp-1">${item.notes || '---'}</p>
+                    </div>
+                    <div class="flex flex-col items-end px-4">
+                        <div class="text-emerald-400 font-black text-sm">${this.formatVND(item.total_price)}đ</div>
+                        <div class="text-[9px] text-gray-600 font-bold mt-1">Tổng cộng</div>
+                    </div>
+                    <div class="flex justify-center px-4">
+                        <span class="badge-premium ${item.is_active ? 'badge-done' : 'badge-pending'}">
+                            <span class="badge-dot"></span>
                             ${item.is_active ? 'Đang dùng' : 'Ẩn'}
                         </span>
-                    </td>
-                    <td class="px-8 py-5 text-right">
-                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <button onclick="PricingManager.showEditModal(${this.draftItems.indexOf(item)})" class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all">
-                                <i class="fas fa-edit text-xs"></i>
-                            </button>
-                            <button onclick="PricingManager.deleteItem(${this.draftItems.indexOf(item)})" class="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
-                        </div>
-                    </td>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="PricingManager.showEditModal(${this.draftItems.indexOf(item)})" class="btn-action-premium text-blue-400 hover:text-white"><i class="fas fa-edit"></i></button>
+                        <button onclick="PricingManager.deleteItem(${this.draftItems.indexOf(item)})" class="btn-delete-ios"><i class="fas fa-trash-alt"></i></button>
+                    </div>
                 `;
-                tbody.appendChild(tr);
+                tbody.appendChild(card);
             });
         }
     }

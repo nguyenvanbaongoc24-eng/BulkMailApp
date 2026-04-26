@@ -699,16 +699,13 @@ function handleCRMSort(field) {
 }
 
 function renderCA2CRM() {
-    const tableBody = document.getElementById('ca2-crm-table-body');
-    if (!tableBody) return;
+    const listContainer = document.getElementById('ca2-crm-list');
+    if (!listContainer) return;
     
     const filterType = document.getElementById('crm-filter-service').value;
     const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
-    const filterFrom = document.getElementById('crm-filter-from-date')?.value || '';
-    const filterTo = document.getElementById('crm-filter-to-date')?.value || '';
     const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
     const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
-    const sortBy = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
 
     let filtered = [...currentCRMData];
 
@@ -724,27 +721,6 @@ function renderCA2CRM() {
         });
     }
 
-    // Date Range Filter (New)
-    if (filterFrom) {
-        const fromDate = new Date(filterFrom);
-        fromDate.setHours(0, 0, 0, 0);
-        filtered = filtered.filter(c => c.start_date && new Date(c.start_date) >= fromDate);
-    }
-    if (filterTo) {
-        const toDate = new Date(filterTo);
-        toDate.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(c => c.start_date && new Date(c.start_date) <= toDate);
-    }
-
-    // Chronological Filters (based on start_date as requested)
-    if (filterYear !== 'all') {
-        filtered = filtered.filter(c => c.start_date && new Date(c.start_date).getFullYear() === parseInt(filterYear));
-    }
-
-    if (filterMonth !== 'all') {
-        filtered = filtered.filter(c => c.start_date && (new Date(c.start_date).getMonth() + 1) === parseInt(filterMonth));
-    }
-
     if (search) {
         filtered = filtered.filter(c => 
             (c.mst && c.mst.toLowerCase().includes(search)) || 
@@ -752,52 +728,7 @@ function renderCA2CRM() {
         );
     }
 
-    filtered.sort((a, b) => {
-        let valA, valB;
-        const field = currentCRMSort.field;
-
-        if (field === 'created_at') {
-            valA = new Date(a.created_at || 0);
-            valB = new Date(b.created_at || 0);
-        } else if (field === 'service_type') {
-            valA = String(a.service_type || '').toLowerCase();
-            valB = String(b.service_type || '').toLowerCase();
-        } else if (field === 'company_name') {
-            valA = String(a.company_name || '').toLowerCase();
-            valB = String(b.company_name || '').toLowerCase();
-        } else if (field === 'start_date') {
-            valA = new Date(a.start_date || 0);
-            valB = new Date(b.start_date || 0);
-        } else if (field === 'expired_date') {
-            valA = new Date(a.expired_date || 0);
-            valB = new Date(b.expired_date || 0);
-        } else {
-            // Fallback to select box logic if still using it
-            if (sortBy === 'soonest') return new Date(a.expired_date) - new Date(b.expired_date);
-            if (sortBy === 'latest') return new Date(b.expired_date) - new Date(a.expired_date);
-            return new Date(b.created_at) - new Date(a.created_at);
-        }
-
-        if (currentCRMSort.order === 'asc') {
-            return valA > valB ? 1 : -1;
-        } else {
-            return valA < valB ? 1 : -1;
-        }
-    });
-
-    // Update Header Icons
-    const fields = ['company_name', 'service_type', 'start_date', 'expired_date'];
-    fields.forEach(f => {
-        const icon = document.getElementById(`sort-icon-${f}`);
-        if (!icon) return;
-        if (currentCRMSort.field === f) {
-            icon.className = `fas fa-sort-${currentCRMSort.order === 'asc' ? 'up' : 'down'} ml-1 text-orange-500`;
-        } else {
-            icon.className = `fas fa-sort ml-1 text-gray-600 opacity-30`;
-        }
-    });
-
-    // Count for tabs (independent of current tab)
+    // Apply tab filter
     let activeTotal = 0;
     let expiredTotal = 0;
     currentCRMData.forEach(c => {
@@ -806,36 +737,17 @@ function renderCA2CRM() {
         else activeTotal++;
     });
 
-    // Apply tab filter
     if (currentCRMTab === 'active') {
         filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) >= 0);
     } else {
         filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) < 0);
     }
 
-    // Stats (Filtered view for dashboard counters)
+    // Stats
     const totalEl = document.getElementById('ca2-crm-total');
     const activeEl = document.getElementById('ca2-crm-active');
     const expiringEl = document.getElementById('ca2-crm-expiring');
     const expiredEl = document.getElementById('ca2-crm-expired');
-    
-    // Update Tab UI
-    const tabActive = document.getElementById('tab-crm-active');
-    const tabExpired = document.getElementById('tab-crm-expired');
-    const countActive = document.getElementById('count-crm-active-tab');
-    const countExpired = document.getElementById('count-crm-expired-tab');
-
-    if (tabActive && tabExpired) {
-        if (currentCRMTab === 'active') {
-            tabActive.className = "px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-2 bg-green-500 text-white shadow-lg shadow-green-900/20";
-            tabExpired.className = "px-8 py-3 rounded-xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2";
-        } else {
-            tabActive.className = "px-8 py-3 rounded-xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-2";
-            tabExpired.className = "px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-2 bg-purple-600 text-white shadow-lg shadow-purple-900/20";
-        }
-    }
-    if (countActive) countActive.innerText = activeTotal;
-    if (countExpired) countExpired.innerText = expiredTotal;
     
     let activeCnt = 0, expiringCnt = 0, expiredCnt = 0;
     currentCRMData.forEach(c => {
@@ -850,84 +762,50 @@ function renderCA2CRM() {
     if (expiringEl) expiringEl.innerText = expiringCnt;
     if (expiredEl) expiredEl.innerText = expiredCnt;
 
-    tableBody.innerHTML = filtered.map(c => {
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-title">Chưa có khách hàng nào</div>
+                <div class="empty-desc">Tạo khách hàng đầu tiên để bắt đầu quản lý</div>
+                <button class="btn-primary" onclick="openAddCRMModal()">+ Thêm khách hàng</button>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
-        const statusClass = isExpired ? 'text-purple-500' : (daysLeft <= 30 ? 'text-red-500' : (daysLeft <= 60 ? 'text-orange-500' : 'text-green-500'));
-        const barClass = isExpired ? 'bg-purple-600' : (daysLeft <= 30 ? 'bg-red-500' : (daysLeft <= 60 ? 'bg-orange-500' : 'bg-green-500'));
-        const pStatus = String(c.payment_status || '').toLowerCase().trim();
-        const isPaid = pStatus === 'paid' || pStatus.includes('đã thanh toán');
+        
+        let badgeType = isExpired ? 'badge-pending' : (daysLeft <= 60 ? 'badge-running' : 'badge-done');
+        let statusLabel = isExpired ? 'Đã hết hạn' : `${daysLeft} ngày`;
 
         return `
-            <tr class="hover:bg-white/2 transition-colors group">
-                <td class="px-6 py-1.5">
-                    <div class="font-bold text-white">${c.company_name || 'N/A'}</div>
-                    <div class="text-[10px] text-gray-500 font-black tracking-widest mt-0.5">${c.mst || '---'}</div>
-                    <div class="text-[10px] text-gray-400 font-medium">${c.email || ''} ${c.phone ? '• ' + c.phone : ''}</div>
-                </td>
-                <td class="px-6 py-1.5 text-center">
-                    ${(() => {
-                        const svc = (c.service_type || '').toUpperCase();
-                        let badgeClass = 'badge-other';
-                        let label = svc || 'KHÁC';
-                        
-                        if (svc.includes('CKS') || svc.includes('CHỮ KÝ SỐ')) {
-                            badgeClass = 'badge-cks';
-                            label = 'CHỮ KÝ SỐ';
-                        } else if (svc.includes('HDDT') || svc.includes('HÓA ĐƠN ĐIỆN TỬ')) {
-                            badgeClass = 'badge-hddt';
-                            label = 'H.ĐƠN ĐIỆN TỬ';
-                        } else if (svc.includes('EBH') || svc.includes('BẢO HIỂM')) {
-                            badgeClass = 'badge-ebh';
-                            label = 'BẢO HIỂM';
-                        } else if (svc.includes('HOA DON') || svc.includes('HÓA ĐƠN')) {
-                            badgeClass = 'badge-invoice';
-                            label = 'HÓA ĐƠN';
-                        }
-
-                        return `<span class="badge-service ${badgeClass}">${label}</span>`;
-                    })()}
-                </td>
-                <td class="px-6 py-1.5 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.start_date)}</td>
-                <td class="px-6 py-1.5 font-black text-white text-sm">
-                    ${(() => {
-                        if (c.duration && c.duration !== '-') return c.duration;
-                        if (!c.start_date || !c.expired_date) return '-';
-                        const start = new Date(c.start_date);
-                        const end = new Date(c.expired_date);
-                        const diffYears = Math.round((end - start) / (1000 * 60 * 60 * 24 * 365.25));
-                        return diffYears > 0 ? `${diffYears} năm` : '-';
-                    })()}
-                </td>
-                <td class="px-6 py-4 font-bold text-gray-400 text-sm whitespace-nowrap">${formatDate(c.expired_date)}</td>
-                <td class="px-6 py-4">
-                    <div class="flex flex-col items-start text-sm">
-                        <span class="font-black ${statusClass}">
-                            ${isExpired ? 'Hết hạn' : (daysLeft + ' ngày')}
-                        </span>
-                        ${!isExpired ? '' : `
-                        <div class="w-16 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
-                            <div class="h-full ${barClass}" 
-                                 style="width: ${isExpired ? '0%' : (daysLeft > 60 ? '100%' : (daysLeft / 60 * 100) + '%')}"></div>
-                        </div>`}
-                    </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <select onchange="updatePaymentStatus('${c.id}', this.value)" 
-                            class="text-[10px] font-black py-1.5 px-3 rounded-xl cursor-pointer uppercase tracking-widest transition-all outline-none border-2 shadow-lg ${isPaid ? 'bg-green-500/10 text-green-400 border-green-500 shadow-green-500/10 focus:text-green-400 focus:border-green-500' : 'bg-orange-500/10 text-orange-400 border-orange-500 shadow-orange-500/10 focus:text-orange-400 focus:border-orange-500'}">
-                        <option value="unpaid" ${!isPaid ? 'selected' : ''} class="font-black text-orange-400" style="background: #0f172a; color: #fb923c;">Chưa thanh toán</option>
-                        <option value="paid" ${isPaid ? 'selected' : ''} class="font-black text-green-400" style="background: #0f172a; color: #4ade80;">Đã thanh toán</option>
-                    </select>
-                </td>
-                <td class="px-6 py-1.5 text-right relative z-40">
-                    <div class="flex justify-end gap-1.5 relative z-50">
-                        <button onclick="editCRM('${c.id}')" class="btn-action-premium text-gray-400 hover:text-white" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
-                        <button onclick="deleteCRM('${c.id}')" class="btn-action-premium text-red-500 hover:text-red-400" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
-                    </div>
-                </td>
-            </tr>
+            <div class="list-item" onclick="editCRM('${c.id}')">
+                <div>
+                    <div class="list-item-title">${c.company_name || 'N/A'}</div>
+                    <div class="list-item-meta">${c.mst || '---'} • ${c.service_type || 'Dịch vụ'}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Ngày hết hạn</div>
+                    <div class="text-xs font-bold text-white">${formatDate(c.expired_date)}</div>
+                </div>
+                <div class="flex justify-center">
+                    <span class="badge-premium ${badgeType}">
+                        <span class="badge-dot"></span>
+                        ${statusLabel}
+                    </span>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="btn-delete-ios">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
         `;
-    }).join('') || `<tr><td colspan="8" class="px-8 py-10 text-center text-gray-500 italic">Không có dữ liệu khách hàng</td></tr>`;
+    }).join('');
+}
 
     // Initialize/Refresh premium UI for dynamic table elements
     if (typeof refreshCustomSelects === 'function') {
@@ -1599,67 +1477,72 @@ async function loadRecentCampaigns() {
         const res = await authedFetch('/api/campaigns');
         const campaigns = await res.json();
         
-        // Check if we need to continue polling
+        // Polling logic
         const hasActive = campaigns.some(c => c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' || c.status === 'Đang xử lý');
         if (hasActive) {
-            // Trigger dashboard refresh during active campaigns
             loadDashboardStats();
-            
-            if (!window.campaignInterval) {
-                console.log('Active campaigns found, starting poll...');
-                window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
-            }
-        } else if (!hasActive && window.campaignInterval) {
-            console.log('No active campaigns, stopping poll.');
+            if (!window.campaignInterval) window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
+        } else if (window.campaignInterval) {
             clearInterval(window.campaignInterval);
             window.campaignInterval = null;
-            loadDashboardStats(); // Final refresh
+            loadDashboardStats();
         }
 
-        const html = campaigns.map(c => `
-            <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                <td class="px-8 py-6">
-                    <div class="font-bold text-white text-lg">${c.name}</div>
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString()}</div>
-                </td>
-                <td class="px-8 py-6">
-                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-lg ${
-                        c.status === 'Hoàn thành' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
-                        c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse' :
-                        'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                    }">
-                        ${c.status === 'Đang hàng đợi' ? 'Đang gửi...' : c.status}
-                    </span>
-                </td>
-                <td class="px-8 py-6">
-                    <div class="flex items-center gap-3">
-                        <div class="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden max-w-[100px]">
-                            <div class="h-full bg-orange-gradient" style="width: ${(c.sent_count / c.total_recipients * 100) || 0}%"></div>
-                        </div>
-                        <span class="font-black text-white text-sm">${c.sent_count || 0}/${c.total_recipients || 0}</span>
+        const renderItem = c => {
+            const successPct = c.total_recipients > 0 ? Math.round((c.sent_count / c.total_recipients) * 100) : 0;
+            const isDone = c.status === 'Hoàn thành';
+            const isRunning = c.status === 'Đang gửi' || c.status === 'Đang hàng đợi';
+            const badgeType = isDone ? 'badge-done' : (isRunning ? 'badge-running' : 'badge-pending');
+            const statusLabel = isRunning ? 'Đang gửi...' : c.status;
+
+            return `
+                <div class="list-item" onclick="showPage('campaigns')">
+                    <div class="flex-1">
+                        <div class="list-item-title">${c.name}</div>
+                        <div class="list-item-meta">${new Date(c.created_at).toLocaleDateString()}</div>
                     </div>
-                </td>
-                <td class="px-8 py-6 text-right">
-                    <div class="flex items-center justify-end gap-2">
-                        ${c.status === 'Hoàn thành' ? 
-                            `<span class="text-green-500 font-bold"><i class="fas fa-check-circle mr-1"></i> Xong</span>` :
-                            `<button onclick="startCampaign('${c.id}')" class="bg-orange-gradient text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-orange-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                                <i class="fas fa-play"></i> CHẠY
-                            </button>`
-                        }
-                        <button onclick="deleteCampaign('${c.id}')" class="w-10 h-10 flex items-center justify-center bg-red-500/5 text-red-400 hover:text-white hover:bg-red-500 transition-all rounded-xl shadow-lg shadow-red-900/0 hover:shadow-red-900/40" title="Xóa chiến dịch">
-                            <i class="fas fa-trash-alt text-[10px]"></i>
+                    <div class="flex-1 flex justify-center">
+                        <span class="badge-premium ${badgeType}">
+                            <span class="badge-dot"></span>
+                            ${statusLabel}
+                        </span>
+                    </div>
+                    <div class="flex-1 progress-wrap">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${isDone ? 'done' : ''}" style="width: ${successPct}%"></div>
+                        </div>
+                        <div class="text-[10px] text-gray-500 font-bold mt-1 text-right">${successPct}% (${c.sent_count}/${c.total_recipients})</div>
+                    </div>
+                    <div class="flex justify-end gap-2 ml-4">
+                        ${!isDone && !isRunning ? `
+                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="btn-action-premium text-orange-500">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        ` : ''}
+                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="btn-delete-ios">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
-                </td>
-            </tr>
-        `).join('');
-        if (list) list.innerHTML = html;
-        if (listAll) listAll.innerHTML = html;
+                </div>
+            `;
+        };
+
+        const html = campaigns.map(renderItem).join('');
+        const emptyHtml = `
+            <div class="empty-state">
+                <div class="empty-icon">📧</div>
+                <div class="empty-title">Chưa có chiến dịch nào</div>
+                <div class="empty-desc">Tạo chiến dịch đầu tiên để bắt đầu gửi email</div>
+            </div>
+        `;
+
+        if (list) list.innerHTML = html || emptyHtml;
+        if (listAll) listAll.innerHTML = html || emptyHtml;
     } catch (e) {
         console.error('Error loading campaigns:', e);
     }
 }
+
 
 async function startCampaign(id) {
     try {
@@ -1708,42 +1591,40 @@ async function loadSenders() {
             const isGmailAPI = s.smtpHost === 'oauth2.google' || s.smtpHost === 'oauth2.googleapis.com';
             
             return `
-                <tr class="hover:bg-white/[0.03] transition-all group">
-                    <td class="px-10 py-6">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isGmailAPI ? 'bg-white shadow-lg shadow-white/5' : 'bg-orange-gradient/20 text-orange-500'}">
-                                ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : '⚙️'}
-                            </div>
-                            <div>
-                                <div class="text-white font-black text-sm">${s.senderName}</div>
-                                <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-bold uppercase tracking-wider text-gray-400 mt-1">
-                                    ${isGmailAPI ? '<span class="text-blue-400">●</span> Gmail API' : '<span class="text-orange-500">○</span> SMTP Server'}
-                                </div>
-                            </div>
+                <div class="list-item">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isGmailAPI ? 'bg-white' : 'bg-orange-gradient/20 text-orange-500'}">
+                            ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : '⚙️'}
                         </div>
-                    </td>
-                    <td class="px-10 py-6">
-                        <div class="text-gray-300 text-sm font-medium">${s.senderEmail}</div>
-                        <div class="text-[10px] text-gray-500 font-mono mt-1 italic">${s.smtpHost}</div>
-                    </td>
-                    <td class="px-10 py-6 text-center">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest border border-green-500/20">
-                            <i class="fas fa-check-circle"></i> Đã kết nối
+                        <div>
+                            <div class="list-item-title">${s.senderName}</div>
+                            <div class="list-item-meta">${s.senderEmail}</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <span class="badge-premium badge-done">
+                            <span class="badge-dot"></span>
+                            Đã kết nối
                         </span>
-                    </td>
-                    <td class="px-10 py-6 text-right">
-                        <div class="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                            ${!isGmailAPI ? 
-                                `<button onclick="openEditSenderModal('${s.id}')" class="w-10 h-10 flex items-center justify-center bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Chỉnh sửa"><i class="fas fa-pen text-[10px]"></i></button>` : ''
-                            }
-                            <button onclick="deleteSender('${s.id}')" class="w-10 h-10 flex items-center justify-center bg-red-500/5 text-red-400 hover:text-white hover:bg-red-500 transition-all rounded-xl shadow-lg shadow-red-900/0 hover:shadow-red-900/40" title="Xóa tài khoản">
-                                <i class="fas fa-trash-alt text-[10px]"></i>
-                            </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[9px] font-bold uppercase tracking-wider text-gray-400">
+                            ${isGmailAPI ? 'Gmail API' : 'SMTP Server'}
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        ${!isGmailAPI ? `<button onclick="openEditSenderModal('${s.id}')" class="btn-action-premium text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button>` : ''}
+                        <button onclick="deleteSender('${s.id}')" class="btn-delete-ios"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
             `;
-        }).join('') || '<tr><td colspan="4" class="px-10 py-20 text-center text-gray-600 font-bold italic">Chưa có tài khoản nào. Hãy kết nối Gmail ngay!</td></tr>';
+        }).join('') || `
+            <div class="empty-state">
+                <div class="empty-icon">🔑</div>
+                <div class="empty-title">Chưa có tài khoản nào</div>
+                <div class="empty-desc">Kết nối Gmail hoặc SMTP để bắt đầu gửi mail</div>
+            </div>
+        `;
         
         const select = document.getElementById('select-sender');
         if (select) {
@@ -2534,54 +2415,54 @@ async function applyTemplate() {
 
 // --- Reports & Logs ---
 async function loadEmailLogs() {
-    const tbody = document.getElementById('email-logs-list');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500 font-bold animate-pulse italic">Đang tải nhật ký...</td></tr>';
-    
+    const list = document.getElementById('email-logs-list');
+    if (!list) return;
+
     try {
         const res = await authedFetch('/api/email-logs');
-        const data = await res.json();
+        const logs = await res.json();
         
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500 font-bold italic">Chưa có nhật ký gửi mail nào.</td></tr>';
+        if (!logs || logs.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📈</div>
+                    <div class="empty-title">Chưa có dữ liệu báo cáo</div>
+                    <div class="empty-desc">Gửi chiến dịch đầu tiên để xem báo cáo chi tiết</div>
+                </div>
+            `;
             return;
         }
 
-        tbody.innerHTML = data.map(log => {
+        list.innerHTML = logs.map(log => {
+            const isSuccess = log.status === 'success' || log.status === 'Thành công';
+            const badgeType = isSuccess ? 'badge-done' : 'badge-pending';
+            const statusLabel = isSuccess ? 'Thành công' : 'Thất bại';
             const date = new Date(log.created_at).toLocaleString('vi-VN');
-            const statusClass = getStatusBadgeClass(log.status);
 
             return `
-                <tr class="hover:bg-white/2 transition-all group">
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-400 font-mono text-[10px]">${date}</td>
-                    <td class="px-6 py-4">
-                        <div class="text-xs font-black text-white">${log.email}</div>
-                        <div class="text-[10px] text-gray-500">MST: ${log.customer_id}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 uppercase">
-                            ${log.campaigns?.name || 'N/A'}
+                <div class="list-item">
+                    <div class="flex-1">
+                        <div class="list-item-title">${log.recipient_email || log.email || 'N/A'}</div>
+                        <div class="list-item-meta">${date}</div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Chiến dịch</div>
+                        <div class="text-xs font-bold text-white truncate max-w-[150px]">${log.campaign_name || log.campaigns?.name || 'N/A'}</div>
+                    </div>
+                    <div class="flex justify-center">
+                        <span class="badge-premium ${badgeType}">
+                            <span class="badge-dot"></span>
+                            ${statusLabel}
                         </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${statusClass}">
-                            ${log.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 max-w-xs">
-                        <div class="text-[10px] text-red-400/70 italic line-clamp-1 group-hover:line-clamp-none transition-all" title="${log.error_message || ''}">
-                            ${log.error_message || '-'}
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <a href="/api/reports/${log.campaign_id}?access_token=${localStorage.getItem('sb-token')}" target="_blank" class="text-[10px] font-bold text-orange-500 hover:underline">Chi tiết</a>
-                    </td>
-                </tr>
+                    </div>
+                    <div class="flex-1 text-right ml-4">
+                        ${!isSuccess ? `<div class="text-[9px] text-red-500 font-medium italic line-clamp-1" title="${log.error_message || ''}">${log.error_message || 'Lỗi không xác định'}</div>` : '<div class="text-[9px] text-green-500/50">OK</div>'}
+                    </div>
+                </div>
             `;
         }).join('');
     } catch (e) {
         console.error('Load Email Logs Error:', e);
-        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500 font-bold">Lỗi tải dữ liệu nhật ký! <br><span class="text-[10px] font-normal opacity-50">${e.message}</span></td></tr>`;
     }
 }
 

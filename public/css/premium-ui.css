@@ -10,8 +10,8 @@
    ========================================================== */
 :root {
     /* ── Surfaces (Deep Dark) ── */
-    --ds-bg:              #0b0f1a;
-    --ds-bg-gradient:     radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 40%), linear-gradient(180deg, #0b0f1a 0%, #0d1320 100%);
+    --ds-bg:              #0f1117;
+    --ds-bg-gradient:     radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 40%), linear-gradient(180deg, #0f1117 0%, #0b0d13 100%);
     --ds-surface:         rgba(15, 23, 42, 0.7);
     --ds-surface-solid:   #0f172a;
     --ds-surface-elevated:rgba(30, 41, 59, 0.6);
@@ -134,12 +134,7 @@ html {
     scroll-behavior: smooth;
 }
 
-#main-content::after {
-    content: "";
-    display: block;
-    height: 40px;
-    width: 100%;
-}
+/* Spacer removed to avoid empty area at bottom */
 
 /* Firefox */
 * {
@@ -1212,7 +1207,223 @@ header::after {
     -webkit-backface-visibility: hidden;
 }
 
-/* Reduce paint area for frequently animated elements */
+/* ==========================================================
+   30. iOS-STYLE UPGRADES (from Prompt_UI_iOS_Upgrade.md)
+   ========================================================== */
+
+/* Nav Groups & Items */
+.nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.2);
+    padding: 16px 12px 6px;
+}
+
+.sidebar-user {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 0.5px solid rgba(255,255,255,.07);
+    background: rgba(0,0,0,0.1);
+}
+
+/* Page Components */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.page-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -.02em;
+}
+.page-subtitle {
+    font-size: 13px;
+    color: rgba(255,255,255,.35);
+    margin-top: 2px;
+}
+
+/* Filter Bar & Chips */
+.filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 0.5px solid rgba(255,255,255,.1);
+    background: transparent;
+    color: rgba(255,255,255,.4);
+    cursor: pointer;
+    transition: all .15s ease;
+}
+.chip:hover {
+    background: rgba(255,255,255,.05);
+    color: rgba(255,255,255,.7);
+}
+.chip.active {
+    background: rgba(244,121,32,.15);
+    border-color: rgba(244,121,32,.35);
+    color: #f47920;
+}
+
+/* Stats Row */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.stat-card {
+    background: rgba(255,255,255,.03);
+    border: 0.5px solid rgba(255,255,255,.07);
+    border-radius: 16px;
+    padding: 16px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.stat-card:hover {
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+}
+.stat-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -.02em;
+}
+.stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,.3);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Card-style List Items */
+.list-item {
+    background: rgba(255,255,255,.02);
+    border: 0.5px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+    align-items: center;
+    gap: 16px;
+    transition: all .15s ease;
+    cursor: pointer;
+}
+.list-item:hover {
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,255,255,.12);
+    transform: translateX(4px);
+}
+
+/* Badges with Dots */
+.badge-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 0.5px solid transparent;
+}
+.badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+.badge-done {
+    background: rgba(74,222,128,.08);
+    color: #4ade80;
+    border-color: rgba(74,222,128,.2);
+}
+.badge-done .badge-dot { background: #4ade80; }
+
+.badge-running {
+    background: rgba(244,121,32,.08);
+    color: #f47920;
+    border-color: rgba(244,121,32,.2);
+}
+.badge-running .badge-dot { background: #f47920; }
+
+.badge-pending {
+    background: rgba(255,255,255,.05);
+    color: rgba(255,255,255,.4);
+    border-color: rgba(255,255,255,.1);
+}
+.badge-pending .badge-dot { background: rgba(255,255,255,.3); }
+
+/* Compact Progress */
+.progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.progress-bar {
+    height: 6px;
+    background: rgba(255,255,255,.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #f47920, #ff9d52);
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.progress-fill.done { background: #4ade80; }
+
+/* Enhanced Action Buttons */
+.btn-delete-ios {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 0.5px solid rgba(239,68,68,.15);
+    background: rgba(239,68,68,.06);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+.btn-delete-ios:hover {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.4);
+    transform: scale(1.1);
+}
+
+/* Empty States */
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px 24px;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}
+.empty-icon { font-size: 48px; opacity: .2; filter: grayscale(1); }
+.empty-title { font-size: 18px; font-weight: 800; color: rgba(255,255,255,.4); }
+.empty-desc  { font-size: 14px; color: rgba(255,255,255,.2); max-width: 280px; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 .bg-glass,
 .card-glow,
 .glass-card-premium,
