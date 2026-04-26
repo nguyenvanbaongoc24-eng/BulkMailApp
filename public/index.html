@@ -385,7 +385,7 @@
     </div>
 
     <!-- Main App Wrapper (Initially hidden) -->
-    <div id="app-container" class="hidden flex h-screen overflow-hidden">
+    <div id="app-container" class="hidden flex h-screen overflow-hidden" style="background: var(--ds-bg-gradient);">
 
     <!-- Sidebar -->
     <aside id="sidebar" class="w-64 border-r flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0" style="background-color: var(--sidebar-bg); border-color: var(--glass-border); border-right-width: 2px;">
@@ -481,13 +481,13 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-dark-purple relative">
+    <main class="flex-1 flex flex-col overflow-hidden relative" style="background: var(--ds-bg-gradient);">
         <!-- Abstract Glow Background -->
         <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 blur-[120px] -z-10 rounded-full"></div>
         <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] -z-10 rounded-full"></div>
 
         <!-- Header -->
-        <header class="h-14 border-b border-white/5 flex items-center justify-between px-4 bg-[#020617]/90 backdrop-blur-xl z-20">
+        <header class="h-14 border-b border-white/5 flex items-center justify-between px-4 bg-[#0b0f1a]/90 backdrop-blur-xl z-20">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white transition-all">
                     <i class="fas fa-bars"></i>
@@ -515,7 +515,7 @@
             <!-- Dashboard View -->
             <div id="view-dashboard" class="space-y-4 animate-in fade-in duration-500">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-glass p-4 rounded-[32px] card-glow">
+                    <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                         <div class="flex items-baseline justify-between">
                             <p class="uppercase-label">Tổng email gửi</p>
                             <span class="text-orange-500">📊</span>
@@ -526,7 +526,7 @@
                             <span class="text-xs text-gray-500">so với tháng trước</span>
                         </div>
                     </div>
-                    <div class="bg-glass p-4 rounded-[32px] card-glow">
+                    <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                         <div class="flex items-baseline justify-between">
                             <p class="uppercase-label">Tỷ lệ thành công</p>
                             <span class="text-green-500">✅</span>
@@ -536,7 +536,7 @@
                             <div class="h-full bg-orange-gradient w-[0%]" id="success-progress-bar"></div>
                         </div>
                     </div>
-                    <div class="bg-glass p-4 rounded-[32px] card-glow">
+                    <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                         <div class="flex items-baseline justify-between">
                             <p class="uppercase-label">Tỷ lệ lỗi</p>
                             <span class="text-red-500">⚠️</span>
@@ -578,7 +578,7 @@
                     </div>
                 </div>
 
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                     <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-white uppercase tracking-tight">Chiến dịch gần đây</h3>
                         <button onclick="showPage('campaigns')" class="text-sm text-orange-500 font-bold hover:underline">Xem tất cả</button>
@@ -603,7 +603,7 @@
 
             <!-- Campaigns View (Separate but same list) -->
             <div id="view-campaigns" class="hidden space-y-4 animate-in fade-in duration-500">
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                     <div class="px-8 py-6 border-b border-white/5 bg-white/5">
                         <h3 class="text-lg font-bold text-white uppercase tracking-tight">Danh sách tất cả chiến dịch</h3>
                     </div>
@@ -786,7 +786,7 @@
                     </div>
                 </div>
 
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                     <div class="p-6 border-b border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                         <!-- Filters Group -->
                         <div class="flex flex-wrap items-center gap-4 w-full xl:w-auto">
@@ -912,7 +912,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Marketing Docs -->
-                    <div class="bg-glass rounded-[32px] border border-white/5 p-4 space-y-4">
+                    <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                         <div class="flex items-center justify-between">
                             <h3 class="text-xl font-bold text-white flex items-center gap-3">
                                 <span class="p-3 bg-blue-500/10 rounded-2xl text-blue-500"><i class="fas fa-bullhorn"></i></span>
@@ -926,7 +926,7 @@
                     </div>
 
                     <!-- Templates -->
-                    <div class="bg-glass rounded-[32px] border border-white/5 p-4 space-y-4">
+                    <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                         <div class="flex items-center justify-between">
                             <h3 class="text-xl font-bold text-white flex items-center gap-3">
                                 <span class="p-3 bg-orange-500/10 rounded-2xl text-orange-500"><i class="fas fa-file-invoice"></i></span>
@@ -1073,7 +1073,7 @@
 
             <!-- Reports View -->
             <div id="view-reports" class="hidden space-y-4 animate-in fade-in duration-500">
-                <div class="bg-glass rounded-[32px] border border-white/5 overflow-hidden">
+                <div class="rounded-2xl shadow-xl shadow-black/25 mb-4 p-5">
                     <div class="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-white uppercase tracking-tight">Nhật ký <span class="text-orange-gradient">gửi mail chi tiết</span></h3>
                         <div class="flex gap-4">

@@ -10,8 +10,8 @@
    ========================================================== */
 :root {
     /* ── Surfaces (Deep Dark) ── */
-    --ds-bg:              #020617;
-    --ds-bg-gradient:     linear-gradient(180deg, #020617 0%, #030712 100%);
+    --ds-bg:              #0b0f1a;
+    --ds-bg-gradient:     radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 40%), linear-gradient(180deg, #0b0f1a 0%, #0d1320 100%);
     --ds-surface:         rgba(15, 23, 42, 0.7);
     --ds-surface-solid:   #0f172a;
     --ds-surface-elevated:rgba(30, 41, 59, 0.6);
@@ -130,6 +130,17 @@ button, [role="button"], a[onclick],
     background: rgba(255,255,255,0.16);
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
+#main-content::after {
+    content: "";
+    display: block;
+    height: 40px;
+    width: 100%;
+}
+
 /* Firefox */
 * {
     scrollbar-width: thin;
@@ -144,10 +155,7 @@ button, [role="button"], a[onclick] {
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: transform var(--ds-duration) var(--ds-ease),
-                box-shadow var(--ds-duration) var(--ds-ease),
-                filter var(--ds-duration) var(--ds-ease),
-                background-color var(--ds-duration) var(--ds-ease);
+    transition: all 0.25s ease;
 }
 
 /* Hover: brightness only — subtle */
@@ -199,14 +207,13 @@ button:active, [role="button"]:active {
 .bg-glass,
 .bg-glass\/40,
 [class*="bg-glass"] {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    transition: transform var(--ds-duration) var(--ds-ease),
-                box-shadow var(--ds-duration) var(--ds-ease),
-                border-color var(--ds-duration) var(--ds-ease);
+    background: var(--ds-surface) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--ds-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25) !important;
+    transition: all 0.25s ease !important;
 }
 
 .bg-glass:hover,
