@@ -805,7 +805,6 @@ function renderCA2CRM() {
             </div>
         `;
     }).join('');
-}
 
     // Initialize/Refresh premium UI for dynamic table elements
     if (typeof refreshCustomSelects === 'function') {
