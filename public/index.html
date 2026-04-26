@@ -385,10 +385,10 @@
     </div>
 
     <!-- Main App Wrapper (Initially hidden) -->
-    <div id="app-container" class="hidden flex h-screen overflow-hidden">
+    <div id="app-container" class="app hidden">
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-64 border-r flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0" style="background-color: #111318; border-color: rgba(255,255,255,0.07); border-right-width: 0.5px;">
+    <aside id="sidebar" class="sidebar z-30 transition-all duration-300" style="background-color: #111318; border-color: rgba(255,255,255,0.07); border-right-width: 0.5px;">
         <div class="p-4 text-center cursor-pointer flex items-center justify-between" onclick="showPage('dashboard')">
             <h1 class="text-xl font-extrabold tracking-tighter">
                 <span class="text-white">Automation</span> <span class="text-orange-gradient">CA2</span>
@@ -479,13 +479,13 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden relative">
+    <main class="main relative">
         <!-- Abstract Glow Background -->
         <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 blur-[120px] -z-10 rounded-full"></div>
         <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] -z-10 rounded-full"></div>
 
         <!-- Header -->
-        <header class="h-14 border-b border-white/5 flex items-center justify-between px-4 bg-[#0b0f1a]/90 backdrop-blur-xl z-20">
+        <header class="header h-14 border-b border-white/5 flex items-center justify-between px-4 bg-[#0b0f1a]/90 backdrop-blur-xl z-20">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white transition-all">
                     <i class="fas fa-bars"></i>
@@ -508,7 +508,7 @@
         </header>
 
         <!-- Content Area -->
-        <div id="main-content" class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div id="main-content" class="content custom-scrollbar">
             
             <!-- Dashboard View -->
             <div id="view-dashboard" class="space-y-6 animate-in fade-in duration-500">
