@@ -151,9 +151,11 @@ button, [role="button"], a[onclick],
 /* Fix overlapping screens */
 .hidden { display: none !important; }
 
-/* Only page views should be forced visible when unhidden */
+/* Page views fill the content area and allow stretching children */
 .content > [id^="view-"]:not(.hidden) {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
 }
 
 
