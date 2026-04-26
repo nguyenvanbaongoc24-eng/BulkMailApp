@@ -713,7 +713,10 @@ function renderCA2CRM() {
     const filterType = document.getElementById('crm-filter-service').value;
     const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
     const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
+    const sortOrder = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
     const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
+    const fromDateStr = document.getElementById('crm-filter-from-date')?.value;
+    const toDateStr = document.getElementById('crm-filter-to-date')?.value;
 
     let filtered = [...currentCRMData];
 
@@ -726,6 +729,36 @@ function renderCA2CRM() {
             if (filterType === 'EBH') return svc.includes('EBH') || svc.includes('BẢO HIỂM');
             if (filterType === 'HOA_DON') return svc.includes('HOA DON') || svc.includes('HÓA ĐƠN');
             return svc === filterType.toUpperCase();
+        });
+    }
+
+    // Year Filter
+    if (filterYear !== 'all') {
+        filtered = filtered.filter(c => {
+            if (!c.expired_date) return false;
+            return new Date(c.expired_date).getFullYear().toString() === filterYear;
+        });
+    }
+
+    // Month Filter
+    if (filterMonth !== 'all') {
+        filtered = filtered.filter(c => {
+            if (!c.expired_date) return false;
+            return (new Date(c.expired_date).getMonth() + 1).toString() === filterMonth;
+        });
+    }
+
+    // Date Range Filter
+    if (fromDateStr && toDateStr) {
+        const fromD = new Date(fromDateStr);
+        const toD = new Date(toDateStr);
+        fromD.setHours(0,0,0,0);
+        toD.setHours(23,59,59,999);
+        
+        filtered = filtered.filter(c => {
+            if (!c.expired_date) return false;
+            const expD = new Date(c.expired_date);
+            return expD >= fromD && expD <= toD;
         });
     }
 
@@ -770,13 +803,35 @@ function renderCA2CRM() {
     if (expiringEl) expiringEl.innerText = expiringCnt;
     if (expiredEl) expiredEl.innerText = expiredCnt;
 
+    // Update Tab Counters
+    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
+    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
+    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
+    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
+
+    // Sorting
+    if (sortOrder === 'newest') {
+        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    } else if (sortOrder === 'soonest') {
+        filtered.sort((a, b) => {
+            if (!a.expired_date) return 1;
+            if (!b.expired_date) return -1;
+            return new Date(a.expired_date) - new Date(b.expired_date);
+        });
+    } else if (sortOrder === 'latest') {
+        filtered.sort((a, b) => {
+            if (!a.expired_date) return 1;
+            if (!b.expired_date) return -1;
+            return new Date(b.expired_date) - new Date(a.expired_date);
+        });
+    }
+
     if (filtered.length === 0) {
         listContainer.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon">📋</div>
-                <div class="empty-title">Chưa có khách hàng nào</div>
-                <div class="empty-desc">Tạo khách hàng đầu tiên để bắt đầu quản lý</div>
-                <button class="btn-primary" onclick="openAddCRMModal()">+ Thêm khách hàng</button>
+                <div class="empty-icon text-5xl mb-4">📋</div>
+                <div class="empty-title text-xl font-bold text-white mb-2">Không tìm thấy dữ liệu</div>
+                <div class="empty-desc text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc tìm kiếm lại.</div>
             </div>
         `;
         return;
@@ -786,27 +841,35 @@ function renderCA2CRM() {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
         
-        let badgeType = isExpired ? 'badge-pending' : (daysLeft <= 60 ? 'badge-running' : 'badge-done');
-        let statusLabel = isExpired ? 'Đã hết hạn' : `${daysLeft} ngày`;
+        let statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
 
         return `
-            <div class="list-item" onclick="editCRM('${c.id}')">
-                <div>
-                    <div class="list-item-title">${c.company_name || 'N/A'}</div>
-                    <div class="list-item-meta">${c.mst || '---'} • ${c.service_type || 'Dịch vụ'}</div>
+            <div class="bg-glass p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] cursor-pointer mb-3 relative overflow-hidden group" onclick="editCRM('${c.id}')">
+                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 pointer-events-none"></div>' : ''}
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
+                
+                <div class="flex-1 relative z-10">
+                    <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
+                    <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
+                        <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
+                        <span class="text-white/20">•</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
+                    </div>
                 </div>
-                <div class="text-center">
-                    <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Ngày hết hạn</div>
-                    <div class="text-xs font-bold text-white">${formatDate(c.expired_date)}</div>
+                
+                <div class="text-center relative z-10 bg-black/30 px-5 py-2.5 rounded-xl border border-white/5">
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
+                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
-                <div class="flex justify-center">
-                    <span class="badge-premium ${badgeType}">
-                        <span class="badge-dot"></span>
-                        ${statusLabel}
+                
+                <div class="flex justify-center relative z-10 min-w-[130px]">
+                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
+                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
                     </span>
                 </div>
-                <div class="flex justify-end gap-2">
-                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="btn-delete-ios">
+                
+                <div class="flex justify-end gap-2 relative z-10">
+                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
