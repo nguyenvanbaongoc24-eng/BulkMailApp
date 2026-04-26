@@ -141,8 +141,8 @@
             font-size: 14px;
         }
         input:focus, select:focus, textarea:focus {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+            border-color: #ff7a18 !important;
+            box-shadow: 0 0 0 2px rgba(255,122,24,0.25) !important;
             outline: none !important;
         }
         .light-mode select option {
@@ -385,7 +385,7 @@
     </div>
 
     <!-- Main App Wrapper (Initially hidden) -->
-    <div id="app-container" class="hidden flex h-screen overflow-hidden" style="background: var(--ds-bg-gradient);">
+    <div id="app-container" class="hidden flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
     <aside id="sidebar" class="w-64 border-r flex flex-col z-30 transition-all duration-300 overflow-hidden shrink-0" style="background-color: #111318; border-color: rgba(255,255,255,0.07); border-right-width: 0.5px;">
@@ -479,7 +479,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden relative" style="background: var(--ds-bg-gradient);">
+    <main class="flex-1 flex flex-col overflow-hidden relative">
         <!-- Abstract Glow Background -->
         <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 blur-[120px] -z-10 rounded-full"></div>
         <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] -z-10 rounded-full"></div>
@@ -1014,13 +1014,10 @@
                         </button>
                     </div>
                 </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-white/2 border-b border-white/5">
                 <div id="email-logs-list" class="space-y-2">
                     <!-- Data injected via JS -->
                 </div>
-                </div>
+            </div>
             </div>
 
             <!-- SEO UI Injection -->

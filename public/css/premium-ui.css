@@ -113,6 +113,48 @@ button, [role="button"], a[onclick],
 
 
 /* ==========================================================
+   ROOT LAYOUT — iOS Clean (never breaks)
+   ========================================================== */
+#app-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--ds-bg-gradient);
+}
+
+#sidebar, aside {
+    width: 256px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+#main-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px;
+    scroll-behavior: smooth;
+}
+
+/* Ensure all view containers display as block */
+[id^="view-"]:not(.hidden) {
+    display: block;
+}
+
+
+/* ==========================================================
    2. CUSTOM SCROLLBAR (Thin, Premium)
    ========================================================== */
 *::-webkit-scrollbar {
@@ -611,9 +653,9 @@ input, textarea, select {
 }
 
 input:focus, textarea:focus, select:focus {
-    border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15),
-                0 0 12px rgba(59, 130, 246, 0.05) !important;
+    border-color: #ff7a18 !important;
+    box-shadow: 0 0 0 2px rgba(255,122,24,0.25),
+                0 0 12px rgba(255,122,24,0.05) !important;
     outline: none !important;
 }
 
@@ -847,15 +889,14 @@ span[class*="text-2xl"]:hover {
 /* ==========================================================
    14. DARK MODE POLISH (Depth, not flat)
    ========================================================== */
-/* Deep ambient gradient background */
+/* Deep ambient gradient background — iOS feel, not dead black */
 body::before {
     content: '';
     position: fixed;
     inset: 0;
     background:
-        var(--ds-bg-gradient),
-        radial-gradient(ellipse 80% 50% at 20% 80%, rgba(59,130,246,0.04) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(249,115,22,0.03) 0%, transparent 70%);
+        radial-gradient(circle at top, rgba(255,255,255,0.05), transparent 40%),
+        linear-gradient(180deg, #0b0f1a 0%, #0f172a 100%);
     pointer-events: none;
     z-index: -1;
 }

@@ -3,6 +3,11 @@
  * Reconstructed & Enhanced
  */
 
+// --- Safe showToast fallback (overridden by premium-ui.js if loaded) ---
+if (typeof window.showToast !== 'function') {
+    window.showToast = function(msg, type) { console.log('[TOAST:' + (type||'info') + '] ' + msg); };
+}
+
 // --- Global State & Constants ---
 let currentUser = null;
 let savedSessions = JSON.parse(localStorage.getItem('ca2_saved_sessions') || '[]');
@@ -158,9 +163,7 @@ function saveCurrentSession(token, user) {
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
-    loadCRMPrices(); // Initial pricing load
-    PricingManager.init(); // NEW: Pricing System
-    if (window.PricingEngine) PricingEngine.init();
+    // Pricing init moved to after auth succeeds (inside checkAuth)
 
 
     // Initialize PremiumDatePicker (Single mode — CRM Modal)
@@ -332,6 +335,11 @@ async function checkAuth() {
             if (currentUser.settings && currentUser.settings.theme) {
                 applyTheme(currentUser.settings.theme, false); // false to avoid redundant API call
             }
+
+            // Init pricing AFTER auth succeeds (safe order)
+            try { loadCRMPrices(); } catch(e) { console.warn('[INIT] loadCRMPrices skipped:', e); }
+            try { if (window.PricingManager) PricingManager.init(); } catch(e) { console.warn('[INIT] PricingManager skipped:', e); }
+            try { if (window.PricingEngine) PricingEngine.init(); } catch(e) {}
 
             // Load dashboard stats as initial page
             showPage('dashboard');
