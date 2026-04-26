@@ -100,7 +100,10 @@
     box-sizing: border-box;
 }
 
-html {
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
     scroll-behavior: smooth;
 }
 
@@ -142,6 +145,7 @@ button, [role="button"], a[onclick],
 
 .content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 24px;
@@ -151,11 +155,10 @@ button, [role="button"], a[onclick],
 /* Fix overlapping screens */
 .hidden { display: none !important; }
 
-/* Page views fill the content area and allow stretching children */
+/* Page views inside scrollable content */
 .content > [id^="view-"]:not(.hidden) {
     display: flex;
     flex-direction: column;
-    min-height: 100%;
 }
 
 
