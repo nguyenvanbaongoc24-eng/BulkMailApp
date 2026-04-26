@@ -17,6 +17,9 @@ let pendingCRMData = [];
 let currentQuotations = [];
 let currentMarketingDocs = [];
 let currentTemplates = [];
+let currentCampaignData = [];
+let currentSenderData = [];
+let currentEmailLogs = [];
 let selectedUploadFile = null;
 let currentCRMTab = 'active'; // 'active' or 'expired'
 let currentCRMSort = { field: 'created_at', order: 'desc' }; // Default sorting
@@ -451,9 +454,9 @@ function openAccountSwitcher() {
         const nameEl = document.getElementById('switcher-user-name');
         const emailEl = document.getElementById('switcher-user-email');
         if (currentUser) {
-            const initial = (currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase();
-            if (avatarEl) avatarEl.innerText = initial;
-            if (nameEl) nameEl.innerText = currentUser.name || 'User';
+            const displayName = getDisplayName(currentUser);
+            if (avatarEl) avatarEl.innerText = displayName.charAt(0).toUpperCase();
+            if (nameEl) nameEl.innerText = displayName;
             if (emailEl) emailEl.innerText = currentUser.email || 'N/A';
         }
 
@@ -570,15 +573,24 @@ function addNewAccount() {
     showAuthScreen(true);
 }
 
+function getDisplayName(user) {
+    if (!user) return 'User';
+    if (user.name && user.name.trim() !== '') return user.name;
+    if (user.email) return user.email.split('@')[0];
+    return 'User';
+}
+
 function updateUserUI() {
     if (!currentUser) return;
     const nameEl = document.getElementById('user-display-name');
     const emailEl = document.getElementById('user-display-email');
     const avatarEl = document.getElementById('user-avatar');
     
-    if (nameEl) nameEl.innerText = currentUser.name || 'User';
+    const displayName = getDisplayName(currentUser);
+    
+    if (nameEl) nameEl.innerText = displayName;
     if (emailEl) emailEl.innerText = currentUser.email;
-    if (avatarEl) avatarEl.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+    if (avatarEl) avatarEl.innerText = displayName.charAt(0).toUpperCase();
 }
 
 // --- Navigation ---
@@ -610,6 +622,12 @@ function showPage(pageId) {
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
     
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.scrollTop = 0;
+        mainContent.scrollLeft = 0;
+    }
+
     // Page specific loading
     if (pageId === 'ca2-crm') {
         loadCRMPrices(); // Sync prices first
@@ -704,6 +722,194 @@ function handleCRMSort(field) {
         currentCRMSort.order = 'asc';
     }
     renderCA2CRM();
+}
+
+function normalizeText(value) {
+    return (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function matchesCRMServiceFilter(serviceType, filterType) {
+    if (!filterType || filterType === 'all') return true;
+
+    const service = normalizeText(serviceType);
+    if (!service) return false;
+
+    if (filterType === 'CKS') return service.includes('cks') || service.includes('chu ky so') || service.includes('chu ky');
+    if (filterType === 'HDDT') return service.includes('hddt') || service.includes('hoa don dien tu') || service.includes('einvoice');
+    if (filterType === 'EBH') return service.includes('ebh') || service.includes('bao hiem');
+    if (filterType === 'HOA_DON') return service.includes('hoa don');
+
+    return service.includes(normalizeText(filterType));
+}
+
+function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
+    const pkgName = typeof pkgOptionOrName === 'string'
+        ? pkgOptionOrName
+        : (pkgOptionOrName?.dataset?.durationLabel || pkgOptionOrName?.value || '');
+    const normalizedPkg = normalizeText(pkgName);
+    const normalizedService = normalizeText(serviceVal);
+
+    if (!pkgName) return '';
+    if (pkgOptionOrName?.dataset?.durationLabel) return pkgOptionOrName.dataset.durationLabel;
+
+    const countMatch = normalizedPkg.match(/(\d+)\s*so/);
+    if (countMatch) return `${countMatch[1]} số`;
+
+    const yearMatch = normalizedPkg.match(/(\d+)\s*(nam|year)/);
+    if (yearMatch) return `${yearMatch[1]} năm`;
+
+    const monthMatch = normalizedPkg.match(/(\d+)\s*thang/);
+    if (monthMatch) {
+        const months = parseInt(monthMatch[1], 10);
+        if (months % 12 === 0 && months <= 60) return `${months / 12} năm`;
+        return `${months} tháng`;
+    }
+
+    if (normalizedService.includes('hoa don')) return '500 số';
+    return '1 năm';
+}
+
+function syncCRMDurationWithPackage(packageValue = '') {
+    const serviceSelect = document.getElementById('ca2-crm-service');
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (!serviceSelect || !pkgSelect || !durationSelect) return;
+
+    const targetValue = packageValue || pkgSelect.value;
+    const option = [...pkgSelect.options].find(opt => opt.value === targetValue) || pkgSelect.selectedOptions?.[0];
+    const durationLabel = inferDurationFromPackage(serviceSelect.value, option || targetValue);
+    if (!durationLabel) return;
+
+    if (![...durationSelect.options].some(opt => opt.value === durationLabel)) {
+        const extraOpt = document.createElement('option');
+        extraOpt.value = durationLabel;
+        extraOpt.textContent = durationLabel;
+        durationSelect.appendChild(extraOpt);
+    }
+
+    durationSelect.value = durationLabel;
+}
+
+function syncCRMPackageWithDuration() {
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    const durationSelect = document.getElementById('ca2-crm-duration');
+    if (!pkgSelect || !durationSelect || !durationSelect.value) return;
+
+    const exact = [...pkgSelect.options].find(opt => (opt.dataset.durationLabel || '') === durationSelect.value);
+    if (exact) {
+        pkgSelect.value = exact.value;
+        return;
+    }
+
+    const loose = [...pkgSelect.options].find(opt => normalizeText(opt.textContent).includes(normalizeText(durationSelect.value)));
+    if (loose) pkgSelect.value = loose.value;
+}
+
+function handleCRMPackageChange() {
+    syncCRMDurationWithPackage();
+    updateCRMBonusMonths();
+    calculatePrice();
+}
+
+function handleCRMDurationChange() {
+    syncCRMPackageWithDuration();
+    updateCRMBonusMonths();
+    calculatePrice();
+}
+
+function getCRMCustomerSegments(customerType) {
+    const normalized = normalizeText(customerType);
+    if (normalized.includes('cong ty')) return ['cong ty'];
+    return ['ca nhan', 'ho kd', 'cn thuoc tc'];
+}
+
+function crmCategoryMatches(category, customerType) {
+    const categoryText = normalizeText(category);
+    const segments = getCRMCustomerSegments(customerType);
+    return segments.some(segment => categoryText.includes(segment));
+}
+
+function getCRMTransactionForService(serviceVal) {
+    const normalized = normalizeText(serviceVal);
+    if (normalized.includes('gia han dung thu')) return 'gia han';
+    if (normalized.includes('gia han')) return 'gia han';
+    if (normalized.includes('cap moi')) return 'cap moi';
+    return 'all';
+}
+
+function extractDurationMonthsFromPackage(packageName) {
+    const normalized = normalizeText(packageName);
+    const yearMatch = normalized.match(/(\d+)\s*nam/);
+    if (yearMatch) return parseInt(yearMatch[1], 10) * 12;
+    const monthMatch = normalized.match(/(\d+)\s*thang/);
+    if (monthMatch) return parseInt(monthMatch[1], 10);
+    return 0;
+}
+
+function initializeCRMDateRangePicker() {
+    const rangeInput = document.getElementById('crm-date-range-picker');
+    if (!rangeInput || !window.PremiumDatePicker) return;
+
+    const applyRangeState = (dates = []) => {
+        const startLabel = document.getElementById('crm-date-start-label');
+        const endLabel = document.getElementById('crm-date-end-label');
+        const fromInput = document.getElementById('crm-filter-from-date');
+        const toInput = document.getElementById('crm-filter-to-date');
+        const clearBtn = document.getElementById('crm-date-clear-btn');
+
+        if (!startLabel || !endLabel || !fromInput || !toInput) return;
+
+        if (dates.length === 1) {
+            const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
+            startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
+            endLabel.innerText = 'Đến ngày';
+            fromInput.value = fromValue;
+            toInput.value = '';
+            rangeInput.value = fromValue;
+            clearBtn?.classList.remove('hidden');
+        } else if (dates.length === 2) {
+            const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
+            const toValue = PremiumDatePicker.formatDate(dates[1], 'Y-m-d');
+            startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
+            endLabel.innerText = PremiumDatePicker.formatDate(dates[1], 'd/m/Y');
+            fromInput.value = fromValue;
+            toInput.value = toValue;
+            rangeInput.value = `${fromValue} - ${toValue}`;
+            clearBtn?.classList.remove('hidden');
+            renderCA2CRM();
+        } else {
+            startLabel.innerText = 'Từ ngày';
+            endLabel.innerText = 'Đến ngày';
+            fromInput.value = '';
+            toInput.value = '';
+            rangeInput.value = '';
+            clearBtn?.classList.add('hidden');
+            renderCA2CRM();
+        }
+    };
+
+    const instance = PremiumDatePicker.attach(rangeInput, {
+        mode: 'range',
+        label: 'THOI GIAN LOC',
+        onChange: applyRangeState,
+        onClear: () => applyRangeState([])
+    });
+
+    const clearBtn = document.getElementById('crm-date-clear-btn');
+    if (clearBtn) {
+        clearBtn.onclick = (e) => {
+            e.stopPropagation();
+            instance?.clear();
+        };
+    }
 }
 
 function renderCA2CRM() {
@@ -2572,6 +2778,828 @@ function exportEmailLogs() {
     link.click();
 }
 
+// --- UI/Logic Overrides: CRM filters, package sync, campaign/sender/report redesign ---
+function renderCA2CRM() {
+    const listContainer = document.getElementById('ca2-crm-list');
+    if (!listContainer) return;
+
+    const filterType = document.getElementById('crm-filter-service').value;
+    const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
+    const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
+    const sortOrder = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
+    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
+    const fromDateStr = document.getElementById('crm-filter-from-date')?.value;
+    const toDateStr = document.getElementById('crm-filter-to-date')?.value;
+
+    let filtered = [...currentCRMData];
+
+    if (filterType !== 'all') {
+        filtered = filtered.filter(c => matchesCRMServiceFilter(c.service_type, filterType));
+    }
+    if (filterYear !== 'all') {
+        filtered = filtered.filter(c => c.expired_date && new Date(c.expired_date).getFullYear().toString() === filterYear);
+    }
+    if (filterMonth !== 'all') {
+        filtered = filtered.filter(c => c.expired_date && (new Date(c.expired_date).getMonth() + 1).toString() === filterMonth);
+    }
+    if (fromDateStr || toDateStr) {
+        const fromD = fromDateStr ? new Date(fromDateStr) : null;
+        const toD = toDateStr ? new Date(toDateStr) : null;
+        if (fromD) fromD.setHours(0, 0, 0, 0);
+        if (toD) toD.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(c => {
+            if (!c.expired_date) return false;
+            const expD = new Date(c.expired_date);
+            if (fromD && expD < fromD) return false;
+            if (toD && expD > toD) return false;
+            return true;
+        });
+    }
+    if (search) {
+        filtered = filtered.filter(c =>
+            (c.mst && c.mst.toLowerCase().includes(search)) ||
+            (c.company_name && c.company_name.toLowerCase().includes(search))
+        );
+    }
+
+    let activeTotal = 0;
+    let expiredTotal = 0;
+    let activeCnt = 0;
+    let expiringCnt = 0;
+    let expiredCnt = 0;
+
+    currentCRMData.forEach(c => {
+        const days = calculateRemainingDays(c.expired_date);
+        if (days < 0) {
+            expiredTotal++;
+            expiredCnt++;
+        } else {
+            activeTotal++;
+            if (days <= 60) expiringCnt++;
+            else activeCnt++;
+        }
+    });
+
+    filtered = filtered.filter(c => currentCRMTab === 'active'
+        ? calculateRemainingDays(c.expired_date) >= 0
+        : calculateRemainingDays(c.expired_date) < 0
+    );
+
+    const totalEl = document.getElementById('ca2-crm-total');
+    const activeEl = document.getElementById('ca2-crm-active');
+    const expiringEl = document.getElementById('ca2-crm-expiring');
+    const expiredEl = document.getElementById('ca2-crm-expired');
+    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
+    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
+
+    if (totalEl) totalEl.innerText = currentCRMData.length;
+    if (activeEl) activeEl.innerText = activeCnt;
+    if (expiringEl) expiringEl.innerText = expiringCnt;
+    if (expiredEl) expiredEl.innerText = expiredCnt;
+    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
+    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
+
+    if (sortOrder === 'newest') {
+        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    } else if (sortOrder === 'soonest') {
+        filtered.sort((a, b) => new Date(a.expired_date || 0) - new Date(b.expired_date || 0));
+    } else if (sortOrder === 'latest') {
+        filtered.sort((a, b) => new Date(b.expired_date || 0) - new Date(a.expired_date || 0));
+    }
+
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon text-5xl mb-4">ðŸ“‹</div>
+                <div class="empty-title text-xl font-bold text-white mb-2">KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u</div>
+                <div class="empty-desc text-gray-500 text-sm mb-6">Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tÃ¬m kiáº¿m láº¡i.</div>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = filtered.map(c => {
+        const daysLeft = calculateRemainingDays(c.expired_date);
+        const isExpired = daysLeft < 0;
+        const statusLabel = isExpired ? 'ÄÃ£ háº¿t háº¡n' : `CÃ²n ${daysLeft} ngÃ y`;
+
+        return `
+            <div class="bg-glass p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] cursor-pointer mb-3 relative overflow-hidden group" onclick="editCRM('${c.id}')">
+                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 pointer-events-none"></div>' : ''}
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
+                <div class="flex-1 relative z-10">
+                    <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
+                    <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
+                        <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
+                        <span class="text-white/20">â€¢</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dá»‹ch vá»¥'}</span>
+                    </div>
+                </div>
+                <div class="text-center relative z-10 bg-black/30 px-5 py-2.5 rounded-xl border border-white/5">
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NgÃ y háº¿t háº¡n</div>
+                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
+                </div>
+                <div class="flex justify-center relative z-10 min-w-[130px]">
+                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
+                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
+                    </span>
+                </div>
+                <div class="flex justify-end gap-2 relative z-10">
+                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
+}
+
+function updateCRMPackages() {
+    const serviceVal = document.getElementById('ca2-crm-service').value;
+    const customerType = document.getElementById('ca2-crm-customer-type').value;
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    if (!pkgSelect) return;
+
+    const oldVal = pkgSelect.value;
+    pkgSelect.innerHTML = '';
+
+    const mapping = mapCRMServiceToPricing(serviceVal);
+    let itemsToDisplay = CRM_PRICE_LIST.filter(p => {
+        const groupMatch = p.service_name === mapping.group;
+        const categoryText = normalizeText(p.category);
+        const customerText = normalizeText(customerType);
+        const categoryMatch = categoryText.includes(customerText) || customerText.includes(categoryText);
+        const transactionMatch = mapping.transaction === 'all' || normalizeText(p.package_name).includes(normalizeText(mapping.transaction));
+        return groupMatch && categoryMatch && transactionMatch;
+    });
+
+    if (!itemsToDisplay.length) {
+        itemsToDisplay = CRM_PRICE_LIST.filter(p => p.service_name === mapping.group);
+    }
+
+    if (!itemsToDisplay.length) {
+        pkgSelect.innerHTML = '<option value="">ChÆ°a cÃ³ gÃ³i</option>';
+        return;
+    }
+
+    itemsToDisplay.forEach(p => {
+        const opt = document.createElement('option');
+        const durationLabel = inferDurationFromPackage(serviceVal, `${p.duration_months || ''} tháng ${p.package_name || ''}`);
+        opt.value = p.package_name;
+        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price)}đ`;
+        opt.dataset.price = p.price || 0;
+        opt.dataset.durationLabel = durationLabel;
+        pkgSelect.appendChild(opt);
+    });
+
+    if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) pkgSelect.value = oldVal;
+    else pkgSelect.selectedIndex = 0;
+
+    const cksTypeInput = document.getElementById('ca2-crm-cks-type');
+    if (cksTypeInput) {
+        if (normalizeText(serviceVal).includes('gia han dung thu')) cksTypeInput.value = 'gia_han_thu';
+        else if (normalizeText(serviceVal).includes('gia han')) cksTypeInput.value = 'gia_han';
+        else cksTypeInput.value = 'cap_moi';
+    }
+
+    updateCRMDurationOptions();
+    syncCRMDurationWithPackage(pkgSelect.value);
+    updateCRMBonusMonths();
+    calculatePrice();
+}
+
+function calculatePrice() {
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    const amountInput = document.getElementById('ca2-crm-amount');
+    if (!pkgSelect || !amountInput) return;
+
+    const selectedOption = pkgSelect.selectedOptions?.[0];
+    const optionPrice = parseInt(selectedOption?.dataset?.price || '0', 10);
+    if (optionPrice > 0) {
+        amountInput.value = new Intl.NumberFormat('vi-VN').format(optionPrice);
+        syncCRMDurationWithPackage(pkgSelect.value);
+        return;
+    }
+
+    const serviceVal = document.getElementById('ca2-crm-service').value;
+    const customerType = document.getElementById('ca2-crm-customer-type').value;
+    const pkg = pkgSelect.value;
+    const mapping = mapCRMServiceToPricing(serviceVal);
+
+    const match = CRM_PRICE_LIST.find(p => {
+        const groupMatch = p.service_name === mapping.group;
+        const categoryText = normalizeText(p.category);
+        const customerText = normalizeText(customerType);
+        const categoryMatch = categoryText.includes(customerText) || customerText.includes(categoryText);
+        const pkgMatch = normalizeText(p.package_name).includes(normalizeText(pkg)) || normalizeText(pkg).includes(normalizeText(p.package_name));
+        return groupMatch && categoryMatch && pkgMatch;
+    });
+
+    amountInput.value = new Intl.NumberFormat('vi-VN').format(match?.price || 0);
+    syncCRMDurationWithPackage(pkg);
+}
+
+async function createCampaignFromCA2CRM() {
+    const filterType = document.getElementById('crm-filter-service').value;
+    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
+
+    let recipients = currentCRMData.filter(c => c.email);
+    if (filterType !== 'all') recipients = recipients.filter(c => matchesCRMServiceFilter(c.service_type, filterType));
+    if (search) {
+        recipients = recipients.filter(c =>
+            (c.mst && c.mst.toLowerCase().includes(search)) ||
+            (c.company_name && c.company_name.toLowerCase().includes(search))
+        );
+    }
+
+    if (recipients.length === 0) {
+        alert('KhÃ´ng tÃ¬m tháº¥y khÃ¡ch hÃ ng nÃ o cÃ³ email há»£p lá»‡.');
+        return;
+    }
+
+    if (!confirm(`Táº¡o chiáº¿n dá»‹ch gá»­i mail cho ${recipients.length} khÃ¡ch hÃ ng?`)) return;
+
+    try {
+        const sendersRes = await authedFetch('/api/senders');
+        const senders = await sendersRes.json();
+        if (!senders || !senders.length) {
+            alert('Vui lÃ²ng káº¿t ná»‘i tÃ i khoáº£n Gmail trÆ°á»›c khi gá»­i mail.');
+            showPage('senders');
+            return;
+        }
+
+        const senderId = senders[0].id;
+        const campaignData = {
+            name: `CRM Bulk - ${formatDate(new Date())}`,
+            subject: 'Thông báo dịch vụ CA2',
+            senderAccountId: senderId,
+            recipients,
+            template: document.getElementById('input-template')?.innerHTML || '<p>Kính chào Quý khách,</p>'
+        };
+
+        const res = await authedFetch('/api/campaigns', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(campaignData)
+        });
+
+        if (res.ok) {
+            alert('ÄÃ£ táº¡o chiáº¿n dá»‹ch tá»« bá»™ lá»c CRM.');
+            showPage('campaigns');
+        } else {
+            const err = await res.json();
+            alert('Lá»—i: ' + (err.error || 'KhÃ´ng rÃµ'));
+        }
+    } catch (e) {
+        alert('Lá»—i káº¿t ná»‘i server');
+    }
+}
+
+function formatRelativeTime(dateValue) {
+    if (!dateValue) return 'Chưa có thời gian';
+    const diffMs = Date.now() - new Date(dateValue).getTime();
+    const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
+    if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    const diffDays = Math.round(diffHours / 24);
+    return `${diffDays} ngày trước`;
+}
+
+function getToneClass(tone) {
+    if (tone === 'success') return 'ios-tone-success';
+    if (tone === 'warning') return 'ios-tone-warning';
+    if (tone === 'danger') return 'ios-tone-danger';
+    return 'ios-tone-neutral';
+}
+
+function getCampaignStatusMeta(status) {
+    const normalized = normalizeText(status);
+    if (normalized.includes('hoan thanh')) return { tone: 'success', label: 'Hoàn thành' };
+    if (normalized.includes('dang gui') || normalized.includes('dang hang doi') || normalized.includes('dang xu ly')) return { tone: 'warning', label: 'Đang chạy' };
+    if (normalized.includes('loi') || normalized.includes('that bai')) return { tone: 'danger', label: 'Có lỗi' };
+    return { tone: 'neutral', label: status || 'Chờ xử lý' };
+}
+
+function getLogStatusMeta(status) {
+    const normalized = normalizeText(status);
+    if (normalized.includes('success') || normalized.includes('thanh cong') || normalized === 'sent') return { tone: 'success', label: 'Thành công' };
+    if (normalized.includes('pending') || normalized.includes('retry') || normalized.includes('queue')) return { tone: 'warning', label: 'Đang chờ' };
+    if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('that bai')) return { tone: 'danger', label: 'Thất bại' };
+    return { tone: 'neutral', label: status || 'Không rõ' };
+}
+
+function renderCampaignCard(campaign, compact = false) {
+    const total = Math.max(0, campaign.total_recipients || 0);
+    const sent = Math.max(0, campaign.sent_count || 0);
+    const failed = Math.max(0, campaign.error_count || 0);
+    const successPct = total > 0 ? Math.round((sent / total) * 100) : 0;
+    const statusMeta = getCampaignStatusMeta(campaign.status);
+    const isRunning = statusMeta.tone === 'warning';
+    const isDone = statusMeta.tone === 'success';
+
+    return `
+        <div class="ios-campaign-card ${compact ? 'ios-campaign-card-compact' : ''}">
+            <div class="ios-campaign-main" onclick="showPage('campaigns')">
+                <div class="ios-campaign-head">
+                    <div>
+                        <h4 class="ios-campaign-title">${campaign.name || 'Chiến dịch chưa đặt tên'}</h4>
+                        <p class="ios-campaign-meta">${formatDate(campaign.created_at)} • ${formatRelativeTime(campaign.created_at)}</p>
+                    </div>
+                    <span class="ios-status-pill ${getToneClass(statusMeta.tone)}">${statusMeta.label}</span>
+                </div>
+                <div class="ios-campaign-stats">
+                    <div><span>Người nhận</span><strong>${total}</strong></div>
+                    <div><span>Đã gửi</span><strong>${sent}</strong></div>
+                    <div><span>Lỗi</span><strong>${failed}</strong></div>
+                </div>
+                <div class="ios-progress-wrap">
+                    <div class="ios-progress-bar">
+                        <div class="ios-progress-fill ${getToneClass(statusMeta.tone)}" style="width:${successPct}%"></div>
+                    </div>
+                    <span class="ios-progress-label">${successPct}% hoàn tất</span>
+                </div>
+            </div>
+            <div class="ios-campaign-actions">
+                ${!isDone && !isRunning ? `<button onclick="event.stopPropagation(); startCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-primary" title="Bắt đầu gửi"><i class="fas fa-play"></i></button>` : ''}
+                <button onclick="event.stopPropagation(); deleteCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-danger" title="Xóa chiến dịch"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>
+    `;
+}
+
+async function loadRecentCampaigns() {
+    const list = document.getElementById('campaign-list');
+    const listAll = document.getElementById('campaign-list-all');
+    if (!list && !listAll) return;
+
+    try {
+        const res = await authedFetch('/api/campaigns');
+        const campaigns = await res.json();
+        currentCampaignData = Array.isArray(campaigns) ? campaigns : [];
+
+        const hasActive = currentCampaignData.some(c => {
+            const tone = getCampaignStatusMeta(c.status).tone;
+            return tone === 'warning';
+        });
+
+        if (hasActive) {
+            loadDashboardStats();
+            if (!window.campaignInterval) window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
+        } else if (window.campaignInterval) {
+            clearInterval(window.campaignInterval);
+            window.campaignInterval = null;
+            loadDashboardStats();
+        }
+
+        const emptyHtml = `
+            <div class="empty-state">
+                <div class="empty-icon">ðŸ“§</div>
+                <div class="empty-title">ChÆ°a cÃ³ chiáº¿n dá»‹ch nÃ o</div>
+                <div class="empty-desc">Táº¡o chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i email</div>
+            </div>
+        `;
+
+        if (list) list.innerHTML = currentCampaignData.slice(0, 5).map(c => renderCampaignCard(c, true)).join('') || emptyHtml;
+        if (listAll) listAll.innerHTML = currentCampaignData.map(c => renderCampaignCard(c, false)).join('') || emptyHtml;
+    } catch (e) {
+        console.error('Error loading campaigns:', e);
+    }
+}
+
+function renderSenderCard(sender) {
+    const isGmailAPI = sender.smtpHost === 'oauth2.google' || sender.smtpHost === 'oauth2.googleapis.com';
+    return `
+        <div class="ios-sender-card">
+            <div class="ios-sender-main">
+                <div class="ios-sender-avatar ${isGmailAPI ? 'ios-sender-avatar-google' : ''}">
+                    ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-6 h-6" alt="Google">' : '<i class="fas fa-envelope-open-text"></i>'}
+                </div>
+                <div class="ios-sender-copy">
+                    <h4>${sender.senderName || 'Tài khoản gửi mail'}</h4>
+                    <p>${sender.senderEmail || 'Chưa có email'}</p>
+                </div>
+            </div>
+            <div class="ios-sender-side">
+                <span class="ios-status-pill ${getToneClass(isGmailAPI ? 'success' : 'neutral')}">${isGmailAPI ? 'Gmail API' : 'SMTP thủ công'}</span>
+                <div class="ios-sender-actions">
+                    ${!isGmailAPI ? `<button onclick="openEditSenderModal('${sender.id}')" class="ios-icon-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>` : ''}
+                    <button onclick="deleteSender('${sender.id}')" class="ios-icon-btn ios-icon-btn-danger" title="Xóa"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadSenders() {
+    const list = document.getElementById('sender-list');
+    const countEl = document.getElementById('sender-count');
+    if (!list) return;
+
+    try {
+        const res = await authedFetch('/api/senders');
+        const senders = await res.json();
+        currentSenderData = Array.isArray(senders) ? senders : [];
+
+        if (countEl) countEl.innerText = `Tổng cộng: ${currentSenderData.length} tài khoản`;
+        list.innerHTML = currentSenderData.map(renderSenderCard).join('') || `
+            <div class="empty-state">
+                <div class="empty-icon">ðŸ”‘</div>
+                <div class="empty-title">ChÆ°a cÃ³ tÃ i khoáº£n nÃ o</div>
+                <div class="empty-desc">Káº¿t ná»‘i Gmail hoáº·c SMTP Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i mail</div>
+            </div>
+        `;
+
+        const select = document.getElementById('select-sender');
+        if (select) {
+            select.innerHTML = '<option value="">-- Chá»n tÃ i khoáº£n gá»­i --</option>' +
+                currentSenderData.map(s => `<option value="${s.id}">${s.senderName} (${s.senderEmail})</option>`).join('');
+        }
+    } catch (e) {
+        console.error('Load Senders Error:', e);
+    }
+}
+
+function renderEmailLogCard(log) {
+    const meta = getLogStatusMeta(log.status);
+    return `
+        <div class="ios-log-card">
+            <div class="ios-log-main">
+                <div class="ios-log-top">
+                    <div>
+                        <h4>${log.recipient_email || log.email || 'N/A'}</h4>
+                        <p>${log.campaign_name || log.campaigns?.name || 'Không rõ chiến dịch'}</p>
+                    </div>
+                    <span class="ios-status-pill ${getToneClass(meta.tone)}">${meta.label}</span>
+                </div>
+                <div class="ios-log-meta">
+                    <span><i class="far fa-clock"></i> ${new Date(log.created_at).toLocaleString('vi-VN')}</span>
+                    ${log.mst ? `<span><i class="fas fa-hashtag"></i> ${log.mst}</span>` : ''}
+                </div>
+                <div class="ios-log-note ${meta.tone === 'danger' ? 'ios-log-note-danger' : ''}">
+                    ${log.error_message || 'Gửi thành công, không có lỗi phát sinh.'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadEmailLogs() {
+    const list = document.getElementById('email-logs-list');
+    if (!list) return;
+
+    try {
+        const res = await authedFetch('/api/email-logs');
+        const logs = await res.json();
+        currentEmailLogs = Array.isArray(logs) ? logs : [];
+
+        if (!currentEmailLogs.length) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">ðŸ“ˆ</div>
+                    <div class="empty-title">ChÆ°a cÃ³ dá»¯ liá»‡u bÃ¡o cÃ¡o</div>
+                    <div class="empty-desc">Gá»­i chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ xem bÃ¡o cÃ¡o chi tiáº¿t</div>
+                </div>
+            `;
+            return;
+        }
+
+        const successCount = currentEmailLogs.filter(log => getLogStatusMeta(log.status).tone === 'success').length;
+        const failedCount = currentEmailLogs.filter(log => getLogStatusMeta(log.status).tone === 'danger').length;
+        const waitingCount = currentEmailLogs.length - successCount - failedCount;
+
+        list.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="ios-stat-card">
+                    <span class="ios-stat-label">Tổng log</span>
+                    <strong class="ios-stat-value">${currentEmailLogs.length}</strong>
+                </div>
+                <div class="ios-stat-card ios-stat-card-success">
+                    <span class="ios-stat-label">Gửi thành công</span>
+                    <strong class="ios-stat-value">${successCount}</strong>
+                </div>
+                <div class="ios-stat-card ios-stat-card-danger">
+                    <span class="ios-stat-label">Cần xử lý</span>
+                    <strong class="ios-stat-value">${failedCount + waitingCount}</strong>
+                </div>
+            </div>
+            <div class="space-y-3">
+                ${currentEmailLogs.map(renderEmailLogCard).join('')}
+            </div>
+        `;
+    } catch (e) {
+        console.error('Load Email Logs Error:', e);
+    }
+}
+
+function exportEmailLogs() {
+    if (!currentEmailLogs.length) return;
+    let csv = '\uFEFFTime,Email,MST,Campaign,Status,Error\n';
+
+    currentEmailLogs.forEach(log => {
+        const time = new Date(log.created_at).toLocaleString('vi-VN');
+        const email = log.recipient_email || log.email || '';
+        const mst = log.mst || '';
+        const campaign = log.campaign_name || log.campaigns?.name || '';
+        const status = getLogStatusMeta(log.status).label;
+        const error = (log.error_message || '').replace(/,/g, ';');
+        csv += `"${time}","${email}","${mst}","${campaign}","${status}","${error}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Email_Logs_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+}
+
+// --- Final stability overrides ---
+function mapCRMServiceToPricing(val) {
+    const normalized = normalizeText(val);
+    const transaction = getCRMTransactionForService(val);
+
+    if (normalized.includes('cks')) return { group: 'CKS', transaction };
+    if (normalized.includes('remote signing')) return { group: 'RS', transaction: 'all' };
+    if (normalized.includes('hoa don dien tu')) return { group: 'eINVOICE', transaction: transaction === 'all' ? 'cap moi' : transaction };
+    if (normalized.includes('bao hiem') || normalized.includes('ebh')) return { group: 'EBH', transaction: transaction === 'all' ? 'cap moi' : transaction };
+    if (normalized.includes('sign platform')) return { group: 'SP', transaction: 'all' };
+    return { group: val, transaction: 'all' };
+}
+
+async function loadCRMPrices() {
+    try {
+        if (!PricingManager.pricingData || PricingManager.pricingData.length === 0) {
+            await PricingManager.loadActivePricing();
+        }
+
+        CRM_PRICE_LIST = (PricingManager.pricingData || []).map(item => ({
+            id: item.id,
+            service_name: item.product_group,
+            package_name: item.package_name,
+            price: item.total_price,
+            category: item.subject_type || '',
+            is_active: item.is_active,
+            product_code: item.product_code,
+            duration_months: item.duration_months || extractDurationMonthsFromPackage(item.package_name),
+            transaction_type: item.transaction_type || ''
+        }));
+
+        refreshPricingUI();
+    } catch (err) {
+        console.error('[CRM] Error loading prices:', err);
+    }
+}
+
+function updateCRMPackages() {
+    const serviceVal = document.getElementById('ca2-crm-service').value;
+    const customerType = document.getElementById('ca2-crm-customer-type').value;
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    if (!pkgSelect) return;
+
+    const oldVal = pkgSelect.value;
+    const mapping = mapCRMServiceToPricing(serviceVal);
+    const desiredTransaction = normalizeText(mapping.transaction);
+
+    let itemsToDisplay = CRM_PRICE_LIST.filter(p => {
+        if (!p.is_active && p.is_active !== undefined) return false;
+        const sameGroup = p.service_name === mapping.group;
+        const subjectOk = crmCategoryMatches(p.category, customerType);
+        const itemTransaction = normalizeText(p.transaction_type || '');
+        const transactionOk = desiredTransaction === 'all' || !itemTransaction || itemTransaction.includes(desiredTransaction);
+        return sameGroup && subjectOk && transactionOk;
+    });
+
+    if (!itemsToDisplay.length && desiredTransaction !== 'all') {
+        itemsToDisplay = CRM_PRICE_LIST.filter(p =>
+            p.service_name === mapping.group && crmCategoryMatches(p.category, customerType)
+        );
+    }
+
+    itemsToDisplay.sort((a, b) => {
+        const monthDiff = (a.duration_months || 0) - (b.duration_months || 0);
+        if (monthDiff !== 0) return monthDiff;
+        return (a.price || 0) - (b.price || 0);
+    });
+
+    pkgSelect.innerHTML = '';
+    if (!itemsToDisplay.length) {
+        pkgSelect.innerHTML = '<option value="">Chưa có gói</option>';
+        document.getElementById('ca2-crm-amount').value = '0';
+        return;
+    }
+
+    itemsToDisplay.forEach(p => {
+        const opt = document.createElement('option');
+        const durationLabel = inferDurationFromPackage(serviceVal, `${p.duration_months || ''} thang ${p.package_name || ''}`);
+        opt.value = p.package_name;
+        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}đ`;
+        opt.dataset.price = String(p.price || 0);
+        opt.dataset.durationLabel = durationLabel;
+        opt.dataset.transactionType = p.transaction_type || '';
+        opt.dataset.category = p.category || '';
+        pkgSelect.appendChild(opt);
+    });
+
+    if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) pkgSelect.value = oldVal;
+    else pkgSelect.selectedIndex = 0;
+
+    const cksTypeInput = document.getElementById('ca2-crm-cks-type');
+    if (cksTypeInput) {
+        if (desiredTransaction === 'gia han' && normalizeText(serviceVal).includes('dung thu')) cksTypeInput.value = 'gia_han_thu';
+        else if (desiredTransaction === 'gia han') cksTypeInput.value = 'gia_han';
+        else cksTypeInput.value = 'cap_moi';
+    }
+
+    updateCRMDurationOptions();
+    syncCRMDurationWithPackage(pkgSelect.value);
+    updateCRMBonusMonths();
+    calculatePrice();
+}
+
+function calculatePrice() {
+    const pkgSelect = document.getElementById('ca2-crm-package');
+    const amountInput = document.getElementById('ca2-crm-amount');
+    if (!pkgSelect || !amountInput) return;
+
+    const selectedOption = pkgSelect.selectedOptions?.[0];
+    const optionPrice = parseInt(selectedOption?.dataset?.price || '0', 10);
+    amountInput.value = new Intl.NumberFormat('vi-VN').format(optionPrice || 0);
+    if (selectedOption) {
+        syncCRMDurationWithPackage(selectedOption.value);
+    }
+}
+
+function renderCA2CRM() {
+    const listContainer = document.getElementById('ca2-crm-list');
+    if (!listContainer) return;
+
+    const filterType = document.getElementById('crm-filter-service').value;
+    const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
+    const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
+    const sortOrder = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
+    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
+    const fromDateStr = document.getElementById('crm-filter-from-date')?.value;
+    const toDateStr = document.getElementById('crm-filter-to-date')?.value;
+
+    let filtered = [...currentCRMData];
+    if (filterType !== 'all') filtered = filtered.filter(c => matchesCRMServiceFilter(c.service_type, filterType));
+    if (filterYear !== 'all') filtered = filtered.filter(c => c.expired_date && new Date(c.expired_date).getFullYear().toString() === filterYear);
+    if (filterMonth !== 'all') filtered = filtered.filter(c => c.expired_date && String(new Date(c.expired_date).getMonth() + 1) === filterMonth);
+    if (fromDateStr || toDateStr) {
+        const fromD = fromDateStr ? new Date(fromDateStr) : null;
+        const toD = toDateStr ? new Date(toDateStr) : null;
+        if (fromD) fromD.setHours(0, 0, 0, 0);
+        if (toD) toD.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(c => {
+            if (!c.expired_date) return false;
+            const expD = new Date(c.expired_date);
+            if (fromD && expD < fromD) return false;
+            if (toD && expD > toD) return false;
+            return true;
+        });
+    }
+    if (search) {
+        filtered = filtered.filter(c =>
+            (c.mst && c.mst.toLowerCase().includes(search)) ||
+            (c.company_name && c.company_name.toLowerCase().includes(search))
+        );
+    }
+
+    let activeTotal = 0;
+    let expiredTotal = 0;
+    let activeCnt = 0;
+    let expiringCnt = 0;
+    let expiredCnt = 0;
+
+    currentCRMData.forEach(c => {
+        const days = calculateRemainingDays(c.expired_date);
+        if (days < 0) {
+            expiredTotal++;
+            expiredCnt++;
+        } else {
+            activeTotal++;
+            if (days <= 60) expiringCnt++;
+            else activeCnt++;
+        }
+    });
+
+    filtered = filtered.filter(c => currentCRMTab === 'active'
+        ? calculateRemainingDays(c.expired_date) >= 0
+        : calculateRemainingDays(c.expired_date) < 0
+    );
+
+    const totalEl = document.getElementById('ca2-crm-total');
+    const activeEl = document.getElementById('ca2-crm-active');
+    const expiringEl = document.getElementById('ca2-crm-expiring');
+    const expiredEl = document.getElementById('ca2-crm-expired');
+    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
+    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
+    if (totalEl) totalEl.innerText = currentCRMData.length;
+    if (activeEl) activeEl.innerText = activeCnt;
+    if (expiringEl) expiringEl.innerText = expiringCnt;
+    if (expiredEl) expiredEl.innerText = expiredCnt;
+    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
+    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
+
+    if (sortOrder === 'newest') filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (sortOrder === 'soonest') filtered.sort((a, b) => new Date(a.expired_date || 0) - new Date(b.expired_date || 0));
+    if (sortOrder === 'latest') filtered.sort((a, b) => new Date(b.expired_date || 0) - new Date(a.expired_date || 0));
+
+    if (!filtered.length) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon text-5xl mb-4">📋</div>
+                <div class="empty-title text-xl font-bold text-white mb-2">Không tìm thấy dữ liệu</div>
+                <div class="empty-desc text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc tìm kiếm lại.</div>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = filtered.map(c => {
+        const daysLeft = calculateRemainingDays(c.expired_date);
+        const isExpired = daysLeft < 0;
+        const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
+        return `
+            <div class="bg-glass p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] cursor-pointer mb-3 relative overflow-hidden group" onclick="editCRM('${c.id}')">
+                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 pointer-events-none"></div>' : ''}
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
+                <div class="flex-1 relative z-10">
+                    <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
+                    <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
+                        <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
+                        <span class="text-white/20">•</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
+                    </div>
+                </div>
+                <div class="text-center relative z-10 bg-black/30 px-5 py-2.5 rounded-xl border border-white/5">
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NGAY HET HAN</div>
+                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
+                </div>
+                <div class="flex justify-center relative z-10 min-w-[130px]">
+                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
+                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
+                    </span>
+                </div>
+                <div class="flex justify-end gap-2 relative z-10">
+                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
+}
+
+function refreshSettingsStaticText() {
+    const view = document.getElementById('view-settings');
+    if (!view) return;
+
+    const title = view.querySelector('h2');
+    if (title) title.innerHTML = 'Cài đặt <span class="text-orange-gradient">Hệ thống</span>';
+
+    const subtitle = view.querySelector('.text-gray-400.mt-2.font-medium.italic');
+    if (subtitle) subtitle.textContent = 'Tùy chỉnh cá nhân và quản trị ứng dụng';
+
+    const tabButtons = [
+        ['tab-settings-account', 'Tài khoản'],
+        ['tab-settings-interface', 'Giao diện'],
+        ['tab-settings-system', 'Hệ thống & Admin']
+    ];
+    tabButtons.forEach(([id, label]) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            const icon = btn.querySelector('i')?.outerHTML || '';
+            btn.innerHTML = `${icon} ${label}`;
+        }
+    });
+
+    view.querySelectorAll('.glass-card-premium').forEach(card => card.classList.add('p-6', 'rounded-[28px]'));
+    view.querySelectorAll('.bg-white\\/2').forEach(card => card.classList.add('bg-white/5'));
+    const interfaceToggle = view.querySelector('.bgColor-white\\/5');
+    if (interfaceToggle) {
+        interfaceToggle.classList.remove('bgColor-white/5');
+        interfaceToggle.classList.add('bg-white/5');
+    }
+}
+
+
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshSettingsStaticText();
+        initializeCRMDateRangePicker();
+    });
+} else {
+    refreshSettingsStaticText();
+    initializeCRMDateRangePicker();
+}
+
 // --- Settings Module Support Functions ---
 
 function switchSettingsTab(tabId) {
@@ -2595,6 +3623,7 @@ function switchSettingsTab(tabId) {
 
 async function loadSettingsPage() {
     if (!currentUser) return;
+    if (typeof refreshSettingsStaticText === 'function') refreshSettingsStaticText();
 
     // Populate Account Info
     const avatar = document.getElementById('settings-user-avatar');
@@ -2604,8 +3633,10 @@ async function loadSettingsPage() {
     const roleBadge = document.getElementById('settings-user-role-badge');
     const lastLogin = document.getElementById('settings-last-login');
 
-    if (avatar) avatar.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
-    if (name) name.innerText = currentUser.name || 'User Name';
+    const displayName = getDisplayName(currentUser);
+
+    if (avatar) avatar.innerText = displayName.charAt(0).toUpperCase();
+    if (name) name.innerText = displayName;
     if (email) email.innerText = currentUser.email;
     if (id) id.innerText = currentUser.id;
     if (lastLogin) lastLogin.innerText = new Date(currentUser.last_sign_in_at).toLocaleString('vi-VN');

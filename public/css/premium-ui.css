@@ -1479,6 +1479,298 @@ header::after {
     animation: fadeIn 0.5s ease;
 }
 .empty-icon { font-size: 48px; opacity: .2; filter: grayscale(1); }
+
+/* ==========================================================
+   iOS Upgrade Blocks
+   ========================================================== */
+.ios-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--ds-text-secondary);
+}
+
+.ios-tone-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.22);
+}
+
+.ios-tone-warning {
+    background: rgba(249, 115, 22, 0.12);
+    color: #fb923c;
+    border-color: rgba(251, 146, 60, 0.22);
+}
+
+.ios-tone-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.22);
+}
+
+.ios-tone-neutral {
+    background: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+    border-color: rgba(203, 213, 225, 0.12);
+}
+
+.ios-campaign-card,
+.ios-sender-card,
+.ios-log-card,
+.ios-stat-card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.62));
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 28px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(2, 6, 23, 0.28);
+}
+
+.ios-campaign-card,
+.ios-sender-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 24px;
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+.ios-campaign-card:hover,
+.ios-sender-card:hover,
+.ios-log-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.14);
+    box-shadow: 0 28px 60px rgba(2, 6, 23, 0.34);
+}
+
+.ios-campaign-main {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.ios-campaign-head,
+.ios-log-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.ios-campaign-title,
+.ios-sender-copy h4,
+.ios-log-top h4 {
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+}
+
+.ios-campaign-meta,
+.ios-sender-copy p,
+.ios-log-top p,
+.ios-log-meta {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 4px 0 0;
+}
+
+.ios-campaign-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.ios-campaign-stats div,
+.ios-stat-card {
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.ios-campaign-stats span,
+.ios-stat-label {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+}
+
+.ios-campaign-stats strong,
+.ios-stat-value {
+    color: #fff;
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.ios-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ios-progress-bar {
+    flex: 1;
+    height: 11px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+.ios-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(148,163,184,0.7), rgba(226,232,240,0.95));
+}
+
+.ios-progress-fill.ios-tone-success { background: linear-gradient(90deg, #10b981, #34d399); }
+.ios-progress-fill.ios-tone-warning { background: linear-gradient(90deg, #f97316, #fb923c); }
+.ios-progress-fill.ios-tone-danger { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+.ios-progress-label {
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.ios-campaign-actions,
+.ios-sender-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ios-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ios-icon-btn-primary {
+    background: rgba(249, 115, 22, 0.12);
+    color: #fb923c;
+    border-color: rgba(251, 146, 60, 0.22);
+}
+
+.ios-icon-btn-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.22);
+}
+
+.ios-sender-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ios-sender-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.05));
+    color: #fb923c;
+    font-size: 20px;
+}
+
+.ios-sender-avatar-google {
+    background: rgba(255,255,255,0.96);
+}
+
+.ios-sender-side {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ios-log-card {
+    padding: 20px 22px;
+}
+
+.ios-log-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.ios-log-note {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.14);
+    color: #d1fae5;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.ios-log-note-danger {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.14);
+    color: #fecaca;
+}
+
+.ios-stat-card-success {
+    background: linear-gradient(180deg, rgba(6, 95, 70, 0.45), rgba(15, 23, 42, 0.72));
+}
+
+.ios-stat-card-danger {
+    background: linear-gradient(180deg, rgba(127, 29, 29, 0.45), rgba(15, 23, 42, 0.72));
+}
+
+@media (max-width: 900px) {
+    .ios-campaign-card,
+    .ios-sender-card,
+    .ios-campaign-head,
+    .ios-log-top,
+    .ios-sender-side,
+    .ios-progress-wrap {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ios-campaign-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .ios-progress-wrap {
+        width: 100%;
+    }
+
+    .ios-campaign-actions,
+    .ios-sender-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
 .empty-title { font-size: 18px; font-weight: 800; color: rgba(255,255,255,.4); }
 .empty-desc  { font-size: 14px; color: rgba(255,255,255,.2); max-width: 280px; }
 
