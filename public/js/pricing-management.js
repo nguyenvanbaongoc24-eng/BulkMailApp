@@ -59,34 +59,58 @@ class PricingManager {
             emptyState.classList.add('hidden');
             filtered.forEach((item, idx) => {
                 const card = document.createElement('div');
-                card.className = 'list-item group';
+                card.className = 'ios-stat-card flex flex-col p-6 relative overflow-hidden group hover:border-orange-500/30 transition-all duration-300';
                 card.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-orange-gradient/10 text-orange-500 flex items-center justify-center text-xs font-black">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full group-hover:bg-orange-500/10 transition-all"></div>
+                    
+                    <div class="flex items-center justify-between mb-4 relative z-10">
+                        <div class="px-3 py-1 rounded-lg bg-orange-500/10 text-orange-500 text-[10px] font-black tracking-widest uppercase border border-orange-500/20">
                             ${item.product_code || '??'}
                         </div>
-                        <div>
-                            <div class="list-item-title">${item.package_name}</div>
-                            <div class="list-item-meta">${item.product_group} • ${item.transaction_type}</div>
-                        </div>
-                    </div>
-                    <div class="flex-1 px-4">
-                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Ghi chú</p>
-                        <p class="text-[11px] text-gray-400 italic line-clamp-1">${item.notes || '---'}</p>
-                    </div>
-                    <div class="flex flex-col items-end px-4">
-                        <div class="text-emerald-400 font-black text-sm">${this.formatVND(item.total_price)}đ</div>
-                        <div class="text-[9px] text-gray-600 font-bold mt-1">Tổng cộng</div>
-                    </div>
-                    <div class="flex justify-center px-4">
                         <span class="badge-premium ${item.is_active ? 'badge-done' : 'badge-pending'}">
                             <span class="badge-dot"></span>
                             ${item.is_active ? 'Đang dùng' : 'Ẩn'}
                         </span>
                     </div>
-                    <div class="flex justify-end gap-2">
-                        <button onclick="PricingManager.showEditModal(${this.draftItems.indexOf(item)})" class="btn-action-premium text-blue-400 hover:text-white"><i class="fas fa-edit"></i></button>
-                        <button onclick="PricingManager.deleteItem(${this.draftItems.indexOf(item)})" class="btn-delete-ios"><i class="fas fa-trash-alt"></i></button>
+
+                    <div class="mb-4 relative z-10">
+                        <h3 class="text-xl font-black text-white tracking-tight leading-tight">${item.package_name}</h3>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                            ${item.product_group} <span class="mx-1 opacity-30">|</span> ${item.transaction_type}
+                        </p>
+                    </div>
+
+                    <div class="flex-1 mb-6 relative z-10">
+                        <div class="bg-black/30 rounded-2xl p-4 border border-white/5 h-full">
+                             <p class="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i class="fas fa-users text-[8px]"></i> Đối tượng
+                             </p>
+                             <p class="text-xs text-gray-300 font-bold line-clamp-2 leading-relaxed">${item.subject_type || 'Tất cả'}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 mb-6 relative z-10">
+                        <div class="flex justify-between items-end">
+                            <span class="text-[9px] text-gray-600 font-black uppercase tracking-widest">Phí dịch vụ</span>
+                            <span class="text-xs text-white font-bold">${this.formatVND(item.service_fee)}đ</span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-[9px] text-gray-600 font-black uppercase tracking-widest">Token & VAT</span>
+                            <span class="text-xs text-white/50 font-medium">${this.formatVND(item.token_fee + item.vat_fee)}đ</span>
+                        </div>
+                        <div class="pt-3 border-t border-white/5 flex justify-between items-baseline">
+                            <span class="text-[10px] text-orange-500 font-black uppercase tracking-widest">Thành tiền</span>
+                            <span class="text-2xl font-black text-emerald-400 tracking-tighter">${this.formatVND(item.total_price)}đ</span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 relative z-10">
+                        <button onclick="PricingManager.showEditModal(${this.draftItems.indexOf(item)})" class="flex-1 bg-white/5 hover:bg-blue-600/20 hover:text-blue-400 py-3 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-white/5">
+                            <i class="fas fa-edit"></i> CHỈNH SỬA
+                        </button>
+                        <button onclick="PricingManager.deleteItem(${this.draftItems.indexOf(item)})" class="w-12 bg-white/5 hover:bg-red-600/20 hover:text-red-500 py-3 rounded-xl transition-all flex items-center justify-center border border-white/5">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 `;
                 tbody.appendChild(card);

@@ -731,16 +731,11 @@ function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     
-    // Toggle width for desktop and translation for mobile
-    sidebar.classList.toggle('w-64');
-    sidebar.classList.toggle('w-0');
-    sidebar.classList.toggle('border-r'); // Toggle border visibility
+    sidebar.classList.toggle('collapsed');
     
-    // RESCUE: Toggle pointer-events and visibility
-    if (sidebar.classList.contains('w-0')) {
-        sidebar.classList.add('collapsed-rescue');
-    } else {
-        sidebar.classList.remove('collapsed-rescue');
+    // For mobile
+    if (window.innerWidth < 1024) {
+        sidebar.classList.toggle('-translate-x-full');
     }
 }
 
