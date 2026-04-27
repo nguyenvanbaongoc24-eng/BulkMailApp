@@ -337,38 +337,18 @@
             box-shadow: none !important;
         }
 
-        /* 
-           RESCUE LAYOUT FIX 
-           Forces everything to the top and stretches to full width.
-        */
-        #main-content, .content, .main, .app {
+        /* Targeted Top Alignment Fix */
+        #main-content {
             display: flex !important;
             flex-direction: column !important;
             justify-content: flex-start !important;
             align-items: stretch !important;
-            min-height: 0 !important;
-            height: 100% !important;
-            padding-top: 0 !important;
-            margin-top: 0 !important;
+            padding: 0 !important;
         }
 
-        .main-container, [id^="view-"] {
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: flex-start !important;
-            align-items: stretch !important;
-            margin: 0 !important;
+        .main-container {
+            margin-top: 0 !important;
             padding-top: 20px !important;
-            width: 100% !important;
-            max-width: none !important;
-            height: auto !important;
-            min-height: 0 !important;
-        }
-
-        .tabs-ios-container {
-            margin-top: 0 !important;
-            align-self: stretch !important;
-            width: 100% !important;
         }
     </style>
 </head>

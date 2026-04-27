@@ -2650,55 +2650,21 @@ button:hover, .item:hover {
    ========================================================== */
 
 /* 
-   FORCE TOP ALIGNMENT - GLOBAL OVERRIDE 
-   This section is designed to eliminate any vertical centering issues.
+   CORE LAYOUT STANDARDIZATION
+   Ensures top-alignment and eliminates centering.
 */
 
-/* 1. Main App Wrapper */
-.app {
-    display: flex !important;
-    height: 100vh !important;
-    overflow: hidden !important;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
-}
-
-/* 2. Main Content Wrapper (Right Side) */
-.main {
-    flex: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
-    min-height: 0 !important;
-    height: 100% !important;
-}
-
-/* 3. Scrollable Content Area */
-.content {
-    flex: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
-    padding: 0 !important; /* Resetting padding to allow sub-containers to control it */
-    margin: 0 !important;
-    overflow-y: auto !important;
-    min-height: 0 !important;
-}
-
-/* 4. Page View Container */
 .main-container {
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
+    display: flex;
+    flex-direction: column;
     gap: 20px;
     align-items: stretch !important;
     justify-content: flex-start !important;
-    min-height: 0 !important; /* Force to top */
-    padding: 16px 24px !important; /* Standardized top-aligned padding */
+    min-height: auto !important;
+    padding: 16px 24px !important;
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
@@ -2710,6 +2676,14 @@ button:hover, .item:hover {
 .tabs {
     margin-top: 12px !important;
     align-self: flex-start !important;
+}
+
+/* Main Content Area - Top Aligned */
+.content {
+    display: block !important; /* Back to block to avoid flex items issues */
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
 }
 
 /* Tabs - Fixed at top, immediately under header */
@@ -2769,7 +2743,7 @@ button:hover, .item:hover {
     display: none !important;
 }
 
-/* Specific reset for any centering on views */
+/* Nuclear reset for any centering on views */
 [id^="view-"] {
     justify-content: flex-start !important;
     align-items: stretch !important;
