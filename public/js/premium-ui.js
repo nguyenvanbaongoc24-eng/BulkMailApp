@@ -237,9 +237,134 @@
         }
     }
 
+    function showAuthMessage(message, type = 'error') {
+        const errorDiv = document.getElementById('auth-error');
+        if (!errorDiv) return;
+
+        errorDiv.textContent = message;
+        errorDiv.classList.remove(
+            'hidden',
+            'text-red-500',
+            'bg-red-500/10',
+            'border-red-500/20',
+            'text-green-500',
+            'bg-green-500/10',
+            'border-green-500/20'
+        );
+
+        if (type === 'success') {
+            errorDiv.classList.add('text-green-500', 'bg-green-500/10', 'border-green-500/20');
+        } else {
+            errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
+        }
+    }
+
+    window.handleAuthSubmit = async function handleAuthSubmitPatched() {
+        const emailInput = document.getElementById('auth-email');
+        const passwordInput = document.getElementById('auth-password');
+        const nameInput = document.getElementById('auth-name');
+        const registerFields = document.getElementById('register-fields');
+        const submitBtn = document.getElementById('auth-submit-btn');
+        const errorDiv = document.getElementById('auth-error');
+        const email = String(emailInput?.value || '').trim();
+        const password = passwordInput?.value || '';
+        const name = nameInput?.value || '';
+        const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
+        const originalBtnText = submitBtn?.innerText || 'Đăng nhập ngay';
+
+        if (errorDiv) {
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+        }
+
+        if (!email) {
+            showAuthMessage('Vui lòng nhập email.');
+            emailInput?.focus();
+            return;
+        }
+
+        if (!password) {
+            showAuthMessage('Vui lòng nhập mật khẩu.');
+            passwordInput?.focus();
+            return;
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'ĐANG XỬ LÝ...';
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        }
+
+        let timeoutId = null;
+
+        try {
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), 15000);
+            const url = isRegister ? '/api/register' : '/api/login';
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, name }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            const contentType = res.headers.get('content-type') || '';
+            let data = null;
+
+            if (contentType.includes('application/json')) {
+                data = await res.json();
+            } else {
+                const rawText = await res.text();
+                throw new Error(rawText || 'Phản hồi từ server không hợp lệ.');
+            }
+
+            if (data.message) {
+                showAuthMessage(data.message, 'success');
+                return;
+            }
+
+            if (!res.ok) {
+                showAuthMessage(data.error || 'Không thể đăng nhập.');
+                return;
+            }
+
+            if (!data.token) {
+                showAuthMessage('Đăng nhập thất bại: server không trả về phiên đăng nhập.');
+                return;
+            }
+
+            localStorage.setItem('sb-token', data.token);
+            if (typeof window.saveCurrentSession === 'function') {
+                window.saveCurrentSession(data.token, data.user);
+            }
+            if (typeof window.checkAuth === 'function') {
+                await window.checkAuth();
+            } else {
+                window.location.reload();
+            }
+        } catch (err) {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (err.name === 'AbortError') {
+                showAuthMessage('Server phản hồi quá chậm. Vui lòng thử lại.');
+            } else {
+                showAuthMessage(err.message || 'Lỗi kết nối server.');
+            }
+            console.error('[AUTH] Submit failed:', err);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalBtnText;
+                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const authCard = document.querySelector('#auth-screen .auth-card');
         const authActions = authCard?.querySelector('.text-center');
+        const submitBtn = document.getElementById('auth-submit-btn');
         const passwordInput = document.getElementById('auth-password');
         const emailInput = document.getElementById('auth-email');
         const nameInput = document.getElementById('auth-name');
@@ -261,6 +386,13 @@
 
             const resetBtn = document.getElementById('auth-reset-btn');
             resetBtn?.addEventListener('click', requestPasswordReset);
+        }
+
+        if (submitBtn) {
+            submitBtn.onclick = (e) => {
+                e.preventDefault();
+                window.handleAuthSubmit();
+            };
         }
     });
 
