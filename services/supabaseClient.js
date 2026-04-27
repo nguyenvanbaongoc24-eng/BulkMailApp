@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -6,6 +7,9 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Admin Client (Service Role) - Bypasses RLS
+if (!serviceKey) {
+    console.warn('[SUPABASE] ⚠️  SUPABASE_SERVICE_ROLE_KEY is missing! adminClient will use anonKey and be subject to RLS policies.');
+}
 const adminClient = createClient(supabaseUrl, serviceKey || supabaseKey);
 
 /**

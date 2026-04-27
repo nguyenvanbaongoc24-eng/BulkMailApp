@@ -318,7 +318,14 @@ async function handleAuthSubmit() {
             body: JSON.stringify({ email, password, name })
         });
         
-        const data = await res.json();
+        let data = null;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const rawText = await res.text();
+            throw new Error(rawText || 'Phản hồi từ server không hợp lệ.');
+        }
         
         // Handle custom success messages explicitly
         if (data.message) {
@@ -352,6 +359,122 @@ function handleLogout() {
     currentUser = null;
     showAuthScreen(true);
 }
+
+window.handleAuthSubmit = async function handleAuthSubmitPatched() {
+    const emailInput = document.getElementById('auth-email');
+    const passwordInput = document.getElementById('auth-password');
+    const nameInput = document.getElementById('auth-name');
+    const registerFields = document.getElementById('register-fields');
+    const submitBtn = document.getElementById('auth-submit-btn');
+    const errorDiv = document.getElementById('auth-error');
+    const email = emailInput?.value.trim() || '';
+    const password = passwordInput?.value || '';
+    const name = nameInput?.value || '';
+    const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
+    const originalBtnText = submitBtn?.innerText || 'Đăng nhập ngay';
+
+    const showAuthMessage = (message, type = 'error') => {
+        if (!errorDiv) return;
+        errorDiv.innerText = message;
+        errorDiv.classList.remove(
+            'hidden',
+            'text-red-500',
+            'bg-red-500/10',
+            'border-red-500/20',
+            'text-green-500',
+            'bg-green-500/10',
+            'border-green-500/20'
+        );
+        if (type === 'success') {
+            errorDiv.classList.add('text-green-500', 'bg-green-500/10', 'border-green-500/20');
+        } else {
+            errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
+        }
+    };
+
+    if (errorDiv) {
+        errorDiv.classList.add('hidden');
+        errorDiv.innerText = '';
+    }
+
+    if (!email) {
+        showAuthMessage('Vui lòng nhập email.');
+        emailInput?.focus();
+        return;
+    }
+
+    if (!password) {
+        showAuthMessage('Vui lòng nhập mật khẩu.');
+        passwordInput?.focus();
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'ĐANG XỬ LÝ...';
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+    }
+
+    let timeoutId = null;
+
+    try {
+        const url = isRegister ? '/api/register' : '/api/login';
+        const controller = new AbortController();
+        timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, name }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const contentType = res.headers.get('content-type') || '';
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const rawText = await res.text();
+            throw new Error(rawText || 'Phản hồi từ server không hợp lệ.');
+        }
+
+        if (data.message) {
+            showAuthMessage(data.message, 'success');
+            return;
+        }
+
+        if (!res.ok) {
+            showAuthMessage(data.error || 'Không thể đăng nhập.');
+            return;
+        }
+
+        if (!data.token) {
+            showAuthMessage('Đăng nhập thất bại: server không trả về phiên đăng nhập.');
+            return;
+        }
+
+        localStorage.setItem('sb-token', data.token);
+        saveCurrentSession(data.token, data.user);
+        await checkAuth();
+    } catch (e) {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (e.name === 'AbortError') {
+            showAuthMessage('Server phản hồi quá chậm. Vui lòng thử lại.');
+        } else {
+            showAuthMessage(e.message || 'Lỗi kết nối server.');
+        }
+        console.error('[AUTH] Submit failed:', e);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalBtnText;
+            submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+        }
+    }
+};
 
 function openAccountSwitcher() {
     console.log('--- Account Switcher Triggered ---');
@@ -834,18 +957,6 @@ function initializeCRMDateRangePicker() {
         };
     }
 }
-
-function renderCA2CRM() {
-    const listContainer = document.getElementById('ca2-crm-list');
-    if (!listContainer) return;
-    
-    const filterType = document.getElementById('crm-filter-service').value;
-    const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
-    const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
-    const sortOrder = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
-    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
-    const fromDateStr = document.getElementById('crm-filter-from-date')?.value;
-    const toDateStr = document.getElementById('crm-filter-to-date')?.value;
 
 function initializeCRMDateRangePicker() {
     const rangeInput = document.getElementById('crm-date-range-picker');
@@ -3430,22 +3541,16 @@ if (document.readyState === 'loading') {
 // --- Settings Module Support Functions ---
 
 function switchSettingsTab(tabId) {
-    // Hide all tabs
-    document.querySelectorAll('[id^="settings-tab-"]').forEach(el => el.classList.add('hidden'));
-    // Show target tab
-    const target = document.getElementById(`settings-tab-${tabId}`);
-    if (target) target.classList.remove('hidden');
-
-    // Update buttons
-    document.querySelectorAll('[id^="tab-settings-"]').forEach(btn => {
-        btn.classList.remove('bg-orange-gradient', 'text-white');
-        btn.classList.add('text-gray-500');
+    document.querySelectorAll('[id^="settings-tab-"]').forEach(el => {
+        const isActive = el.id === `settings-tab-${tabId}`;
+        el.classList.toggle('hidden', !isActive);
     });
-    const activeBtn = document.getElementById(`tab-settings-${tabId}`);
-    if (activeBtn) {
-        activeBtn.classList.add('bg-orange-gradient', 'text-white');
-        activeBtn.classList.remove('text-gray-500');
-    }
+
+    document.querySelectorAll('[id^="tab-settings-"]').forEach(btn => {
+        const isActive = btn.id === `tab-settings-${tabId}`;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
 }
 
 async function loadSettingsPage() {
@@ -3470,8 +3575,8 @@ async function loadSettingsPage() {
     
     if (roleBadge) {
         roleBadge.innerText = `Vai trò: ${currentUser.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}`;
-        roleBadge.className = `inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mt-2 ${
-            currentUser.role === 'admin' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20' : 'bg-blue-500/20 text-blue-400 border border-blue-500/20'
+        roleBadge.className = `settings-role-badge ${
+            currentUser.role === 'admin' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
         }`;
     }
 
@@ -3680,16 +3785,9 @@ async function resetPricingToDefault() {
 function updateThemeSelectorUI(theme) {
     const darkBtn = document.getElementById('theme-btn-dark');
     const lightBtn = document.getElementById('theme-btn-light');
-    
-    if (theme === 'dark') {
-        darkBtn?.classList.add('bg-orange-gradient', 'text-white');
-        lightBtn?.classList.remove('bg-white/10', 'text-white');
-        lightBtn?.classList.add('text-gray-500');
-    } else {
-        lightBtn?.classList.add('bg-orange-gradient', 'text-white');
-        darkBtn?.classList.remove('bg-white/10', 'text-white');
-        darkBtn?.classList.add('text-gray-500');
-    }
+
+    darkBtn?.classList.toggle('active', theme === 'dark');
+    lightBtn?.classList.toggle('active', theme === 'light');
 }
 
 async function applyTheme(theme, saveToDB = true) {

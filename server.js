@@ -278,29 +278,55 @@ const authenticate = async (req, res, next) => {
 
         // --- FETCH ROLE & SETTINGS ---
         // 1. Ensure user exists in public.users (Sync)
-        let { data: profile, error: profileErr } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-        if (!profile && !profileErr) {
-            // First time user login - auto create entry as 'staff'
-            // (Unless it's the very first user in the whole system, but we'll let user handle admin manually via SQL as agreed)
-            const { data: newProfile, error: createErr } = await supabase
+        let profile = null;
+        try {
+            const { data, error: profileErr } = await supabase
                 .from('users')
-                .insert({ id: user.id, email: user.email, role: 'staff' })
                 .select('role')
+                .eq('id', user.id)
                 .single();
-            if (!createErr) profile = newProfile;
+
+            if (profileErr) {
+                console.warn(`[AUTH] Profile fetch error for ${user.email}:`, profileErr.message);
+            } else {
+                profile = data;
+            }
+        } catch (err) {
+            console.error(`[AUTH] Profile query exception:`, err.message);
+        }
+
+        if (!profile) {
+            // Check if we can/should create the profile
+            // If recursion error happened, insertion might also fail if using adminClient without serviceKey
+            try {
+                const { data: newProfile, error: createErr } = await supabase
+                    .from('users')
+                    .insert({ id: user.id, email: user.email, role: 'staff' })
+                    .select('role')
+                    .single();
+                if (!createErr) profile = newProfile;
+                else console.warn(`[AUTH] Could not auto-create profile:`, createErr.message);
+            } catch (err) {
+                console.error(`[AUTH] Profile creation exception:`, err.message);
+            }
         }
 
         // 2. Fetch user settings
-        const { data: settings } = await supabase
-            .from('user_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
+        let settings = null;
+        try {
+            const { data, error: settingsErr } = await supabase
+                .from('user_settings')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+            if (settingsErr) {
+                console.warn(`[AUTH] Settings fetch error:`, settingsErr.message);
+            } else {
+                settings = data;
+            }
+        } catch (err) {
+            console.error(`[AUTH] Settings query exception:`, err.message);
+        }
 
         req.user = { 
             ...user, 
@@ -311,7 +337,7 @@ const authenticate = async (req, res, next) => {
         next();
     } catch (e) {
         console.error('[AUTH] Critical error during authentication:', e.message);
-        return res.status(500).json({ error: 'Internal Auth Error' });
+        return res.status(500).json({ error: 'Internal Auth Error: ' + e.message });
     }
 };
 
