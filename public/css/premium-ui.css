@@ -2654,13 +2654,14 @@ button:hover, .item:hover {
     max-width: 1300px;
     margin: 0 auto !important;
     width: 100%;
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 20px;
-    align-items: stretch;
+    align-items: stretch !important;
     justify-content: flex-start !important; /* Forces top alignment */
-    min-height: auto;
-    padding-top: 0 !important; /* Remove any top padding that causes gap */
+    min-height: auto !important;
+    padding-top: 0 !important; 
+    margin-top: 0 !important;
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
@@ -2698,10 +2699,10 @@ button:hover, .item:hover {
 
 /* Override existing tabs */
 .tabs-ios-container {
-    align-self: stretch !important; /* Stretch to full width */
+    align-self: stretch !important;
     display: flex !important;
     width: 100% !important;
-    margin-top: 0 !important; /* Pull up to top */
+    margin-top: 0 !important;
     margin-bottom: 20px !important;
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.04) !important;
@@ -2711,7 +2712,7 @@ button:hover, .item:hover {
 }
 
 .tab-ios {
-    flex: 1 !important; /* Each tab takes equal space */
+    flex: 1 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2719,6 +2720,7 @@ button:hover, .item:hover {
     padding: 12px !important;
     border-radius: 12px !important;
     transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease !important;
+    white-space: nowrap;
 }
 
 .tab-ios i {
@@ -2745,5 +2747,14 @@ button:hover, .item:hover {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Ensure global top alignment */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    padding-top: 0 !important;
 }
 
