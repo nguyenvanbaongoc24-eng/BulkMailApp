@@ -2644,3 +2644,76 @@ button:hover, .item:hover {
     box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 
                 inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
 }
+
+/* ==========================================================
+   14. IOS PREMIUM LAYOUT & GLASSMORPHISM (SETTINGS & SEO)
+   ========================================================== */
+
+/* Page Container - Centered, Top-aligned, Max-width */
+.page-ios-container {
+    max-width: 1300px;
+    margin: 16px auto 0 auto;
+    padding: 24px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: stretch;
+    justify-content: flex-start;
+    animation: fadeSlideUp 0.3s ease-out forwards;
+}
+
+/* Base Glass Card */
+.ios-glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ios-glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+/* Override existing tabs */
+.tabs-ios-container {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+    border-radius: 16px !important;
+    padding: 6px !important;
+}
+
+.tab-ios {
+    border-radius: 12px !important;
+    transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease !important;
+}
+
+.tab-ios:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.tab-ios.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05), inset 0 1px 1px rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+}
+
+/* Fade + Slide Up Animation */
+@keyframes fadeSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+

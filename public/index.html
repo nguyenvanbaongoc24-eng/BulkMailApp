@@ -1015,7 +1015,7 @@
 
             <!-- SEO UI Injection -->
             <!-- SEO News View -->
-            <div id="view-seo-news" class="hidden space-y-4 page pb-4">
+            <div id="view-seo-news" class="hidden page-ios-container">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-3xl font-black text-white tracking-tight">Tin tức Thuế <span class="text-orange-gradient">Tự động</span></h2>
@@ -1046,9 +1046,9 @@
             </div>
 
             <!-- SEO Article View -->
-            <div id="view-seo-article" class="hidden space-y-4 page pb-4">
+            <div id="view-seo-article" class="hidden page-ios-container">
                 <h2 class="text-3xl font-black text-white tracking-tight">Tạo <span class="text-orange-gradient">Bài Viết Chuẩn SEO</span></h2>
-                <div class="bg-glass p-4 rounded-[40px] border border-white/5 max-w-4xl shadow-2xl shadow-orange-900/10">
+                <div class="ios-glass-card max-w-4xl">
                     <div class="space-y-4">
                         <div>
                             <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Từ khóa chính</label>
@@ -1083,11 +1083,11 @@
             </div>
 
             <!-- SEO Image View -->
-            <div id="view-seo-image" class="hidden space-y-4 page pb-4">
+            <div id="view-seo-image" class="hidden page-ios-container">
                 <h2 class="text-3xl font-black text-white tracking-tight">Sinh Hình Ảnh <span class="text-orange-gradient">Bằng AI</span></h2>
-                <div class="grid lg:grid-cols-2 gap-4">
+                <div class="grid lg:grid-cols-2 gap-5">
                     <!-- Input -->
-                    <div class="bg-glass p-4 rounded-[40px] border border-white/5 shadow-2xl relative overflow-hidden h-fit">
+                    <div class="ios-glass-card relative overflow-hidden h-fit">
                         <div class="absolute -top-4 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full"></div>
                         <div class="space-y-4 relative z-10">
                             <div>
@@ -1119,7 +1119,7 @@
                     </div>
                     
                     <!-- Output -->
-                    <div class="bg-white/5 p-4 rounded-[40px] border border-white/10 flex flex-col items-center justify-center min-h-[400px]">
+                    <div class="ios-glass-card flex flex-col items-center justify-center min-h-[400px]">
                         <div id="seo-image-placeholder" class="text-center text-gray-500">
                             <i class="fas fa-image text-5xl mb-4 opacity-50"></i>
                             <p class="font-bold text-sm">Ảnh của bạn sẽ xuất hiện ở đây.</p>
@@ -1141,13 +1141,13 @@
             </div>
 
             <!-- SEO My Posts View -->
-            <div id="view-seo-posts" class="hidden space-y-4 page pb-4">
+            <div id="view-seo-posts" class="hidden page-ios-container">
                 <div class="flex items-center justify-between">
                     <h2 class="text-3xl font-black text-white tracking-tight">Kho Content <span class="text-orange-gradient">Đã Tạo</span></h2>
                 </div>
                 
                 <!-- Bài viết -->
-                <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                <div class="ios-glass-card !p-0 overflow-hidden">
                     <div class="px-10 py-8 border-b border-white/5 bg-white/5">
                         <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-3">
                             <i class="fas fa-file-alt text-orange-500"></i> Quản lý Bài Viết
@@ -1160,7 +1160,7 @@
                 </div>
 
                 <!-- Hình ảnh -->
-                <div class="bg-glass rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
+                <div class="ios-glass-card !p-0 overflow-hidden">
                     <div class="px-10 py-8 border-b border-white/5 bg-white/5">
                         <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-3">
                             <i class="fas fa-images text-blue-500"></i> Thư viện Hình Ảnh
@@ -1290,7 +1290,7 @@
             </div>
 
             <!-- Settings View -->
-            <div id="view-settings" class="hidden space-y-4 page p-4">
+            <div id="view-settings" class="hidden page-ios-container">
 
                 <div class="tabs-ios-container" role="tablist">
                     <button onclick="switchSettingsTab('account')" id="tab-settings-account" class="tab-ios active" role="tab" aria-selected="true">
@@ -1319,8 +1319,8 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 xl:grid-cols-[1fr_0.8fr] gap-4">
-                            <div class="settings-card-premium">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <div class="ios-glass-card">
                                 <div class="settings-row">
                                     <div class="settings-row-icon bg-orange-500/15 text-orange-400">
                                         <i class="fas fa-clock"></i>
@@ -1341,7 +1341,7 @@
                                 </div>
                             </div>
 
-                            <div class="settings-card-premium border-l-4 border-l-orange-500">
+                            <div class="ios-glass-card border-l-4 border-l-orange-500">
                                 <p class="settings-eyebrow">Trạng thái hệ thống</p>
                                 <h4 class="text-xl font-black text-white mb-2 tracking-tight">Hồ sơ đã đồng bộ</h4>
                                 <p class="text-sm text-slate-400 leading-relaxed">
@@ -1352,8 +1352,8 @@
                     </div>
 
                     <div id="settings-tab-interface" class="settings-tab-content hidden space-y-4" role="tabpanel">
-                        <div class="grid grid-cols-1 xl:grid-cols-[1fr_0.8fr] gap-4">
-                            <div class="settings-card-premium">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <div class="ios-glass-card">
                                 <div class="settings-card-heading mb-6">
                                     <div>
                                         <p class="settings-eyebrow">Giao diện ứng dụng</p>
@@ -1404,7 +1404,7 @@
                                 </div>
                             </div>
 
-                            <div class="settings-card-premium border-l-4 border-l-violet-500">
+                            <div class="ios-glass-card border-l-4 border-l-violet-500">
                                 <p class="settings-eyebrow">Trải nghiệm iOS</p>
                                 <h4 class="text-xl font-black text-white tracking-tight">Cấu hình linh hoạt</h4>
                                 <p class="text-sm text-slate-400 leading-relaxed">
@@ -1415,8 +1415,8 @@
                     </div>
 
                     <div id="settings-tab-system" class="settings-tab-content hidden space-y-6" role="tabpanel">
-                        <div class="grid grid-cols-1 xl:grid-cols-[1fr_0.8fr] gap-6">
-                            <div class="settings-card-premium">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <div class="ios-glass-card">
                                 <div class="settings-card-heading mb-6">
                                     <div>
                                         <p class="settings-eyebrow">Hệ thống cục bộ</p>
@@ -1439,7 +1439,7 @@
                                 </div>
                             </div>
 
-                            <div class="settings-card-premium border-l-4 border-l-blue-500">
+                            <div class="ios-glass-card border-l-4 border-l-blue-500">
                                 <p class="settings-eyebrow">Điều hướng nhanh</p>
                                 <h4 class="text-xl font-black text-white tracking-tight">Quản lý Bảng giá</h4>
                                 <p class="text-sm text-slate-400 leading-relaxed mb-6">
@@ -1452,7 +1452,7 @@
                         </div>
 
                         <div id="admin-user-section" class="hidden">
-                            <div class="settings-card-premium">
+                            <div class="ios-glass-card">
                                 <div class="settings-card-heading mb-6">
                                     <div>
                                         <p class="settings-eyebrow">Quyền quản trị</p>
@@ -1480,7 +1480,7 @@
                             </div>
                         </div>
 
-                        <div id="staff-restricted-msg" class="settings-card-premium border-l-4 border-l-red-500 hidden">
+                        <div id="staff-restricted-msg" class="ios-glass-card border-l-4 border-l-red-500 hidden">
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 flex-shrink-0">
                                     <i class="fas fa-lock"></i>
