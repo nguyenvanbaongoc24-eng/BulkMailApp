@@ -140,6 +140,13 @@
     box-shadow: 0 0 20px rgba(244, 121, 32, 0.2);
 }
 
+.pdp-range-label.pdp-preview-active {
+    color: var(--pdp-accent);
+    opacity: 0.8;
+    background: rgba(244, 121, 32, 0.05);
+    border-color: rgba(244, 121, 32, 0.2);
+}
+
 .pdp-range-sep {
     color: var(--pdp-text-dim);
     font-size: 11px;

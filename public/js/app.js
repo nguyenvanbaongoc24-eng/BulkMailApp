@@ -182,84 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize PremiumDatePicker (Range mode — Dashboard Filter)
-    const rangeInput = document.getElementById('crm-date-range-picker');
-    if (rangeInput && window.PremiumDatePicker) {
-        const rangePicker = PremiumDatePicker.attach(rangeInput, {
-            mode: 'range',
-            label: 'THỜI GIAN LỌC',
-            onChange: (dates) => {
-                const startLabel = document.getElementById('crm-date-start-label');
-                const endLabel = document.getElementById('crm-date-end-label');
-                const fromInput = document.getElementById('crm-filter-from-date');
-                const toInput = document.getElementById('crm-filter-to-date');
-                const clearBtn = document.getElementById('crm-date-clear-btn');
-
-                if (dates.length === 1) {
-                    startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
-                    startLabel.classList.remove('opacity-70', 'text-orange-400');
-                    startLabel.classList.add('text-white', 'opacity-50');
-                    fromInput.value = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
-
-                    endLabel.innerText = 'Đến ngày';
-                    endLabel.classList.remove('opacity-70', 'text-white', 'opacity-50');
-                    endLabel.classList.add('text-orange-400');
-                    toInput.value = '';
-                    if (clearBtn) clearBtn.classList.remove('hidden');
-                } else if (dates.length === 2) {
-                    startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
-                    startLabel.classList.remove('opacity-70', 'opacity-50', 'text-orange-400');
-                    startLabel.classList.add('text-white');
-                    fromInput.value = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
-
-                    endLabel.innerText = PremiumDatePicker.formatDate(dates[1], 'd/m/Y');
-                    endLabel.classList.remove('opacity-70', 'opacity-50', 'text-orange-400');
-                    endLabel.classList.add('text-white');
-                    toInput.value = PremiumDatePicker.formatDate(dates[1], 'Y-m-d');
-
-                    if (clearBtn) clearBtn.classList.remove('hidden');
-                    renderCA2CRM();
-                } else {
-                    startLabel.innerText = 'Từ ngày';
-                    endLabel.innerText = 'Đến ngày';
-                    startLabel.classList.add('opacity-70');
-                    endLabel.classList.add('opacity-70');
-                    startLabel.classList.remove('text-orange-400', 'text-white', 'opacity-50');
-                    endLabel.classList.remove('text-orange-400', 'text-white', 'opacity-50');
-                    fromInput.value = '';
-                    toInput.value = '';
-                    if (clearBtn) clearBtn.classList.add('hidden');
-                    renderCA2CRM();
-                }
-            },
-            onClear: () => {
-                const startLabel = document.getElementById('crm-date-start-label');
-                const endLabel = document.getElementById('crm-date-end-label');
-                const fromInput = document.getElementById('crm-filter-from-date');
-                const toInput = document.getElementById('crm-filter-to-date');
-                const clearBtn = document.getElementById('crm-date-clear-btn');
-
-                startLabel.innerText = 'Từ ngày';
-                endLabel.innerText = 'Đến ngày';
-                startLabel.className = 'opacity-70 transition-all duration-200';
-                endLabel.className = 'opacity-70 transition-all duration-200';
-                fromInput.value = '';
-                toInput.value = '';
-                if (clearBtn) clearBtn.classList.add('hidden');
-                renderCA2CRM();
-            }
-        });
-
-        // Handle clear button click
-        const clearBtn = document.getElementById('crm-date-clear-btn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (rangePicker) rangePicker.clear();
-            });
-        }
-    }
-
     // Theme initialization
     const savedTheme = localStorage.getItem('ca2-theme') || 'dark';
     if (savedTheme === 'light') {
@@ -631,6 +553,7 @@ function showPage(pageId) {
     // Page specific loading
     if (pageId === 'ca2-crm') {
         loadCRMPrices(); // Sync prices first
+        initializeCRMDateRangePicker(); // Initialize the SaaS range picker
         loadCA2CRMData();
     }
     if (pageId === 'dashboard') { loadDashboardStats(); loadRecentCampaigns(); }
@@ -924,168 +847,72 @@ function renderCA2CRM() {
     const fromDateStr = document.getElementById('crm-filter-from-date')?.value;
     const toDateStr = document.getElementById('crm-filter-to-date')?.value;
 
-    let filtered = [...currentCRMData];
+function initializeCRMDateRangePicker() {
+    const rangeInput = document.getElementById('crm-date-range-picker');
+    if (!rangeInput || !window.PremiumDatePicker) return;
 
-    // Service Type Filter
-    if (filterType !== 'all') {
-        filtered = filtered.filter(c => {
-            const svc = (c.service_type || '').toUpperCase();
-            if (filterType === 'CKS') return svc.includes('CKS') || svc.includes('CHỮ KÝ SỐ');
-            if (filterType === 'HDDT') return svc.includes('HDDT') || svc.includes('HÓA ĐƠN ĐIỆN TỬ');
-            if (filterType === 'EBH') return svc.includes('EBH') || svc.includes('BẢO HIỂM');
-            if (filterType === 'HOA_DON') return svc.includes('HOA DON') || svc.includes('HÓA ĐƠN');
-            return svc === filterType.toUpperCase();
-        });
-    }
+    const applyRangeState = (dates = []) => {
+        const startLabel = document.getElementById('crm-date-start-label');
+        const endLabel = document.getElementById('crm-date-end-label');
+        const fromInput = document.getElementById('crm-filter-from-date');
+        const toInput = document.getElementById('crm-filter-to-date');
+        const clearBtn = document.getElementById('crm-date-clear-btn');
 
-    // Year Filter
-    if (filterYear !== 'all') {
-        filtered = filtered.filter(c => {
-            if (!c.expired_date) return false;
-            return new Date(c.expired_date).getFullYear().toString() === filterYear;
-        });
-    }
+        if (!startLabel || !endLabel || !fromInput || !toInput) return;
 
-    // Month Filter
-    if (filterMonth !== 'all') {
-        filtered = filtered.filter(c => {
-            if (!c.expired_date) return false;
-            return (new Date(c.expired_date).getMonth() + 1).toString() === filterMonth;
-        });
-    }
+        if (dates.length === 1) {
+            const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
+            startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
+            startLabel.classList.remove('opacity-70');
+            startLabel.classList.add('text-white');
+            endLabel.innerText = 'Đến ngày';
+            endLabel.classList.add('text-orange-400');
+            fromInput.value = fromValue;
+            toInput.value = '';
+            rangeInput.value = fromValue;
+            clearBtn?.classList.remove('hidden');
+        } else if (dates.length === 2) {
+            const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
+            const toValue = PremiumDatePicker.formatDate(dates[1], 'Y-m-d');
+            startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
+            startLabel.classList.remove('opacity-70');
+            startLabel.classList.add('text-white');
+            endLabel.innerText = PremiumDatePicker.formatDate(dates[1], 'd/m/Y');
+            endLabel.classList.remove('text-orange-400');
+            endLabel.classList.add('text-white');
+            fromInput.value = fromValue;
+            toInput.value = toValue;
+            rangeInput.value = `${fromValue} - ${toValue}`;
+            clearBtn?.classList.remove('hidden');
+            renderCA2CRM();
+        } else {
+            startLabel.innerText = 'Từ ngày';
+            endLabel.innerText = 'Đến ngày';
+            startLabel.classList.add('opacity-70');
+            startLabel.classList.remove('text-white');
+            endLabel.classList.add('opacity-70');
+            endLabel.classList.remove('text-orange-400', 'text-white');
+            fromInput.value = '';
+            toInput.value = '';
+            rangeInput.value = '';
+            clearBtn?.classList.add('hidden');
+            renderCA2CRM();
+        }
+    };
 
-    // Date Range Filter
-    if (fromDateStr && toDateStr) {
-        const fromD = new Date(fromDateStr);
-        const toD = new Date(toDateStr);
-        fromD.setHours(0,0,0,0);
-        toD.setHours(23,59,59,999);
-        
-        filtered = filtered.filter(c => {
-            if (!c.expired_date) return false;
-            const expD = new Date(c.expired_date);
-            return expD >= fromD && expD <= toD;
-        });
-    }
-
-    if (search) {
-        filtered = filtered.filter(c => 
-            (c.mst && c.mst.toLowerCase().includes(search)) || 
-            (c.company_name && c.company_name.toLowerCase().includes(search))
-        );
-    }
-
-    // Apply tab filter
-    let activeTotal = 0;
-    let expiredTotal = 0;
-    currentCRMData.forEach(c => {
-        const days = calculateRemainingDays(c.expired_date);
-        if (days < 0) expiredTotal++;
-        else activeTotal++;
+    const instance = PremiumDatePicker.attach(rangeInput, {
+        mode: 'range',
+        label: 'THỜI GIAN LỌC',
+        onChange: applyRangeState,
+        onClear: () => applyRangeState([])
     });
 
-    if (currentCRMTab === 'active') {
-        filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) >= 0);
-    } else {
-        filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) < 0);
-    }
-
-    // Stats
-    const totalEl = document.getElementById('ca2-crm-total');
-    const activeEl = document.getElementById('ca2-crm-active');
-    const expiringEl = document.getElementById('ca2-crm-expiring');
-    const expiredEl = document.getElementById('ca2-crm-expired');
-    
-    let activeCnt = 0, expiringCnt = 0, expiredCnt = 0;
-    currentCRMData.forEach(c => {
-        const days = calculateRemainingDays(c.expired_date);
-        if (days < 0) expiredCnt++;
-        else if (days <= 60) expiringCnt++;
-        else activeCnt++;
-    });
-
-    if (totalEl) totalEl.innerText = currentCRMData.length;
-    if (activeEl) activeEl.innerText = activeCnt;
-    if (expiringEl) expiringEl.innerText = expiringCnt;
-    if (expiredEl) expiredEl.innerText = expiredCnt;
-
-    // Update Tab Counters
-    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
-    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
-    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
-    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
-
-    // Sorting
-    if (sortOrder === 'newest') {
-        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    } else if (sortOrder === 'soonest') {
-        filtered.sort((a, b) => {
-            if (!a.expired_date) return 1;
-            if (!b.expired_date) return -1;
-            return new Date(a.expired_date) - new Date(b.expired_date);
-        });
-    } else if (sortOrder === 'latest') {
-        filtered.sort((a, b) => {
-            if (!a.expired_date) return 1;
-            if (!b.expired_date) return -1;
-            return new Date(b.expired_date) - new Date(a.expired_date);
-        });
-    }
-
-    if (filtered.length === 0) {
-        listContainer.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon text-5xl mb-4">📋</div>
-                <div class="empty-title text-xl font-bold text-white mb-2">Không tìm thấy dữ liệu</div>
-                <div class="empty-desc text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc tìm kiếm lại.</div>
-            </div>
-        `;
-        return;
-    }
-
-    listContainer.innerHTML = filtered.map(c => {
-        const daysLeft = calculateRemainingDays(c.expired_date);
-        const isExpired = daysLeft < 0;
-        
-        let statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
-
-        return `
-            <div class="bg-glass p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] cursor-pointer mb-3 relative overflow-hidden group" onclick="editCRM('${c.id}')">
-                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 pointer-events-none"></div>' : ''}
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
-                
-                <div class="flex-1 relative z-10">
-                    <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
-                    <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
-                        <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
-                        <span class="text-white/20">•</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
-                    </div>
-                </div>
-                
-                <div class="text-center relative z-10 bg-black/30 px-5 py-2.5 rounded-xl border border-white/5">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
-                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
-                </div>
-                
-                <div class="flex justify-center relative z-10 min-w-[130px]">
-                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
-                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
-                    </span>
-                </div>
-                
-                <div class="flex justify-end gap-2 relative z-10">
-                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Initialize/Refresh premium UI for dynamic table elements
-    if (typeof refreshCustomSelects === 'function') {
-        refreshCustomSelects();
+    const clearBtn = document.getElementById('crm-date-clear-btn');
+    if (clearBtn) {
+        clearBtn.onclick = (e) => {
+            e.stopPropagation();
+            instance?.clear();
+        };
     }
 }
 

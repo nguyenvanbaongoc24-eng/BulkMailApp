@@ -340,14 +340,14 @@ app.post('/api/register', async (req, res) => {
             if (adminError) return res.status(400).json({ error: adminError.message });
             
             // Auto login
-            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+            const { data: loginData, error: loginError } = await anonClient.auth.signInWithPassword({ email, password });
             if (loginError) return res.status(400).json({ error: loginError.message });
             
             return res.json({ token: loginData.session.access_token, user: loginData.user });
         }
 
         // Standard Supabase Sign Up (subject to Rate Limits & strict email confirmations)
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await anonClient.auth.signUp({
             email, password,
             options: { data: { full_name: name } }
         });
@@ -372,7 +372,7 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await anonClient.auth.signInWithPassword({ email, password });
         if (error) {
             if (error.message.includes('Email not confirmed')) {
                 return res.status(400).json({ error: 'Vui lòng kiểm tra email và nhấp vào link xác nhận trước khi đăng nhập.' });

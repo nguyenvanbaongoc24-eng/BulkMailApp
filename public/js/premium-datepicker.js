@@ -379,8 +379,10 @@ const PremiumDatePicker = (() => {
                 
                 if (this.rangeEnd) {
                     this._labelEnd.textContent = formatDate(this.rangeEnd, 'd/m/Y');
+                    this._labelEnd.classList.remove('pdp-preview-active');
                 } else {
                     this._labelEnd.textContent = 'Đến ngày';
+                    this._labelEnd.classList.remove('pdp-preview-active');
                 }
             }
 
@@ -416,6 +418,7 @@ const PremiumDatePicker = (() => {
             const cell = document.createElement('div');
             cell.className = 'pdp-day';
             cell.textContent = num;
+            cell._date = date; // Store date for efficient hover updates
 
             if (isOutside) cell.classList.add('pdp-outside');
             if (isToday(date)) cell.classList.add('pdp-today');
@@ -451,12 +454,48 @@ const PremiumDatePicker = (() => {
                 cell.addEventListener('mouseenter', () => {
                     if (this.rangeStart && !this.rangeEnd) {
                         this.hoverDate = date;
-                        this._render();
+                        this._updateRangeHighlights();
                     }
                 });
             }
 
             return cell;
+        }
+
+        _updateRangeHighlights() {
+            if (!this.rangeStart || !this.hoverDate) return;
+            
+            const start = this.rangeStart;
+            const end = this.hoverDate;
+            const [s, e] = start < end ? [start, end] : [end, start];
+
+            // Update Label Text (Preview)
+            if (this._labelEnd && !this.rangeEnd) {
+                this._labelEnd.textContent = formatDate(this.hoverDate, 'd/m/Y');
+                this._labelEnd.classList.add('pdp-preview-active');
+            }
+
+            const cells = this._daysGrid.querySelectorAll('.pdp-day');
+            cells.forEach(cell => {
+                const d = cell._date;
+                if (!d) return;
+
+                // Reset classes that depend on range
+                cell.classList.remove('pdp-in-range', 'pdp-range-start', 'pdp-range-end');
+                
+                // Re-apply based on current hover/select state
+                if (isSameDay(d, this.rangeStart)) cell.classList.add('pdp-range-start');
+                if (this.rangeEnd && isSameDay(d, this.rangeEnd)) cell.classList.add('pdp-range-end');
+
+                if (isBetween(d, s, e)) {
+                    cell.classList.add('pdp-in-range');
+                }
+
+                // If hovering (and rangeEnd not set yet), show where it would end
+                if (!this.rangeEnd && isSameDay(d, this.hoverDate)) {
+                    cell.classList.add(d < start ? 'pdp-range-start' : 'pdp-range-end');
+                }
+            });
         }
 
         _onDayClick(date) {
