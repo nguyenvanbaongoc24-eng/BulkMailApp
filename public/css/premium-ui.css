@@ -2649,7 +2649,45 @@ button:hover, .item:hover {
    14. IOS PREMIUM LAYOUT & GLASSMORPHISM (SETTINGS & SEO)
    ========================================================== */
 
-/* Page Container - Top-aligned, Full-width stretching */
+/* 
+   FORCE TOP ALIGNMENT - GLOBAL OVERRIDE 
+   This section is designed to eliminate any vertical centering issues.
+*/
+
+/* 1. Main App Wrapper */
+.app {
+    display: flex !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+}
+
+/* 2. Main Content Wrapper (Right Side) */
+.main {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    height: 100% !important;
+}
+
+/* 3. Scrollable Content Area */
+.content {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    padding: 0 !important; /* Resetting padding to allow sub-containers to control it */
+    margin: 0 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+}
+
+/* 4. Page View Container */
 .main-container {
     width: 100% !important;
     max-width: none !important;
@@ -2658,9 +2696,9 @@ button:hover, .item:hover {
     flex-direction: column !important;
     gap: 20px;
     align-items: stretch !important;
-    justify-content: flex-start !important; /* Force content to top */
-    min-height: auto !important; /* Remove height that causes centering */
-    padding: 0 !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important; /* Force to top */
+    padding: 16px 24px !important; /* Standardized top-aligned padding */
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
@@ -2674,23 +2712,12 @@ button:hover, .item:hover {
     align-self: flex-start !important;
 }
 
-/* Main Content Area - Top Aligned, No Centering */
-.content {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important; /* Force to top */
-    align-items: stretch !important;
-    padding: 16px 24px !important; /* User requirement 5 */
-    margin: 0 !important;
-    min-height: 0 !important;
-}
-
 /* Tabs - Fixed at top, immediately under header */
 .tabs-ios-container {
     align-self: stretch !important;
     display: flex !important;
     width: 100% !important;
-    margin-top: 12px !important; /* User requirement 6 */
+    margin-top: 12px !important; 
     margin-bottom: 20px !important;
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.04) !important;
@@ -2742,7 +2769,7 @@ button:hover, .item:hover {
     display: none !important;
 }
 
-/* Nuclear reset for any centering on views */
+/* Specific reset for any centering on views */
 [id^="view-"] {
     justify-content: flex-start !important;
     align-items: stretch !important;
