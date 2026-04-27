@@ -2650,16 +2650,16 @@ button:hover, .item:hover {
    ========================================================== */
 
 /* Page Container - Centered, Top-aligned, Max-width */
-.page-ios-container {
+.main-container {
     max-width: 1300px;
-    margin: 16px auto 0 auto;
-    padding: 24px;
+    margin: 0 auto;
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 20px;
     align-items: stretch;
-    justify-content: flex-start;
+    justify-content: flex-start !important; /* Forces top alignment */
+    min-height: auto;
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
@@ -2682,8 +2682,24 @@ button:hover, .item:hover {
     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
 
+/* Standard Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+    margin-top: 16px;
+}
+@media (min-width: 1024px) {
+    .content-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 /* Override existing tabs */
 .tabs-ios-container {
+    align-self: flex-start !important;
+    margin-top: 16px !important;
+    margin-bottom: 20px !important;
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.04) !important;
     border-radius: 16px !important;

@@ -510,7 +510,7 @@
         <div id="main-content" class="content custom-scrollbar">
             
             <!-- Dashboard View -->
-            <div id="view-dashboard" class="space-y-4 page p-4">
+            <div id="view-dashboard" class="main-container">
 
                 <div class="stats-row">
                     <div class="stat-card">
@@ -571,7 +571,7 @@
             </div>
 
             <!-- Campaigns View (Separate but same list) -->
-            <div id="view-campaigns" class="hidden space-y-6 page">
+            <div id="view-campaigns" class="hidden main-container">
                 <div class="page-header">
                     <div>
                         <h2 class="page-title">Chiến dịch Email</h2>
@@ -591,7 +591,7 @@
 
 
 
-            <div id="view-quotations" class="hidden space-y-6 page">
+            <div id="view-quotations" class="hidden main-container">
                 <div class="page-header">
                     <div>
                         <h2 class="page-title">Quản lý Báo giá</h2>
@@ -647,7 +647,7 @@
 
 
             <!-- CA2 CRM View (Internal Tool) -->
-            <div id="view-ca2-crm" class="hidden space-y-4 page">
+            <div id="view-ca2-crm" class="hidden main-container">
                 <div class="page-header">
                     <div>
                         <h2 class="page-title">Quản lý Khách hàng</h2>
@@ -829,7 +829,7 @@
             </div>
 
             <!-- Documents View -->
-            <div id="view-documents" class="hidden space-y-6 page">
+            <div id="view-documents" class="hidden main-container">
                 <div class="page-header">
                     <div>
                         <h2 class="page-title">Tài liệu Sales</h2>
@@ -874,7 +874,7 @@
             </div>
 
             <!-- Senders View (Redesigned for Gmail API) -->
-            <div id="view-senders" class="hidden space-y-4 page pb-6">
+            <div id="view-senders" class="hidden main-container">
                 
                 <!-- Main Connection Area -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -992,7 +992,7 @@
 
 
             <!-- Reports View -->
-            <div id="view-reports" class="hidden space-y-6 page">
+            <div id="view-reports" class="hidden main-container">
                 <div class="page-header">
                     <div>
                         <h2 class="page-title">Nhật ký gửi mail</h2>
@@ -1015,7 +1015,7 @@
 
             <!-- SEO UI Injection -->
             <!-- SEO News View -->
-            <div id="view-seo-news" class="hidden page-ios-container">
+            <div id="view-seo-news" class="hidden main-container">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-3xl font-black text-white tracking-tight">Tin tức Thuế <span class="text-orange-gradient">Tự động</span></h2>
@@ -1046,7 +1046,7 @@
             </div>
 
             <!-- SEO Article View -->
-            <div id="view-seo-article" class="hidden page-ios-container">
+            <div id="view-seo-article" class="hidden main-container">
                 <h2 class="text-3xl font-black text-white tracking-tight">Tạo <span class="text-orange-gradient">Bài Viết Chuẩn SEO</span></h2>
                 <div class="ios-glass-card max-w-4xl">
                     <div class="space-y-4">
@@ -1083,9 +1083,9 @@
             </div>
 
             <!-- SEO Image View -->
-            <div id="view-seo-image" class="hidden page-ios-container">
+            <div id="view-seo-image" class="hidden main-container">
                 <h2 class="text-3xl font-black text-white tracking-tight">Sinh Hình Ảnh <span class="text-orange-gradient">Bằng AI</span></h2>
-                <div class="grid lg:grid-cols-2 gap-5">
+                <div class="content-grid">
                     <!-- Input -->
                     <div class="ios-glass-card relative overflow-hidden h-fit">
                         <div class="absolute -top-4 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full"></div>
@@ -1141,7 +1141,7 @@
             </div>
 
             <!-- SEO My Posts View -->
-            <div id="view-seo-posts" class="hidden page-ios-container">
+            <div id="view-seo-posts" class="hidden main-container">
                 <div class="flex items-center justify-between">
                     <h2 class="text-3xl font-black text-white tracking-tight">Kho Content <span class="text-orange-gradient">Đã Tạo</span></h2>
                 </div>
@@ -1173,7 +1173,7 @@
             </div>
 
             <!-- Lookup Tools / Cổng Tra Cứu Nghiệp Vụ (Added) -->
-            <div id="view-lookup-tools" class="hidden space-y-4 animate-in fade-in duration-700 pb-4">
+            <div id="view-lookup-tools" class="hidden main-container animate-in fade-in duration-700">
                 <div class="text-center space-y-4 pt-16 pb-12 relative overflow-hidden rounded-[100px] bg-gradient-to-b from-blue-600/10 via-transparent to-transparent">
                     <div class="absolute inset-0 -z-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                     <div class="inline-flex items-center gap-2 px-5 py-2 bg-blue-500/10 text-blue-400 text-xs font-black uppercase tracking-[0.2em] rounded-full border border-blue-500/20 mb-4 animate-in slide-in-from-top-4 duration-1000">
@@ -1290,7 +1290,7 @@
             </div>
 
             <!-- Settings View -->
-            <div id="view-settings" class="hidden page-ios-container">
+            <div id="view-settings" class="hidden main-container">
 
                 <div class="tabs-ios-container" role="tablist">
                     <button onclick="switchSettingsTab('account')" id="tab-settings-account" class="tab-ios active" role="tab" aria-selected="true">
@@ -1319,7 +1319,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <div class="content-grid">
                             <div class="ios-glass-card">
                                 <div class="settings-row">
                                     <div class="settings-row-icon bg-orange-500/15 text-orange-400">
@@ -1352,7 +1352,7 @@
                     </div>
 
                     <div id="settings-tab-interface" class="settings-tab-content hidden space-y-4" role="tabpanel">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <div class="content-grid">
                             <div class="ios-glass-card">
                                 <div class="settings-card-heading mb-6">
                                     <div>
@@ -1415,7 +1415,7 @@
                     </div>
 
                     <div id="settings-tab-system" class="settings-tab-content hidden space-y-6" role="tabpanel">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <div class="content-grid">
                             <div class="ios-glass-card">
                                 <div class="settings-card-heading mb-6">
                                     <div>
@@ -1544,7 +1544,7 @@
 
 
         <!-- Settings: Pricing Management View (NEW) -->
-        <div id="view-settings-pricing" class="hidden space-y-6 page p-6">
+        <div id="view-settings-pricing" class="hidden main-container">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h2 class="text-4xl font-black text-white tracking-tight">Quản lý <span class="text-orange-gradient">Bảng giá</span></h2>
