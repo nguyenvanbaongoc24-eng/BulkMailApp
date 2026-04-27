@@ -2649,19 +2649,18 @@ button:hover, .item:hover {
    14. IOS PREMIUM LAYOUT & GLASSMORPHISM (SETTINGS & SEO)
    ========================================================== */
 
-/* Page Container - Centered, Top-aligned, Max-width */
+/* Page Container - Top-aligned, Full-width stretching */
 .main-container {
-    max-width: 1300px;
-    margin: 0 auto !important;
-    width: 100%;
-    display: flex; /* Removed !important to allow .hidden to work */
+    width: 100% !important;
+    max-width: none !important; /* Stretch to sides as requested */
+    margin: 0 !important;
+    display: flex;
     flex-direction: column;
     gap: 20px;
-    align-items: stretch;
-    justify-content: flex-start !important;
-    min-height: auto;
-    padding-top: 0 !important; 
-    margin-top: 0 !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important; /* Forces top alignment */
+    min-height: auto !important;
+    padding: 0 !important;
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
@@ -2697,12 +2696,12 @@ button:hover, .item:hover {
     }
 }
 
-/* Override existing tabs */
+/* Tabs - Fixed at top, immediately under header */
 .tabs-ios-container {
     align-self: stretch !important;
     display: flex !important;
     width: 100% !important;
-    margin-top: 0 !important;
+    margin-top: 12px !important; /* Requirement 6 */
     margin-bottom: 20px !important;
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.04) !important;
@@ -2749,12 +2748,15 @@ button:hover, .item:hover {
     }
 }
 
-/* Reset content area to block to avoid any flex-centering side effects */
+/* Main Content Area - Top Aligned, No Centering */
 .content {
-    display: block !important;
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-    min-height: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    padding: 16px 24px !important; /* Requirement 5 */
+    margin: 0 !important;
+    min-height: 0 !important;
 }
 
 /* Ensure hidden always works regardless of specificity */
