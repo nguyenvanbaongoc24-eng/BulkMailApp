@@ -194,6 +194,77 @@
     };
 
     // ----------------------------------------------------------
+    // 8b. AUTH ASSIST: Enter-to-submit + password recovery
+    // ----------------------------------------------------------
+    async function requestPasswordReset() {
+        const emailInput = document.getElementById('auth-email');
+        const errorDiv = document.getElementById('auth-error');
+        const email = String(emailInput?.value || '').trim();
+
+        if (!email) {
+            if (errorDiv) {
+                errorDiv.textContent = 'Vui lòng nhập email để nhận link đặt lại mật khẩu.';
+                errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
+                errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
+            }
+            emailInput?.focus();
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Không thể gửi yêu cầu khôi phục mật khẩu.');
+            }
+
+            if (errorDiv) {
+                errorDiv.textContent = data.message || 'Vui lòng kiểm tra email để đặt lại mật khẩu.';
+                errorDiv.classList.remove('hidden', 'text-red-500', 'bg-red-500/10', 'border-red-500/20');
+                errorDiv.classList.add('text-green-500', 'bg-green-500/10', 'border-green-500/20');
+            }
+        } catch (err) {
+            if (errorDiv) {
+                errorDiv.textContent = err.message || 'Không thể gửi yêu cầu khôi phục mật khẩu.';
+                errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
+                errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const authCard = document.querySelector('#auth-screen .auth-card');
+        const authActions = authCard?.querySelector('.text-center');
+        const passwordInput = document.getElementById('auth-password');
+        const emailInput = document.getElementById('auth-email');
+        const nameInput = document.getElementById('auth-name');
+
+        [emailInput, passwordInput, nameInput].forEach((input) => {
+            input?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && typeof window.handleAuthSubmit === 'function') {
+                    e.preventDefault();
+                    window.handleAuthSubmit();
+                }
+            });
+        });
+
+        if (authActions && !document.getElementById('auth-reset-btn')) {
+            const resetWrap = document.createElement('div');
+            resetWrap.className = 'text-center -mt-2';
+            resetWrap.innerHTML = '<button id="auth-reset-btn" type="button" class="text-xs font-bold text-gray-400 hover:text-orange-400 transition-colors">Quên mật khẩu?</button>';
+            authActions.insertAdjacentElement('afterend', resetWrap);
+
+            const resetBtn = document.getElementById('auth-reset-btn');
+            resetBtn?.addEventListener('click', requestPasswordReset);
+        }
+    });
+
+    // ----------------------------------------------------------
     // 9. CUSTOM SELECT ENHANCER (SaaS-Grade Dropdown)
     //    CRITICAL FIX: rounded corners, no icon overlap,
     //    smooth fade+slide animation

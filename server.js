@@ -385,6 +385,30 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const email = String(req.body?.email || '').trim();
+        if (!email) {
+            return res.status(400).json({ error: 'Vui lòng nhập email để khôi phục mật khẩu.' });
+        }
+
+        const redirectTo = process.env.BASE_URL || undefined;
+        const { error } = await anonClient.auth.resetPasswordForEmail(email, {
+            redirectTo
+        });
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        return res.json({
+            message: 'Nếu email tồn tại, hệ thống đã gửi hướng dẫn đặt lại mật khẩu.'
+        });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/me', authenticate, async (req, res) => {
     // req.user is already populated by authenticate middleware
     res.json(req.user);
