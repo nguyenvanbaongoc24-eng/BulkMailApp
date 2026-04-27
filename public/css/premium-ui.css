@@ -2654,12 +2654,12 @@ button:hover, .item:hover {
     max-width: 1300px;
     margin: 0 auto !important;
     width: 100%;
-    display: flex !important;
-    flex-direction: column !important;
+    display: flex; /* Removed !important to allow .hidden to work */
+    flex-direction: column;
     gap: 20px;
-    align-items: stretch !important;
-    justify-content: flex-start !important; /* Forces top alignment */
-    min-height: auto !important;
+    align-items: stretch;
+    justify-content: flex-start !important;
+    min-height: auto;
     padding-top: 0 !important; 
     margin-top: 0 !important;
     animation: fadeSlideUp 0.3s ease-out forwards;
@@ -2749,12 +2749,16 @@ button:hover, .item:hover {
     }
 }
 
-/* Ensure global top alignment */
+/* Reset content area to block to avoid any flex-centering side effects */
 .content {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
+    display: block !important;
     padding-top: 0 !important;
+    margin-top: 0 !important;
+    min-height: 0;
+}
+
+/* Ensure hidden always works regardless of specificity */
+.hidden {
+    display: none !important;
 }
 
