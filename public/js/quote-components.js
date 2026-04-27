@@ -174,6 +174,7 @@ class QuoteManager {
             priceDisplay: document.getElementById('quote-price-display'),
             totalDisplay: document.getElementById('quote-item-total'),
             btnAddItem: document.getElementById('btn-add-item-to-list'),
+            btnAddAllPackages: document.getElementById('btn-add-all-packages'),
             itemsTableBody: document.getElementById('quote-items-table'),
             sumTotal: document.getElementById('quote-total-sum')
         };
@@ -309,6 +310,9 @@ class QuoteManager {
         if (pkgs.length === 0) {
             html = '<option value="">-- Không có gói phù hợp --</option>';
             this.els.packageSel.disabled = true;
+            if (this.els.btnAddAllPackages) this.els.btnAddAllPackages.classList.add('hidden');
+        } else {
+            if (this.els.btnAddAllPackages) this.els.btnAddAllPackages.classList.remove('hidden');
         }
         
         this.els.packageSel.innerHTML = html;
@@ -329,6 +333,64 @@ class QuoteManager {
         
         const isValid = service && packageId && price > 0;
         this.els.btnAddItem.disabled = !isValid;
+    }
+
+    addAllPackages() {
+        const { service, variant, model } = this.state.currentItem;
+        if (!service) {
+            alert('Vui lòng chọn Dịch vụ trước.');
+            return;
+        }
+
+        let pkgs = PricingEngine.getPackages(service);
+        if (variant) {
+            pkgs = pkgs.filter(p => p.name.toLowerCase().includes(variant.toLowerCase()));
+        }
+
+        if (pkgs.length === 0) {
+            alert('Không có gói cước nào phù hợp để thêm.');
+            return;
+        }
+
+        let addedCount = 0;
+        pkgs.forEach(pkg => {
+            const exists = this.state.items.some(it => it.service === service && it.packageId === pkg.id);
+            if (!exists) {
+                const item = {
+                    service: service,
+                    variant: variant || 'Cấp mới',
+                    model: model || 'TIME',
+                    packageId: pkg.id,
+                    duration: pkg.name,
+                    quantity: 1,
+                    price: pkg.price,
+                    total: pkg.price
+                };
+                this.state.items.push(item);
+                addedCount++;
+            }
+        });
+
+        if (addedCount > 0) {
+            this.els.packageSel.value = '';
+            this.els.qtyInput.value = 1;
+            this.state.currentItem.packageId = '';
+            this.state.currentItem.duration = '';
+            this.state.currentItem.price = 0;
+            this.state.currentItem.quantity = 1;
+            this.state.currentItem.total = 0;
+            if(this.els.priceDisplay) this.els.priceDisplay.value = '';
+            if(this.els.totalDisplay) this.els.totalDisplay.value = '';
+            
+            this.recalcCurrentItem();
+            if (window.refreshCustomSelects) window.refreshCustomSelects();
+            
+            this.hideAddForm();
+            this.renderItemsTable();
+            this.updatePreview();
+        } else {
+            alert('Tất cả các gói cước này đã có trong báo giá.');
+        }
     }
 
     showAddForm() {

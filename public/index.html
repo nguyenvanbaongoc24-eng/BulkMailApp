@@ -510,13 +510,7 @@
         <div id="main-content" class="content custom-scrollbar">
             
             <!-- Dashboard View -->
-            <div id="view-dashboard" class="space-y-6 page">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Bảng điều khiển</h2>
-                        <p class="page-subtitle">Tổng quan hoạt động và chiến dịch của bạn</p>
-                    </div>
-                </div>
+            <div id="view-dashboard" class="space-y-4 page p-4">
 
                 <div class="stats-row">
                     <div class="stat-card">
@@ -1296,13 +1290,7 @@
             </div>
 
             <!-- Settings View -->
-            <div id="view-settings" class="hidden space-y-4 page p-6">
-                <div class="page-header shrink-0 mb-8">
-                    <div>
-                        <h2 class="settings-section-title">Cài đặt <span class="text-orange-gradient">Hệ thống</span></h2>
-                        <p class="settings-section-subtitle">Tùy chỉnh cá nhân và quản trị ứng dụng</p>
-                    </div>
-                </div>
+            <div id="view-settings" class="hidden space-y-4 page p-4">
 
                 <div class="tabs-ios-container" role="tablist">
                     <button onclick="switchSettingsTab('account')" id="tab-settings-account" class="tab-ios active" role="tab" aria-selected="true">
@@ -2472,7 +2460,10 @@
                                 </div>
                             </div>
                             
-                            <div class="pt-2 flex justify-end">
+                            <div class="pt-2 flex justify-end gap-3">
+                                <button id="btn-add-all-packages" onclick="window.quoteManagerInstance.addAllPackages()" type="button" class="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl font-bold text-sm transition-all border border-white/10 hidden">
+                                    Thêm tất cả gói
+                                </button>
                                 <button id="btn-add-item-to-list" onclick="window.quoteManagerInstance.addCurrentItem()" disabled class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 text-sm transition-all">
                                     Xác nhận thêm
                                 </button>

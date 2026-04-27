@@ -1725,31 +1725,39 @@ async function loadRecentCampaigns() {
             const statusLabel = isRunning ? 'Đang gửi...' : c.status;
 
             return `
-                <div class="list-item" onclick="showPage('campaigns')">
-                    <div class="flex-1">
-                        <div class="list-item-title">${c.name}</div>
-                        <div class="list-item-meta">${new Date(c.created_at).toLocaleDateString()}</div>
+                <div class="group relative overflow-hidden bg-white/2 hover:bg-white/5 border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4" onclick="showPage('campaigns')">
+                    <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                    
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDone ? 'bg-emerald-500/10 text-emerald-500' : (isRunning ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500')}">
+                        <i class="fas ${isDone ? 'fa-check-circle' : (isRunning ? 'fa-paper-plane animate-pulse' : 'fa-envelope-open-text')} text-xl"></i>
                     </div>
-                    <div class="flex-1 flex justify-center">
-                        <span class="badge-premium ${badgeType}">
-                            <span class="badge-dot"></span>
+
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-black text-white truncate group-hover:text-orange-400 transition-colors">${c.name}</h4>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString('vi-VN')} • ${c.sent_count}/${c.total_recipients} Email</p>
+                    </div>
+
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : (isRunning ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20')}">
                             ${statusLabel}
                         </span>
-                    </div>
-                    <div class="flex-1 progress-wrap">
-                        <div class="progress-bar">
-                            <div class="progress-fill ${isDone ? 'done' : ''}" style="width: ${successPct}%"></div>
+                        
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 h-1.5 bg-black/40 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-1000 ${isDone ? 'bg-emerald-500' : (isRunning ? 'bg-blue-500' : 'bg-orange-500')}" style="width: ${successPct}%"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-gray-400 w-8 text-right">${successPct}%</span>
                         </div>
-                        <div class="text-[10px] text-gray-500 font-bold mt-1 text-right">${successPct}% (${c.sent_count}/${c.total_recipients})</div>
                     </div>
-                    <div class="flex justify-end gap-2 ml-4">
+
+                    <div class="flex items-center gap-2 border-l border-white/5 pl-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         ${!isDone && !isRunning ? `
-                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="btn-action-premium text-orange-500">
-                                <i class="fas fa-play"></i>
+                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all" title="Bắt đầu gửi">
+                                <i class="fas fa-play text-xs"></i>
                             </button>
                         ` : ''}
-                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="btn-delete-ios">
-                            <i class="fas fa-trash-alt"></i>
+                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Xóa">
+                            <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
                 </div>
