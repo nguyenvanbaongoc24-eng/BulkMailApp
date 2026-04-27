@@ -166,6 +166,20 @@ function saveCurrentSession(token, user) {
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
+    
+    // Listen for Enter key on Auth form
+    ['auth-email', 'auth-password', 'auth-name'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (typeof handleAuthSubmit === 'function') handleAuthSubmit();
+                }
+            });
+        }
+    });
+
     // Pricing init moved to after auth succeeds (inside checkAuth)
 
 
@@ -296,7 +310,10 @@ function toggleAuthMode() {
     fields.classList.toggle('hidden', !isRegister);
     
     title.innerText = isRegister ? 'Đăng ký tài khoản mới' : 'Đăng nhập để tiếp tục quản lý chiến dịch';
-    submitBtn.innerText = isRegister ? 'Đăng ký ngay' : 'Đăng nhập ngay';
+    const btnText = submitBtn.querySelector('.btn-text');
+    if (btnText) btnText.innerText = isRegister ? 'Đăng ký ngay' : 'Đăng nhập ngay';
+    else submitBtn.innerText = isRegister ? 'Đăng ký ngay' : 'Đăng nhập ngay';
+    
     switchTxt.innerText = isRegister ? 'Đã có tài khoản?' : 'Chưa có tài khoản?';
     switchBtn.innerText = isRegister ? 'Đăng nhập' : 'Tham gia ngay';
 }
@@ -371,7 +388,8 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     const password = passwordInput?.value || '';
     const name = nameInput?.value || '';
     const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
-    const originalBtnText = submitBtn?.innerText || 'Đăng nhập ngay';
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const originalBtnText = btnText ? btnText.innerText : (submitBtn?.innerText || 'Đăng nhập ngay');
 
     const showAuthMessage = (message, type = 'error') => {
         if (!errorDiv) return;
@@ -411,8 +429,9 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerText = 'ĐANG XỬ LÝ...';
-        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        if (btnText) btnText.innerText = 'ĐANG XỬ LÝ...';
+        else submitBtn.innerText = 'ĐANG XỬ LÝ...';
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed', 'btn-loading');
     }
 
     let timeoutId = null;
@@ -470,8 +489,9 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerText = originalBtnText;
-            submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            if (btnText) btnText.innerText = originalBtnText;
+            else submitBtn.innerText = originalBtnText;
+            submitBtn.classList.remove('opacity-70', 'cursor-not-allowed', 'btn-loading');
         }
     }
 };
@@ -3498,33 +3518,23 @@ function refreshSettingsStaticText() {
     const view = document.getElementById('view-settings');
     if (!view) return;
 
-    const title = view.querySelector('h2');
-    if (title) title.innerHTML = 'Cài đặt <span class="text-orange-gradient">Hệ thống</span>';
-
-    const subtitle = view.querySelector('.text-gray-400.mt-2.font-medium.italic');
-    if (subtitle) subtitle.textContent = 'Tùy chỉnh cá nhân và quản trị ứng dụng';
-
+    // Title & Subtitle handled by HTML template now
+    
+    // Ensure tab buttons maintain their labels if they were somehow cleared
     const tabButtons = [
         ['tab-settings-account', 'Tài khoản'],
         ['tab-settings-interface', 'Giao diện'],
-        ['tab-settings-system', 'Hệ thống & Admin']
+        ['tab-settings-system', 'Hệ thống']
     ];
     tabButtons.forEach(([id, label]) => {
         const btn = document.getElementById(id);
         if (btn) {
-            const icon = btn.querySelector('i')?.outerHTML || '';
-            btn.innerHTML = `${icon} ${label}`;
+            const span = btn.querySelector('span');
+            if (span) span.textContent = label;
         }
     });
-
-    view.querySelectorAll('.glass-card-premium').forEach(card => card.classList.add('p-6', 'rounded-[28px]'));
-    view.querySelectorAll('.bg-white\\/2').forEach(card => card.classList.add('bg-white/5'));
-    const interfaceToggle = view.querySelector('.bgColor-white\\/5');
-    if (interfaceToggle) {
-        interfaceToggle.classList.remove('bgColor-white/5');
-        interfaceToggle.classList.add('bg-white/5');
-    }
 }
+
 
 
 
@@ -3541,17 +3551,25 @@ if (document.readyState === 'loading') {
 // --- Settings Module Support Functions ---
 
 function switchSettingsTab(tabId) {
+    console.log('[Settings] Switching to tab:', tabId);
+    
+    // Toggle Panels
     document.querySelectorAll('[id^="settings-tab-"]').forEach(el => {
         const isActive = el.id === `settings-tab-${tabId}`;
         el.classList.toggle('hidden', !isActive);
+        if (isActive) {
+            el.classList.add('settings-tab-content'); // Ensure animation runs
+        }
     });
 
-    document.querySelectorAll('[id^="tab-settings-"]').forEach(btn => {
+    // Toggle Tab Buttons
+    document.querySelectorAll('.tab-ios[id^="tab-settings-"]').forEach(btn => {
         const isActive = btn.id === `tab-settings-${tabId}`;
         btn.classList.toggle('active', isActive);
         btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
 }
+
 
 async function loadSettingsPage() {
     if (!currentUser) return;

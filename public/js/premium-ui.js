@@ -377,7 +377,8 @@
         const name = nameInput?.value || '';
         const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
         const isRecoveryMode = !!window.__authRecovery?.accessToken;
-        const originalBtnText = submitBtn?.innerText || 'Đăng nhập ngay';
+        const btnText = submitBtn?.querySelector('.btn-text');
+        const originalBtnText = btnText ? btnText.innerText : (submitBtn?.innerText || 'Đăng nhập ngay');
 
         if (errorDiv) {
             errorDiv.classList.add('hidden');
@@ -412,8 +413,9 @@
 
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerText = 'ĐANG XỬ LÝ...';
-            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            if (btnText) btnText.innerText = 'ĐANG XỬ LÝ...';
+            else submitBtn.innerText = 'ĐANG XỬ LÝ...';
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed', 'btn-loading');
         }
 
         let timeoutId = null;
@@ -500,8 +502,9 @@
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerText = originalBtnText;
-                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                if (btnText) btnText.innerText = originalBtnText;
+                else submitBtn.innerText = originalBtnText;
+                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed', 'btn-loading');
             }
         }
     };

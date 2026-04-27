@@ -1808,6 +1808,142 @@ header::after {
     }
 }
 
+/* --- NEW iOS-STYLE SETTINGS UI --- */
+.tabs-ios-container {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    width: fit-content;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.tab-ios {
+    padding: 10px 20px;
+    cursor: pointer !important;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    user-select: none;
+    pointer-events: auto !important;
+}
+
+.tab-ios i {
+    font-size: 14px;
+}
+
+.tab-ios:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-ios.active {
+    background: linear-gradient(135deg, #f47920 0%, #ff9800 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(244, 121, 32, 0.3);
+}
+
+/* SECTION TITLE */
+.settings-section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+}
+
+.settings-section-subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 25px;
+}
+
+/* CARD PROFILE */
+.settings-card-profile {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 30px;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.settings-card-profile:hover {
+    border-color: rgba(244, 121, 32, 0.2);
+}
+
+.settings-profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #f47920 0%, #ff9800 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: #fff;
+    font-weight: 800;
+    box-shadow: 0 10px 20px rgba(244, 121, 32, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-profile-info h3 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+}
+
+.settings-profile-info p {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* ANIMATION */
+@keyframes settingsFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-tab-content {
+    animation: settingsFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-card-premium {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+}
+
+.settings-card-premium:hover {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+
 /* Filter Bar & Chips */
 .filter-bar {
     display: flex;
@@ -2282,4 +2418,224 @@ header::after {
 .glass-card-premium,
 .btn-action-premium {
     contain: layout style;
+}
+
+/* ==========================================================
+   12. iOS / SaaS PREMIUM OVERRIDE (CRM REFACTOR)
+   ========================================================== */
+:root {
+  --primary: #ff7a18;
+  --primary-soft: rgba(255,122,24,0.15);
+
+  --bg-main: #0b0f1a;
+  --bg-card: rgba(255,255,255,0.04);
+
+  --text-main: #ffffff;
+  --text-sub: rgba(255,255,255,0.65);
+
+  --radius: 14px;
+  --spacing: 16px;
+}
+
+body {
+  font-family: "Inter", "SF Pro Display", system-ui, sans-serif !important;
+  line-height: 1.5 !important;
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
+}
+
+h1 { font-size: 22px !important; font-weight: 600 !important; }
+h2 { font-size: 18px !important; font-weight: 600 !important; }
+body { font-size: 14px !important; font-weight: 400 !important; }
+label { font-size: 13px !important; font-weight: 500 !important; }
+
+/* SPACING SYSTEM */
+.section {
+  margin-bottom: 24px;
+}
+
+.card {
+  padding: 20px;
+  margin-bottom: 16px;
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+/* BUTTON WITH GLOW */
+.btn {
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #ff9a3c);
+  color: #fff;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:focus, .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* INPUT + FOCUS GLOW */
+input, select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+  color: var(--text-main);
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary-soft) !important;
+}
+
+/* HOVER & MICRO INTERACTION */
+button, .card, .item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover, .item:hover {
+  filter: brightness(1.05);
+}
+
+/* GLOBAL CLICK FEEDBACK */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
+/* LIST / GMAIL STYLE */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-item {
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.list-item:hover {
+  background: rgba(255,255,255,0.06);
+  filter: brightness(1.05);
+}
+
+/* PAGE TRANSITION */
+.page {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* ==========================================================
+   13. AUTH PREMIUM ENHANCEMENTS
+   ========================================================== */
+
+/* Shimmer Sweep Animation */
+@keyframes shimmer-sweep {
+    0% { transform: translateX(-100%) skewX(-15deg); }
+    100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+.btn-premium-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-premium-shimmer::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transform: translateX(-100%) skewX(-15deg);
+}
+
+.btn-premium-shimmer:hover::after {
+    animation: shimmer-sweep 1.5s infinite;
+}
+
+/* Loading Spinner */
+.btn-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin-auth 0.8s linear infinite;
+    display: none;
+}
+
+@keyframes spin-auth {
+    to { transform: rotate(360deg); }
+}
+
+/* Loading State */
+.btn-loading {
+    pointer-events: none !important;
+    opacity: 0.85;
+}
+
+.btn-loading .btn-spinner {
+    display: block;
+}
+
+.btn-loading .btn-text {
+    opacity: 0.8;
+}
+
+/* Processing Glow for Primary Buttons */
+.btn-loading.bg-orange-gradient {
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.4),
+                0 0 80px rgba(249, 115, 22, 0.1) !important;
+    transform: scale(0.98) !important;
+}
+
+/* Refined Auth Card Depth */
+.auth-card {
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
 }
