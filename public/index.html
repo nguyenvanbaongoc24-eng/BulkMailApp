@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="css/premium-ui.css?v=3.1.0">
+    <link rel="stylesheet" href="css/premium-ui.css?v=3.2.0">
     <link rel="stylesheet" href="css/premium-datepicker.css?v=1.0.0">
     <style>
         :root {
@@ -337,7 +337,39 @@
             box-shadow: none !important;
         }
 
+        /* 
+           RESCUE LAYOUT FIX 
+           Forces everything to the top and stretches to full width.
+        */
+        #main-content, .content, .main, .app {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: stretch !important;
+            min-height: 0 !important;
+            height: 100% !important;
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
 
+        .main-container, [id^="view-"] {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: stretch !important;
+            margin: 0 !important;
+            padding-top: 20px !important;
+            width: 100% !important;
+            max-width: none !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
+
+        .tabs-ios-container {
+            margin-top: 0 !important;
+            align-self: stretch !important;
+            width: 100% !important;
+        }
     </style>
 </head>
 <body class="bg-dark-purple">
