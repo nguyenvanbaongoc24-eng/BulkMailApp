@@ -2652,48 +2652,37 @@ button:hover, .item:hover {
 /* Page Container - Top-aligned, Full-width stretching */
 .main-container {
     width: 100% !important;
-    max-width: none !important; /* Stretch to sides as requested */
+    max-width: none !important;
     margin: 0 !important;
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 20px;
     align-items: stretch !important;
-    justify-content: flex-start !important; /* Forces top alignment */
-    min-height: auto !important;
+    justify-content: flex-start !important; /* Force content to top */
+    min-height: auto !important; /* Remove height that causes centering */
     padding: 0 !important;
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
-/* Base Glass Card */
-.ios-glass-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: 20px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* User-requested class mapping */
+.main-content {
+    padding-top: 16px !important;
 }
 
-.ios-glass-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+.tabs {
+    margin-top: 12px !important;
+    align-self: flex-start !important;
 }
 
-/* Standard Content Grid */
-.content-grid {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: 20px;
-    margin-top: 16px;
-}
-@media (min-width: 1024px) {
-    .content-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+/* Main Content Area - Top Aligned, No Centering */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important; /* Force to top */
+    align-items: stretch !important;
+    padding: 16px 24px !important; /* User requirement 5 */
+    margin: 0 !important;
+    min-height: 0 !important;
 }
 
 /* Tabs - Fixed at top, immediately under header */
@@ -2701,7 +2690,7 @@ button:hover, .item:hover {
     align-self: stretch !important;
     display: flex !important;
     width: 100% !important;
-    margin-top: 12px !important; /* Requirement 6 */
+    margin-top: 12px !important; /* User requirement 6 */
     margin-bottom: 20px !important;
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.04) !important;
@@ -2748,19 +2737,17 @@ button:hover, .item:hover {
     }
 }
 
-/* Main Content Area - Top Aligned, No Centering */
-.content {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
-    padding: 16px 24px !important; /* Requirement 5 */
-    margin: 0 !important;
-    min-height: 0 !important;
-}
-
 /* Ensure hidden always works regardless of specificity */
 .hidden {
     display: none !important;
+}
+
+/* Nuclear reset for any centering on views */
+[id^="view-"] {
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
 }
 
