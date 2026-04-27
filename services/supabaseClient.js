@@ -26,7 +26,15 @@ const getClient = (token) => {
     });
 };
 
+const getUserScopedClient = (token) => createClient(supabaseUrl, supabaseKey, {
+    global: {
+        headers: token ? {
+            Authorization: `Bearer ${token}`
+        } : {}
+    }
+});
+
 // Public Client (Anon Key) - Subject to RLS
 const anonClient = createClient(supabaseUrl, supabaseKey);
 
-module.exports = { adminClient, anonClient, getClient };
+module.exports = { adminClient, anonClient, getClient, getUserScopedClient };

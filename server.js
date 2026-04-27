@@ -23,7 +23,7 @@ try {
 } catch (e) {
     console.warn('[SERVER] ⚠ Scraper service not loaded (puppeteer missing). Automation routes will be disabled.');
 }
-const { adminClient: supabase, anonClient, getClient } = require('./services/supabaseClient');
+const { adminClient: supabase, anonClient, getClient, getUserScopedClient } = require('./services/supabaseClient');
 const { google } = require('googleapis');
 
 // Removed PUPPETEER_CACHE_DIR override to allow .puppeteerrc.cjs to manage cache location (Phase 8)
@@ -403,6 +403,41 @@ app.post('/api/reset-password', async (req, res) => {
 
         return res.json({
             message: 'Nếu email tồn tại, hệ thống đã gửi hướng dẫn đặt lại mật khẩu.'
+        });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/reset-password/confirm', async (req, res) => {
+    try {
+        const accessToken = String(req.body?.access_token || '').trim();
+        const password = String(req.body?.password || '');
+
+        if (!accessToken) {
+            return res.status(400).json({ error: 'Thiếu access token đặt lại mật khẩu.' });
+        }
+
+        if (!password || password.length < 6) {
+            return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+        }
+
+        const recoveryClient = getUserScopedClient(accessToken);
+        const { data: userData, error: userError } = await recoveryClient.auth.getUser(accessToken);
+        if (userError || !userData?.user) {
+            return res.status(401).json({ error: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.' });
+        }
+
+        const { data, error } = await recoveryClient.auth.updateUser({ password });
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        return res.json({
+            success: true,
+            token: accessToken,
+            user: data?.user || userData.user,
+            message: 'Đặt lại mật khẩu thành công.'
         });
     } catch (err) {
         return res.status(500).json({ error: err.message });

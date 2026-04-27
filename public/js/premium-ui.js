@@ -259,17 +259,124 @@
         }
     }
 
+    function parseAuthParams(raw) {
+        const cleaned = (raw || '').replace(/^[#?]/, '');
+        return new URLSearchParams(cleaned);
+    }
+
+    function getRecoveryPayloadFromUrl() {
+        const hashParams = parseAuthParams(window.location.hash);
+        const searchParams = parseAuthParams(window.location.search);
+        const type = hashParams.get('type') || searchParams.get('type');
+        const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+
+        if (type === 'recovery' && accessToken) {
+            return {
+                type,
+                accessToken,
+                refreshToken: hashParams.get('refresh_token') || searchParams.get('refresh_token') || ''
+            };
+        }
+
+        return null;
+    }
+
+    function clearRecoveryTokensFromUrl() {
+        if (!window.location.hash && !window.location.search) return;
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    function ensureRecoveryField() {
+        let recoveryField = document.getElementById('auth-password-confirm');
+        if (recoveryField) return recoveryField;
+
+        const passwordField = document.getElementById('auth-password')?.closest('div');
+        if (!passwordField || !passwordField.parentElement) return null;
+
+        const wrapper = document.createElement('div');
+        wrapper.id = 'auth-recovery-confirm-wrap';
+        wrapper.className = 'hidden';
+        wrapper.innerHTML = `
+            <label class="uppercase-label mb-2 ml-1 block">Xác nhận mật khẩu mới</label>
+            <input id="auth-password-confirm" type="password" placeholder="••••••••" class="w-full px-5 py-4 rounded-2xl outline-none border-0 ring-1 ring-white/10 focus:ring-orange-500/50 bg-white/5 text-white transition-all">
+        `;
+        passwordField.insertAdjacentElement('afterend', wrapper);
+        return wrapper.querySelector('#auth-password-confirm');
+    }
+
+    function setRecoveryMode(enabled) {
+        const subtitle = document.getElementById('auth-subtitle');
+        const submitBtn = document.getElementById('auth-submit-btn');
+        const switchText = document.getElementById('auth-switch-text');
+        const switchBtn = document.getElementById('auth-switch-btn');
+        const registerFields = document.getElementById('register-fields');
+        const emailInput = document.getElementById('auth-email');
+        const passwordInput = document.getElementById('auth-password');
+        const recoveryWrap = ensureRecoveryField()?.closest('#auth-recovery-confirm-wrap');
+
+        if (enabled) {
+            window.__authRecovery = getRecoveryPayloadFromUrl();
+            if (registerFields) registerFields.classList.add('hidden');
+            if (subtitle) subtitle.innerText = 'Đặt mật khẩu mới để tiếp tục vào hệ thống';
+            if (submitBtn) submitBtn.innerText = 'Cập nhật mật khẩu';
+            if (switchText) switchText.innerText = 'Link reset hợp lệ trong thời gian ngắn.';
+            if (switchBtn) {
+                switchBtn.innerText = 'Về đăng nhập';
+                switchBtn.onclick = (e) => {
+                    e.preventDefault();
+                    window.__authRecovery = null;
+                    setRecoveryMode(false);
+                    clearRecoveryTokensFromUrl();
+                };
+            }
+            if (emailInput) {
+                emailInput.disabled = true;
+                emailInput.placeholder = 'Liên kết khôi phục đang hoạt động';
+                emailInput.value = '';
+            }
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.placeholder = 'Nhập mật khẩu mới';
+            }
+            if (recoveryWrap) recoveryWrap.classList.remove('hidden');
+        } else {
+            window.__authRecovery = null;
+            if (subtitle) subtitle.innerText = 'Đăng nhập để tiếp tục quản lý chiến dịch';
+            if (submitBtn) submitBtn.innerText = 'Đăng nhập ngay';
+            if (switchText) switchText.innerText = 'Chưa có tài khoản?';
+            if (switchBtn) {
+                switchBtn.innerText = 'Tham gia ngay';
+                switchBtn.onclick = null;
+                switchBtn.setAttribute('onclick', 'toggleAuthMode()');
+            }
+            if (emailInput) {
+                emailInput.disabled = false;
+                emailInput.placeholder = 'name@company.com';
+            }
+            if (passwordInput) {
+                passwordInput.placeholder = '••••••••';
+            }
+            if (recoveryWrap) {
+                recoveryWrap.classList.add('hidden');
+                const confirmInput = recoveryWrap.querySelector('#auth-password-confirm');
+                if (confirmInput) confirmInput.value = '';
+            }
+        }
+    }
+
     window.handleAuthSubmit = async function handleAuthSubmitPatched() {
         const emailInput = document.getElementById('auth-email');
         const passwordInput = document.getElementById('auth-password');
         const nameInput = document.getElementById('auth-name');
         const registerFields = document.getElementById('register-fields');
+        const confirmPasswordInput = ensureRecoveryField();
         const submitBtn = document.getElementById('auth-submit-btn');
         const errorDiv = document.getElementById('auth-error');
         const email = String(emailInput?.value || '').trim();
         const password = passwordInput?.value || '';
         const name = nameInput?.value || '';
         const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
+        const isRecoveryMode = !!window.__authRecovery?.accessToken;
         const originalBtnText = submitBtn?.innerText || 'Đăng nhập ngay';
 
         if (errorDiv) {
@@ -277,7 +384,7 @@
             errorDiv.textContent = '';
         }
 
-        if (!email) {
+        if (!isRecoveryMode && !email) {
             showAuthMessage('Vui lòng nhập email.');
             emailInput?.focus();
             return;
@@ -287,6 +394,20 @@
             showAuthMessage('Vui lòng nhập mật khẩu.');
             passwordInput?.focus();
             return;
+        }
+
+        if (isRecoveryMode) {
+            const confirmPassword = confirmPasswordInput?.value || '';
+            if (password.length < 6) {
+                showAuthMessage('Mật khẩu mới phải có ít nhất 6 ký tự.');
+                passwordInput?.focus();
+                return;
+            }
+            if (password !== confirmPassword) {
+                showAuthMessage('Mật khẩu xác nhận không khớp.');
+                confirmPasswordInput?.focus();
+                return;
+            }
         }
 
         if (submitBtn) {
@@ -300,11 +421,17 @@
         try {
             const controller = new AbortController();
             timeoutId = setTimeout(() => controller.abort(), 15000);
-            const url = isRegister ? '/api/register' : '/api/login';
+            const url = isRecoveryMode
+                ? '/api/reset-password/confirm'
+                : (isRegister ? '/api/register' : '/api/login');
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, name }),
+                body: JSON.stringify(
+                    isRecoveryMode
+                        ? { access_token: window.__authRecovery.accessToken, password }
+                        : { email, password, name }
+                ),
                 signal: controller.signal
             });
 
@@ -327,6 +454,24 @@
 
             if (!res.ok) {
                 showAuthMessage(data.error || 'Không thể đăng nhập.');
+                return;
+            }
+
+            if (isRecoveryMode) {
+                if (data.token) {
+                    localStorage.setItem('sb-token', data.token);
+                    if (typeof window.saveCurrentSession === 'function') {
+                        window.saveCurrentSession(data.token, data.user);
+                    }
+                }
+                clearRecoveryTokensFromUrl();
+                window.__authRecovery = null;
+                showAuthMessage(data.message || 'Đặt lại mật khẩu thành công.', 'success');
+                if (typeof window.checkAuth === 'function') {
+                    await window.checkAuth();
+                } else {
+                    window.location.reload();
+                }
                 return;
             }
 
@@ -368,6 +513,13 @@
         const passwordInput = document.getElementById('auth-password');
         const emailInput = document.getElementById('auth-email');
         const nameInput = document.getElementById('auth-name');
+        const recoveryPayload = getRecoveryPayloadFromUrl();
+
+        ensureRecoveryField();
+
+        if (recoveryPayload) {
+            setRecoveryMode(true);
+        }
 
         [emailInput, passwordInput, nameInput].forEach((input) => {
             input?.addEventListener('keydown', (e) => {
