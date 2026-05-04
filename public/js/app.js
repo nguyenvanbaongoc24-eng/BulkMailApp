@@ -890,21 +890,40 @@ function syncCRMDurationWithPackage(packageValue = '') {
     const targetValue = packageValue || pkgSelect.value;
     const option = [...pkgSelect.options].find(opt => opt.value === targetValue) || pkgSelect.selectedOptions?.[0];
     
-    const durationLabel = inferDurationFromPackage(serviceSelect.value, option || targetValue);
-    console.log('[CRM-Sync] Final Duration Label:', durationLabel);
+    let durationLabel = '';
+    
+    // PRIORITY: Data-driven duration from numeric months
+    if (option && option.dataset.durationMonths) {
+        const months = parseInt(option.dataset.durationMonths, 10);
+        if (months > 0) {
+            if (months % 12 === 0) {
+                durationLabel = `${months / 12} năm`;
+            } else {
+                durationLabel = `${months} tháng`;
+            }
+            console.log('[CRM-Sync] Using numeric data:', { months, durationLabel });
+        }
+    }
+
+    // FALLBACK: String inference
+    if (!durationLabel) {
+        durationLabel = inferDurationFromPackage(serviceSelect.value, option || targetValue);
+        console.log('[CRM-Sync] Fallback to inference:', durationLabel);
+    }
     
     if (!durationLabel) return;
 
     const normalizedDurLabel = normalizeText(durationLabel);
     const existingOpt = [...durationSelect.options].find(opt => 
-        normalizeText(opt.value) === normalizedDurLabel || normalizeText(opt.textContent).includes(normalizedDurLabel)
+        normalizeText(opt.value) === normalizedDurLabel || 
+        normalizeText(opt.textContent).includes(normalizedDurLabel)
     );
 
     if (existingOpt) {
         durationSelect.value = existingOpt.value;
-        console.log('[CRM-Sync] Selection set to:', existingOpt.value);
+        console.log('[CRM-Sync] UI updated to:', existingOpt.value);
     } else {
-        console.warn('[CRM-Sync] Label not found in duration options, creating fallback:', durationLabel);
+        console.warn('[CRM-Sync] Label not found in options, creating fallback:', durationLabel);
         const extraOpt = document.createElement('option');
         extraOpt.value = durationLabel;
         extraOpt.textContent = durationLabel;
@@ -3221,6 +3240,7 @@ function updateCRMPackages() {
         opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}đ`;
         opt.dataset.price = String(p.price || 0);
         opt.dataset.durationLabel = durationLabel;
+        opt.dataset.durationMonths = String(p.duration_months || '');
         opt.dataset.transactionType = p.transaction_type || '';
         opt.dataset.category = p.category || '';
         pkgSelect.appendChild(opt);
