@@ -849,14 +849,18 @@ function syncCRMDurationWithPackage(packageValue = '') {
     const durationLabel = inferDurationFromPackage(serviceSelect.value, option || targetValue);
     if (!durationLabel) return;
 
-    if (![...durationSelect.options].some(opt => opt.value === durationLabel)) {
+    const normalizedDurLabel = normalizeText(durationLabel);
+    const existingOpt = [...durationSelect.options].find(opt => normalizeText(opt.value) === normalizedDurLabel);
+
+    if (existingOpt) {
+        durationSelect.value = existingOpt.value;
+    } else {
         const extraOpt = document.createElement('option');
         extraOpt.value = durationLabel;
         extraOpt.textContent = durationLabel;
         durationSelect.appendChild(extraOpt);
+        durationSelect.value = durationLabel;
     }
-
-    durationSelect.value = durationLabel;
 }
 
 function syncCRMPackageWithDuration() {
@@ -864,13 +868,26 @@ function syncCRMPackageWithDuration() {
     const durationSelect = document.getElementById('ca2-crm-duration');
     if (!pkgSelect || !durationSelect || !durationSelect.value) return;
 
-    const exact = [...pkgSelect.options].find(opt => (opt.dataset.durationLabel || '') === durationSelect.value);
+    const durationVal = durationSelect.value;
+    const normalizedDur = normalizeText(durationVal);
+    
+    const exact = [...pkgSelect.options].find(opt => (opt.dataset.durationLabel || '') === durationVal);
     if (exact) {
         pkgSelect.value = exact.value;
         return;
     }
 
-    const loose = [...pkgSelect.options].find(opt => normalizeText(opt.textContent).includes(normalizeText(durationSelect.value)));
+    let possibleMonthDur = "";
+    const yearMatch = normalizedDur.match(/(\d+)\s*nam/);
+    if (yearMatch) {
+        possibleMonthDur = `${parseInt(yearMatch[1], 10) * 12} thang`;
+    }
+
+    const loose = [...pkgSelect.options].find(opt => {
+        const txt = normalizeText(opt.textContent);
+        return txt.includes(normalizedDur) || (possibleMonthDur && txt.includes(possibleMonthDur));
+    });
+
     if (loose) pkgSelect.value = loose.value;
 }
 
