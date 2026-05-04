@@ -25,6 +25,8 @@ class PricingManager {
             this.pricingData = data.items || [];
             this.draftItems = JSON.parse(JSON.stringify(this.pricingData)); // Deep copy
             
+            console.log('[PRICING] Loaded packages from DB:', this.pricingData.length, 'items');
+            
             if (data.version) {
                 const verEl = document.getElementById('current-version-name');
                 if (verEl) verEl.textContent = data.version.name;
@@ -199,7 +201,7 @@ class PricingManager {
         return total;
     }
 
-    static saveItem() {
+    static async saveItem() {
         const subjects = Array.from(document.querySelectorAll('.field-subject:checked')).map(cb => cb.value).join(', ');
         
         const item = {
@@ -222,27 +224,85 @@ class PricingManager {
             return;
         }
 
+        console.log('[PRICING] Saving package:', item);
+
         if (this.editingIndex >= 0) {
             this.draftItems[this.editingIndex] = item;
-            showToast('✅ Đã cập nhật gói cước', 'success');
         } else {
             this.draftItems.push(item);
-            showToast('✅ Đã thêm gói cước mới', 'success');
         }
 
         closeModal('modal-pricing-crud');
-        this.render();
-    }
+        
+        // AUTO-PERSIST to database immediately
+        try {
+            showToast('⏳ Đang lưu vào hệ thống...', 'info');
+            const res = await fetch('/api/pricing/version', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('sb-token')}`
+                },
+                body: JSON.stringify({
+                    name: `Bảng giá ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}`,
+                    items: this.draftItems
+                })
+            });
 
-    static deleteItem(index) {
-        const item = this.draftItems[index];
-        if (confirm(`Bạn có chắc muốn xóa gói [${item.product_code}]?`)) {
-            this.deletedItem = { index, data: this.draftItems[index] };
-            this.draftItems.splice(index, 1);
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${res.status}`);
+            }
+
+            showToast('✅ Đã lưu gói cước vào database!', 'success');
+            
+            // Reload from DB to ensure consistency
+            await this.loadActivePricing();
             this.render();
             
-            showToast(`🗑 Đã xóa gói ${item.product_code}`, 'info');
-            // Logic for Undo could go here if we wanted a real toast with action
+            // Sync CRM dropdown with new pricing data
+            if (typeof loadCRMPrices === 'function') await loadCRMPrices();
+            if (window.PricingEngine) PricingEngine.init();
+            
+            console.log('[PRICING] Loaded packages after save:', this.pricingData.length, 'items');
+        } catch (err) {
+            console.error('[PRICING] Save to DB error:', err);
+            showToast('❌ Lỗi khi lưu: ' + err.message, 'error');
+        }
+    }
+
+    static async deleteItem(index) {
+        const item = this.draftItems[index];
+        if (!confirm(`Bạn có chắc muốn xóa gói [${item.product_code}]?`)) return;
+        
+        this.deletedItem = { index, data: this.draftItems[index] };
+        this.draftItems.splice(index, 1);
+        this.render();
+        
+        // AUTO-PERSIST deletion to database
+        try {
+            showToast('⏳ Đang xóa khỏi hệ thống...', 'info');
+            const res = await fetch('/api/pricing/version', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('sb-token')}`
+                },
+                body: JSON.stringify({
+                    name: `Bảng giá ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}`,
+                    items: this.draftItems
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to persist deletion');
+            
+            showToast(`🗑 Đã xóa gói ${item.product_code}`, 'success');
+            await this.loadActivePricing();
+            this.render();
+            if (typeof loadCRMPrices === 'function') await loadCRMPrices();
+        } catch (err) {
+            console.error('[PRICING] Delete persist error:', err);
+            showToast('❌ Lỗi khi xóa: ' + err.message, 'error');
         }
     }
 
