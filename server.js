@@ -1303,7 +1303,7 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
         if (cks_type) insertData.cks_type = cks_type;
         if (req.body.payment_status) insertData.payment_status = req.body.payment_status;
 
-        const { data, error } = await getClient(req.token).from('customers').upsert(insertData, { onConflict: 'user_id,mst,service_type' }).select();
+        const { data, error } = await getClient(req.token).from('customers').insert(insertData).select();
 
         if (error) throw error;
         res.json({ success: true, data: data[0] });
@@ -1688,44 +1688,6 @@ app.get('/api/stats', authenticate, async (req, res) => {
 });
 
 
-app.post('/api/ca2-crm', authenticate, async (req, res) => {
-    try {
-        const payload = { ...req.body, user_id: req.user.id };
-        const { data, error } = await supabase.from('customers').insert([payload]).select();
-        if (error) throw error;
-        res.json(data[0]);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { data, error } = await supabase
-            .from('customers')
-            .update(req.body)
-            .eq('id', id)
-            .eq('user_id', req.user.id)
-            .select();
-        if (error) throw error;
-        res.json(data[0]);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.delete('/api/ca2-crm/:id', authenticate, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { error } = await supabase.from('customers').delete().eq('id', id).eq('user_id', req.user.id);
-        if (error) throw error;
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
     try {
         const { data: rawData, mode } = req.body;
@@ -1831,7 +1793,7 @@ app.post('/api/ca2-crm/import', authenticate, async (req, res) => {
             await supabase.from('customers').delete().eq('user_id', req.user.id);
         }
 
-        const { error } = await supabase.from('customers').upsert(mappedData, { onConflict: 'user_id,mst,service_type' });
+        const { error } = await supabase.from('customers').insert(mappedData);
         if (error) throw error;
 
         res.json({ success: true, count: mappedData.length });
