@@ -821,20 +821,23 @@ function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
     if (!pkgName) return '';
     if (pkgOptionOrName?.dataset?.durationLabel) return pkgOptionOrName.dataset.durationLabel;
 
-    const countMatch = normalizedPkg.match(/(\d+)\s*so/);
-    if (countMatch) return `${countMatch[1]} số`;
-
+    // Regex support for: nam, year, thang, month, so, count
     const yearMatch = normalizedPkg.match(/(\d+)\s*(nam|year)/);
     if (yearMatch) return `${yearMatch[1]} năm`;
 
-    const monthMatch = normalizedPkg.match(/(\d+)\s*thang/);
+    const monthMatch = normalizedPkg.match(/(\d+)\s*(thang|month)/);
     if (monthMatch) {
         const months = parseInt(monthMatch[1], 10);
         if (months % 12 === 0 && months <= 60) return `${months / 12} năm`;
         return `${months} tháng`;
     }
 
+    const countMatch = normalizedPkg.match(/(\d+)\s*(so|count|to)/);
+    if (countMatch) return `${countMatch[1]} số`;
+
     if (normalizedService.includes('hoa don')) return '500 số';
+    if (normalizedService.includes('bao hiem') || normalizedService.includes('ebh')) return '1 năm';
+    
     return '1 năm';
 }
 
@@ -1080,30 +1083,7 @@ function formatDate(dateStr) {
 let CRM_PRICE_LIST = []; // Now an array of objects
 let pricingCacheTime = 0;
 
-async function loadCRMPrices() {
-    try {
-        if (!PricingManager.pricingData || PricingManager.pricingData.length === 0) {
-            await PricingManager.loadActivePricing();
-        }
-        
-        // Map new schema to legacy format for CRM compatibility
-        const flattened = PricingManager.pricingData.map(item => ({
-            id: item.id,
-            service_name: item.product_group, // CKS, RS, etc.
-            package_name: item.package_name,
-            price: item.total_price,
-            category: item.subject_type, // "Công ty", "Cá nhân", etc.
-            is_active: item.is_active,
-            product_code: item.product_code
-        }));
 
-        CRM_PRICE_LIST = flattened;
-        console.log('[CRM] Pricing updated from Versioned System:', CRM_PRICE_LIST.length, 'items');
-        refreshPricingUI();
-    } catch (err) {
-        console.error('[CRM] Error loading prices:', err);
-    }
-}
 
 function refreshPricingUI() {
     const crmView = document.getElementById('view-ca2-crm');
@@ -1140,113 +1120,9 @@ function getCRMPrice(service, type, pkg) {
     return 0;
 }
 
-function updateCRMPackages() {
-    const serviceVal = document.getElementById('ca2-crm-service').value;
-    const customerType = document.getElementById('ca2-crm-customer-type').value;
-    const pkgSelect = document.getElementById('ca2-crm-package');
-    if (!pkgSelect) return;
 
-    const oldVal = pkgSelect.value;
-    pkgSelect.innerHTML = '';
 
-    // Map CRM select value to Product Group and Transaction Type
-    const mapping = mapCRMServiceToPricing(serviceVal);
-    
-    // Filter by Service Group, Subject Type, and Transaction Type
-    const filtered = CRM_PRICE_LIST.filter(p => {
-        const groupMatch = p.service_name === mapping.group;
-        const categoryMatch = p.category && (
-            p.category.includes(customerType) || 
-            customerType.includes(p.category) ||
-            (customerType.includes('Công ty') && p.category.includes('Công ty')) ||
-            (customerType.includes('Cá nhân') && p.category.includes('Cá nhân'))
-        );
-        const transactionMatch = mapping.transaction === 'all' || 
-                               (p.package_name && p.package_name.toLowerCase().includes(mapping.transaction.toLowerCase()));
-        
-        return groupMatch && categoryMatch && transactionMatch;
-    });
 
-    // If no exact transaction match, try filtering by group and category only
-    let itemsToDisplay = filtered;
-    if (itemsToDisplay.length === 0) {
-        itemsToDisplay = CRM_PRICE_LIST.filter(p => 
-            p.service_name === mapping.group && 
-            p.category.includes(customerType)
-        );
-    }
-    
-    if (itemsToDisplay.length === 0) {
-        pkgSelect.innerHTML = '<option value="">Chưa có gói</option>';
-        return;
-    }
-
-    itemsToDisplay.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.package_name;
-        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price)}đ`;
-        pkgSelect.appendChild(opt);
-    });
-
-    if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) {
-        pkgSelect.value = oldVal;
-    }
-    
-    // Sync cks-type hidden field for duration logic
-    const cksTypeInput = document.getElementById('ca2-crm-cks-type');
-    if (cksTypeInput) {
-        if (serviceVal.includes('Gia hạn dùng thử')) cksTypeInput.value = 'gia_han_thu';
-        else if (serviceVal.includes('Gia hạn')) cksTypeInput.value = 'gia_han';
-        else cksTypeInput.value = 'cap_moi';
-    }
-
-    updateCRMDurationOptions();
-    syncCRMDurationWithPackage();
-    updateCRMBonusMonths();
-    calculatePrice();
-}
-
-function mapCRMServiceToPricing(val) {
-    if (val.includes('CKS – Cấp mới')) return { group: 'CKS', transaction: 'Cấp mới' };
-    if (val.includes('CKS – Gia hạn')) return { group: 'CKS', transaction: 'Gia hạn' };
-    if (val.includes('CKS - Gia hạn dùng thử')) return { group: 'CKS', transaction: 'Gia hạn dùng thử' };
-    if (val.includes('Remote Signing')) return { group: 'RS', transaction: 'all' };
-    if (val.includes('Hóa đơn điện tử') && val.includes('Cấp mới')) return { group: 'eINVOICE', transaction: 'Cấp mới' };
-    if (val.includes('Hóa đơn điện tử') && val.includes('Gia hạn')) return { group: 'eINVOICE', transaction: 'Gia hạn' };
-    if (val.includes('Hóa đơn điện tử')) return { group: 'eINVOICE', transaction: 'all' };
-    if (val.includes('EBH')) return { group: 'EBH', transaction: 'all' };
-    if (val.includes('Sign Platform')) return { group: 'SP', transaction: 'all' };
-    return { group: val, transaction: 'all' };
-}
-
-function calculatePrice() {
-    const serviceVal = document.getElementById('ca2-crm-service').value;
-    const customerType = document.getElementById('ca2-crm-customer-type').value;
-    const pkg = document.getElementById('ca2-crm-package').value;
-    const amountInput = document.getElementById('ca2-crm-amount');
-    const durationSelect = document.getElementById('ca2-crm-duration');
-
-    const mapping = mapCRMServiceToPricing(serviceVal);
-
-    const match = CRM_PRICE_LIST.find(p => {
-        const groupMatch = p.service_name === mapping.group;
-        // Flexible category matching: "Công ty" vs "Tổ chức / Doanh nghiệp", "Cá nhân" vs "Cá nhân / Hộ KD"
-        const categoryMatch = p.category && (
-            p.category.includes(customerType) || 
-            customerType.includes(p.category) ||
-            (customerType.includes('Công ty') && p.category.includes('Công ty')) ||
-            (customerType.includes('Cá nhân') && p.category.includes('Cá nhân'))
-        );
-        const pkgMatch = p.package_name && (
-            p.package_name.toLowerCase().includes(pkg.toLowerCase()) ||
-            pkg.toLowerCase().includes(p.package_name.toLowerCase())
-        );
-        return groupMatch && categoryMatch && pkgMatch;
-    });
-    if (match) {
-        amountInput.value = new Intl.NumberFormat('vi-VN').format(match.price);
-    }
-}
 
 
 async function saveCA2CRM() {
@@ -2893,90 +2769,7 @@ function renderCA2CRM() {
     if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
 }
 
-function updateCRMPackages() {
-    const serviceVal = document.getElementById('ca2-crm-service').value;
-    const customerType = document.getElementById('ca2-crm-customer-type').value;
-    const pkgSelect = document.getElementById('ca2-crm-package');
-    if (!pkgSelect) return;
 
-    const oldVal = pkgSelect.value;
-    pkgSelect.innerHTML = '';
-
-    const mapping = mapCRMServiceToPricing(serviceVal);
-    let itemsToDisplay = CRM_PRICE_LIST.filter(p => {
-        const groupMatch = p.service_name === mapping.group;
-        const categoryText = normalizeText(p.category);
-        const customerText = normalizeText(customerType);
-        const categoryMatch = categoryText.includes(customerText) || customerText.includes(categoryText);
-        const transactionMatch = mapping.transaction === 'all' || normalizeText(p.package_name).includes(normalizeText(mapping.transaction));
-        return groupMatch && categoryMatch && transactionMatch;
-    });
-
-    if (!itemsToDisplay.length) {
-        itemsToDisplay = CRM_PRICE_LIST.filter(p => p.service_name === mapping.group);
-    }
-
-    if (!itemsToDisplay.length) {
-        pkgSelect.innerHTML = '<option value="">ChÆ°a cÃ³ gÃ³i</option>';
-        return;
-    }
-
-    itemsToDisplay.forEach(p => {
-        const opt = document.createElement('option');
-        const durationLabel = inferDurationFromPackage(serviceVal, `${p.duration_months || ''} tháng ${p.package_name || ''}`);
-        opt.value = p.package_name;
-        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price)}đ`;
-        opt.dataset.price = p.price || 0;
-        opt.dataset.durationLabel = durationLabel;
-        pkgSelect.appendChild(opt);
-    });
-
-    if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) pkgSelect.value = oldVal;
-    else pkgSelect.selectedIndex = 0;
-
-    const cksTypeInput = document.getElementById('ca2-crm-cks-type');
-    if (cksTypeInput) {
-        if (normalizeText(serviceVal).includes('gia han dung thu')) cksTypeInput.value = 'gia_han_thu';
-        else if (normalizeText(serviceVal).includes('gia han')) cksTypeInput.value = 'gia_han';
-        else cksTypeInput.value = 'cap_moi';
-    }
-
-    updateCRMDurationOptions();
-    syncCRMDurationWithPackage(pkgSelect.value);
-    updateCRMBonusMonths();
-    calculatePrice();
-}
-
-function calculatePrice() {
-    const pkgSelect = document.getElementById('ca2-crm-package');
-    const amountInput = document.getElementById('ca2-crm-amount');
-    if (!pkgSelect || !amountInput) return;
-
-    const selectedOption = pkgSelect.selectedOptions?.[0];
-    const optionPrice = parseInt(selectedOption?.dataset?.price || '0', 10);
-    if (optionPrice > 0) {
-        amountInput.value = new Intl.NumberFormat('vi-VN').format(optionPrice);
-        syncCRMDurationWithPackage(pkgSelect.value);
-        return;
-    }
-
-    const serviceVal = document.getElementById('ca2-crm-service').value;
-    const customerType = document.getElementById('ca2-crm-customer-type').value;
-    const pkg = pkgSelect.value;
-    const mapping = mapCRMServiceToPricing(serviceVal);
-
-    const match = CRM_PRICE_LIST.find(p => {
-        const groupMatch = p.service_name === mapping.group;
-        const categoryText = normalizeText(p.category);
-        const customerText = normalizeText(customerType);
-        const categoryMatch = categoryText.includes(customerText) || customerText.includes(categoryText);
-        const pkgMatch = normalizeText(p.package_name).includes(normalizeText(pkg)) || normalizeText(pkg).includes(normalizeText(p.package_name));
-        return groupMatch && categoryMatch && pkgMatch;
-    });
-
-    amountInput.value = new Intl.NumberFormat('vi-VN').format(match?.price || 0);
-    syncCRMDurationWithPackage(pkg);
-}
 
 async function createCampaignFromCA2CRM() {
     const filterType = document.getElementById('crm-filter-service').value;
@@ -3323,6 +3116,12 @@ async function loadCRMPrices() {
             duration_months: item.duration_months || extractDurationMonthsFromPackage(item.package_name),
             transaction_type: item.transaction_type || ''
         }));
+
+        // Standardize service names for EBH/BHXH
+        CRM_PRICE_LIST.forEach(p => {
+            if (p.service_name === 'Bảo hiểm xã hội') p.service_name = 'EBH';
+            if (p.service_name === 'Hóa đơn điện tử') p.service_name = 'eINVOICE';
+        });
 
         refreshPricingUI();
     } catch (err) {
