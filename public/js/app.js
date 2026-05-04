@@ -890,9 +890,11 @@ function syncCRMDurationWithPackage(packageValue = '') {
     const targetValue = packageValue || pkgSelect.value;
     const option = [...pkgSelect.options].find(opt => opt.value === targetValue) || pkgSelect.selectedOptions?.[0];
     
+    console.log('[CRM-Sync] Starting sync for package:', targetValue);
+    
     let durationLabel = '';
     
-    // PRIORITY: Data-driven duration from numeric months
+    // PRIORITY 1: Data-driven duration from numeric months
     if (option && option.dataset.durationMonths) {
         const months = parseInt(option.dataset.durationMonths, 10);
         if (months > 0) {
@@ -901,35 +903,60 @@ function syncCRMDurationWithPackage(packageValue = '') {
             } else {
                 durationLabel = `${months} tháng`;
             }
-            console.log('[CRM-Sync] Using numeric data:', { months, durationLabel });
+            console.log('[CRM-Sync] Found numeric months:', months, '-> label:', durationLabel);
         }
+    }
+
+    // PRIORITY 2: dataset.durationLabel
+    if (!durationLabel && option && option.dataset.durationLabel) {
+        durationLabel = option.dataset.durationLabel;
+        console.log('[CRM-Sync] Using dataset.durationLabel:', durationLabel);
     }
 
     // FALLBACK: String inference
     if (!durationLabel) {
         durationLabel = inferDurationFromPackage(serviceSelect.value, option || targetValue);
-        console.log('[CRM-Sync] Fallback to inference:', durationLabel);
+        console.log('[CRM-Sync] Falling back to inference:', durationLabel);
     }
     
-    if (!durationLabel) return;
+    if (!durationLabel) {
+        console.warn('[CRM-Sync] Could not determine duration label');
+        return;
+    }
 
     const normalizedDurLabel = normalizeText(durationLabel);
-    const existingOpt = [...durationSelect.options].find(opt => 
-        normalizeText(opt.value) === normalizedDurLabel || 
-        normalizeText(opt.textContent).includes(normalizedDurLabel)
-    );
+    console.log('[CRM-Sync] Searching for option matching:', normalizedDurLabel);
+
+    // Try to find the best matching option in the duration dropdown
+    let existingOpt = [...durationSelect.options].find(opt => {
+        const valNorm = normalizeText(opt.value);
+        const textNorm = normalizeText(opt.textContent);
+        
+        // Exact match on value is best
+        if (valNorm === normalizedDurLabel) return true;
+        
+        // If label is "1 năm", match "1 năm (+3 tháng)" or similar
+        // We check if the option text STARTS with the label (e.g. "1 năm" matches "1 năm (+3 tháng)")
+        if (textNorm.startsWith(normalizedDurLabel)) return true;
+        
+        return false;
+    });
 
     if (existingOpt) {
         durationSelect.value = existingOpt.value;
-        console.log('[CRM-Sync] UI updated to:', existingOpt.value);
+        console.log('[CRM-Sync] SUCCESS: Set durationSelect.value to:', existingOpt.value);
     } else {
-        console.warn('[CRM-Sync] Label not found in options, creating fallback:', durationLabel);
+        console.warn('[CRM-Sync] FAILED: No matching option found for:', durationLabel);
+        // Add it as a temporary option so the value is at least set
         const extraOpt = document.createElement('option');
         extraOpt.value = durationLabel;
         extraOpt.textContent = durationLabel;
         durationSelect.appendChild(extraOpt);
         durationSelect.value = durationLabel;
     }
+    
+    // Trigger bonus update after sync
+    updateCRMBonusMonths();
 }
 
 function syncCRMPackageWithDuration() {
