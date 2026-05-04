@@ -1183,7 +1183,9 @@ function updateCRMPackages() {
         else cksTypeInput.value = 'cap_moi';
     }
 
-    updateCRMDurationOptions(oldVal);
+    updateCRMDurationOptions();
+    syncCRMDurationWithPackage();
+    updateCRMBonusMonths();
     calculatePrice();
 }
 
@@ -1226,9 +1228,6 @@ function calculatePrice() {
     });
     if (match) {
         amountInput.value = new Intl.NumberFormat('vi-VN').format(match.price);
-        if (durationSelect) {
-            durationSelect.value = match.package_name;
-        }
     }
 }
 
