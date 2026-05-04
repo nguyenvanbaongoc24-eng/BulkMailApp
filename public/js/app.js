@@ -180,8 +180,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Pricing init moved to after auth succeeds (inside checkAuth)
+    // CRM MST Auto-fill and Focus Flow
+    const mstInput = document.getElementById('ca2-crm-mst');
+    if (mstInput) {
+        mstInput.addEventListener('blur', function() {
+            const mst = this.value.trim();
+            if (!mst) return;
+            
+            // Try to find existing customer with same MST to auto-fill name
+            const existing = (window.currentCRMData || []).find(c => c.mst === mst);
+            if (existing) {
+                const nameInput = document.getElementById('ca2-crm-name');
+                const typeSelect = document.getElementById('ca2-crm-customer-type');
+                if (nameInput && !nameInput.value) nameInput.value = existing.company_name;
+                if (typeSelect) typeSelect.value = existing.customer_type || 'Công ty';
+                console.log('[CRM] MST Auto-fill success:', existing.company_name);
+            }
+        });
+        
+        mstInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('ca2-crm-name')?.focus();
+            }
+        });
+    }
 
+    const nameInput = document.getElementById('ca2-crm-name');
+    if (nameInput) {
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('ca2-crm-customer-type')?.focus();
+            }
+        });
+    }
 
     // Initialize PremiumDatePicker (Single mode — CRM Modal)
     const startInput = document.getElementById('ca2-crm-start');
@@ -814,12 +847,20 @@ function matchesCRMServiceFilter(serviceType, filterType) {
 function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
     const pkgName = typeof pkgOptionOrName === 'string'
         ? pkgOptionOrName
-        : (pkgOptionOrName?.dataset?.durationLabel || pkgOptionOrName?.value || '');
+        : (pkgOptionOrName?.dataset?.durationLabel || pkgOptionOrName?.value || pkgOptionOrName?.textContent || '');
+    
     const normalizedPkg = normalizeText(pkgName);
     const normalizedService = normalizeText(serviceVal);
 
-    if (!pkgName) return '';
-    if (pkgOptionOrName?.dataset?.durationLabel) return pkgOptionOrName.dataset.durationLabel;
+    console.log('[CRM-Sync] Inferring from:', { pkgName, normalizedPkg });
+
+    if (!pkgName || normalizedPkg.includes('chua co goi')) return '1 năm';
+    
+    // Priority: dataset from pricing data
+    if (pkgOptionOrName?.dataset?.durationLabel) {
+        console.log('[CRM-Sync] Found dataset label:', pkgOptionOrName.dataset.durationLabel);
+        return pkgOptionOrName.dataset.durationLabel;
+    }
 
     // Regex support for: nam, year, thang, month, so, count
     const yearMatch = normalizedPkg.match(/(\d+)\s*(nam|year)/);
@@ -836,7 +877,6 @@ function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
     if (countMatch) return `${countMatch[1]} số`;
 
     if (normalizedService.includes('hoa don')) return '500 số';
-    if (normalizedService.includes('bao hiem') || normalizedService.includes('ebh')) return '1 năm';
     
     return '1 năm';
 }
@@ -849,15 +889,22 @@ function syncCRMDurationWithPackage(packageValue = '') {
 
     const targetValue = packageValue || pkgSelect.value;
     const option = [...pkgSelect.options].find(opt => opt.value === targetValue) || pkgSelect.selectedOptions?.[0];
+    
     const durationLabel = inferDurationFromPackage(serviceSelect.value, option || targetValue);
+    console.log('[CRM-Sync] Final Duration Label:', durationLabel);
+    
     if (!durationLabel) return;
 
     const normalizedDurLabel = normalizeText(durationLabel);
-    const existingOpt = [...durationSelect.options].find(opt => normalizeText(opt.value) === normalizedDurLabel);
+    const existingOpt = [...durationSelect.options].find(opt => 
+        normalizeText(opt.value) === normalizedDurLabel || normalizeText(opt.textContent).includes(normalizedDurLabel)
+    );
 
     if (existingOpt) {
         durationSelect.value = existingOpt.value;
+        console.log('[CRM-Sync] Selection set to:', existingOpt.value);
     } else {
+        console.warn('[CRM-Sync] Label not found in duration options, creating fallback:', durationLabel);
         const extraOpt = document.createElement('option');
         extraOpt.value = durationLabel;
         extraOpt.textContent = durationLabel;
