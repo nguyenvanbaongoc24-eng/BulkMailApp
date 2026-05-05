@@ -23,6 +23,7 @@ let currentEmailLogs = [];
 let selectedUploadFile = null;
 let currentCRMTab = 'active'; // 'active' or 'expired'
 let currentCRMSort = { field: 'created_at', order: 'desc' }; // Default sorting
+let _mojibakeObserver = null;
 
 // --- INACTIVITY AUTO-LOGOUT (10 min) ---
 // Exception: Skip logout if email campaigns are actively running in background
@@ -151,6 +152,156 @@ function performSessionTimeout() {
     alert('PhiÃªn lÃ m viá»‡c Ä‘Ã£ háº¿t háº¡n do khÃ´ng hoáº¡t Ä‘á»™ng trong 10 phÃºt. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.');
 }
 
+function getMojibakeScore(value) {
+    return ((value || '').match(/(?:Ã.|Â.|Ä.|Æ.|áº|á»|â€¦|â€“|â€”|ï¿½|ðŸ|âœ|âš)/g) || []).length;
+}
+
+function looksMojibake(value) {
+    return typeof value === 'string' && getMojibakeScore(value) > 0;
+}
+
+function decodeMojibake(value) {
+    if (!looksMojibake(value)) return value;
+
+    let current = value;
+    for (let i = 0; i < 2; i += 1) {
+        let decoded = current;
+
+        try {
+            decoded = decodeURIComponent(escape(current));
+        } catch (_) {
+            try {
+                const bytes = Uint8Array.from(current, ch => ch.charCodeAt(0) & 0xff);
+                decoded = new TextDecoder('utf-8').decode(bytes);
+            } catch (_) {
+                decoded = current;
+            }
+        }
+
+        if (!decoded || getMojibakeScore(decoded) >= getMojibakeScore(current)) break;
+        current = decoded;
+    }
+
+    return current;
+}
+
+function repairVietnameseText(value) {
+    if (typeof value !== 'string') return value;
+    return decodeMojibake(value).replace(/\uFFFD/g, '');
+}
+
+function repairElementText(root) {
+    if (!root) return;
+
+    if (root.nodeType === Node.TEXT_NODE) {
+        const fixedText = repairVietnameseText(root.textContent);
+        if (fixedText !== root.textContent) root.textContent = fixedText;
+        return;
+    }
+
+    if (root.nodeType !== Node.ELEMENT_NODE) return;
+
+    ['placeholder', 'title', 'aria-label'].forEach(attr => {
+        const original = root.getAttribute(attr);
+        if (!original) return;
+
+        const fixed = repairVietnameseText(original);
+        if (fixed !== original) root.setAttribute(attr, fixed);
+    });
+
+    if (root.tagName === 'OPTION') {
+        const fixedValue = repairVietnameseText(root.value);
+        if (fixedValue !== root.value) {
+            root.value = fixedValue;
+            root.setAttribute('value', fixedValue);
+        }
+    }
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+        const textNode = walker.currentNode;
+        const fixedText = repairVietnameseText(textNode.textContent);
+        if (fixedText !== textNode.textContent) textNode.textContent = fixedText;
+    }
+
+    root.querySelectorAll('option').forEach(option => {
+        const fixedValue = repairVietnameseText(option.value);
+        if (fixedValue !== option.value) {
+            option.value = fixedValue;
+            option.setAttribute('value', fixedValue);
+        }
+    });
+}
+
+function installMojibakeRepairObserver() {
+    if (_mojibakeObserver || !document.body) return;
+
+    repairElementText(document.body);
+
+    _mojibakeObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'characterData' && mutation.target) {
+                repairElementText(mutation.target);
+                return;
+            }
+
+            mutation.addedNodes.forEach(node => repairElementText(node));
+        });
+    });
+
+    _mojibakeObserver.observe(document.body, {
+        childList: true,
+        characterData: true,
+        subtree: true
+    });
+}
+
+function sanitizeCRMRecord(record = {}) {
+    return {
+        ...record,
+        company_name: repairVietnameseText(record.company_name || ''),
+        customer_type: repairVietnameseText(record.customer_type || ''),
+        service_type: repairVietnameseText(record.service_type || ''),
+        package_name: repairVietnameseText(record.package_name || ''),
+        duration: repairVietnameseText(record.duration || '')
+    };
+}
+
+function setSelectValueSmart(id, value, fallback = '') {
+    const select = document.getElementById(id);
+    if (!select) return;
+
+    const candidates = [value, fallback]
+        .map(item => repairVietnameseText(item || '').trim())
+        .filter(Boolean);
+
+    for (const candidate of candidates) {
+        const exact = [...select.options].find(opt => opt.value === candidate);
+        if (exact) {
+            select.value = exact.value;
+            return;
+        }
+
+        const normalizedCandidate = normalizeText(candidate);
+        const fuzzy = [...select.options].find(opt => {
+            const optionValue = normalizeText(repairVietnameseText(opt.value));
+            const optionLabel = normalizeText(repairVietnameseText(opt.textContent));
+            return optionValue === normalizedCandidate || optionLabel === normalizedCandidate;
+        });
+
+        if (fuzzy) {
+            select.value = fuzzy.value;
+            return;
+        }
+    }
+
+    if (select.options.length > 0) {
+        select.value = fallback && [...select.options].some(opt => opt.value === fallback)
+            ? fallback
+            : select.options[0].value;
+    }
+}
+
 // --- Session Management ---
 function saveCurrentSession(token, user) {
     if (!user || !token) return;
@@ -165,6 +316,7 @@ function saveCurrentSession(token, user) {
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
+    installMojibakeRepairObserver();
     checkAuth();
     
     // Listen for Enter key on Auth form
@@ -191,9 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const existing = (window.currentCRMData || []).find(c => c.mst === mst);
             if (existing) {
                 const nameInput = document.getElementById('ca2-crm-name');
-                const typeSelect = document.getElementById('ca2-crm-customer-type');
                 if (nameInput && !nameInput.value) nameInput.value = existing.company_name;
-                if (typeSelect) typeSelect.value = existing.customer_type || 'CÃ´ng ty';
+                setSelectValueSmart('ca2-crm-customer-type', existing.customer_type, 'C\u00f4ng ty');
                 console.log('[CRM] MST Auto-fill success:', existing.company_name);
             }
         });
@@ -758,6 +909,8 @@ function showPage(pageId) {
         loadCRMPrices();
         PricingManager.render();
     }
+
+    repairElementText(document.getElementById('main-content'));
 }
 
 function toggleSidebar() {
@@ -798,7 +951,8 @@ async function loadCA2CRMData() {
     try {
         const res = await authedFetch('/api/ca2-crm');
         const { data } = await res.json();
-        currentCRMData = data || [];
+        currentCRMData = (data || []).map(sanitizeCRMRecord);
+        window.currentCRMData = currentCRMData;
         renderCA2CRM();
     } catch (e) { console.error('Load CRM Error:', e); }
 }
@@ -819,7 +973,7 @@ function handleCRMSort(field) {
 }
 
 function normalizeText(value) {
-    return (value || '')
+    return repairVietnameseText(value || '')
         .toString()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -1151,18 +1305,18 @@ function getCRMPrice(service, type, pkg) {
 
 async function saveCA2CRM() {
     const id = document.getElementById('ca2-crm-id').value;
-    const serviceType = document.getElementById('ca2-crm-service').value;
+    const serviceType = repairVietnameseText(document.getElementById('ca2-crm-service').value);
     const body = {
-        mst: document.getElementById('ca2-crm-mst').value,
-        company_name: document.getElementById('ca2-crm-name').value,
-        email: document.getElementById('ca2-crm-email').value,
-        phone: document.getElementById('ca2-crm-phone').value,
+        mst: document.getElementById('ca2-crm-mst').value.trim(),
+        company_name: repairVietnameseText(document.getElementById('ca2-crm-name').value.trim()),
+        email: document.getElementById('ca2-crm-email').value.trim(),
+        phone: document.getElementById('ca2-crm-phone').value.trim(),
         service_type: serviceType,
-        customer_type: document.getElementById('ca2-crm-customer-type').value,
-        package_name: document.getElementById('ca2-crm-package').value,
+        customer_type: repairVietnameseText(document.getElementById('ca2-crm-customer-type').value),
+        package_name: repairVietnameseText(document.getElementById('ca2-crm-package').value),
         // Remove amount to prevent schema error
         start_date: document.getElementById('ca2-crm-start').value,
-        duration: document.getElementById('ca2-crm-duration').value,
+        duration: repairVietnameseText(document.getElementById('ca2-crm-duration').value),
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
     };
 
@@ -1345,14 +1499,14 @@ function openAddCRMModal() {
             else console.warn(`[DEBUG] Element not found: ${id}`);
         };
 
-        setText('ca2-crm-modal-title', 'ThÃªm khÃ¡ch hÃ ng CA2 CRM');
+        setText('ca2-crm-modal-title', 'Th\u00eam kh\u00e1ch h\u00e0ng CA2 CRM');
         setVal('ca2-crm-id', '');
         setVal('ca2-crm-mst', '');
         setVal('ca2-crm-name', '');
         setVal('ca2-crm-email', '');
         setVal('ca2-crm-phone', '');
-        setVal('ca2-crm-service', 'CKS â€“ Cáº¥p má»›i');
-        setVal('ca2-crm-customer-type', 'CÃ´ng ty');
+        setSelectValueSmart('ca2-crm-service', 'CKS \u2013 C\u1ea5p m\u1edbi');
+        setSelectValueSmart('ca2-crm-customer-type', 'C\u00f4ng ty');
         setVal('ca2-crm-start', new Date().toISOString().split('T')[0]);
         setVal('ca2-crm-cks-type', 'cap_moi');
         setVal('ca2-crm-compensate', 0);
@@ -1388,6 +1542,8 @@ function openAddCRMModal() {
         if (typeof refreshCustomSelects === 'function') {
             refreshCustomSelects();
         }
+
+        repairElementText(document.getElementById('modal-ca2-crm'));
     } catch (err) {
         console.error('[DEBUG] Error in openAddCRMModal:', err);
     }
@@ -1397,7 +1553,7 @@ function editCRM(id) {
     console.log('[DEBUG] Edit CRM clicked for ID:', id);
     try {
         // Robust ID matching (handles both string and numeric IDs)
-        const c = currentCRMData.find(x => String(x.id) === String(id));
+        const c = sanitizeCRMRecord(currentCRMData.find(x => String(x.id) === String(id)));
         if (!c) {
             console.error('[ERROR] CRM record not found in state for ID:', id);
             return;
@@ -1415,16 +1571,16 @@ function editCRM(id) {
             else console.warn(`[DEBUG] Element not found: ${id}`);
         };
 
-        setText('ca2-crm-modal-title', 'Cáº­p nháº­t khÃ¡ch hÃ ng');
+        setText('ca2-crm-modal-title', 'C\u1eadp nh\u1eadt kh\u00e1ch h\u00e0ng');
         setVal('ca2-crm-id', c.id);
         setVal('ca2-crm-mst', c.mst);
         setVal('ca2-crm-name', c.company_name);
         setVal('ca2-crm-email', c.email);
         setVal('ca2-crm-phone', c.phone);
         
-        const normalizedServiceType = c.service_type || 'CKS â€“ Cáº¥p má»›i';
-        setVal('ca2-crm-service', normalizedServiceType);
-        setVal('ca2-crm-customer-type', c.customer_type || 'CÃ´ng ty');
+        const normalizedServiceType = c.service_type || 'CKS \u2013 C\u1ea5p m\u1edbi';
+        setSelectValueSmart('ca2-crm-service', normalizedServiceType, 'CKS \u2013 C\u1ea5p m\u1edbi');
+        setSelectValueSmart('ca2-crm-customer-type', c.customer_type, 'C\u00f4ng ty');
         setVal('ca2-crm-start', c.start_date || '');
         setVal('ca2-crm-compensate', c.compensate_months || 0);
         
@@ -1433,8 +1589,8 @@ function editCRM(id) {
         updateCRMPackages();
         
         // RESTORE SAVED PACKAGE AND DURATION
-        if (c.package_name) setVal('ca2-crm-package', c.package_name);
-        if (c.duration) setVal('ca2-crm-duration', c.duration);
+        if (c.package_name) setSelectValueSmart('ca2-crm-package', c.package_name);
+        if (c.duration) setSelectValueSmart('ca2-crm-duration', c.duration);
         
         // Set amount (Recalculate with restored package)
         try {
@@ -1449,7 +1605,9 @@ function editCRM(id) {
             console.log('[DEBUG] Refreshing custom selects...');
             refreshCustomSelects();
         }
-        
+
+        repairElementText(document.getElementById('modal-ca2-crm'));
+
         const modal = document.getElementById('modal-ca2-crm');
         if (modal) {
             modal.classList.remove('hidden');
@@ -3013,8 +3171,8 @@ async function loadCRMPrices() {
 }
 
 function updateCRMPackages() {
-    const serviceVal = document.getElementById('ca2-crm-service').value;
-    const customerType = document.getElementById('ca2-crm-customer-type').value;
+    const serviceVal = repairVietnameseText(document.getElementById('ca2-crm-service').value);
+    const customerType = repairVietnameseText(document.getElementById('ca2-crm-customer-type').value);
     const pkgSelect = document.getElementById('ca2-crm-package');
     if (!pkgSelect) return;
 
@@ -3045,16 +3203,17 @@ function updateCRMPackages() {
 
     pkgSelect.innerHTML = '';
     if (!itemsToDisplay.length) {
-        pkgSelect.innerHTML = '<option value="">ChÆ°a cÃ³ gÃ³i</option>';
+        pkgSelect.innerHTML = '<option value="">Ch\u01b0a c\u00f3 g\u00f3i</option>';
         document.getElementById('ca2-crm-amount').value = '0';
+        repairElementText(pkgSelect);
         return;
     }
 
     itemsToDisplay.forEach(p => {
         const opt = document.createElement('option');
         const durationLabel = inferDurationFromPackage(serviceVal, `${p.duration_months || ''} thang ${p.package_name || ''}`);
-        opt.value = p.package_name;
-        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}Ä‘`;
+        opt.value = repairVietnameseText(p.package_name);
+        opt.textContent = `${repairVietnameseText(p.package_name)} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}\u0111`;
         opt.dataset.price = String(p.price || 0);
         opt.dataset.durationLabel = durationLabel;
         opt.dataset.durationMonths = String(p.duration_months || '');
@@ -3063,8 +3222,12 @@ function updateCRMPackages() {
         pkgSelect.appendChild(opt);
     });
 
-    if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) pkgSelect.value = oldVal;
-    else pkgSelect.selectedIndex = 0;
+    if (oldVal && [...pkgSelect.options].some(o => o.value === oldVal)) {
+        pkgSelect.value = oldVal;
+    } else {
+        pkgSelect.selectedIndex = 0;
+    }
+    repairElementText(pkgSelect);
 
     const cksTypeInput = document.getElementById('ca2-crm-cks-type');
     if (cksTypeInput) {
