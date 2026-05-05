@@ -110,7 +110,7 @@ html, body {
 /* GPU-hint for interactive elements only — transform only */
 button, [role="button"], a[onclick],
 .custom-select-trigger, .custom-select-menu,
-.bg-glass, .card-glow, .glass-card-premium {
+.card-glow, .glass-card-premium {
     will-change: transform;
 }
 
@@ -2418,11 +2418,10 @@ header::after {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-.bg-glass,
 .card-glow,
 .glass-card-premium,
 .btn-action-premium {
-    contain: layout style;
+    contain: style;
 }
 
 /* ==========================================================

@@ -2840,56 +2840,92 @@ function renderCA2CRM() {
 
     filtered = filtered.filter(c => currentCRMTab === 'active'
         ? calculateRemainingDays(c.expired_date) >= 0
-        : calculateRemainingDays(c.expired_date) < 0
-    );
-
-    const totalEl = document.getElementById('ca2-crm-total');
-    const activeEl = document.getElementById('ca2-crm-active');
-    const expiringEl = document.getElementById('ca2-crm-expiring');
-    const expiredEl = document.getElementById('ca2-crm-expired');
-    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
-    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
-
-    if (totalEl) totalEl.innerText = currentCRMData.length;
-    if (activeEl) activeEl.innerText = activeCnt;
-    if (expiringEl) expiringEl.innerText = expiringCnt;
-    if (expiredEl) expiredEl.innerText = expiredCnt;
-    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
-    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
-
-    if (sortOrder === 'newest') {
-        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    } else if (sortOrder === 'soonest') {
-        filtered.sort((a, b) => new Date(a.expired_date || 0) - new Date(b.expired_date || 0));
-    } else if (sortOrder === 'latest') {
-        filtered.sort((a, b) => new Date(b.expired_date || 0) - new Date(a.expired_date || 0));
-    }
-
-    if (filtered.length === 0) {
-        listContainer.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon text-5xl mb-4">ðŸ“‹</div>
-                <div class="empty-title text-xl font-bold text-white mb-2">KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u</div>
-                <div class="empty-desc text-gray-500 text-sm mb-6">Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tÃ¬m kiáº¿m láº¡i.</div>
-            </div>
-        `;
-        return;
-    }
-
-    listContainer.innerHTML = filtered.map(c => {
+        listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
-        const statusLabel = isExpired ? 'ÄÃ£ háº¿t háº¡n' : `CÃ²n ${daysLeft} ngÃ y`;
+        const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
 
         return `
-            <div class="bg-glass p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] cursor-pointer mb-3 relative overflow-hidden group" onclick="editCRM('${c.id}')">
-                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 pointer-events-none"></div>' : ''}
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
-                <div class="flex-1 relative z-10">
+            <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" data-crm-id="${c.id}" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto;">
+                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 rounded-2xl" style="pointer-events: none;"></div>' : ''}
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all rounded-2xl" style="pointer-events: none;"></div>
+                <div class="flex-1 relative" style="z-index: 2;">
                     <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
                     <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
-                        <span class="text-white/20">â€¢</span>
+                        <span class="text-white/20">•</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
+                    </div>
+                </div>
+                <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2;">
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
+                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
+                </div>
+                <div class="flex justify-center relative min-w-[130px]" style="z-index: 2;">
+                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
+                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
+                    </span>
+                </div>
+                <div class="flex justify-end gap-2 relative" style="z-index: 2;">
+                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" data-edit-id="${c.id}" title="Sửa khách hàng">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" data-delete-id="${c.id}" title="Xóa khách hàng">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // EVENT DELEGATION: Attach click handlers via JS (not inline onclick)
+    setupCRMListClickHandlers();
+
+    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
+}
+
+// ===== EVENT DELEGATION FOR CRM LIST =====
+function setupCRMListClickHandlers() {
+    const listContainer = document.getElementById('ca2-crm-list');
+    if (!listContainer) return;
+
+    // Remove old listeners by cloning
+    const newContainer = listContainer.cloneNode(true);
+    listContainer.parentNode.replaceChild(newContainer, listContainer);
+
+    // ROW CLICK → Edit
+    newContainer.addEventListener('click', function(e) {
+        // Check if delete button was clicked
+        const deleteBtn = e.target.closest('.crm-delete-btn');
+        if (deleteBtn) {
+            e.stopPropagation();
+            const id = deleteBtn.dataset.deleteId;
+            console.log('[CRM-CLICK] Delete button clicked, ID:', id);
+            deleteCRM(id);
+            return;
+        }
+
+        // Check if edit button was clicked
+        const editBtn = e.target.closest('.crm-edit-btn');
+        if (editBtn) {
+            e.stopPropagation();
+            const id = editBtn.dataset.editId;
+            console.log('[CRM-CLICK] Edit button clicked, ID:', id);
+            editCRM(id);
+            return;
+        }
+
+        // Check if row was clicked
+        const row = e.target.closest('.crm-row');
+        if (row) {
+            const id = row.dataset.crmId;
+            console.log('[CRM-CLICK] Row clicked, ID:', id);
+            editCRM(id);
+            return;
+        }
+    });
+    console.log('[CRM] Event delegation attached to list container');
+}span>
                         <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dá»‹ch vá»¥'}</span>
                     </div>
                 </div>
