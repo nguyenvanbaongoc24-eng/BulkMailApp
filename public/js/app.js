@@ -63,7 +63,7 @@ async function checkBackgroundMailStatus() {
         if (!res.ok) return false;
         const campaigns = await res.json();
         const running = campaigns.some(c => 
-            c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' || c.status === 'Đang xử lý'
+            c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i' || c.status === 'Äang xá»­ lÃ½'
         );
         _isBackgroundMailRunning = running;
         // Update indicator
@@ -148,7 +148,7 @@ function performSessionTimeout() {
     if (timeoutModal) timeoutModal.classList.add('hidden');
     if (authScreen) authScreen.classList.toggle('hidden', false);
     if (appContainer) appContainer.classList.toggle('hidden', true);
-    alert('Phiên làm việc đã hết hạn do không hoạt động trong 10 phút. Vui lòng đăng nhập lại.');
+    alert('PhiÃªn lÃ m viá»‡c Ä‘Ã£ háº¿t háº¡n do khÃ´ng hoáº¡t Ä‘á»™ng trong 10 phÃºt. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.');
 }
 
 // --- Session Management ---
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nameInput = document.getElementById('ca2-crm-name');
                 const typeSelect = document.getElementById('ca2-crm-customer-type');
                 if (nameInput && !nameInput.value) nameInput.value = existing.company_name;
-                if (typeSelect) typeSelect.value = existing.customer_type || 'Công ty';
+                if (typeSelect) typeSelect.value = existing.customer_type || 'CÃ´ng ty';
                 console.log('[CRM] MST Auto-fill success:', existing.company_name);
             }
         });
@@ -216,13 +216,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize PremiumDatePicker (Single mode — CRM Modal)
+    // Initialize PremiumDatePicker (Single mode â€” CRM Modal)
     const startInput = document.getElementById('ca2-crm-start');
     if (startInput && window.PremiumDatePicker) {
         PremiumDatePicker.attach(startInput, {
             mode: 'single',
             dateFormat: 'Y-m-d',
-            label: 'CHỌN NGÀY',
+            label: 'CHá»ŒN NGÃ€Y',
             onSelect: (date) => {
                 console.log('[PDP] Start date selected:', PremiumDatePicker.formatDate(date, 'Y-m-d'));
             }
@@ -342,13 +342,13 @@ function toggleAuthMode() {
     const isRegister = fields.classList.contains('hidden');
     fields.classList.toggle('hidden', !isRegister);
     
-    title.innerText = isRegister ? 'Đăng ký tài khoản mới' : 'Đăng nhập để tiếp tục quản lý chiến dịch';
+    title.innerText = isRegister ? 'ÄÄƒng kÃ½ tÃ i khoáº£n má»›i' : 'ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c quáº£n lÃ½ chiáº¿n dá»‹ch';
     const btnText = submitBtn.querySelector('.btn-text');
-    if (btnText) btnText.innerText = isRegister ? 'Đăng ký ngay' : 'Đăng nhập ngay';
-    else submitBtn.innerText = isRegister ? 'Đăng ký ngay' : 'Đăng nhập ngay';
+    if (btnText) btnText.innerText = isRegister ? 'ÄÄƒng kÃ½ ngay' : 'ÄÄƒng nháº­p ngay';
+    else submitBtn.innerText = isRegister ? 'ÄÄƒng kÃ½ ngay' : 'ÄÄƒng nháº­p ngay';
     
-    switchTxt.innerText = isRegister ? 'Đã có tài khoản?' : 'Chưa có tài khoản?';
-    switchBtn.innerText = isRegister ? 'Đăng nhập' : 'Tham gia ngay';
+    switchTxt.innerText = isRegister ? 'ÄÃ£ cÃ³ tÃ i khoáº£n?' : 'ChÆ°a cÃ³ tÃ i khoáº£n?';
+    switchBtn.innerText = isRegister ? 'ÄÄƒng nháº­p' : 'Tham gia ngay';
 }
 
 async function handleAuthSubmit() {
@@ -374,7 +374,7 @@ async function handleAuthSubmit() {
             data = await res.json();
         } else {
             const rawText = await res.text();
-            throw new Error(rawText || 'Phản hồi từ server không hợp lệ.');
+            throw new Error(rawText || 'Pháº£n há»“i tá»« server khÃ´ng há»£p lá»‡.');
         }
         
         // Handle custom success messages explicitly
@@ -390,12 +390,12 @@ async function handleAuthSubmit() {
             saveCurrentSession(data.token, data.user);
             await checkAuth(); 
         } else {
-            errorDiv.innerText = data.error || 'Lỗi xác thực';
+            errorDiv.innerText = data.error || 'Lá»—i xÃ¡c thá»±c';
             errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
             errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
         }
     } catch (e) {
-        errorDiv.innerText = 'Lỗi kết nối server';
+        errorDiv.innerText = 'Lá»—i káº¿t ná»‘i server';
         errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
         errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
     }
@@ -422,7 +422,7 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     const name = nameInput?.value || '';
     const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
     const btnText = submitBtn?.querySelector('.btn-text');
-    const originalBtnText = btnText ? btnText.innerText : (submitBtn?.innerText || 'Đăng nhập ngay');
+    const originalBtnText = btnText ? btnText.innerText : (submitBtn?.innerText || 'ÄÄƒng nháº­p ngay');
 
     const showAuthMessage = (message, type = 'error') => {
         if (!errorDiv) return;
@@ -449,21 +449,21 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     }
 
     if (!email) {
-        showAuthMessage('Vui lòng nhập email.');
+        showAuthMessage('Vui lÃ²ng nháº­p email.');
         emailInput?.focus();
         return;
     }
 
     if (!password) {
-        showAuthMessage('Vui lòng nhập mật khẩu.');
+        showAuthMessage('Vui lÃ²ng nháº­p máº­t kháº©u.');
         passwordInput?.focus();
         return;
     }
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        if (btnText) btnText.innerText = 'ĐANG XỬ LÝ...';
-        else submitBtn.innerText = 'ĐANG XỬ LÝ...';
+        if (btnText) btnText.innerText = 'ÄANG Xá»¬ LÃ...';
+        else submitBtn.innerText = 'ÄANG Xá»¬ LÃ...';
         submitBtn.classList.add('opacity-70', 'cursor-not-allowed', 'btn-loading');
     }
 
@@ -490,7 +490,7 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
             data = await res.json();
         } else {
             const rawText = await res.text();
-            throw new Error(rawText || 'Phản hồi từ server không hợp lệ.');
+            throw new Error(rawText || 'Pháº£n há»“i tá»« server khÃ´ng há»£p lá»‡.');
         }
 
         if (data.message) {
@@ -499,12 +499,12 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
         }
 
         if (!res.ok) {
-            showAuthMessage(data.error || 'Không thể đăng nhập.');
+            showAuthMessage(data.error || 'KhÃ´ng thá»ƒ Ä‘Äƒng nháº­p.');
             return;
         }
 
         if (!data.token) {
-            showAuthMessage('Đăng nhập thất bại: server không trả về phiên đăng nhập.');
+            showAuthMessage('ÄÄƒng nháº­p tháº¥t báº¡i: server khÃ´ng tráº£ vá» phiÃªn Ä‘Äƒng nháº­p.');
             return;
         }
 
@@ -514,9 +514,9 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     } catch (e) {
         if (timeoutId) clearTimeout(timeoutId);
         if (e.name === 'AbortError') {
-            showAuthMessage('Server phản hồi quá chậm. Vui lòng thử lại.');
+            showAuthMessage('Server pháº£n há»“i quÃ¡ cháº­m. Vui lÃ²ng thá»­ láº¡i.');
         } else {
-            showAuthMessage(e.message || 'Lỗi kết nối server.');
+            showAuthMessage(e.message || 'Lá»—i káº¿t ná»‘i server.');
         }
         console.error('[AUTH] Submit failed:', e);
     } finally {
@@ -536,14 +536,14 @@ function openAccountSwitcher() {
         const modal = document.getElementById('modal-account-switcher');
         if (!list || !modal) {
             console.error('Account Switcher elements missing from DOM');
-            alert('Lỗi hệ thống: Không tìm thấy khung chọn tài khoản.');
+            alert('Lá»—i há»‡ thá»‘ng: KhÃ´ng tÃ¬m tháº¥y khung chá»n tÃ i khoáº£n.');
             return;
         }
 
         // Check if any session exists
         const token = localStorage.getItem('sb-token');
         if (!token && !currentUser) {
-            alert('Không tìm thấy phiên đăng nhập.');
+            alert('KhÃ´ng tÃ¬m tháº¥y phiÃªn Ä‘Äƒng nháº­p.');
             return;
         }
         
@@ -570,14 +570,14 @@ function openAccountSwitcher() {
             saveCurrentSession(localStorage.getItem('sb-token'), currentUser);
         }
 
-        // Filter out the current user — they're shown in the header section
+        // Filter out the current user â€” they're shown in the header section
         const otherSessions = savedSessions.filter(s => !(currentUser && String(s.user.id) === String(currentUser.id)));
 
         if (otherSessions.length === 0) {
             list.innerHTML = `
                 <div class="p-6 border-2 border-dashed border-white/5 rounded-2xl text-center space-y-2">
-                    <div class="text-2xl">📭</div>
-                    <p class="text-gray-500 font-bold italic text-xs">Không có tài khoản nào khác được lưu.</p>
+                    <div class="text-2xl">ðŸ“­</div>
+                    <p class="text-gray-500 font-bold italic text-xs">KhÃ´ng cÃ³ tÃ i khoáº£n nÃ o khÃ¡c Ä‘Æ°á»£c lÆ°u.</p>
                 </div>
             `;
         } else {
@@ -615,7 +615,7 @@ function openAccountSwitcher() {
         console.log('Account Switcher modal shown');
     } catch (err) {
         console.error('Error in openAccountSwitcher:', err);
-        alert('Lỗi khởi tạo danh sách tài khoản: ' + err.message);
+        alert('Lá»—i khá»Ÿi táº¡o danh sÃ¡ch tÃ i khoáº£n: ' + err.message);
     }
 }
 
@@ -631,7 +631,7 @@ function switchAccount(userId) {
     try {
         const target = savedSessions.find(s => String(s.user.id) === String(userId));
         if (!target) {
-            alert('Không tìm thấy dữ liệu phiên cho tài khoản này.');
+            alert('KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u phiÃªn cho tÃ i khoáº£n nÃ y.');
             return;
         }
 
@@ -642,8 +642,8 @@ function switchAccount(userId) {
                     <div class="w-20 h-20 bg-blue-600 rounded-[30px] mx-auto flex items-center justify-center text-white text-3xl animate-spin shadow-2xl shadow-blue-600/30">
                         <i class="fas fa-sync-alt"></i>
                     </div>
-                    <h3 class="text-xl font-black text-white">Đang chuyển tài khoản...</h3>
-                    <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Hệ thống đang tải lại phiên làm việc</p>
+                    <h3 class="text-xl font-black text-white">Äang chuyá»ƒn tÃ i khoáº£n...</h3>
+                    <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Há»‡ thá»‘ng Ä‘ang táº£i láº¡i phiÃªn lÃ m viá»‡c</p>
                 </div>
             `;
         }
@@ -654,7 +654,7 @@ function switchAccount(userId) {
         }, 600);
     } catch (e) {
         console.error('Switch Account Error:', e);
-        alert('Có lỗi xảy ra khi chuyển tài khoản.');
+        alert('CÃ³ lá»—i xáº£y ra khi chuyá»ƒn tÃ i khoáº£n.');
     }
 }
 
@@ -702,23 +702,23 @@ function showPage(pageId) {
     if (navItem) navItem.classList.add('sidebar-item-active');
     
     const titleMap = {
-        'dashboard': 'Bảng điều khiển',
+        'dashboard': 'Báº£ng Ä‘iá»u khiá»ƒn',
         'ca2-crm': 'CA2 CRM',
-        'campaigns': 'Chiến dịch Email',
-        'senders': 'Tài khoản Gmail',
-        'reports': 'Báo cáo chi tiết',
-        'seo-news': 'Tin Tức Thuế (AI)',
-        'seo-article': 'Tạo Bài Viết SEO',
-        'seo-image': 'Tạo Ảnh AI',
-        'seo-posts': 'Kho Lưu Trữ SEO',
-        'lookup-tools': 'Cổng Tra Cứu Nghiệp Vụ',
-        'settings': 'Cài đặt hệ thống',
-        'quotations': 'Hợp đồng & Báo giá',
-        'documents': 'Kho Tài liệu Sales',
-        'settings-pricing': 'Cập nhật Bảng giá'
+        'campaigns': 'Chiáº¿n dá»‹ch Email',
+        'senders': 'TÃ i khoáº£n Gmail',
+        'reports': 'BÃ¡o cÃ¡o chi tiáº¿t',
+        'seo-news': 'Tin Tá»©c Thuáº¿ (AI)',
+        'seo-article': 'Táº¡o BÃ i Viáº¿t SEO',
+        'seo-image': 'Táº¡o áº¢nh AI',
+        'seo-posts': 'Kho LÆ°u Trá»¯ SEO',
+        'lookup-tools': 'Cá»•ng Tra Cá»©u Nghiá»‡p Vá»¥',
+        'settings': 'CÃ i Ä‘áº·t há»‡ thá»‘ng',
+        'quotations': 'Há»£p Ä‘á»“ng & BÃ¡o giÃ¡',
+        'documents': 'Kho TÃ i liá»‡u Sales',
+        'settings-pricing': 'Cáº­p nháº­t Báº£ng giÃ¡'
     };
     const titleEl = document.getElementById('page-title');
-    if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chủ';
+    if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chá»§';
     
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
@@ -781,13 +781,13 @@ async function authedFetch(url, options = {}) {
     };
     const res = await fetch(url, { ...options, headers });
     
-    // Tự động xử lý khi phiên đăng nhập hết hạn (401 Unauthorized)
+    // Tá»± Ä‘á»™ng xá»­ lÃ½ khi phiÃªn Ä‘Äƒng nháº­p háº¿t háº¡n (401 Unauthorized)
     if (res.status === 401) {
-        console.warn('[AUTH] Phiên đăng nhập hết hạn (401).');
+        console.warn('[AUTH] PhiÃªn Ä‘Äƒng nháº­p háº¿t háº¡n (401).');
         localStorage.removeItem('sb-token');
-        alert('Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại để tiếp tục!');
-        window.location.reload(); // Tải lại trang sẽ tự động hiện màn hình Login
-        return new Promise(() => {}); // Chặn tiến trình tiếp theo để tránh lỗi logic
+        alert('PhiÃªn lÃ m viá»‡c cá»§a báº¡n Ä‘Ã£ háº¿t háº¡n. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i Ä‘á»ƒ tiáº¿p tá»¥c!');
+        window.location.reload(); // Táº£i láº¡i trang sáº½ tá»± Ä‘á»™ng hiá»‡n mÃ n hÃ¬nh Login
+        return new Promise(() => {}); // Cháº·n tiáº¿n trÃ¬nh tiáº¿p theo Ä‘á»ƒ trÃ¡nh lá»—i logic
     }
     
     return res;
@@ -823,8 +823,8 @@ function normalizeText(value) {
         .toString()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
+        .replace(/Ä‘/g, 'd')
+        .replace(/Ä/g, 'D')
         .toLowerCase()
         .replace(/\s+/g, ' ')
         .trim();
@@ -854,7 +854,7 @@ function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
 
     console.log('[CRM-Sync] Inferring from:', { pkgName, normalizedPkg });
 
-    if (!pkgName || normalizedPkg.includes('chua co goi')) return '1 năm';
+    if (!pkgName || normalizedPkg.includes('chua co goi')) return '1 nÄƒm';
     
     // Priority: dataset from pricing data
     if (pkgOptionOrName?.dataset?.durationLabel) {
@@ -864,21 +864,21 @@ function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
 
     // Regex support for: nam, year, thang, month, so, count
     const yearMatch = normalizedPkg.match(/(\d+)\s*(nam|year)/);
-    if (yearMatch) return `${yearMatch[1]} năm`;
+    if (yearMatch) return `${yearMatch[1]} nÄƒm`;
 
     const monthMatch = normalizedPkg.match(/(\d+)\s*(thang|month)/);
     if (monthMatch) {
         const months = parseInt(monthMatch[1], 10);
-        if (months % 12 === 0 && months <= 60) return `${months / 12} năm`;
-        return `${months} tháng`;
+        if (months % 12 === 0 && months <= 60) return `${months / 12} nÄƒm`;
+        return `${months} thÃ¡ng`;
     }
 
     const countMatch = normalizedPkg.match(/(\d+)\s*(so|count|to)/);
-    if (countMatch) return `${countMatch[1]} số`;
+    if (countMatch) return `${countMatch[1]} sá»‘`;
 
-    if (normalizedService.includes('hoa don')) return '500 số';
+    if (normalizedService.includes('hoa don')) return '500 sá»‘';
     
-    return '1 năm';
+    return '1 nÄƒm';
 }
 
 function syncCRMDurationWithPackage(packageValue = '') {
@@ -899,9 +899,9 @@ function syncCRMDurationWithPackage(packageValue = '') {
         const months = parseInt(option.dataset.durationMonths, 10);
         if (months > 0) {
             if (months % 12 === 0) {
-                durationLabel = `${months / 12} năm`;
+                durationLabel = `${months / 12} nÄƒm`;
             } else {
-                durationLabel = `${months} tháng`;
+                durationLabel = `${months} thÃ¡ng`;
             }
             console.log('[CRM-Sync] Found numeric months:', months, '-> label:', durationLabel);
         }
@@ -935,8 +935,8 @@ function syncCRMDurationWithPackage(packageValue = '') {
         // Exact match on value is best
         if (valNorm === normalizedDurLabel) return true;
         
-        // If label is "1 năm", match "1 năm (+3 tháng)" or similar
-        // We check if the option text STARTS with the label (e.g. "1 năm" matches "1 năm (+3 tháng)")
+        // If label is "1 nÄƒm", match "1 nÄƒm (+3 thÃ¡ng)" or similar
+        // We check if the option text STARTS with the label (e.g. "1 nÄƒm" matches "1 nÄƒm (+3 thÃ¡ng)")
         if (textNorm.startsWith(normalizedDurLabel)) return true;
         
         return false;
@@ -1044,7 +1044,7 @@ function initializeCRMDateRangePicker() {
         if (dates.length === 1) {
             const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
             startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
-            endLabel.innerText = 'Đến ngày';
+            endLabel.innerText = 'Äáº¿n ngÃ y';
             fromInput.value = fromValue;
             toInput.value = '';
             rangeInput.value = fromValue;
@@ -1060,8 +1060,8 @@ function initializeCRMDateRangePicker() {
             clearBtn?.classList.remove('hidden');
             renderCA2CRM();
         } else {
-            startLabel.innerText = 'Từ ngày';
-            endLabel.innerText = 'Đến ngày';
+            startLabel.innerText = 'Tá»« ngÃ y';
+            endLabel.innerText = 'Ä áº¿n ngÃ y';
             fromInput.value = '';
             toInput.value = '';
             rangeInput.value = '';
@@ -1072,76 +1072,7 @@ function initializeCRMDateRangePicker() {
 
     const instance = PremiumDatePicker.attach(rangeInput, {
         mode: 'range',
-        label: 'THOI GIAN LOC',
-        onChange: applyRangeState,
-        onClear: () => applyRangeState([])
-    });
-
-    const clearBtn = document.getElementById('crm-date-clear-btn');
-    if (clearBtn) {
-        clearBtn.onclick = (e) => {
-            e.stopPropagation();
-            instance?.clear();
-        };
-    }
-}
-
-function initializeCRMDateRangePicker() {
-    const rangeInput = document.getElementById('crm-date-range-picker');
-    if (!rangeInput || !window.PremiumDatePicker) return;
-
-    const applyRangeState = (dates = []) => {
-        const startLabel = document.getElementById('crm-date-start-label');
-        const endLabel = document.getElementById('crm-date-end-label');
-        const fromInput = document.getElementById('crm-filter-from-date');
-        const toInput = document.getElementById('crm-filter-to-date');
-        const clearBtn = document.getElementById('crm-date-clear-btn');
-
-        if (!startLabel || !endLabel || !fromInput || !toInput) return;
-
-        if (dates.length === 1) {
-            const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
-            startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
-            startLabel.classList.remove('opacity-70');
-            startLabel.classList.add('text-white');
-            endLabel.innerText = 'Đến ngày';
-            endLabel.classList.add('text-orange-400');
-            fromInput.value = fromValue;
-            toInput.value = '';
-            rangeInput.value = fromValue;
-            clearBtn?.classList.remove('hidden');
-        } else if (dates.length === 2) {
-            const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
-            const toValue = PremiumDatePicker.formatDate(dates[1], 'Y-m-d');
-            startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
-            startLabel.classList.remove('opacity-70');
-            startLabel.classList.add('text-white');
-            endLabel.innerText = PremiumDatePicker.formatDate(dates[1], 'd/m/Y');
-            endLabel.classList.remove('text-orange-400');
-            endLabel.classList.add('text-white');
-            fromInput.value = fromValue;
-            toInput.value = toValue;
-            rangeInput.value = `${fromValue} - ${toValue}`;
-            clearBtn?.classList.remove('hidden');
-            renderCA2CRM();
-        } else {
-            startLabel.innerText = 'Từ ngày';
-            endLabel.innerText = 'Đến ngày';
-            startLabel.classList.add('opacity-70');
-            startLabel.classList.remove('text-white');
-            endLabel.classList.add('opacity-70');
-            endLabel.classList.remove('text-orange-400', 'text-white');
-            fromInput.value = '';
-            toInput.value = '';
-            rangeInput.value = '';
-            clearBtn?.classList.add('hidden');
-            renderCA2CRM();
-        }
-    };
-
-    const instance = PremiumDatePicker.attach(rangeInput, {
-        mode: 'range',
-        label: 'THỜI GIAN LỌC',
+        label: 'THá»œI GIAN Lá»ŒC',
         onChange: applyRangeState,
         onClear: () => applyRangeState([])
     });
@@ -1195,7 +1126,7 @@ function refreshPricingUI() {
 function getCRMPrice(service, type, pkg) {
     if (!service) return 0;
     
-    // Phần 3: Logic Áp dụng
+    // Pháº§n 3: Logic Ãp dá»¥ng
     const match = CRM_PRICE_LIST.find(p => 
         p.service_name === service && 
         (p.package_name === pkg || (p.package_name.includes(type) && p.package_name.includes(pkg)))
@@ -1241,7 +1172,7 @@ async function saveCA2CRM() {
     }
 
     if (!body.mst || !body.company_name) {
-        alert('Vui lòng nhập Mã số thuế và Tên công ty');
+        alert('Vui lÃ²ng nháº­p MÃ£ sá»‘ thuáº¿ vÃ  TÃªn cÃ´ng ty');
         return;
     }
 
@@ -1259,9 +1190,9 @@ async function saveCA2CRM() {
             loadCA2CRMData();
         } else {
             const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Unknown error'));
+            alert('Lá»—i: ' + (err.error || 'Unknown error'));
         }
-    } catch (e) { alert('Lỗi kết nối server'); }
+    } catch (e) { alert('Lá»—i káº¿t ná»‘i server'); }
 }
 
 // Mission 2: Update payment status directly from table dropdown
@@ -1278,9 +1209,9 @@ async function updatePaymentStatus(id, status) {
             if (item) item.payment_status = status;
             renderCA2CRM();
         } else {
-            alert('Lỗi cập nhật trạng thái thanh toán');
+            alert('Lá»—i cáº­p nháº­t tráº¡ng thÃ¡i thanh toÃ¡n');
         }
-    } catch (e) { alert('Lỗi kết nối'); }
+    } catch (e) { alert('Lá»—i káº¿t ná»‘i'); }
 }
 
 function updateCRMDurationOptions(defaultVal = '') {
@@ -1297,24 +1228,24 @@ function updateCRMDurationOptions(defaultVal = '') {
         cksSection.style.display = serviceVal.includes('CKS') ? 'block' : 'none';
     }
     
-    if (serviceVal.includes('HDDT') || serviceVal.includes('Hóa đơn')) {
-        ['300 số', '500 số', '1000 số', '2000 số', '5000 số', '10000 số'].forEach(v => {
+    if (serviceVal.includes('HDDT') || serviceVal.includes('HÃ³a Ä‘Æ¡n')) {
+        ['300 sá»‘', '500 sá»‘', '1000 sá»‘', '2000 sá»‘', '5000 sá»‘', '10000 sá»‘'].forEach(v => {
             durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
         });
-        if (!defaultVal || !defaultVal.includes('số')) defaultVal = '500 số';
+        if (!defaultVal || !defaultVal.includes('sá»‘')) defaultVal = '500 sá»‘';
     } else if (serviceVal.includes('CKS')) {
         const cksType = document.getElementById('ca2-crm-cks-type')?.value || 'cap_moi';
         updateCKSDurationByType(cksType, defaultVal);
         return; 
-    } else if (serviceVal.includes('EBH') || serviceVal.includes('Bảo hiểm')) {
-        const variant = serviceVal.includes('Gia hạn dùng thử') ? 'gia_han_thu' : (serviceVal.includes('Gia hạn') ? 'gia_han' : 'cap_moi');
+    } else if (serviceVal.includes('EBH') || serviceVal.includes('Báº£o hiá»ƒm')) {
+        const variant = serviceVal.includes('Gia háº¡n dÃ¹ng thá»­') ? 'gia_han_thu' : (serviceVal.includes('Gia háº¡n') ? 'gia_han' : 'cap_moi');
         updateGenericDurationOptions(variant, defaultVal);
         return;
     } else {
-        ['1 năm', '2 năm', '3 năm', '4 năm', '5 năm'].forEach(v => {
-            durationSelect.innerHTML += `<option value="${v}">${v.replace('năm', 'Năm')}</option>`;
+        ['1 nÄƒm', '2 nÄƒm', '3 nÄƒm', '4 nÄƒm', '5 nÄƒm'].forEach(v => {
+            durationSelect.innerHTML += `<option value="${v}">${v.replace('nÄƒm', 'NÄƒm')}</option>`;
         });
-        if (!defaultVal || defaultVal.includes('số')) defaultVal = '1 năm';
+        if (!defaultVal || defaultVal.includes('sá»‘')) defaultVal = '1 nÄƒm';
     }
     durationSelect.value = defaultVal;
     updateCRMBonusMonths();
@@ -1327,16 +1258,16 @@ function updateGenericDurationOptions(variant, defaultVal = '') {
     
     let bonus = variant === 'gia_han_thu' ? 6 : 3;
     let options = [
-        { val: '1 năm', text: `1 Năm (+${bonus} tháng)` },
-        { val: '2 năm', text: `2 Năm (+${bonus * 2} tháng)` },
-        { val: '3 năm', text: `3 Năm (+${bonus * 3} tháng)` }
+        { val: '1 nÄƒm', text: `1 NÄƒm (+${bonus} thÃ¡ng)` },
+        { val: '2 nÄƒm', text: `2 NÄƒm (+${bonus * 2} thÃ¡ng)` },
+        { val: '3 nÄƒm', text: `3 NÄƒm (+${bonus * 3} thÃ¡ng)` }
     ];
     
     options.forEach(opt => {
         durationSelect.innerHTML += `<option value="${opt.val}">${opt.text}</option>`;
     });
     
-    durationSelect.value = defaultVal || '1 năm';
+    durationSelect.value = defaultVal || '1 nÄƒm';
     updateCRMBonusMonths();
 }
 
@@ -1348,15 +1279,15 @@ function updateCKSDurationByType(cksType, defaultVal = '') {
     let options = [];
     if (cksType === 'gia_han_thu') {
         options = [
-            { val: '1 năm', text: '1 Năm (+6 tháng)' },
-            { val: '2 năm', text: '2 Năm (+9 tháng)' },
-            { val: '3 năm', text: '3 Năm (+12 tháng)' }
+            { val: '1 nÄƒm', text: '1 NÄƒm (+6 thÃ¡ng)' },
+            { val: '2 nÄƒm', text: '2 NÄƒm (+9 thÃ¡ng)' },
+            { val: '3 nÄƒm', text: '3 NÄƒm (+12 thÃ¡ng)' }
         ];
     } else {
         options = [
-            { val: '1 năm', text: '1 Năm (+3 tháng)' },
-            { val: '2 năm', text: '2 Năm (+6 tháng)' },
-            { val: '3 năm', text: '3 Năm (+9 tháng)' }
+            { val: '1 nÄƒm', text: '1 NÄƒm (+3 thÃ¡ng)' },
+            { val: '2 nÄƒm', text: '2 NÄƒm (+6 thÃ¡ng)' },
+            { val: '3 nÄƒm', text: '3 NÄƒm (+9 thÃ¡ng)' }
         ];
     }
     
@@ -1364,8 +1295,8 @@ function updateCKSDurationByType(cksType, defaultVal = '') {
         durationSelect.innerHTML += `<option value="${opt.val}">${opt.text}</option>`;
     });
     
-    if (!defaultVal || defaultVal.includes('tháng') || defaultVal.includes('số')) {
-        defaultVal = '1 năm';
+    if (!defaultVal || defaultVal.includes('thÃ¡ng') || defaultVal.includes('sá»‘')) {
+        defaultVal = '1 nÄƒm';
     }
     durationSelect.value = defaultVal;
     updateCRMBonusMonths();
@@ -1381,12 +1312,12 @@ function updateCRMBonusMonths() {
     const years = parseInt(durationVal) || 0;
 
     // Bonus logic based on USER request:
-    // Cấp mới 1 năm -> +3 tháng
-    // Gia hạn 1 năm -> +3 tháng
-    // Gia hạn dùng thử 1 năm -> +6 tháng (CKS) or +6 tháng (EBH)
+    // Cáº¥p má»›i 1 nÄƒm -> +3 thÃ¡ng
+    // Gia háº¡n 1 nÄƒm -> +3 thÃ¡ng
+    // Gia háº¡n dÃ¹ng thá»­ 1 nÄƒm -> +6 thÃ¡ng (CKS) or +6 thÃ¡ng (EBH)
 
-    if (serviceVal.includes('CKS') || serviceVal.includes('EBH') || serviceVal.includes('Bảo hiểm')) {
-        const isTrial = serviceVal.includes('Gia hạn dùng thử');
+    if (serviceVal.includes('CKS') || serviceVal.includes('EBH') || serviceVal.includes('Báº£o hiá»ƒm')) {
+        const isTrial = serviceVal.includes('Gia háº¡n dÃ¹ng thá»­');
         bonus = years * (isTrial ? 6 : 3);
         
         // Special case for CKS trial if years > 1 (optional, keeping User's 1-year rule but scaling)
@@ -1414,14 +1345,14 @@ function openAddCRMModal() {
             else console.warn(`[DEBUG] Element not found: ${id}`);
         };
 
-        setText('ca2-crm-modal-title', 'Thêm khách hàng CA2 CRM');
+        setText('ca2-crm-modal-title', 'ThÃªm khÃ¡ch hÃ ng CA2 CRM');
         setVal('ca2-crm-id', '');
         setVal('ca2-crm-mst', '');
         setVal('ca2-crm-name', '');
         setVal('ca2-crm-email', '');
         setVal('ca2-crm-phone', '');
-        setVal('ca2-crm-service', 'CKS – Cấp mới');
-        setVal('ca2-crm-customer-type', 'Công ty');
+        setVal('ca2-crm-service', 'CKS â€“ Cáº¥p má»›i');
+        setVal('ca2-crm-customer-type', 'CÃ´ng ty');
         setVal('ca2-crm-start', new Date().toISOString().split('T')[0]);
         setVal('ca2-crm-cks-type', 'cap_moi');
         setVal('ca2-crm-compensate', 0);
@@ -1484,16 +1415,16 @@ function editCRM(id) {
             else console.warn(`[DEBUG] Element not found: ${id}`);
         };
 
-        setText('ca2-crm-modal-title', 'Cập nhật khách hàng');
+        setText('ca2-crm-modal-title', 'Cáº­p nháº­t khÃ¡ch hÃ ng');
         setVal('ca2-crm-id', c.id);
         setVal('ca2-crm-mst', c.mst);
         setVal('ca2-crm-name', c.company_name);
         setVal('ca2-crm-email', c.email);
         setVal('ca2-crm-phone', c.phone);
         
-        const normalizedServiceType = c.service_type || 'CKS – Cấp mới';
+        const normalizedServiceType = c.service_type || 'CKS â€“ Cáº¥p má»›i';
         setVal('ca2-crm-service', normalizedServiceType);
-        setVal('ca2-crm-customer-type', c.customer_type || 'Công ty');
+        setVal('ca2-crm-customer-type', c.customer_type || 'CÃ´ng ty');
         setVal('ca2-crm-start', c.start_date || '');
         setVal('ca2-crm-compensate', c.compensate_months || 0);
         
@@ -1532,12 +1463,12 @@ function editCRM(id) {
 }
 
 async function deleteCRM(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) return;
+    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a khÃ¡ch hÃ ng nÃ y?')) return;
     try {
         const res = await authedFetch(`/api/ca2-crm/${id}`, { method: 'DELETE' });
         if (res.ok) loadCA2CRMData();
-        else alert('Lỗi khi xóa khách hàng');
-    } catch (e) { alert('Lỗi kết nối'); }
+        else alert('Lá»—i khi xÃ³a khÃ¡ch hÃ ng');
+    } catch (e) { alert('Lá»—i káº¿t ná»‘i'); }
 }
 
 async function createCampaignFromCA2CRM() {
@@ -1554,18 +1485,18 @@ async function createCampaignFromCA2CRM() {
     }
 
     if (recipients.length === 0) {
-        alert('Không tìm thấy khách hàng nào có email hợp lệ.');
+        alert('KhÃ´ng tÃ¬m tháº¥y khÃ¡ch hÃ ng nÃ o cÃ³ email há»£p lá»‡.');
         return;
     }
 
-    if (!confirm(`Tạo chiến dịch gửi mail cho ${recipients.length} khách hàng?`)) return;
+    if (!confirm(`Táº¡o chiáº¿n dá»‹ch gá»­i mail cho ${recipients.length} khÃ¡ch hÃ ng?`)) return;
 
     try {
         const sendersRes = await authedFetch('/api/senders');
         const senders = await sendersRes.json();
         
         if (!senders || senders.length === 0) {
-            alert('Vui lòng kết nối tài khoản Gmail trước khi gửi mail.');
+            alert('Vui lÃ²ng káº¿t ná»‘i tÃ i khoáº£n Gmail trÆ°á»›c khi gá»­i mail.');
             showPage('senders');
             return;
         }
@@ -1574,8 +1505,8 @@ async function createCampaignFromCA2CRM() {
         
         const campaignData = {
             name: `CRM Bulk - ${formatDate(new Date())}`,
-            subject: "Thông báo về dịch vụ CA2",
-            template: "Kính gửi #TênCôngTy, dịch vụ của quý khách (MST: #MST) sắp hết hạn vào ngày #NgàyHếtHạn.",
+            subject: "ThÃ´ng bÃ¡o vá» dá»‹ch vá»¥ CA2",
+            template: "KÃ­nh gá»­i #TÃªnCÃ´ngTy, dá»‹ch vá»¥ cá»§a quÃ½ khÃ¡ch (MST: #MST) sáº¯p háº¿t háº¡n vÃ o ngÃ y #NgÃ yHáº¿tHáº¡n.",
             attachCert: true,
             senderAccountId: senderId,
             recipients: recipients.map(c => ({
@@ -1593,10 +1524,10 @@ async function createCampaignFromCA2CRM() {
         });
 
         if (res.ok) {
-            alert('Tạo chiến dịch thành công!');
+            alert('Táº¡o chiáº¿n dá»‹ch thÃ nh cÃ´ng!');
             showPage('campaigns');
         }
-    } catch (e) { alert('Lỗi hệ thống'); }
+    } catch (e) { alert('Lá»—i há»‡ thá»‘ng'); }
 }
 
 // --- Import Logic ---
@@ -1631,7 +1562,7 @@ async function handleFileSelect(event) {
             const json = XLSX.utils.sheet_to_json(sheet);
             
             if (json.length === 0) {
-                alert('File không có dữ liệu');
+                alert('File khÃ´ng cÃ³ dá»¯ liá»‡u');
                 return;
             }
 
@@ -1643,29 +1574,29 @@ async function handleFileSelect(event) {
             });
 
             if (res.ok) {
-                alert('Nhập dữ liệu thành công!');
+                alert('Nháº­p dá»¯ liá»‡u thÃ nh cÃ´ng!');
                 closeCRMImportModal();
                 loadCA2CRMData();
             } else {
                 const err = await res.json();
-                alert('Lỗi: ' + (err.error || 'Server error'));
+                alert('Lá»—i: ' + (err.error || 'Server error'));
             }
         };
         reader.readAsArrayBuffer(file);
-    } catch (e) { alert('Lỗi xử lý file'); }
+    } catch (e) { alert('Lá»—i xá»­ lÃ½ file'); }
 }
 
 function downloadCRMTemplate() {
     // Columns from the user's screenshot
     const headers = [
-        "Ngày", "Tên DN", "MST", "Chi cục Thuế", "điện thoại D", 
-        "Email đăng ký", "Dịch vụ", "Thời hạn", "Ngày hết hạn"
+        "NgÃ y", "TÃªn DN", "MST", "Chi cá»¥c Thuáº¿", "Ä‘iá»‡n thoáº¡i D", 
+        "Email Ä‘Äƒng kÃ½", "Dá»‹ch vá»¥", "Thá»i háº¡n", "NgÃ y háº¿t háº¡n"
     ];
     
     // Sample data
     const sampleData = [
-        ["01/01/2024", "CÔNG TY TNHH VÍ DỤ A", "0101010101", "Cầu Giấy", "0900000000", "vi-du@email.com", "CKS", "1 năm", "01/01/2025"],
-        ["15/02/2024", "CÔNG TY CP MINH HỌA B", "0202020202", "Hai Bà Trưng", "0911111111", "minh-hoa@email.com", "HDDT", "2 năm", "15/02/2026"]
+        ["01/01/2024", "CÃ”NG TY TNHH VÃ Dá»¤ A", "0101010101", "Cáº§u Giáº¥y", "0900000000", "vi-du@email.com", "CKS", "1 nÄƒm", "01/01/2025"],
+        ["15/02/2024", "CÃ”NG TY CP MINH Há»ŒA B", "0202020202", "Hai BÃ  TrÆ°ng", "0911111111", "minh-hoa@email.com", "HDDT", "2 nÄƒm", "15/02/2026"]
     ];
 
     // Create worksheet
@@ -1744,7 +1675,7 @@ async function loadRecentCampaigns() {
         const campaigns = await res.json();
         
         // Polling logic
-        const hasActive = campaigns.some(c => c.status === 'Đang gửi' || c.status === 'Đang hàng đợi' || c.status === 'Đang xử lý');
+        const hasActive = campaigns.some(c => c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i' || c.status === 'Äang xá»­ lÃ½');
         if (hasActive) {
             loadDashboardStats();
             if (!window.campaignInterval) window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
@@ -1756,10 +1687,10 @@ async function loadRecentCampaigns() {
 
         const renderItem = c => {
             const successPct = c.total_recipients > 0 ? Math.round((c.sent_count / c.total_recipients) * 100) : 0;
-            const isDone = c.status === 'Hoàn thành';
-            const isRunning = c.status === 'Đang gửi' || c.status === 'Đang hàng đợi';
+            const isDone = c.status === 'HoÃ n thÃ nh';
+            const isRunning = c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i';
             const badgeType = isDone ? 'badge-done' : (isRunning ? 'badge-running' : 'badge-pending');
-            const statusLabel = isRunning ? 'Đang gửi...' : c.status;
+            const statusLabel = isRunning ? 'Äang gá»­i...' : c.status;
 
             return `
                 <div class="group relative overflow-hidden bg-white/2 hover:bg-white/5 border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4" onclick="showPage('campaigns')">
@@ -1771,7 +1702,7 @@ async function loadRecentCampaigns() {
 
                     <div class="flex-1 min-w-0">
                         <h4 class="text-sm font-black text-white truncate group-hover:text-orange-400 transition-colors">${c.name}</h4>
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString('vi-VN')} • ${c.sent_count}/${c.total_recipients} Email</p>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString('vi-VN')} â€¢ ${c.sent_count}/${c.total_recipients} Email</p>
                     </div>
 
                     <div class="flex flex-col items-end gap-2 shrink-0">
@@ -1789,11 +1720,11 @@ async function loadRecentCampaigns() {
 
                     <div class="flex items-center gap-2 border-l border-white/5 pl-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         ${!isDone && !isRunning ? `
-                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all" title="Bắt đầu gửi">
+                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all" title="Báº¯t Ä‘áº§u gá»­i">
                                 <i class="fas fa-play text-xs"></i>
                             </button>
                         ` : ''}
-                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Xóa">
+                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="XÃ³a">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
@@ -1804,9 +1735,9 @@ async function loadRecentCampaigns() {
         const html = campaigns.map(renderItem).join('');
         const emptyHtml = `
             <div class="empty-state">
-                <div class="empty-icon">📧</div>
-                <div class="empty-title">Chưa có chiến dịch nào</div>
-                <div class="empty-desc">Tạo chiến dịch đầu tiên để bắt đầu gửi email</div>
+                <div class="empty-icon">ðŸ“§</div>
+                <div class="empty-title">ChÆ°a cÃ³ chiáº¿n dá»‹ch nÃ o</div>
+                <div class="empty-desc">Táº¡o chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i email</div>
             </div>
         `;
 
@@ -1823,18 +1754,18 @@ async function startCampaign(id) {
         const res = await authedFetch(`/api/campaigns/${id}/send`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-            alert('Chiến dịch đã bắt đầu gửi!');
+            alert('Chiáº¿n dá»‹ch Ä‘Ã£ báº¯t Ä‘áº§u gá»­i!');
             loadRecentCampaigns(); 
         } else {
-            alert('Lỗi: ' + (data.error || 'Không rõ'));
+            alert('Lá»—i: ' + (data.error || 'KhÃ´ng rÃµ'));
         }
     } catch (e) {
-        alert('Lỗi kết nối server');
+        alert('Lá»—i káº¿t ná»‘i server');
     }
 }
 
 async function deleteCampaign(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa chiến dịch này? Hành động này không thể hoàn tác.')) return;
+    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a chiáº¿n dá»‹ch nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.')) return;
     try {
         const res = await authedFetch(`/api/campaigns/${id}`, { method: 'DELETE' });
         if (res.ok) {
@@ -1842,10 +1773,10 @@ async function deleteCampaign(id) {
             loadDashboardStats();
         } else {
             const err = await res.json();
-            alert('Lỗi khi xóa: ' + (err.error || 'Không rõ'));
+            alert('Lá»—i khi xÃ³a: ' + (err.error || 'KhÃ´ng rÃµ'));
         }
     } catch (e) {
-        alert('Lỗi kết nối server');
+        alert('Lá»—i káº¿t ná»‘i server');
     }
 }
 
@@ -1859,7 +1790,7 @@ async function loadSenders() {
         const res = await authedFetch('/api/senders');
         const senders = await res.json();
         
-        if (countEl) countEl.innerText = `Tổng cộng: ${senders.length} tài khoản`;
+        if (countEl) countEl.innerText = `Tá»•ng cá»™ng: ${senders.length} tÃ i khoáº£n`;
         
         list.innerHTML = senders.map(s => {
             const isGmailAPI = s.smtpHost === 'oauth2.google' || s.smtpHost === 'oauth2.googleapis.com';
@@ -1868,7 +1799,7 @@ async function loadSenders() {
                 <div class="list-item">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isGmailAPI ? 'bg-white' : 'bg-orange-gradient/20 text-orange-500'}">
-                            ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : '⚙️'}
+                            ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : 'âš™ï¸'}
                         </div>
                         <div>
                             <div class="list-item-title">${s.senderName}</div>
@@ -1878,7 +1809,7 @@ async function loadSenders() {
                     <div class="flex justify-center">
                         <span class="badge-premium badge-done">
                             <span class="badge-dot"></span>
-                            Đã kết nối
+                            ÄÃ£ káº¿t ná»‘i
                         </span>
                     </div>
                     <div class="flex justify-center">
@@ -1894,15 +1825,15 @@ async function loadSenders() {
             `;
         }).join('') || `
             <div class="empty-state">
-                <div class="empty-icon">🔑</div>
-                <div class="empty-title">Chưa có tài khoản nào</div>
-                <div class="empty-desc">Kết nối Gmail hoặc SMTP để bắt đầu gửi mail</div>
+                <div class="empty-icon">ðŸ”‘</div>
+                <div class="empty-title">ChÆ°a cÃ³ tÃ i khoáº£n nÃ o</div>
+                <div class="empty-desc">Káº¿t ná»‘i Gmail hoáº·c SMTP Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i mail</div>
             </div>
         `;
         
         const select = document.getElementById('select-sender');
         if (select) {
-            select.innerHTML = '<option value="">-- Chọn tài khoản gửi --</option>' + 
+            select.innerHTML = '<option value="">-- Chá»n tÃ i khoáº£n gá»­i --</option>' + 
                 senders.map(s => `<option value="${s.id}">${s.senderName} (${s.senderEmail})</option>`).join('');
         }
     } catch (e) { console.error('Load Senders Error:', e); }
@@ -1913,27 +1844,27 @@ async function connectGoogleAccount() {
         const res = await authedFetch('/api/auth/google/url');
         const data = await res.json();
         if (data.url) {
-            // Mở cửa sổ popup để kết nối Gmail OAuth
+            // Má»Ÿ cá»­a sá»• popup Ä‘á»ƒ káº¿t ná»‘i Gmail OAuth
             window.open(data.url, 'GoogleAuth', 'width=600,height=700');
         } else {
-            alert('Không lấy được URL kết nối Google. Vui lòng thử lại.');
+            alert('KhÃ´ng láº¥y Ä‘Æ°á»£c URL káº¿t ná»‘i Google. Vui lÃ²ng thá»­ láº¡i.');
         }
     } catch (e) {
-        alert('Lỗi kết nối server khi lấy URL Google OAuth.');
+        alert('Lá»—i káº¿t ná»‘i server khi láº¥y URL Google OAuth.');
         console.error(e);
     }
 }
 
-// Lắng nghe message từ popup OAuth
+// Láº¯ng nghe message tá»« popup OAuth
 window.addEventListener('message', (event) => {
     if (event.data === 'google_auth_success') {
-        alert('Kết nối Gmail thành công! Đang tải lại danh sách tài khoản...');
+        alert('Káº¿t ná»‘i Gmail thÃ nh cÃ´ng! Äang táº£i láº¡i danh sÃ¡ch tÃ i khoáº£n...');
         loadSenders();
     }
 });
 
 function openAddSenderModal() {
-    document.getElementById('sender-modal-title').innerHTML = 'Thêm <span class="text-orange-gradient">tài khoản SMTP</span>';
+    document.getElementById('sender-modal-title').innerHTML = 'ThÃªm <span class="text-orange-gradient">tÃ i khoáº£n SMTP</span>';
     document.getElementById('edit-sender-id').value = '';
     document.getElementById('edit-sender-name').value = '';
     document.getElementById('edit-sender-email').value = '';
@@ -1951,7 +1882,7 @@ async function openEditSenderModal(id) {
         const s = senders.find(x => x.id === id);
         if (!s) return;
 
-        document.getElementById('sender-modal-title').innerHTML = 'Chỉnh sửa <span class="text-orange-gradient">tài khoản SMTP</span>';
+        document.getElementById('sender-modal-title').innerHTML = 'Chá»‰nh sá»­a <span class="text-orange-gradient">tÃ i khoáº£n SMTP</span>';
         document.getElementById('edit-sender-id').value = s.id;
         document.getElementById('edit-sender-name').value = s.senderName;
         document.getElementById('edit-sender-email').value = s.senderEmail;
@@ -1980,7 +1911,7 @@ async function saveSenderAccount() {
     };
 
     if (!data.senderName || !data.senderEmail || !data.smtpHost || !data.smtpPort) {
-        return alert('Vui lòng điền đầy đủ các thông tin bắt buộc');
+        return alert('Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ cÃ¡c thÃ´ng tin báº¯t buá»™c');
     }
 
     try {
@@ -2001,38 +1932,38 @@ async function saveSenderAccount() {
             loadSenders();
         } else {
             const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Không rõ'));
+            alert('Lá»—i: ' + (err.error || 'KhÃ´ng rÃµ'));
         }
-    } catch (e) { alert('Lỗi kết nối server'); }
+    } catch (e) { alert('Lá»—i káº¿t ná»‘i server'); }
 }
 
 async function deleteSender(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) return;
+    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a tÃ i khoáº£n nÃ y?')) return;
     try {
         const res = await authedFetch(`/api/senders/${id}`, { method: 'DELETE' });
         if (res.ok) loadSenders();
-        else alert('Lỗi khi xóa tài khoản');
-    } catch (e) { alert('Lỗi hệ thống'); }
+        else alert('Lá»—i khi xÃ³a tÃ i khoáº£n');
+    } catch (e) { alert('Lá»—i há»‡ thá»‘ng'); }
 }
 
 // --- UTILITIES AND OLD CRM LOGIC ---
 function exportCA2CRMToExcel() {
     if (!currentCRMData || currentCRMData.length === 0) {
-        alert('Không có dữ liệu để xuất');
+        alert('KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘á»ƒ xuáº¥t');
         return;
     }
     const wsData = currentCRMData.map(c => ({
         'MST': c.mst,
-        'Tên công ty': c.company_name,
+        'TÃªn cÃ´ng ty': c.company_name,
         'Email': c.email,
-        'Số điện thoại': c.phone,
-        'Dịch vụ': c.service_type || '',
-        'Ngày cấp': formatDate(c.start_date),
-        'Thời hạn/Số lượng': c.package_name || c.duration || '',
-        'Thành tiền': getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
-        'Ngày hết hạn': formatDate(c.expired_date),
-        'Tình trạng thanh toán': c.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán',
-        'Ghi chú': c.status_note || ''
+        'Sá»‘ Ä‘iá»‡n thoáº¡i': c.phone,
+        'Dá»‹ch vá»¥': c.service_type || '',
+        'NgÃ y cáº¥p': formatDate(c.start_date),
+        'Thá»i háº¡n/Sá»‘ lÆ°á»£ng': c.package_name || c.duration || '',
+        'ThÃ nh tiá»n': getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
+        'NgÃ y háº¿t háº¡n': formatDate(c.expired_date),
+        'TÃ¬nh tráº¡ng thanh toÃ¡n': c.payment_status === 'paid' ? 'ÄÃ£ thanh toÃ¡n' : 'ChÆ°a thanh toÃ¡n',
+        'Ghi chÃº': c.status_note || ''
     }));
     
     const wb = XLSX.utils.book_new();
@@ -2067,7 +1998,7 @@ async function exportMonthlyReport() {
     }
 
     if (filteredData.length === 0) {
-        alert('Không có dữ liệu phù hợp với bộ lọc hiện tại để xuất.');
+        alert('KhÃ´ng cÃ³ dá»¯ liá»‡u phÃ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i Ä‘á»ƒ xuáº¥t.');
         return;
     }
 
@@ -2077,33 +2008,33 @@ async function exportMonthlyReport() {
     // Add main title
     worksheet.mergeCells('A1:N1');
     const title = worksheet.getCell('A1');
-    title.value = `DANH SÁCH KHÁCH HÀNG ${filterYear !== 'all' ? filterYear : new Date().getFullYear()}`;
+    title.value = `DANH SÃCH KHÃCH HÃ€NG ${filterYear !== 'all' ? filterYear : new Date().getFullYear()}`;
     title.font = { name: 'Times New Roman', size: 16, bold: true };
     title.alignment = { horizontal: 'center' };
 
     // Column Widths
     worksheet.columns = [
         { header: 'STT', width: 5 },
-        { header: 'Ngày', width: 15 },
-        { header: 'Tên DN', width: 45 },
+        { header: 'NgÃ y', width: 15 },
+        { header: 'TÃªn DN', width: 45 },
         { header: 'MST', width: 15 },
-        { header: 'Cục Thuế', width: 15 },
-        { header: 'Điện thoại DN', width: 15 },
-        { header: 'Email đăng ký', width: 30 },
-        { header: 'DỊCH VỤ', width: 15 },
-        { header: 'Thời hạn/Số lượng', width: 20 },
-        { header: 'Thành tiền', width: 15 },
-        { header: 'ĐT người làm', width: 15 },
-        { header: 'Tỷ lệ', width: 10 },
+        { header: 'Cá»¥c Thuáº¿', width: 15 },
+        { header: 'Äiá»‡n thoáº¡i DN', width: 15 },
+        { header: 'Email Ä‘Äƒng kÃ½', width: 30 },
+        { header: 'Dá»ŠCH Vá»¤', width: 15 },
+        { header: 'Thá»i háº¡n/Sá»‘ lÆ°á»£ng', width: 20 },
+        { header: 'ThÃ nh tiá»n', width: 15 },
+        { header: 'ÄT ngÆ°á»i lÃ m', width: 15 },
+        { header: 'Tá»· lá»‡', width: 10 },
         { header: 'CK KH', width: 10 },
-        { header: 'Tình trạng thanh toán', width: 20 }
+        { header: 'TÃ¬nh tráº¡ng thanh toÃ¡n', width: 20 }
     ];
 
     // Format Header Row
     const hr = worksheet.getRow(2);
     hr.values = [
-        'STT', 'Ngày', 'Tên DN', 'MST', 'Cục Thuế', 'Điện thoại DN', 'Email đăng ký',
-        'DỊCH VỤ', 'Thời hạn/Số lượng', 'Thành tiền', 'ĐT người làm', 'Tỷ lệ', 'CK KH', 'Tình trạng thanh toán'
+        'STT', 'NgÃ y', 'TÃªn DN', 'MST', 'Cá»¥c Thuáº¿', 'Äiá»‡n thoáº¡i DN', 'Email Ä‘Äƒng kÃ½',
+        'Dá»ŠCH Vá»¤', 'Thá»i háº¡n/Sá»‘ lÆ°á»£ng', 'ThÃ nh tiá»n', 'ÄT ngÆ°á»i lÃ m', 'Tá»· lá»‡', 'CK KH', 'TÃ¬nh tráº¡ng thanh toÃ¡n'
     ];
     hr.eachCell((cell) => {
         cell.font = { name: 'Times New Roman', size: 11, bold: true };
@@ -2125,10 +2056,10 @@ async function exportMonthlyReport() {
             c.service_type || '',
             c.package_name || c.duration || '',
             getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
-            currentUser?.full_name || 'Ngọc',
-            '', // Tỷ lệ
+            currentUser?.full_name || 'Ngá»c',
+            '', // Tá»· lá»‡
             '', // CK KH
-            c.payment_status === 'paid' ? 'Đã TT' : 'Chưa TT'
+            c.payment_status === 'paid' ? 'ÄÃ£ TT' : 'ChÆ°a TT'
         ]);
         row.eachCell((cell) => {
             cell.font = { name: 'Times New Roman', size: 11 };
@@ -2174,7 +2105,7 @@ function handleFileUpload(event) {
             const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, dateNF: 'dd/mm/yyyy' });
             
             if (!rawRows || rawRows.length === 0) {
-                statusEl.innerText = 'File rỗng!';
+                statusEl.innerText = 'File rá»—ng!';
                 statusEl.className = 'text-sm font-bold text-red-500 text-center';
                 return;
             }
@@ -2182,8 +2113,8 @@ function handleFileUpload(event) {
             // Strict Smart Header Detection
             let headerRowIndex = -1;
             const headerKeywords = [
-                'MST', 'TAX', 'MÃ SỐ THUẾ', 'CÔNG TY', 'TÊN', 'NAME', 'EMAIL', 'ĐỊA CHỈ', 'ADDRESS', 
-                'HẾT HẠN', 'EXPIRATION', 'SERIAL', 'HẠN', 'DỊCH VỤ', 'GÓI', 'THỜI GIAN', 'NGÀY CẤP'
+                'MST', 'TAX', 'MÃƒ Sá» THUáº¾', 'CÃ”NG TY', 'TÃŠN', 'NAME', 'EMAIL', 'Äá»ŠA CHá»ˆ', 'ADDRESS', 
+                'Háº¾T Háº N', 'EXPIRATION', 'SERIAL', 'Háº N', 'Dá»ŠCH Vá»¤', 'GÃ“I', 'THá»œI GIAN', 'NGÃ€Y Cáº¤P'
             ];
             
             for (let i = 0; i < Math.min(rawRows.length, 5); i++) { // Check up to 5 rows
@@ -2265,7 +2196,7 @@ function handleFileUpload(event) {
                             obj['Serial'] = val;
                         } else if (val.length > 5 && val.includes(' ') && !isDate(val)) {
                             const lowerVal = val.toLowerCase();
-                            const addressKeywords = ['phường', 'quận', 'huyện', 'tỉnh', 'thành phố', 'đường', 'ngõ', 'số', 'khu phố', 'xã', 'thị trấn', 'phố', 'ward', 'district', 'city', 'street'];
+                            const addressKeywords = ['phÆ°á»ng', 'quáº­n', 'huyá»‡n', 'tá»‰nh', 'thÃ nh phá»‘', 'Ä‘Æ°á»ng', 'ngÃµ', 'sá»‘', 'khu phá»‘', 'xÃ£', 'thá»‹ tráº¥n', 'phá»‘', 'ward', 'district', 'city', 'street'];
                             const isAddress = addressKeywords.some(kw => lowerVal.includes(kw));
                             
                             if (isAddress) {
@@ -2279,15 +2210,15 @@ function handleFileUpload(event) {
                     Object.keys(obj).forEach(k => {
                         const uk = k.toUpperCase().trim();
                         const val = obj[k];
-                        if (uk.includes('MST') || uk.includes('TAX') || uk.includes('MÃ SỐ THUẾ')) obj['MST'] = val;
-                        if (uk.includes('CÔNG TY') || uk.includes('TÊN') || uk.includes('NAME')) {
+                        if (uk.includes('MST') || uk.includes('TAX') || uk.includes('MÃƒ Sá» THUáº¾')) obj['MST'] = val;
+                        if (uk.includes('CÃ”NG TY') || uk.includes('TÃŠN') || uk.includes('NAME')) {
                             if (!isDate(val)) obj['TenCongTy'] = val;
                         }
                         if (uk.includes('EMAIL')) obj['Email'] = val;
-                        if ((uk.includes('HẾT HẠN') || uk.includes('HẠN GCN') || uk.includes('EXPIRATION') || uk.includes('HẠN')) && !uk.includes('THỜI HẠN')) {
+                        if ((uk.includes('Háº¾T Háº N') || uk.includes('Háº N GCN') || uk.includes('EXPIRATION') || uk.includes('Háº N')) && !uk.includes('THá»œI Háº N')) {
                             obj['NgayHetHanChuKySo'] = val;
                         }
-                        if (uk.includes('ĐỊA CHỈ') || uk.includes('ADDRESS')) obj['DiaChi'] = val;
+                        if (uk.includes('Äá»ŠA CHá»ˆ') || uk.includes('ADDRESS')) obj['DiaChi'] = val;
                     });
                 }
                 return obj;
@@ -2300,23 +2231,23 @@ function handleFileUpload(event) {
 
             if (totalRows > 0) {
                 if (rowsWithEmail === totalRows) {
-                    statusEl.innerText = `✅ Đã nạp thành công ${totalRows} dòng (Dữ liệu chuẩn).`;
+                    statusEl.innerText = `âœ… ÄÃ£ náº¡p thÃ nh cÃ´ng ${totalRows} dÃ²ng (Dá»¯ liá»‡u chuáº©n).`;
                     statusEl.className = 'text-sm font-bold text-emerald-400 text-center';
                 } else if (rowsWithEmail > 0) {
-                    statusEl.innerText = `⚠️ Đã nạp ${totalRows} dòng, nhưng chỉ ${rowsWithEmail} dòng có Email hợp lệ.`;
+                    statusEl.innerText = `âš ï¸ ÄÃ£ náº¡p ${totalRows} dÃ²ng, nhÆ°ng chá»‰ ${rowsWithEmail} dÃ²ng cÃ³ Email há»£p lá»‡.`;
                     statusEl.className = 'text-sm font-bold text-orange-400 text-center';
                 } else {
-                    statusEl.innerText = `❌ Đã nạp ${totalRows} dòng, nhưng KHÔNG tìm thấy Email nào!`;
+                    statusEl.innerText = `âŒ ÄÃ£ náº¡p ${totalRows} dÃ²ng, nhÆ°ng KHÃ”NG tÃ¬m tháº¥y Email nÃ o!`;
                     statusEl.className = 'text-sm font-bold text-red-400 text-center';
                 }
             } else {
-                statusEl.innerText = 'Không tìm thấy dòng dữ liệu nào!';
+                statusEl.innerText = 'KhÃ´ng tÃ¬m tháº¥y dÃ²ng dá»¯ liá»‡u nÃ o!';
                 statusEl.className = 'text-sm font-bold text-orange-400 text-center';
             }
             renderPreviewTable();
         } catch (err) {
             console.error(err);
-            statusEl.innerText = 'Lỗi xử lý file!';
+            statusEl.innerText = 'Lá»—i xá»­ lÃ½ file!';
             statusEl.className = 'text-sm font-bold text-red-500 text-center';
         }
     };
@@ -2379,7 +2310,7 @@ function insertVariable(variable) {
 }
 
 function addCustomLink() {
-    const url = prompt('Nhập URL liên kết:', 'https://');
+    const url = prompt('Nháº­p URL liÃªn káº¿t:', 'https://');
     if (url) {
         formatDoc('createLink', url);
     }
@@ -2401,7 +2332,7 @@ function handleEditorImage(event) {
         img.style.borderRadius = '8px';
         img.style.cursor = 'pointer';
         img.className = 'email-editor-img';
-        img.title = 'Click để chỉnh kích thước';
+        img.title = 'Click Ä‘á»ƒ chá»‰nh kÃ­ch thÆ°á»›c';
         
         // Click to select and show resize toolbar
         img.addEventListener('click', function(ev) {
@@ -2447,15 +2378,15 @@ function showImageResizeToolbar(imgEl) {
     toolbar.style.cssText = 'position:fixed;z-index:9999;display:flex;gap:6px;padding:8px 12px;background:rgba(10,10,30,0.95);border:1px solid rgba(249,115,22,0.4);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.6);backdrop-filter:blur(12px);align-items:center;';
     
     const sizes = [
-        { label: '📐 Nhỏ', w: '300px', desc: '300px' },
-        { label: '📏 Vừa', w: '450px', desc: '450px' },
-        { label: '🖥️ Lớn', w: '600px', desc: '600px' },
-        { label: '🔳 Full', w: '100%', desc: '100%' },
+        { label: 'ðŸ“ Nhá»', w: '300px', desc: '300px' },
+        { label: 'ðŸ“ Vá»«a', w: '450px', desc: '450px' },
+        { label: 'ðŸ–¥ï¸ Lá»›n', w: '600px', desc: '600px' },
+        { label: 'ðŸ”³ Full', w: '100%', desc: '100%' },
     ];
     
     // Title
     const title = document.createElement('span');
-    title.textContent = 'Kích thước:';
+    title.textContent = 'KÃ­ch thÆ°á»›c:';
     title.style.cssText = 'font-size:10px;font-weight:900;color:#f97316;text-transform:uppercase;letter-spacing:0.1em;margin-right:4px;white-space:nowrap;';
     toolbar.appendChild(title);
     
@@ -2485,8 +2416,8 @@ function showImageResizeToolbar(imgEl) {
     
     // Delete button
     const delBtn = document.createElement('button');
-    delBtn.textContent = '🗑️';
-    delBtn.title = 'Xóa ảnh';
+    delBtn.textContent = 'ðŸ—‘ï¸';
+    delBtn.title = 'XÃ³a áº£nh';
     delBtn.style.cssText = 'padding:5px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#ef4444;font-size:12px;cursor:pointer;transition:all 0.15s;margin-left:4px;';
     delBtn.onmouseenter = () => { delBtn.style.background = 'rgba(239,68,68,0.3)'; };
     delBtn.onmouseleave = () => { delBtn.style.background = 'rgba(239,68,68,0.1)'; };
@@ -2500,8 +2431,8 @@ function showImageResizeToolbar(imgEl) {
     
     // Close button
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
-    closeBtn.title = 'Đóng';
+    closeBtn.textContent = 'âœ•';
+    closeBtn.title = 'ÄÃ³ng';
     closeBtn.style.cssText = 'padding:4px 8px;border-radius:8px;border:none;background:transparent;color:#666;font-size:14px;cursor:pointer;font-weight:900;transition:all 0.15s;';
     closeBtn.onmouseenter = () => { closeBtn.style.color = '#fff'; };
     closeBtn.onmouseleave = () => { closeBtn.style.color = '#666'; };
@@ -2555,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 img.style.height = 'auto';
                 img.style.display = 'block';
                 img.style.cursor = 'pointer';
-                img.title = 'Click để chỉnh kích thước';
+                img.title = 'Click Ä‘á»ƒ chá»‰nh kÃ­ch thÆ°á»›c';
                 img.addEventListener('click', function(ev) {
                     ev.preventDefault();
                     ev.stopPropagation();
@@ -2574,10 +2505,10 @@ async function saveCampaign(event) {
     const content = document.getElementById('input-template').innerHTML;
     const attachCert = document.getElementById('toggle-attach-cert')?.checked || false;
 
-    if (!name) return alert('Vui lòng nhập tên chiến dịch');
-    if (!subject) return alert('Vui lòng nhập tiêu đề email');
-    if (!senderId) return alert('Vui lòng chọn tài khoản gửi');
-    if (!currentRecipientsData || currentRecipientsData.length === 0) return alert('Vui lòng tải file dữ liệu');
+    if (!name) return alert('Vui lÃ²ng nháº­p tÃªn chiáº¿n dá»‹ch');
+    if (!subject) return alert('Vui lÃ²ng nháº­p tiÃªu Ä‘á» email');
+    if (!senderId) return alert('Vui lÃ²ng chá»n tÃ i khoáº£n gá»­i');
+    if (!currentRecipientsData || currentRecipientsData.length === 0) return alert('Vui lÃ²ng táº£i file dá»¯ liá»‡u');
 
     try {
         const res = await authedFetch('/api/campaigns', {
@@ -2594,22 +2525,22 @@ async function saveCampaign(event) {
         
         const contentType = res.headers.get("content-type");
         if (res.ok) {
-            alert('Tạo chiến dịch thành công!');
+            alert('Táº¡o chiáº¿n dá»‹ch thÃ nh cÃ´ng!');
             closeCreateModal();
             showPage('campaigns');
         } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
-            alert(`Lỗi: ${err.error || 'N/A'}\nChi tiết: ${err.message || 'Không rõ'}\nGợi ý: ${err.suggestion || 'Liên hệ kỹ thuật'}`);
+            alert(`Lá»—i: ${err.error || 'N/A'}\nChi tiáº¿t: ${err.message || 'KhÃ´ng rÃµ'}\nGá»£i Ã½: ${err.suggestion || 'LiÃªn há»‡ ká»¹ thuáº­t'}`);
         } else {
             const html = await res.text();
-            alert('Lỗi hệ thống khi tạo chiến dịch (HTML): ' + html.substring(0, 200));
+            alert('Lá»—i há»‡ thá»‘ng khi táº¡o chiáº¿n dá»‹ch (HTML): ' + html.substring(0, 200));
         }
-    } catch (e) { alert('Lỗi kết nối server: ' + e.message); }
+    } catch (e) { alert('Lá»—i káº¿t ná»‘i server: ' + e.message); }
 }
 
 // --- Template Save/Load ---
 async function saveTemplate() {
-    const name = prompt('Đặt tên cho mẫu email:', 'Mẫu mới');
+    const name = prompt('Äáº·t tÃªn cho máº«u email:', 'Máº«u má»›i');
     if (!name) return;
     const content = document.getElementById('input-template').innerHTML;
     try {
@@ -2621,18 +2552,18 @@ async function saveTemplate() {
         
         const contentType = res.headers.get("content-type");
         if (res.ok) {
-            alert('Đã lưu mẫu thành công!');
+            alert('ÄÃ£ lÆ°u máº«u thÃ nh cÃ´ng!');
             loadTemplates();
         } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
-            alert(`Lỗi khi lưu mẫu: ${err.error || 'N/A'}\nChi tiết: ${err.message || 'Không rõ'}\nGợi ý: ${err.suggestion || 'Liên hệ kỹ thuật'}`);
+            alert(`Lá»—i khi lÆ°u máº«u: ${err.error || 'N/A'}\nChi tiáº¿t: ${err.message || 'KhÃ´ng rÃµ'}\nGá»£i Ã½: ${err.suggestion || 'LiÃªn há»‡ ká»¹ thuáº­t'}`);
         } else {
             const html = await res.text();
-            alert('Lỗi hệ thống (HTML): ' + html.substring(0, 200));
+            alert('Lá»—i há»‡ thá»‘ng (HTML): ' + html.substring(0, 200));
         }
     } catch (e) { 
         console.error('[TEMPLATE_SAVE_ERROR]', e); 
-        alert('Lỗi kết nối server khi lưu mẫu: ' + e.message);
+        alert('Lá»—i káº¿t ná»‘i server khi lÆ°u máº«u: ' + e.message);
     }
 }
 
@@ -2642,7 +2573,7 @@ async function loadTemplates() {
         const data = await res.json();
         const select = document.getElementById('select-template');
         if (select && Array.isArray(data)) {
-            select.innerHTML = '<option value="">-- Mẫu đã lưu --</option>' +
+            select.innerHTML = '<option value="">-- Máº«u Ä‘Ã£ lÆ°u --</option>' +
                 data.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         }
     } catch (e) {}
@@ -2651,21 +2582,21 @@ async function loadTemplates() {
 async function deleteTemplate() {
     const select = document.getElementById('select-template');
     const id = select.value;
-    if (!id) return alert('Vui lòng chọn một mẫu để xóa');
+    if (!id) return alert('Vui lÃ²ng chá»n má»™t máº«u Ä‘á»ƒ xÃ³a');
     
-    if (!confirm('Bạn có chắc chắn muốn xóa mẫu email này?')) return;
+    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a máº«u email nÃ y?')) return;
     
     try {
         const res = await authedFetch(`/api/templates/${id}`, { method: 'DELETE' });
         if (res.ok) {
-            alert('Đã xóa mẫu thành công!');
+            alert('ÄÃ£ xÃ³a máº«u thÃ nh cÃ´ng!');
             document.getElementById('input-template').innerHTML = '';
             loadTemplates();
         } else {
             const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Không rõ'));
+            alert('Lá»—i: ' + (err.error || 'KhÃ´ng rÃµ'));
         }
-    } catch (e) { alert('Lỗi kết nối server'); }
+    } catch (e) { alert('Lá»—i káº¿t ná»‘i server'); }
 }
 
 async function applyTemplate() {
@@ -2683,7 +2614,7 @@ async function applyTemplate() {
         }
     } catch (e) {
         console.error(e);
-        alert('Lỗi khi tải mẫu: ' + e.message);
+        alert('Lá»—i khi táº£i máº«u: ' + e.message);
     }
 }
 
@@ -2699,18 +2630,18 @@ async function loadEmailLogs() {
         if (!logs || logs.length === 0) {
             list.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">📈</div>
-                    <div class="empty-title">Chưa có dữ liệu báo cáo</div>
-                    <div class="empty-desc">Gửi chiến dịch đầu tiên để xem báo cáo chi tiết</div>
+                    <div class="empty-icon">ðŸ“ˆ</div>
+                    <div class="empty-title">ChÆ°a cÃ³ dá»¯ liá»‡u bÃ¡o cÃ¡o</div>
+                    <div class="empty-desc">Gá»­i chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ xem bÃ¡o cÃ¡o chi tiáº¿t</div>
                 </div>
             `;
             return;
         }
 
         list.innerHTML = logs.map(log => {
-            const isSuccess = log.status === 'success' || log.status === 'Thành công';
+            const isSuccess = log.status === 'success' || log.status === 'ThÃ nh cÃ´ng';
             const badgeType = isSuccess ? 'badge-done' : 'badge-pending';
-            const statusLabel = isSuccess ? 'Thành công' : 'Thất bại';
+            const statusLabel = isSuccess ? 'ThÃ nh cÃ´ng' : 'Tháº¥t báº¡i';
             const date = new Date(log.created_at).toLocaleString('vi-VN');
 
             return `
@@ -2720,7 +2651,7 @@ async function loadEmailLogs() {
                         <div class="list-item-meta">${date}</div>
                     </div>
                     <div class="flex-1">
-                        <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Chiến dịch</div>
+                        <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Chiáº¿n dá»‹ch</div>
                         <div class="text-xs font-bold text-white truncate max-w-[150px]">${log.campaign_name || log.campaigns?.name || 'N/A'}</div>
                     </div>
                     <div class="flex justify-center">
@@ -2730,7 +2661,7 @@ async function loadEmailLogs() {
                         </span>
                     </div>
                     <div class="flex-1 text-right ml-4">
-                        ${!isSuccess ? `<div class="text-[9px] text-red-500 font-medium italic line-clamp-1" title="${log.error_message || ''}">${log.error_message || 'Lỗi không xác định'}</div>` : '<div class="text-[9px] text-green-500/50">OK</div>'}
+                        ${!isSuccess ? `<div class="text-[9px] text-red-500 font-medium italic line-clamp-1" title="${log.error_message || ''}">${log.error_message || 'Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh'}</div>` : '<div class="text-[9px] text-green-500/50">OK</div>'}
                     </div>
                 </div>
             `;
@@ -2868,9 +2799,9 @@ function renderCA2CRM() {
     if (filtered.length === 0) {
         listContainer.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon text-5xl mb-4">📋</div>
-                <div class="empty-title text-xl font-bold text-white mb-2">Không tìm thấy dữ liệu</div>
-                <div class="empty-desc text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc tìm kiếm lại.</div>
+                <div class="empty-icon text-5xl mb-4">ðŸ“‹</div>
+                <div class="empty-title text-xl font-bold text-white mb-2">KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u</div>
+                <div class="empty-desc text-gray-500 text-sm mb-6">Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tÃ¬m kiáº¿m láº¡i.</div>
             </div>
         `;
         return;
@@ -2879,7 +2810,7 @@ function renderCA2CRM() {
     listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
-        const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
+        const statusLabel = isExpired ? 'ÄÃ£ háº¿t háº¡n' : `CÃ²n ${daysLeft} ngÃ y`;
 
         return `
             <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" data-crm-id="${c.id}" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto;">
@@ -2889,12 +2820,12 @@ function renderCA2CRM() {
                     <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
                     <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
-                        <span class="text-white/20">•</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
+                        <span class="text-white/20">â€¢</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dá»‹ch vá»¥'}</span>
                     </div>
                 </div>
                 <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2;">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NgÃ y háº¿t háº¡n</div>
                     <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
                 <div class="flex justify-center relative min-w-[130px]" style="z-index: 2;">
@@ -2903,10 +2834,10 @@ function renderCA2CRM() {
                     </span>
                 </div>
                 <div class="flex justify-end gap-2 relative" style="z-index: 2;">
-                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" data-edit-id="${c.id}" title="Sửa khách hàng">
+                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" data-edit-id="${c.id}" title="Sá»­a khÃ¡ch hÃ ng">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" data-delete-id="${c.id}" title="Xóa khách hàng">
+                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" data-delete-id="${c.id}" title="XÃ³a khÃ¡ch hÃ ng">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -2929,7 +2860,7 @@ function setupCRMListClickHandlers() {
     const newContainer = listContainer.cloneNode(true);
     listContainer.parentNode.replaceChild(newContainer, listContainer);
 
-    // ROW CLICK → Edit
+    // ROW CLICK â†’ Edit
     newContainer.addEventListener('click', function(e) {
         // Check if delete button was clicked
         const deleteBtn = e.target.closest('.crm-delete-btn');
@@ -2964,71 +2895,15 @@ function setupCRMListClickHandlers() {
 }
 
 
-async function createCampaignFromCA2CRM() {
-    const filterType = document.getElementById('crm-filter-service').value;
-    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
-
-    let recipients = currentCRMData.filter(c => c.email);
-    if (filterType !== 'all') recipients = recipients.filter(c => matchesCRMServiceFilter(c.service_type, filterType));
-    if (search) {
-        recipients = recipients.filter(c =>
-            (c.mst && c.mst.toLowerCase().includes(search)) ||
-            (c.company_name && c.company_name.toLowerCase().includes(search))
-        );
-    }
-
-    if (recipients.length === 0) {
-        alert('KhÃ´ng tÃ¬m tháº¥y khÃ¡ch hÃ ng nÃ o cÃ³ email há»£p lá»‡.');
-        return;
-    }
-
-    if (!confirm(`Táº¡o chiáº¿n dá»‹ch gá»­i mail cho ${recipients.length} khÃ¡ch hÃ ng?`)) return;
-
-    try {
-        const sendersRes = await authedFetch('/api/senders');
-        const senders = await sendersRes.json();
-        if (!senders || !senders.length) {
-            alert('Vui lÃ²ng káº¿t ná»‘i tÃ i khoáº£n Gmail trÆ°á»›c khi gá»­i mail.');
-            showPage('senders');
-            return;
-        }
-
-        const senderId = senders[0].id;
-        const campaignData = {
-            name: `CRM Bulk - ${formatDate(new Date())}`,
-            subject: 'Thông báo dịch vụ CA2',
-            senderAccountId: senderId,
-            recipients,
-            template: document.getElementById('input-template')?.innerHTML || '<p>Kính chào Quý khách,</p>'
-        };
-
-        const res = await authedFetch('/api/campaigns', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(campaignData)
-        });
-
-        if (res.ok) {
-            alert('ÄÃ£ táº¡o chiáº¿n dá»‹ch tá»« bá»™ lá»c CRM.');
-            showPage('campaigns');
-        } else {
-            const err = await res.json();
-            alert('Lá»—i: ' + (err.error || 'KhÃ´ng rÃµ'));
-        }
-    } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i server');
-    }
-}
-
 function formatRelativeTime(dateValue) {
-    if (!dateValue) return 'Chưa có thời gian';
+    if (!dateValue) return 'ChÆ°a cÃ³ thá»i gian';
     const diffMs = Date.now() - new Date(dateValue).getTime();
     const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
-    if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+    if (diffMinutes < 60) return `${diffMinutes} phÃºt trÆ°á»›c`;
     const diffHours = Math.round(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffHours < 24) return `${diffHours} giá» trÆ°á»›c`;
     const diffDays = Math.round(diffHours / 24);
-    return `${diffDays} ngày trước`;
+    return `${diffDays} ngÃ y trÆ°á»›c`;
 }
 
 function getToneClass(tone) {
@@ -3040,18 +2915,18 @@ function getToneClass(tone) {
 
 function getCampaignStatusMeta(status) {
     const normalized = normalizeText(status);
-    if (normalized.includes('hoan thanh')) return { tone: 'success', label: 'Hoàn thành' };
-    if (normalized.includes('dang gui') || normalized.includes('dang hang doi') || normalized.includes('dang xu ly')) return { tone: 'warning', label: 'Đang chạy' };
-    if (normalized.includes('loi') || normalized.includes('that bai')) return { tone: 'danger', label: 'Có lỗi' };
-    return { tone: 'neutral', label: status || 'Chờ xử lý' };
+    if (normalized.includes('hoan thanh')) return { tone: 'success', label: 'HoÃ n thÃ nh' };
+    if (normalized.includes('dang gui') || normalized.includes('dang hang doi') || normalized.includes('dang xu ly')) return { tone: 'warning', label: 'Äang cháº¡y' };
+    if (normalized.includes('loi') || normalized.includes('that bai')) return { tone: 'danger', label: 'CÃ³ lá»—i' };
+    return { tone: 'neutral', label: status || 'Chá» xá»­ lÃ½' };
 }
 
 function getLogStatusMeta(status) {
     const normalized = normalizeText(status);
-    if (normalized.includes('success') || normalized.includes('thanh cong') || normalized === 'sent') return { tone: 'success', label: 'Thành công' };
-    if (normalized.includes('pending') || normalized.includes('retry') || normalized.includes('queue')) return { tone: 'warning', label: 'Đang chờ' };
-    if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('that bai')) return { tone: 'danger', label: 'Thất bại' };
-    return { tone: 'neutral', label: status || 'Không rõ' };
+    if (normalized.includes('success') || normalized.includes('thanh cong') || normalized === 'sent') return { tone: 'success', label: 'ThÃ nh cÃ´ng' };
+    if (normalized.includes('pending') || normalized.includes('retry') || normalized.includes('queue')) return { tone: 'warning', label: 'Äang chá»' };
+    if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('that bai')) return { tone: 'danger', label: 'Tháº¥t báº¡i' };
+    return { tone: 'neutral', label: status || 'KhÃ´ng rÃµ' };
 }
 
 function renderCampaignCard(campaign, compact = false) {
@@ -3068,216 +2943,31 @@ function renderCampaignCard(campaign, compact = false) {
             <div class="ios-campaign-main" onclick="showPage('campaigns')">
                 <div class="ios-campaign-head">
                     <div>
-                        <h4 class="ios-campaign-title">${campaign.name || 'Chiến dịch chưa đặt tên'}</h4>
-                        <p class="ios-campaign-meta">${formatDate(campaign.created_at)} • ${formatRelativeTime(campaign.created_at)}</p>
+                        <h4 class="ios-campaign-title">${campaign.name || 'Chiáº¿n dá»‹ch chÆ°a Ä‘áº·t tÃªn'}</h4>
+                        <p class="ios-campaign-meta">${formatDate(campaign.created_at)} â€¢ ${formatRelativeTime(campaign.created_at)}</p>
                     </div>
                     <span class="ios-status-pill ${getToneClass(statusMeta.tone)}">${statusMeta.label}</span>
                 </div>
                 <div class="ios-campaign-stats">
-                    <div><span>Người nhận</span><strong>${total}</strong></div>
-                    <div><span>Đã gửi</span><strong>${sent}</strong></div>
-                    <div><span>Lỗi</span><strong>${failed}</strong></div>
+                    <div><span>NgÆ°á»i nháº­n</span><strong>${total}</strong></div>
+                    <div><span>ÄÃ£ gá»­i</span><strong>${sent}</strong></div>
+                    <div><span>Lá»—i</span><strong>${failed}</strong></div>
                 </div>
                 <div class="ios-progress-wrap">
                     <div class="ios-progress-bar">
                         <div class="ios-progress-fill ${getToneClass(statusMeta.tone)}" style="width:${successPct}%"></div>
                     </div>
-                    <span class="ios-progress-label">${successPct}% hoàn tất</span>
+                    <span class="ios-progress-label">${successPct}% hoÃ n táº¥t</span>
                 </div>
             </div>
             <div class="ios-campaign-actions">
-                ${!isDone && !isRunning ? `<button onclick="event.stopPropagation(); startCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-primary" title="Bắt đầu gửi"><i class="fas fa-play"></i></button>` : ''}
-                <button onclick="event.stopPropagation(); deleteCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-danger" title="Xóa chiến dịch"><i class="fas fa-trash-alt"></i></button>
+                ${!isDone && !isRunning ? `<button onclick="event.stopPropagation(); startCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-primary" title="Báº¯t Ä‘áº§u gá»­i"><i class="fas fa-play"></i></button>` : ''}
+                <button onclick="event.stopPropagation(); deleteCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-danger" title="XÃ³a chiáº¿n dá»‹ch"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>
     `;
 }
 
-async function loadRecentCampaigns() {
-    const list = document.getElementById('campaign-list');
-    const listAll = document.getElementById('campaign-list-all');
-    if (!list && !listAll) return;
-
-    try {
-        const res = await authedFetch('/api/campaigns');
-        const campaigns = await res.json();
-        currentCampaignData = Array.isArray(campaigns) ? campaigns : [];
-
-        const hasActive = currentCampaignData.some(c => {
-            const tone = getCampaignStatusMeta(c.status).tone;
-            return tone === 'warning';
-        });
-
-        if (hasActive) {
-            loadDashboardStats();
-            if (!window.campaignInterval) window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
-        } else if (window.campaignInterval) {
-            clearInterval(window.campaignInterval);
-            window.campaignInterval = null;
-            loadDashboardStats();
-        }
-
-        const emptyHtml = `
-            <div class="empty-state">
-                <div class="empty-icon">ðŸ“§</div>
-                <div class="empty-title">ChÆ°a cÃ³ chiáº¿n dá»‹ch nÃ o</div>
-                <div class="empty-desc">Táº¡o chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i email</div>
-            </div>
-        `;
-
-        if (list) list.innerHTML = currentCampaignData.slice(0, 5).map(c => renderCampaignCard(c, true)).join('') || emptyHtml;
-        if (listAll) listAll.innerHTML = currentCampaignData.map(c => renderCampaignCard(c, false)).join('') || emptyHtml;
-    } catch (e) {
-        console.error('Error loading campaigns:', e);
-    }
-}
-
-function renderSenderCard(sender) {
-    const isGmailAPI = sender.smtpHost === 'oauth2.google' || sender.smtpHost === 'oauth2.googleapis.com';
-    return `
-        <div class="ios-sender-card">
-            <div class="ios-sender-main">
-                <div class="ios-sender-avatar ${isGmailAPI ? 'ios-sender-avatar-google' : ''}">
-                    ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-6 h-6" alt="Google">' : '<i class="fas fa-envelope-open-text"></i>'}
-                </div>
-                <div class="ios-sender-copy">
-                    <h4>${sender.senderName || 'Tài khoản gửi mail'}</h4>
-                    <p>${sender.senderEmail || 'Chưa có email'}</p>
-                </div>
-            </div>
-            <div class="ios-sender-side">
-                <span class="ios-status-pill ${getToneClass(isGmailAPI ? 'success' : 'neutral')}">${isGmailAPI ? 'Gmail API' : 'SMTP thủ công'}</span>
-                <div class="ios-sender-actions">
-                    ${!isGmailAPI ? `<button onclick="openEditSenderModal('${sender.id}')" class="ios-icon-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>` : ''}
-                    <button onclick="deleteSender('${sender.id}')" class="ios-icon-btn ios-icon-btn-danger" title="Xóa"><i class="fas fa-trash-alt"></i></button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-async function loadSenders() {
-    const list = document.getElementById('sender-list');
-    const countEl = document.getElementById('sender-count');
-    if (!list) return;
-
-    try {
-        const res = await authedFetch('/api/senders');
-        const senders = await res.json();
-        currentSenderData = Array.isArray(senders) ? senders : [];
-
-        if (countEl) countEl.innerText = `Tổng cộng: ${currentSenderData.length} tài khoản`;
-        list.innerHTML = currentSenderData.map(renderSenderCard).join('') || `
-            <div class="empty-state">
-                <div class="empty-icon">ðŸ”‘</div>
-                <div class="empty-title">ChÆ°a cÃ³ tÃ i khoáº£n nÃ o</div>
-                <div class="empty-desc">Káº¿t ná»‘i Gmail hoáº·c SMTP Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i mail</div>
-            </div>
-        `;
-
-        const select = document.getElementById('select-sender');
-        if (select) {
-            select.innerHTML = '<option value="">-- Chá»n tÃ i khoáº£n gá»­i --</option>' +
-                currentSenderData.map(s => `<option value="${s.id}">${s.senderName} (${s.senderEmail})</option>`).join('');
-        }
-    } catch (e) {
-        console.error('Load Senders Error:', e);
-    }
-}
-
-function renderEmailLogCard(log) {
-    const meta = getLogStatusMeta(log.status);
-    return `
-        <div class="ios-log-card">
-            <div class="ios-log-main">
-                <div class="ios-log-top">
-                    <div>
-                        <h4>${log.recipient_email || log.email || 'N/A'}</h4>
-                        <p>${log.campaign_name || log.campaigns?.name || 'Không rõ chiến dịch'}</p>
-                    </div>
-                    <span class="ios-status-pill ${getToneClass(meta.tone)}">${meta.label}</span>
-                </div>
-                <div class="ios-log-meta">
-                    <span><i class="far fa-clock"></i> ${new Date(log.created_at).toLocaleString('vi-VN')}</span>
-                    ${log.mst ? `<span><i class="fas fa-hashtag"></i> ${log.mst}</span>` : ''}
-                </div>
-                <div class="ios-log-note ${meta.tone === 'danger' ? 'ios-log-note-danger' : ''}">
-                    ${log.error_message || 'Gửi thành công, không có lỗi phát sinh.'}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-async function loadEmailLogs() {
-    const list = document.getElementById('email-logs-list');
-    if (!list) return;
-
-    try {
-        const res = await authedFetch('/api/email-logs');
-        const logs = await res.json();
-        currentEmailLogs = Array.isArray(logs) ? logs : [];
-
-        if (!currentEmailLogs.length) {
-            list.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">ðŸ“ˆ</div>
-                    <div class="empty-title">ChÆ°a cÃ³ dá»¯ liá»‡u bÃ¡o cÃ¡o</div>
-                    <div class="empty-desc">Gá»­i chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ xem bÃ¡o cÃ¡o chi tiáº¿t</div>
-                </div>
-            `;
-            return;
-        }
-
-        const successCount = currentEmailLogs.filter(log => getLogStatusMeta(log.status).tone === 'success').length;
-        const failedCount = currentEmailLogs.filter(log => getLogStatusMeta(log.status).tone === 'danger').length;
-        const waitingCount = currentEmailLogs.length - successCount - failedCount;
-
-        list.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="ios-stat-card">
-                    <span class="ios-stat-label">Tổng log</span>
-                    <strong class="ios-stat-value">${currentEmailLogs.length}</strong>
-                </div>
-                <div class="ios-stat-card ios-stat-card-success">
-                    <span class="ios-stat-label">Gửi thành công</span>
-                    <strong class="ios-stat-value">${successCount}</strong>
-                </div>
-                <div class="ios-stat-card ios-stat-card-danger">
-                    <span class="ios-stat-label">Cần xử lý</span>
-                    <strong class="ios-stat-value">${failedCount + waitingCount}</strong>
-                </div>
-            </div>
-            <div class="space-y-3">
-                ${currentEmailLogs.map(renderEmailLogCard).join('')}
-            </div>
-        `;
-    } catch (e) {
-        console.error('Load Email Logs Error:', e);
-    }
-}
-
-function exportEmailLogs() {
-    if (!currentEmailLogs.length) return;
-    let csv = '\uFEFFTime,Email,MST,Campaign,Status,Error\n';
-
-    currentEmailLogs.forEach(log => {
-        const time = new Date(log.created_at).toLocaleString('vi-VN');
-        const email = log.recipient_email || log.email || '';
-        const mst = log.mst || '';
-        const campaign = log.campaign_name || log.campaigns?.name || '';
-        const status = getLogStatusMeta(log.status).label;
-        const error = (log.error_message || '').replace(/,/g, ';');
-        csv += `"${time}","${email}","${mst}","${campaign}","${status}","${error}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Email_Logs_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-}
 
 // --- Final stability overrides ---
 function mapCRMServiceToPricing(val) {
@@ -3312,8 +3002,8 @@ async function loadCRMPrices() {
 
         // Standardize service names for EBH/BHXH
         CRM_PRICE_LIST.forEach(p => {
-            if (p.service_name === 'Bảo hiểm xã hội') p.service_name = 'EBH';
-            if (p.service_name === 'Hóa đơn điện tử') p.service_name = 'eINVOICE';
+            if (p.service_name === 'Báº£o hiá»ƒm xÃ£ há»™i') p.service_name = 'EBH';
+            if (p.service_name === 'HÃ³a Ä‘Æ¡n Ä‘iá»‡n tá»­') p.service_name = 'eINVOICE';
         });
 
         refreshPricingUI();
@@ -3355,7 +3045,7 @@ function updateCRMPackages() {
 
     pkgSelect.innerHTML = '';
     if (!itemsToDisplay.length) {
-        pkgSelect.innerHTML = '<option value="">Chưa có gói</option>';
+        pkgSelect.innerHTML = '<option value="">ChÆ°a cÃ³ gÃ³i</option>';
         document.getElementById('ca2-crm-amount').value = '0';
         return;
     }
@@ -3364,7 +3054,7 @@ function updateCRMPackages() {
         const opt = document.createElement('option');
         const durationLabel = inferDurationFromPackage(serviceVal, `${p.duration_months || ''} thang ${p.package_name || ''}`);
         opt.value = p.package_name;
-        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}đ`;
+        opt.textContent = `${p.package_name} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}Ä‘`;
         opt.dataset.price = String(p.price || 0);
         opt.dataset.durationLabel = durationLabel;
         opt.dataset.durationMonths = String(p.duration_months || '');
@@ -3402,129 +3092,7 @@ function calculatePrice() {
     }
 }
 
-function renderCA2CRM() {
-    const listContainer = document.getElementById('ca2-crm-list');
-    if (!listContainer) return;
 
-    const filterType = document.getElementById('crm-filter-service').value;
-    const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
-    const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
-    const sortOrder = document.getElementById('ca2-crm-sort-order')?.value || 'newest';
-    const search = document.getElementById('ca2-crm-search')?.value.toLowerCase() || '';
-    const fromDateStr = document.getElementById('crm-filter-from-date')?.value;
-    const toDateStr = document.getElementById('crm-filter-to-date')?.value;
-
-    let filtered = [...currentCRMData];
-    if (filterType !== 'all') filtered = filtered.filter(c => matchesCRMServiceFilter(c.service_type, filterType));
-    if (filterYear !== 'all') filtered = filtered.filter(c => c.expired_date && new Date(c.expired_date).getFullYear().toString() === filterYear);
-    if (filterMonth !== 'all') filtered = filtered.filter(c => c.expired_date && String(new Date(c.expired_date).getMonth() + 1) === filterMonth);
-    if (fromDateStr || toDateStr) {
-        const fromD = fromDateStr ? new Date(fromDateStr) : null;
-        const toD = toDateStr ? new Date(toDateStr) : null;
-        if (fromD) fromD.setHours(0, 0, 0, 0);
-        if (toD) toD.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(c => {
-            if (!c.expired_date) return false;
-            const expD = new Date(c.expired_date);
-            if (fromD && expD < fromD) return false;
-            if (toD && expD > toD) return false;
-            return true;
-        });
-    }
-    if (search) {
-        filtered = filtered.filter(c =>
-            (c.mst && c.mst.toLowerCase().includes(search)) ||
-            (c.company_name && c.company_name.toLowerCase().includes(search))
-        );
-    }
-
-    let activeTotal = 0;
-    let expiredTotal = 0;
-    let activeCnt = 0;
-    let expiringCnt = 0;
-    let expiredCnt = 0;
-
-    currentCRMData.forEach(c => {
-        const days = calculateRemainingDays(c.expired_date);
-        if (days < 0) {
-            expiredTotal++;
-            expiredCnt++;
-        } else {
-            activeTotal++;
-            if (days <= 60) expiringCnt++;
-            else activeCnt++;
-        }
-    });
-
-    filtered = filtered.filter(c => currentCRMTab === 'active'
-        ? calculateRemainingDays(c.expired_date) >= 0
-        : calculateRemainingDays(c.expired_date) < 0
-    );
-
-    const totalEl = document.getElementById('ca2-crm-total');
-    const activeEl = document.getElementById('ca2-crm-active');
-    const expiringEl = document.getElementById('ca2-crm-expiring');
-    const expiredEl = document.getElementById('ca2-crm-expired');
-    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
-    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
-    if (totalEl) totalEl.innerText = currentCRMData.length;
-    if (activeEl) activeEl.innerText = activeCnt;
-    if (expiringEl) expiringEl.innerText = expiringCnt;
-    if (expiredEl) expiredEl.innerText = expiredCnt;
-    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
-    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
-
-    if (sortOrder === 'newest') filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    if (sortOrder === 'soonest') filtered.sort((a, b) => new Date(a.expired_date || 0) - new Date(b.expired_date || 0));
-    if (sortOrder === 'latest') filtered.sort((a, b) => new Date(b.expired_date || 0) - new Date(a.expired_date || 0));
-
-    if (!filtered.length) {
-        listContainer.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon text-5xl mb-4">📋</div>
-                <div class="empty-title text-xl font-bold text-white mb-2">Không tìm thấy dữ liệu</div>
-                <div class="empty-desc text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc tìm kiếm lại.</div>
-            </div>
-        `;
-        return;
-    }
-
-    listContainer.innerHTML = filtered.map(c => {
-        const daysLeft = calculateRemainingDays(c.expired_date);
-        const isExpired = daysLeft < 0;
-        const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
-        return `
-            <div class="bg-glass p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] cursor-pointer mb-3 relative overflow-hidden group" onclick="editCRM('${c.id}')">
-                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 pointer-events-none"></div>' : ''}
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
-                <div class="flex-1 relative z-10">
-                    <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
-                    <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
-                        <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
-                        <span class="text-white/20">•</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
-                    </div>
-                </div>
-                <div class="text-center relative z-10 bg-black/30 px-5 py-2.5 rounded-xl border border-white/5">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NGAY HET HAN</div>
-                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
-                </div>
-                <div class="flex justify-center relative z-10 min-w-[130px]">
-                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
-                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
-                    </span>
-                </div>
-                <div class="flex justify-end gap-2 relative z-10">
-                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
-}
 
 function refreshSettingsStaticText() {
     const view = document.getElementById('view-settings');
@@ -3534,9 +3102,9 @@ function refreshSettingsStaticText() {
     
     // Ensure tab buttons maintain their labels if they were somehow cleared
     const tabButtons = [
-        ['tab-settings-account', 'Tài khoản'],
-        ['tab-settings-interface', 'Giao diện'],
-        ['tab-settings-system', 'Hệ thống']
+        ['tab-settings-account', 'TÃ i khoáº£n'],
+        ['tab-settings-interface', 'Giao diá»‡n'],
+        ['tab-settings-system', 'Há»‡ thá»‘ng']
     ];
     tabButtons.forEach(([id, label]) => {
         const btn = document.getElementById(id);
@@ -3604,7 +3172,7 @@ async function loadSettingsPage() {
     if (lastLogin) lastLogin.innerText = new Date(currentUser.last_sign_in_at).toLocaleString('vi-VN');
     
     if (roleBadge) {
-        roleBadge.innerText = `Vai trò: ${currentUser.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}`;
+        roleBadge.innerText = `Vai trÃ²: ${currentUser.role === 'admin' ? 'Quáº£n trá»‹ viÃªn' : 'NhÃ¢n viÃªn'}`;
         roleBadge.className = `settings-role-badge ${
             currentUser.role === 'admin' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
         }`;
@@ -3640,7 +3208,7 @@ async function loadSettingsPage() {
     }
 }
 
-// --- NEW PRICING MANAGEMENT LOGIC (Phần 1, 6, 7, 8) ---
+// --- NEW PRICING MANAGEMENT LOGIC (Pháº§n 1, 6, 7, 8) ---
 function renderPricingTable() {
     const tbody = document.getElementById('pricing-table-body');
     const filter = document.getElementById('pricing-service-filter').value;
@@ -3660,11 +3228,11 @@ function renderPricingTable() {
             </td>
             <td class="px-8 py-4 text-center">
                 <span class="px-3 py-1 rounded-lg bg-blue-500/10 text-[10px] font-black text-blue-400 uppercase tracking-tighter">
-                    ${item.customer_group || 'Công ty'}
+                    ${item.customer_group || 'CÃ´ng ty'}
                 </span>
             </td>
             <td class="px-8 py-4 text-center">
-                <span class="px-3 py-1 rounded-lg bg-white/5 text-xs font-bold text-gray-300">${item.duration_months} tháng</span>
+                <span class="px-3 py-1 rounded-lg bg-white/5 text-xs font-bold text-gray-300">${item.duration_months} thÃ¡ng</span>
             </td>
             <td class="px-8 py-4 text-right">
                 <input type="text" value="${new Intl.NumberFormat('vi-VN').format(item.price)}" 
@@ -3690,12 +3258,12 @@ function updatePricingPrice(index, val) {
     const raw = val.replace(/\D/g, '');
     const price = parseInt(raw);
     if (isNaN(price) || price <= 0) {
-        showToast('Giá phải là số dương!', 'error');
+        showToast('GiÃ¡ pháº£i lÃ  sá»‘ dÆ°Æ¡ng!', 'error');
         renderPricingTable();
         return;
     }
     CRM_PRICE_LIST[index].price = price;
-    showToast(`Đã cập nhật giá: ${new Intl.NumberFormat('vi-VN').format(price)}đ`, 'success');
+    showToast(`ÄÃ£ cáº­p nháº­t giÃ¡: ${new Intl.NumberFormat('vi-VN').format(price)}Ä‘`, 'success');
 }
 
 function togglePricingStatus(index) {
@@ -3706,13 +3274,13 @@ function togglePricingStatus(index) {
 function setPricingGroup(group) {
     document.getElementById('add-pricing-group').value = group;
     // UI Update
-    document.getElementById('btn-group-company').classList.toggle('active', group === 'Công ty');
-    document.getElementById('btn-group-individual').classList.toggle('active', group === 'Cá nhân/HKD');
+    document.getElementById('btn-group-company').classList.toggle('active', group === 'CÃ´ng ty');
+    document.getElementById('btn-group-individual').classList.toggle('active', group === 'CÃ¡ nhÃ¢n/HKD');
 }
 
 function openAddPricingModal() {
     document.getElementById('modal-add-pricing').classList.remove('hidden');
-    setPricingGroup('Công ty'); // Default
+    setPricingGroup('CÃ´ng ty'); // Default
 }
 
 function closeAddPricingModal() {
@@ -3728,14 +3296,14 @@ async function handleAddPricingSubmit() {
     const desc = document.getElementById('add-pricing-desc').value;
 
     if (!pkg || isNaN(price) || price <= 0) {
-        showToast('Vui lòng nhập đầy đủ thông tin hợp lệ!', 'error');
+        showToast('Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin há»£p lá»‡!', 'error');
         return;
     }
 
     // Safety: No duplicate for same service/package/duration/group
     const duplicate = CRM_PRICE_LIST.find(p => p.service_name === service && p.package_name === pkg && p.duration_months === duration && p.customer_group === group);
     if (duplicate) {
-        showToast('Gói này đã tồn tại!', 'warning');
+        showToast('GÃ³i nÃ y Ä‘Ã£ tá»“n táº¡i!', 'warning');
         return;
     }
 
@@ -3751,13 +3319,13 @@ async function handleAddPricingSubmit() {
     };
 
     CRM_PRICE_LIST.push(newItem);
-    showToast('Đã thêm gói mới. Nhấn "Lưu thay đổi" để đồng bộ database!', 'success');
+    showToast('ÄÃ£ thÃªm gÃ³i má»›i. Nháº¥n "LÆ°u thay Ä‘á»•i" Ä‘á»ƒ Ä‘á»“ng bá»™ database!', 'success');
     closeAddPricingModal();
     renderPricingTable();
 }
 
 async function deletePricingItem(idOrIndex) {
-    if (!confirm('Bạn có chắc muốn xóa gói này?')) return;
+    if (!confirm('Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a gÃ³i nÃ y?')) return;
     
     if (typeof idOrIndex === 'string' && idOrIndex.length > 5) {
         try {
@@ -3765,7 +3333,7 @@ async function deletePricingItem(idOrIndex) {
             if (!res.ok) throw new Error('Delete failed');
             CRM_PRICE_LIST = CRM_PRICE_LIST.filter(p => p.id !== idOrIndex);
         } catch (e) {
-            showToast('Lỗi khi xóa: ' + e.message, 'error');
+            showToast('Lá»—i khi xÃ³a: ' + e.message, 'error');
             return;
         }
     } else {
@@ -3773,12 +3341,12 @@ async function deletePricingItem(idOrIndex) {
     }
     
     renderPricingTable();
-    showToast('Đã xóa gói thành công', 'success');
+    showToast('ÄÃ£ xÃ³a gÃ³i thÃ nh cÃ´ng', 'success');
 }
 
 async function saveAllPricing() {
     if (currentUser.role !== 'admin') {
-        showToast('Chỉ Admin mới có quyền cập nhật bảng giá!', 'error');
+        showToast('Chá»‰ Admin má»›i cÃ³ quyá»n cáº­p nháº­t báº£ng giÃ¡!', 'error');
         return;
     }
 
@@ -3797,15 +3365,15 @@ async function saveAllPricing() {
         localStorage.setItem('crm_pricing_data', JSON.stringify(CRM_PRICE_LIST));
         localStorage.setItem('crm_pricing_time', Date.now().toString());
 
-        showToast('Đã đồng bộ toàn bộ bảng giá hệ thống!', 'success');
+        showToast('ÄÃ£ Ä‘á»“ng bá»™ toÃ n bá»™ báº£ng giÃ¡ há»‡ thá»‘ng!', 'success');
         updateCRMPackages();
     } catch (err) {
-        showToast('Lỗi khi lưu: ' + err.message, 'error');
+        showToast('Lá»—i khi lÆ°u: ' + err.message, 'error');
     }
 }
 
 async function resetPricingToDefault() {
-    if (!confirm('Bạn muốn reset bảng giá về mặc định (Xóa sạch DB và dùng fallback)?')) return;
+    if (!confirm('Báº¡n muá»‘n reset báº£ng giÃ¡ vá» máº·c Ä‘á»‹nh (XÃ³a sáº¡ch DB vÃ  dÃ¹ng fallback)?')) return;
     localStorage.removeItem('crm_pricing_data');
     localStorage.removeItem('crm_pricing_time');
     location.reload();
@@ -3860,14 +3428,14 @@ async function saveSystemSettings() {
             body: JSON.stringify({ default_storage_path: path })
         });
         if (res.ok) {
-            alert('Đã lưu cấu hình hệ thống thành công!');
+            alert('ÄÃ£ lÆ°u cáº¥u hÃ¬nh há»‡ thá»‘ng thÃ nh cÃ´ng!');
             // Update local state
             if (currentUser.settings) currentUser.settings.default_storage_path = path;
         } else {
-            alert('Lỗi khi lưu cấu hình.');
+            alert('Lá»—i khi lÆ°u cáº¥u hÃ¬nh.');
         }
     } catch (e) {
-        alert('Lỗi kết nối: ' + e.message);
+        alert('Lá»—i káº¿t ná»‘i: ' + e.message);
     }
 }
 
@@ -3875,11 +3443,11 @@ async function refreshUserList() {
     const list = document.getElementById('admin-user-list');
     if (!list) return;
     
-    list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-500">Đang tải danh sách...</td></tr>';
+    list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-500">Äang táº£i danh sÃ¡ch...</td></tr>';
     
     try {
         const res = await authedFetch('/api/admin/users');
-        if (!res.ok) throw new Error('Không thể tải danh sách người dùng');
+        if (!res.ok) throw new Error('KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ngÆ°á»i dÃ¹ng');
         
         const users = await res.json();
         list.innerHTML = '';
@@ -3911,13 +3479,13 @@ async function refreshUserList() {
                     <p class="text-xs font-medium text-gray-400">${new Date(u.created_at).toLocaleDateString('vi-VN')}</p>
                 </td>
                 <td class="px-6 py-1.5 text-right">
-                    ${isMe ? '<span class="text-[9px] text-gray-600 font-black italic">Đang sử dụng</span>' : `
+                    ${isMe ? '<span class="text-[9px] text-gray-600 font-black italic">Äang sá»­ dá»¥ng</span>' : `
                         <div class="flex justify-end gap-2">
                             <button onclick="changeUserRole('${u.id}', '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-[9px] font-black uppercase text-blue-400 hover:text-white border border-blue-400/30 hover:bg-blue-400 px-3 py-1.5 rounded-lg transition-all">
-                                Đổi thành ${u.role === 'admin' ? 'Staff' : 'Admin'}
+                                Äá»•i thÃ nh ${u.role === 'admin' ? 'Staff' : 'Admin'}
                             </button>
                             <button onclick="deleteUser('${u.id}')" class="text-[9px] font-black uppercase text-red-500 hover:text-white border border-red-500/30 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all">
-                                Xóa
+                                XÃ³a
                             </button>
                         </div>
                     `}
@@ -3931,7 +3499,7 @@ async function refreshUserList() {
 }
 
 async function changeUserRole(id, newRole) {
-    if (!confirm(`Xác nhận thay đổi vai trò người dùng thành ${newRole.toUpperCase()}?`)) return;
+    if (!confirm(`XÃ¡c nháº­n thay Ä‘á»•i vai trÃ² ngÆ°á»i dÃ¹ng thÃ nh ${newRole.toUpperCase()}?`)) return;
     
     try {
         const res = await authedFetch(`/api/admin/users/${id}`, {
@@ -3941,19 +3509,19 @@ async function changeUserRole(id, newRole) {
         });
         
         if (res.ok) {
-            alert('Cập nhật vai trò thành công!');
+            alert('Cáº­p nháº­t vai trÃ² thÃ nh cÃ´ng!');
             refreshUserList();
         } else {
             const err = await res.json();
-            alert('Lỗi: ' + err.error);
+            alert('Lá»—i: ' + err.error);
         }
     } catch (e) {
-        alert('Lỗi kết nối: ' + e.message);
+        alert('Lá»—i káº¿t ná»‘i: ' + e.message);
     }
 }
 
 async function deleteUser(id) {
-    if (!confirm('Xác nhận xóa tài khoản người dùng này?')) return;
+    if (!confirm('XÃ¡c nháº­n xÃ³a tÃ i khoáº£n ngÆ°á»i dÃ¹ng nÃ y?')) return;
     
     try {
         const res = await authedFetch(`/api/admin/users/${id}`, {
@@ -3961,13 +3529,13 @@ async function deleteUser(id) {
         });
         
         if (res.ok) {
-            alert('Đã xóa quyền truy cập người dùng thành công!');
+            alert('ÄÃ£ xÃ³a quyá»n truy cáº­p ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng!');
             refreshUserList();
         } else {
-            alert('Lỗi khi xóa.');
+            alert('Lá»—i khi xÃ³a.');
         }
     } catch (e) {
-        alert('Lỗi kết nối: ' + e.message);
+        alert('Lá»—i káº¿t ná»‘i: ' + e.message);
     }
 }
 
@@ -4013,7 +3581,7 @@ function renderDocuments() {
                     <button onclick="deleteDoc('marketing-docs', '${f.name}')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
                 </div>
             </div>
-        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">Chưa có tài liệu nào.</p>';
+        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">ChÆ°a cÃ³ tÃ i liá»‡u nÃ o.</p>';
     }
 
     if (templateList) {
@@ -4034,7 +3602,7 @@ function renderDocuments() {
                     <button onclick="deleteDoc('quotation-templates', '${f.name}')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
                 </div>
             </div>
-        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">Chưa có mẫu báo giá nào.</p>';
+        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">ChÆ°a cÃ³ máº«u bÃ¡o giÃ¡ nÃ o.</p>';
     }
 }
 
@@ -4049,7 +3617,7 @@ function getFileIcon(name) {
 
 function openUploadDocModal() {
     document.getElementById('modal-upload-doc').classList.remove('hidden');
-    document.getElementById('doc-file-name').innerText = 'Chọn file hoặc kéo thả vào đây';
+    document.getElementById('doc-file-name').innerText = 'Chá»n file hoáº·c kÃ©o tháº£ vÃ o Ä‘Ã¢y';
     selectedUploadFile = null;
     
     // Setup Drag and Drop
@@ -4100,7 +3668,7 @@ function handleDocFileChange(e) {
 
 async function uploadDocument() {
     if (!selectedUploadFile) {
-        alert('Vui lòng chọn file');
+        alert('Vui lÃ²ng chá»n file');
         return;
     }
     const bucket = document.getElementById('upload-doc-bucket').value;
@@ -4109,7 +3677,7 @@ async function uploadDocument() {
     formData.append('bucket', bucket);
 
     const btn = document.getElementById('upload-doc-btn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ĐANG TẢI LÊN...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ÄANG Táº¢I LÃŠN...';
     btn.disabled = true;
 
     try {
@@ -4125,18 +3693,18 @@ async function uploadDocument() {
             loadDocuments();
         } else {
             const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Upload thất bại'));
+            alert('Lá»—i: ' + (err.error || 'Upload tháº¥t báº¡i'));
         }
     } catch (e) {
         console.error('Upload Error:', e);
     } finally {
-        btn.innerHTML = 'BẮT ĐẦU TẢI LÊN';
+        btn.innerHTML = 'Báº®T Äáº¦U Táº¢I LÃŠN';
         btn.disabled = false;
     }
 }
 
 async function deleteDoc(bucket, name) {
-    if (!confirm(`Xóa file "${name}"?`)) return;
+    if (!confirm(`XÃ³a file "${name}"?`)) return;
     try {
         const res = await authedFetch(`/api/storage/files?bucket=${bucket}&name=${name}`, { method: 'DELETE' });
         if (res.ok) loadDocuments();
