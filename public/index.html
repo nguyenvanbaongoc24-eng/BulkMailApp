@@ -2788,12 +2788,17 @@
             }
         }, true); // capture phase
 
-        // Force auth-screen to be non-interactive when hidden
+        // Force auth-screen to be non-interactive when hidden, but REVERT when visible
         const _authObs = new MutationObserver(() => {
             const auth = document.getElementById('auth-screen');
-            if (auth && auth.classList.contains('hidden')) {
-                auth.style.pointerEvents = 'none';
-                auth.style.visibility = 'hidden';
+            if (auth) {
+                if (auth.classList.contains('hidden')) {
+                    auth.style.pointerEvents = 'none';
+                    auth.style.visibility = 'hidden';
+                } else {
+                    auth.style.pointerEvents = '';
+                    auth.style.visibility = '';
+                }
             }
         });
         const _authEl = document.getElementById('auth-screen');

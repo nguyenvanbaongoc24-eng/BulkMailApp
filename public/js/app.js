@@ -2840,7 +2840,43 @@ function renderCA2CRM() {
 
     filtered = filtered.filter(c => currentCRMTab === 'active'
         ? calculateRemainingDays(c.expired_date) >= 0
-        listContainer.innerHTML = filtered.map(c => {
+        : calculateRemainingDays(c.expired_date) < 0
+    );
+
+    const totalEl = document.getElementById('ca2-crm-total');
+    const activeEl = document.getElementById('ca2-crm-active');
+    const expiringEl = document.getElementById('ca2-crm-expiring');
+    const expiredEl = document.getElementById('ca2-crm-expired');
+    const tabActiveCountEl = document.getElementById('count-crm-active-tab');
+    const tabExpiredCountEl = document.getElementById('count-crm-expired-tab');
+
+    if (totalEl) totalEl.innerText = currentCRMData.length;
+    if (activeEl) activeEl.innerText = activeCnt;
+    if (expiringEl) expiringEl.innerText = expiringCnt;
+    if (expiredEl) expiredEl.innerText = expiredCnt;
+    if (tabActiveCountEl) tabActiveCountEl.innerText = activeTotal;
+    if (tabExpiredCountEl) tabExpiredCountEl.innerText = expiredTotal;
+
+    if (sortOrder === 'newest') {
+        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    } else if (sortOrder === 'soonest') {
+        filtered.sort((a, b) => new Date(a.expired_date || 0) - new Date(b.expired_date || 0));
+    } else if (sortOrder === 'latest') {
+        filtered.sort((a, b) => new Date(b.expired_date || 0) - new Date(a.expired_date || 0));
+    }
+
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon text-5xl mb-4">📋</div>
+                <div class="empty-title text-xl font-bold text-white mb-2">Không tìm thấy dữ liệu</div>
+                <div class="empty-desc text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc tìm kiếm lại.</div>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
         const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
@@ -2925,31 +2961,7 @@ function setupCRMListClickHandlers() {
         }
     });
     console.log('[CRM] Event delegation attached to list container');
-}span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dá»‹ch vá»¥'}</span>
-                    </div>
-                </div>
-                <div class="text-center relative z-10 bg-black/30 px-5 py-2.5 rounded-xl border border-white/5">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NgÃ y háº¿t háº¡n</div>
-                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
-                </div>
-                <div class="flex justify-center relative z-10 min-w-[130px]">
-                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
-                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
-                    </span>
-                </div>
-                <div class="flex justify-end gap-2 relative z-10">
-                    <button onclick="event.stopPropagation(); deleteCRM('${c.id}')" class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
 }
-
 
 
 async function createCampaignFromCA2CRM() {
