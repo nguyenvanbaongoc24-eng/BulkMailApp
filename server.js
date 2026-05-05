@@ -1282,7 +1282,7 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
         const { mst, company_name, email, phone, service_type, start_date, duration, cks_type, compensate_months, customer_type, package_name } = req.body;
         
         // Auto-calculate expiration with CKS type and compensation support
-        const expirationDate = calculateExpirationDate(start_date, duration, service_type === 'CKS' ? (cks_type || '') : '', compensate_months || 0);
+        const expirationDate = calculateExpirationDate(start_date, duration, (service_type === 'CKS' || service_type === 'Ch\u1eef k\u00fd s\u1ed1') ? (cks_type || '') : '', compensate_months || 0);
 
         const insertData = {
             mst, 
@@ -1330,7 +1330,7 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
             const cksType = updates.cks_type || current.cks_type || '';
             const compensate = updates.compensate_months !== undefined ? updates.compensate_months : (current.compensate_months || 0);
             
-            updates.expired_date = calculateExpirationDate(sDate, dur, svcType.toUpperCase().includes('CKS') ? cksType : '', compensate);
+            updates.expired_date = calculateExpirationDate(sDate, dur, (svcType.toUpperCase().includes('CKS') || svcType.toUpperCase().includes('CHU KY SO')) ? cksType : '', compensate);
         }
 
         const { data, error } = await getClient(req.token).from('customers')

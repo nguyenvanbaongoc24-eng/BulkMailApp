@@ -1320,8 +1320,8 @@ async function saveCA2CRM() {
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
     };
 
-    // Include CKS type if service contains 'CKS' (flexible match)
-    if (serviceType.toUpperCase().includes('CKS')) {
+    // Include CKS type if service contains 'CKS' or 'Chữ ký số' (flexible match)
+    if (serviceType.toUpperCase().includes('CKS') || serviceType.toUpperCase().includes('CHU KY SO')) {
         body.cks_type = document.getElementById('ca2-crm-cks-type').value || '';
     }
 
@@ -1380,7 +1380,7 @@ function updateCRMDurationOptions(defaultVal = '') {
     
     // Show/hide CKS type section
     if (cksSection) {
-        cksSection.style.display = normalizedService.includes('cks') ? 'block' : 'none';
+        cksSection.style.display = (normalizedService.includes('cks') || normalizedService.includes('chu ky so')) ? 'block' : 'none';
     }
     
     if (normalizedService.includes('hddt') || normalizedService.includes('hoa don')) {
@@ -1388,7 +1388,7 @@ function updateCRMDurationOptions(defaultVal = '') {
             durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
         });
         if (!defaultVal || !normalizeText(defaultVal).includes('so')) defaultVal = '500 s\u1ed1';
-    } else if (normalizedService.includes('cks')) {
+    } else if (normalizedService.includes('cks') || normalizedService.includes('chu ky so')) {
         const cksType = document.getElementById('ca2-crm-cks-type')?.value || 'cap_moi';
         updateCKSDurationByType(cksType, defaultVal);
         return; 
@@ -3006,6 +3006,35 @@ function renderCA2CRM() {
     if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
 }
 
+// Filter CRM by service from chips
+window.filterCRMByService = function(service) {
+    const select = document.getElementById('crm-filter-service');
+    if (select) {
+        // Map UI chip values to internal filter values
+        let filterVal = service;
+        if (service === 'CA') filterVal = 'CKS';
+        if (service === 'BHXH') filterVal = 'EBH';
+        
+        select.value = filterVal;
+        renderCA2CRM();
+        
+        // Update chip active states
+        document.querySelectorAll('.chip').forEach(chip => {
+            const chipText = chip.textContent.trim().toLowerCase();
+            const isAll = service === 'all' && chipText.includes('t\u1ea5t c\u1ea3');
+            const isCKS = service === 'CA' && (chipText.includes('ch\u1eef k\u00fd s\u1ed1') || chipText.includes('cks'));
+            const isBHXH = service === 'BHXH' && (chipText.includes('bhxh') || chipText.includes('b\u1ea3o hi\u1ec3m'));
+            const isHDDT = service === 'HDDT' && (chipText.includes('h\u00f3a \u0111\u01a1n') || chipText.includes('hddt'));
+            
+            if (isAll || isCKS || isBHXH || isHDDT) {
+                chip.classList.add('active');
+            } else {
+                chip.classList.remove('active');
+            }
+        });
+    }
+};
+
 // ===== EVENT DELEGATION FOR CRM LIST =====
 function setupCRMListClickHandlers() {
     const listContainer = document.getElementById('ca2-crm-list');
@@ -3129,7 +3158,7 @@ function mapCRMServiceToPricing(val) {
     const normalized = normalizeText(val);
     const transaction = getCRMTransactionForService(val);
 
-    if (normalized.includes('cks')) return { group: 'CKS', transaction };
+    if (normalized.includes('cks') || normalized.includes('chu ky so') || normalized.includes('chu ky')) return { group: 'CKS', transaction };
     if (normalized.includes('remote signing')) return { group: 'RS', transaction: 'all' };
     if (normalized.includes('hoa don dien tu')) return { group: 'eINVOICE', transaction: transaction === 'all' ? 'cap moi' : transaction };
     if (normalized.includes('bao hiem') || normalized.includes('ebh')) return { group: 'EBH', transaction: transaction === 'all' ? 'cap moi' : transaction };
@@ -3155,10 +3184,11 @@ async function loadCRMPrices() {
             transaction_type: item.transaction_type || ''
         }));
 
-        // Standardize service names for EBH/BHXH
+        // Standardize service names for EBH/BHXH and CKS
         CRM_PRICE_LIST.forEach(p => {
-            if (p.service_name === 'Báº£o hiá»ƒm xÃ£ há»™i') p.service_name = 'EBH';
-            if (p.service_name === 'HÃ³a Ä‘Æ¡n Ä‘iá»‡n tá»­') p.service_name = 'eINVOICE';
+            if (p.service_name === 'B\u1ea3o hi\u1ec3m x\u00e3 h\u1ed9i') p.service_name = 'EBH';
+            if (p.service_name === 'H\u00f3a \u0111\u01a1n \u0111i\u1ec7n t\u1eed') p.service_name = 'eINVOICE';
+            if (p.service_name === 'Ch\u1eef k\u00fd s\u1ed1' || p.service_name === 'Ch\u1eef k\u00fd s\u1ed1 CA2') p.service_name = 'CKS';
         });
 
         refreshPricingUI();
@@ -3229,7 +3259,7 @@ function updateCRMPackages() {
     const cksTypeInput = document.getElementById('ca2-crm-cks-type');
     if (cksTypeInput) {
         const normalizedService = normalizeText(serviceVal);
-        if (!normalizedService.includes('cks')) {
+        if (!normalizedService.includes('cks') && !normalizedService.includes('chu ky so')) {
             cksTypeInput.value = 'cap_moi';
         } else if (!cksTypeInput.value) {
             if (desiredTransaction === 'gia han' && normalizedService.includes('dung thu')) cksTypeInput.value = 'gia_han_thu';
