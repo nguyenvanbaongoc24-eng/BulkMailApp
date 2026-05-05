@@ -1401,82 +1401,134 @@ function updateCRMBonusMonths() {
 }
 
 function openAddCRMModal() {
-    document.getElementById('ca2-crm-modal-title').innerText = 'Thêm khách hàng CA2 CRM';
-    document.getElementById('ca2-crm-id').value = '';
-    document.getElementById('ca2-crm-mst').value = '';
-    document.getElementById('ca2-crm-name').value = '';
-    document.getElementById('ca2-crm-email').value = '';
-    document.getElementById('ca2-crm-phone').value = '';
-    document.getElementById('ca2-crm-service').value = 'CKS – Cấp mới';
-    document.getElementById('ca2-crm-customer-type').value = 'Công ty';
-    document.getElementById('ca2-crm-start').value = new Date().toISOString().split('T')[0];
-    document.getElementById('ca2-crm-cks-type').value = 'cap_moi';
-    document.getElementById('ca2-crm-compensate').value = 0;
-    
-    // Reset CKS type buttons
-    document.querySelectorAll('.cks-type-btn').forEach(btn => {
-        btn.classList.remove('border-green-500', 'bg-green-500/10', 'border-blue-500', 'bg-blue-500/10', 'border-orange-500', 'bg-orange-500/10', 'ring-2', 'ring-green-500/30', 'ring-blue-500/30', 'ring-orange-500/30');
-        btn.classList.add('border-white/10', 'bg-white/5');
-    });
-    const defaultBtn = document.getElementById('cks-btn-cap-moi');
-    if (defaultBtn) {
-        defaultBtn.classList.remove('border-white/10', 'bg-white/5');
-        defaultBtn.classList.add('border-green-500', 'bg-green-500/10', 'ring-2', 'ring-green-500/30');
+    console.log('[DEBUG] openAddCRMModal started');
+    try {
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+            else console.warn(`[DEBUG] Element not found: ${id}`);
+        };
+        const setText = (id, txt) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = txt;
+            else console.warn(`[DEBUG] Element not found: ${id}`);
+        };
+
+        setText('ca2-crm-modal-title', 'Thêm khách hàng CA2 CRM');
+        setVal('ca2-crm-id', '');
+        setVal('ca2-crm-mst', '');
+        setVal('ca2-crm-name', '');
+        setVal('ca2-crm-email', '');
+        setVal('ca2-crm-phone', '');
+        setVal('ca2-crm-service', 'CKS – Cấp mới');
+        setVal('ca2-crm-customer-type', 'Công ty');
+        setVal('ca2-crm-start', new Date().toISOString().split('T')[0]);
+        setVal('ca2-crm-cks-type', 'cap_moi');
+        setVal('ca2-crm-compensate', 0);
+        
+        // Reset CKS type buttons
+        document.querySelectorAll('.cks-type-btn').forEach(btn => {
+            btn.classList.remove('border-green-500', 'bg-green-500/10', 'border-blue-500', 'bg-blue-500/10', 'border-orange-500', 'bg-orange-500/10', 'ring-2', 'ring-green-500/30', 'ring-blue-500/30', 'ring-orange-500/30');
+            btn.classList.add('border-white/10', 'bg-white/5');
+        });
+        
+        const defaultBtn = document.getElementById('cks-btn-cap-moi');
+        if (defaultBtn) {
+            defaultBtn.classList.remove('border-white/10', 'bg-white/5');
+            defaultBtn.classList.add('border-green-500', 'bg-green-500/10', 'ring-2', 'ring-green-500/30');
+        }
+        
+        // Hide CKS info
+        const infoBox = document.getElementById('cks-type-info');
+        if (infoBox) infoBox.classList.add('hidden');
+        
+        console.log('[DEBUG] Calling updateCRMPackages');
+        updateCRMPackages();
+        
+        const modal = document.getElementById('modal-ca2-crm');
+        if (modal) {
+            modal.classList.remove('hidden');
+            console.log('[DEBUG] Modal unhidden');
+        } else {
+            console.error('[DEBUG] CRITICAL: Modal modal-ca2-crm not found');
+        }
+
+        // Refresh custom selects to sync UI
+        if (typeof refreshCustomSelects === 'function') {
+            refreshCustomSelects();
+        }
+    } catch (err) {
+        console.error('[DEBUG] Error in openAddCRMModal:', err);
     }
-    
-    // Hide CKS info
-    const infoBox = document.getElementById('cks-type-info');
-    if (infoBox) infoBox.classList.add('hidden');
-    
-    updateCRMPackages();
-    
-    document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }
 
 function editCRM(id) {
     console.log('[DEBUG] Edit CRM clicked for ID:', id);
-    const c = currentCRMData.find(x => x.id === id);
-    if (!c) {
-        console.error('[ERROR] CRM record not found in state:', id);
-        return;
-    }
-    console.log('[DEBUG] CRM record data:', c);
+    try {
+        // Robust ID matching (handles both string and numeric IDs)
+        const c = currentCRMData.find(x => String(x.id) === String(id));
+        if (!c) {
+            console.error('[ERROR] CRM record not found in state for ID:', id);
+            return;
+        }
+        console.log('[DEBUG] CRM record data found:', c);
 
-    document.getElementById('ca2-crm-modal-title').innerText = 'Cập nhật khách hàng';
-    document.getElementById('ca2-crm-id').value = c.id;
-    document.getElementById('ca2-crm-mst').value = c.mst;
-    document.getElementById('ca2-crm-name').value = c.company_name;
-    document.getElementById('ca2-crm-email').value = c.email || '';
-    document.getElementById('ca2-crm-phone').value = c.phone || '';
-    const normalizedServiceType = c.service_type || 'CKS – Cấp mới';
-    document.getElementById('ca2-crm-service').value = normalizedServiceType;
-    document.getElementById('ca2-crm-customer-type').value = c.customer_type || 'Công ty';
-    document.getElementById('ca2-crm-start').value = c.start_date || '';
-    document.getElementById('ca2-crm-compensate').value = c.compensate_months || 0;
-    
-    // Initialize packages list first
-    updateCRMPackages();
-    
-    // RESTORE SAVED PACKAGE AND DURATION
-    if (c.package_name) {
-        document.getElementById('ca2-crm-package').value = c.package_name;
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val || '';
+            else console.warn(`[DEBUG] Element not found: ${id}`);
+        };
+        const setText = (id, txt) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = txt;
+            else console.warn(`[DEBUG] Element not found: ${id}`);
+        };
+
+        setText('ca2-crm-modal-title', 'Cập nhật khách hàng');
+        setVal('ca2-crm-id', c.id);
+        setVal('ca2-crm-mst', c.mst);
+        setVal('ca2-crm-name', c.company_name);
+        setVal('ca2-crm-email', c.email);
+        setVal('ca2-crm-phone', c.phone);
+        
+        const normalizedServiceType = c.service_type || 'CKS – Cấp mới';
+        setVal('ca2-crm-service', normalizedServiceType);
+        setVal('ca2-crm-customer-type', c.customer_type || 'Công ty');
+        setVal('ca2-crm-start', c.start_date || '');
+        setVal('ca2-crm-compensate', c.compensate_months || 0);
+        
+        // Initialize packages list first
+        console.log('[DEBUG] Updating packages list...');
+        updateCRMPackages();
+        
+        // RESTORE SAVED PACKAGE AND DURATION
+        if (c.package_name) setVal('ca2-crm-package', c.package_name);
+        if (c.duration) setVal('ca2-crm-duration', c.duration);
+        
+        // Set amount (Recalculate with restored package)
+        try {
+            const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || document.getElementById('ca2-crm-package')?.value);
+            setVal('ca2-crm-amount', new Intl.NumberFormat('vi-VN').format(price));
+        } catch (priceErr) {
+            console.warn('[DEBUG] Error calculating price during edit:', priceErr);
+        }
+        
+        // SYNC PREMIUM UI
+        if (typeof refreshCustomSelects === 'function') {
+            console.log('[DEBUG] Refreshing custom selects...');
+            refreshCustomSelects();
+        }
+        
+        const modal = document.getElementById('modal-ca2-crm');
+        if (modal) {
+            modal.classList.remove('hidden');
+            console.log('[DEBUG] Edit modal opened successfully');
+        } else {
+            console.error('[DEBUG] CRITICAL: Modal modal-ca2-crm not found');
+        }
+    } catch (err) {
+        console.error('[DEBUG] CRITICAL ERROR in editCRM:', err);
     }
-    if (c.duration) {
-        document.getElementById('ca2-crm-duration').value = c.duration;
-    }
-    
-    // Set amount (Recalculate with restored package)
-    const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || document.getElementById('ca2-crm-package').value);
-    document.getElementById('ca2-crm-amount').value = new Intl.NumberFormat('vi-VN').format(price);
-    
-    // Removed obsolete selectCKSType call, CKS types are now handled by ca2-crm-service directly.
-    
-    // SYNC PREMIUM UI
-    if (typeof refreshCustomSelects === 'function') {
-        refreshCustomSelects();
-    }
-    
-    document.getElementById('modal-ca2-crm').classList.remove('hidden');
 }
 
 async function deleteCRM(id) {
