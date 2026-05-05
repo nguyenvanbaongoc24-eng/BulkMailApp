@@ -1323,14 +1323,19 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
 
         if (updates.start_date || updates.duration || updates.cks_type || updates.compensate_months !== undefined) {
             // Need to fetch current values if one is missing to recalculate
-            const { data: current } = await getClient(req.token).from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
-            const sDate = updates.start_date || current.start_date;
-            const dur = updates.duration || current.duration;
-            const svcType = updates.service_type || current.service_type;
-            const cksType = updates.cks_type || current.cks_type || '';
-            const compensate = updates.compensate_months !== undefined ? updates.compensate_months : (current.compensate_months || 0);
+            const { data: current, error: fetchErr } = await getClient(req.token).from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
             
-            updates.expired_date = calculateExpirationDate(sDate, dur, (svcType.toUpperCase().includes('CKS') || svcType.toUpperCase().includes('CHU KY SO')) ? cksType : '', compensate);
+            if (fetchErr || !current) {
+                console.error('[CRM] Record not found for update:', id);
+            } else {
+                const sDate = updates.start_date || current.start_date;
+                const dur = updates.duration || current.duration;
+                const svcType = updates.service_type || current.service_type;
+                const cksType = updates.cks_type || current.cks_type || '';
+                const compensate = updates.compensate_months !== undefined ? updates.compensate_months : (current.compensate_months || 0);
+                
+                updates.expired_date = calculateExpirationDate(sDate, dur, (svcType.toUpperCase().includes('CKS') || svcType.toUpperCase().includes('CHU KY SO')) ? cksType : '', compensate);
+            }
         }
 
         const { data, error } = await getClient(req.token).from('customers')

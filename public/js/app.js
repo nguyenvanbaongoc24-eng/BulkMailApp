@@ -1546,14 +1546,23 @@ function openAddCRMModal() {
 }
 
 function editCRM(id) {
+    if (!id) {
+        console.error('[ERROR] No ID provided to editCRM');
+        return;
+    }
     console.log('[DEBUG] Edit CRM clicked for ID:', id);
     try {
-        // Robust ID matching (handles both string and numeric IDs)
-        const c = sanitizeCRMRecord(currentCRMData.find(x => String(x.id) === String(id)));
-        if (!c) {
+        if (!currentCRMData || currentCRMData.length === 0) {
+            console.error('[ERROR] currentCRMData is empty, cannot find record');
+            return;
+        }
+
+        const found = currentCRMData.find(x => String(x.id) === String(id));
+        if (!found) {
             console.error('[ERROR] CRM record not found in state for ID:', id);
             return;
         }
+        const c = sanitizeCRMRecord(found);
         console.log('[DEBUG] CRM record data found:', c);
 
         const setVal = (id, val) => {
@@ -1618,7 +1627,7 @@ function editCRM(id) {
 }
 
 async function deleteCRM(id) {
-    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a khÃ¡ch hÃ ng nÃ y?')) return;
+    if (!confirm('B\u1ea1n c\u00f3 ch\u1eafc ch\u1eafn mu\u1ed1n x\u00f3a kh\u00e1ch h\u00e0ng n\u00e0y?')) return;
     try {
         const res = await authedFetch(`/api/ca2-crm/${id}`, { method: 'DELETE' });
         if (res.ok) loadCA2CRMData();
@@ -1842,7 +1851,7 @@ async function loadRecentCampaigns() {
 
         const renderItem = c => {
             const successPct = c.total_recipients > 0 ? Math.round((c.sent_count / c.total_recipients) * 100) : 0;
-            const isDone = c.status === 'HoÃ n thÃ nh';
+            const isDone = c.status === 'Ho\u00e0n th\u00e0nh';
             const isRunning = c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i';
             const badgeType = isDone ? 'badge-done' : (isRunning ? 'badge-running' : 'badge-pending');
             const statusLabel = isRunning ? 'Äang gá»­i...' : c.status;
@@ -1857,7 +1866,7 @@ async function loadRecentCampaigns() {
 
                     <div class="flex-1 min-w-0">
                         <h4 class="text-sm font-black text-white truncate group-hover:text-orange-400 transition-colors">${c.name}</h4>
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString('vi-VN')} â€¢ ${c.sent_count}/${c.total_recipients} Email</p>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">${new Date(c.created_at).toLocaleDateString('vi-VN')} &bull; ${c.sent_count}/${c.total_recipients} Email</p>
                     </div>
 
                     <div class="flex flex-col items-end gap-2 shrink-0">
@@ -2954,9 +2963,9 @@ function renderCA2CRM() {
     if (filtered.length === 0) {
         listContainer.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon text-5xl mb-4">ðŸ“‹</div>
-                <div class="empty-title text-xl font-bold text-white mb-2">KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u</div>
-                <div class="empty-desc text-gray-500 text-sm mb-6">Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tÃ¬m kiáº¿m láº¡i.</div>
+                <div class="empty-icon text-5xl mb-4">\u{1F4CB}</div>
+                <div class="empty-title text-xl font-bold text-white mb-2">Kh\u00f4ng t\u00ecm th\u1ea5y d\u1eef li\u1ec7u</div>
+                <div class="empty-desc text-gray-500 text-sm mb-6">Th\u1eed thay \u0111\u1ed5i b\u1ed9 l\u1ecdc ho\u1eb7c t\u00ecm ki\u1ebfm l\u1ea1i.</div>
             </div>
         `;
         return;
@@ -2965,7 +2974,7 @@ function renderCA2CRM() {
     listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
-        const statusLabel = isExpired ? 'ÄÃ£ háº¿t háº¡n' : `CÃ²n ${daysLeft} ngÃ y`;
+        const statusLabel = isExpired ? '\u0110\u00e3 h\u1ebft h\u1ea1n' : `C\u00f2n ${daysLeft} ng\u00e0y`;
 
         return `
             <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" data-crm-id="${c.id}" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto;">
@@ -2975,8 +2984,8 @@ function renderCA2CRM() {
                     <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
                     <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
-                        <span class="text-white/20">â€¢</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dá»‹ch vá»¥'}</span>
+                        <span class="text-white/20">&bull;</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'D\u1ecbch v\u1ee5'}</span>
                     </div>
                 </div>
                 <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2;">
@@ -2989,10 +2998,10 @@ function renderCA2CRM() {
                     </span>
                 </div>
                 <div class="flex justify-end gap-2 relative" style="z-index: 2;">
-                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" data-edit-id="${c.id}" title="Sá»­a khÃ¡ch hÃ ng">
+                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" data-edit-id="${c.id}" title="S\u1eeda kh\u00e1ch h\u00e0ng">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" data-delete-id="${c.id}" title="XÃ³a khÃ¡ch hÃ ng">
+                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" data-delete-id="${c.id}" title="X\u00f3a kh\u00e1ch h\u00e0ng">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -3038,14 +3047,9 @@ window.filterCRMByService = function(service) {
 // ===== EVENT DELEGATION FOR CRM LIST =====
 function setupCRMListClickHandlers() {
     const listContainer = document.getElementById('ca2-crm-list');
-    if (!listContainer) return;
+    if (!listContainer || listContainer.dataset.listenersAttached) return;
 
-    // Remove old listeners by cloning
-    const newContainer = listContainer.cloneNode(true);
-    listContainer.parentNode.replaceChild(newContainer, listContainer);
-
-    // ROW CLICK â†’ Edit
-    newContainer.addEventListener('click', function(e) {
+    listContainer.addEventListener('click', function(e) {
         // Check if delete button was clicked
         const deleteBtn = e.target.closest('.crm-delete-btn');
         if (deleteBtn) {
@@ -3075,6 +3079,7 @@ function setupCRMListClickHandlers() {
             return;
         }
     });
+    listContainer.dataset.listenersAttached = 'true';
     console.log('[CRM] Event delegation attached to list container');
 }
 
@@ -3128,7 +3133,7 @@ function renderCampaignCard(campaign, compact = false) {
                 <div class="ios-campaign-head">
                     <div>
                         <h4 class="ios-campaign-title">${campaign.name || 'Chiáº¿n dá»‹ch chÆ°a Ä‘áº·t tÃªn'}</h4>
-                        <p class="ios-campaign-meta">${formatDate(campaign.created_at)} â€¢ ${formatRelativeTime(campaign.created_at)}</p>
+                        <p class="ios-campaign-meta">${formatDate(campaign.created_at)} &bull; ${formatRelativeTime(campaign.created_at)}</p>
                     </div>
                     <span class="ios-status-pill ${getToneClass(statusMeta.tone)}">${statusMeta.label}</span>
                 </div>
