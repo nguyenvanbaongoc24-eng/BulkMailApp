@@ -120,8 +120,7 @@ button, [role="button"], a[onclick],
    ========================================================== */
 .app {
     display: flex;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     background: var(--ds-bg-gradient);
 }
 
@@ -132,6 +131,9 @@ button, [role="button"], a[onclick],
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    position: sticky;
+    top: 0;
+    height: 100vh;
     transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -145,14 +147,10 @@ button, [role="button"], a[onclick],
     flex-direction: column;
     min-width: 0;
     position: relative;
-    overflow: hidden;
 }
 
 .content {
     flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
     padding: 24px;
     scroll-behavior: smooth;
 }
