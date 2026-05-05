@@ -120,8 +120,10 @@ button, [role="button"], a[onclick],
    ========================================================== */
 .app {
     display: flex;
+    height: 100vh;
     min-height: 100vh;
     background: var(--ds-bg-gradient);
+    overflow: hidden;
 }
 
 .sidebar {
@@ -2662,12 +2664,22 @@ button:hover, .item:hover {
     margin: 0 !important;
     display: flex;
     flex-direction: column;
+    flex: 0 0 auto;
     gap: 20px;
     align-items: stretch !important;
     justify-content: flex-start !important;
     min-height: auto !important;
     padding: 16px 24px !important;
     animation: fadeSlideUp 0.3s ease-out forwards;
+}
+
+#view-ca2-crm {
+    min-height: max-content !important;
+    padding-bottom: 56px !important;
+}
+
+#ca2-crm-list {
+    padding-bottom: 32px !important;
 }
 
 /* User-requested class mapping */

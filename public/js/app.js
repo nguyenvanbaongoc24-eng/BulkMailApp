@@ -1374,32 +1374,33 @@ function updateCRMDurationOptions(defaultVal = '') {
     const cksSection = document.getElementById('cks-type-section');
     if (!serviceSelect || !durationSelect) return;
     
-    const serviceVal = serviceSelect.value;
+    const serviceVal = repairVietnameseText(serviceSelect.value);
+    const normalizedService = normalizeText(serviceVal);
     durationSelect.innerHTML = '';
     
     // Show/hide CKS type section
     if (cksSection) {
-        cksSection.style.display = serviceVal.includes('CKS') ? 'block' : 'none';
+        cksSection.style.display = normalizedService.includes('cks') ? 'block' : 'none';
     }
     
-    if (serviceVal.includes('HDDT') || serviceVal.includes('HÃ³a Ä‘Æ¡n')) {
-        ['300 sá»‘', '500 sá»‘', '1000 sá»‘', '2000 sá»‘', '5000 sá»‘', '10000 sá»‘'].forEach(v => {
+    if (normalizedService.includes('hddt') || normalizedService.includes('hoa don')) {
+        ['300 s\u1ed1', '500 s\u1ed1', '1000 s\u1ed1', '2000 s\u1ed1', '5000 s\u1ed1', '10000 s\u1ed1'].forEach(v => {
             durationSelect.innerHTML += `<option value="${v}">${v}</option>`;
         });
-        if (!defaultVal || !defaultVal.includes('sá»‘')) defaultVal = '500 sá»‘';
-    } else if (serviceVal.includes('CKS')) {
+        if (!defaultVal || !normalizeText(defaultVal).includes('so')) defaultVal = '500 s\u1ed1';
+    } else if (normalizedService.includes('cks')) {
         const cksType = document.getElementById('ca2-crm-cks-type')?.value || 'cap_moi';
         updateCKSDurationByType(cksType, defaultVal);
         return; 
-    } else if (serviceVal.includes('EBH') || serviceVal.includes('Báº£o hiá»ƒm')) {
-        const variant = serviceVal.includes('Gia háº¡n dÃ¹ng thá»­') ? 'gia_han_thu' : (serviceVal.includes('Gia háº¡n') ? 'gia_han' : 'cap_moi');
+    } else if (normalizedService.includes('ebh') || normalizedService.includes('bao hiem')) {
+        const variant = normalizedService.includes('dung thu') ? 'gia_han_thu' : (normalizedService.includes('gia han') ? 'gia_han' : 'cap_moi');
         updateGenericDurationOptions(variant, defaultVal);
         return;
     } else {
-        ['1 nÄƒm', '2 nÄƒm', '3 nÄƒm', '4 nÄƒm', '5 nÄƒm'].forEach(v => {
-            durationSelect.innerHTML += `<option value="${v}">${v.replace('nÄƒm', 'NÄƒm')}</option>`;
+        ['1 n\u0103m', '2 n\u0103m', '3 n\u0103m', '4 n\u0103m', '5 n\u0103m'].forEach(v => {
+            durationSelect.innerHTML += `<option value="${v}">${v.replace('n\u0103m', 'N\u0103m')}</option>`;
         });
-        if (!defaultVal || defaultVal.includes('sá»‘')) defaultVal = '1 nÄƒm';
+        if (!defaultVal || normalizeText(defaultVal).includes('so')) defaultVal = '1 n\u0103m';
     }
     durationSelect.value = defaultVal;
     updateCRMBonusMonths();
@@ -1412,16 +1413,16 @@ function updateGenericDurationOptions(variant, defaultVal = '') {
     
     let bonus = variant === 'gia_han_thu' ? 6 : 3;
     let options = [
-        { val: '1 nÄƒm', text: `1 NÄƒm (+${bonus} thÃ¡ng)` },
-        { val: '2 nÄƒm', text: `2 NÄƒm (+${bonus * 2} thÃ¡ng)` },
-        { val: '3 nÄƒm', text: `3 NÄƒm (+${bonus * 3} thÃ¡ng)` }
+        { val: '1 n\u0103m', text: `1 N\u0103m (+${bonus} th\u00e1ng)` },
+        { val: '2 n\u0103m', text: `2 N\u0103m (+${bonus * 2} th\u00e1ng)` },
+        { val: '3 n\u0103m', text: `3 N\u0103m (+${bonus * 3} th\u00e1ng)` }
     ];
     
     options.forEach(opt => {
         durationSelect.innerHTML += `<option value="${opt.val}">${opt.text}</option>`;
     });
     
-    durationSelect.value = defaultVal || '1 nÄƒm';
+    durationSelect.value = defaultVal || '1 n\u0103m';
     updateCRMBonusMonths();
 }
 
@@ -1433,15 +1434,15 @@ function updateCKSDurationByType(cksType, defaultVal = '') {
     let options = [];
     if (cksType === 'gia_han_thu') {
         options = [
-            { val: '1 nÄƒm', text: '1 NÄƒm (+6 thÃ¡ng)' },
-            { val: '2 nÄƒm', text: '2 NÄƒm (+9 thÃ¡ng)' },
-            { val: '3 nÄƒm', text: '3 NÄƒm (+12 thÃ¡ng)' }
+            { val: '1 n\u0103m', text: '1 N\u0103m (+6 th\u00e1ng)' },
+            { val: '2 n\u0103m', text: '2 N\u0103m (+9 th\u00e1ng)' },
+            { val: '3 n\u0103m', text: '3 N\u0103m (+12 th\u00e1ng)' }
         ];
     } else {
         options = [
-            { val: '1 nÄƒm', text: '1 NÄƒm (+3 thÃ¡ng)' },
-            { val: '2 nÄƒm', text: '2 NÄƒm (+6 thÃ¡ng)' },
-            { val: '3 nÄƒm', text: '3 NÄƒm (+9 thÃ¡ng)' }
+            { val: '1 n\u0103m', text: '1 N\u0103m (+3 th\u00e1ng)' },
+            { val: '2 n\u0103m', text: '2 N\u0103m (+6 th\u00e1ng)' },
+            { val: '3 n\u0103m', text: '3 N\u0103m (+9 th\u00e1ng)' }
         ];
     }
     
@@ -1449,33 +1450,28 @@ function updateCKSDurationByType(cksType, defaultVal = '') {
         durationSelect.innerHTML += `<option value="${opt.val}">${opt.text}</option>`;
     });
     
-    if (!defaultVal || defaultVal.includes('thÃ¡ng') || defaultVal.includes('sá»‘')) {
-        defaultVal = '1 nÄƒm';
+    if (!defaultVal || normalizeText(defaultVal).includes('thang') || normalizeText(defaultVal).includes('so')) {
+        defaultVal = '1 n\u0103m';
     }
     durationSelect.value = defaultVal;
     updateCRMBonusMonths();
 }
 
 function updateCRMBonusMonths() {
-    const serviceVal = document.getElementById('ca2-crm-service').value;
-    const durationVal = document.getElementById('ca2-crm-duration').value;
+    const serviceVal = repairVietnameseText(document.getElementById('ca2-crm-service').value);
+    const durationVal = repairVietnameseText(document.getElementById('ca2-crm-duration').value);
     const compensateInput = document.getElementById('ca2-crm-compensate');
     if (!compensateInput) return;
 
     let bonus = 0;
-    const years = parseInt(durationVal) || 0;
+    const years = parseInt(durationVal, 10) || 0;
+    const normalizedService = normalizeText(serviceVal);
 
-    // Bonus logic based on USER request:
-    // Cáº¥p má»›i 1 nÄƒm -> +3 thÃ¡ng
-    // Gia háº¡n 1 nÄƒm -> +3 thÃ¡ng
-    // Gia háº¡n dÃ¹ng thá»­ 1 nÄƒm -> +6 thÃ¡ng (CKS) or +6 thÃ¡ng (EBH)
-
-    if (serviceVal.includes('CKS') || serviceVal.includes('EBH') || serviceVal.includes('Báº£o hiá»ƒm')) {
-        const isTrial = serviceVal.includes('Gia háº¡n dÃ¹ng thá»­');
+    if (normalizedService.includes('cks') || normalizedService.includes('ebh') || normalizedService.includes('bao hiem')) {
+        const isTrial = normalizedService.includes('dung thu');
         bonus = years * (isTrial ? 6 : 3);
         
-        // Special case for CKS trial if years > 1 (optional, keeping User's 1-year rule but scaling)
-        if (serviceVal.includes('CKS') && isTrial) {
+        if (normalizedService.includes('cks') && isTrial) {
              if (years === 2) bonus = 9;
              if (years === 3) bonus = 12;
         }
@@ -1583,6 +1579,7 @@ function editCRM(id) {
         setSelectValueSmart('ca2-crm-customer-type', c.customer_type, 'C\u00f4ng ty');
         setVal('ca2-crm-start', c.start_date || '');
         setVal('ca2-crm-compensate', c.compensate_months || 0);
+        setVal('ca2-crm-cks-type', c.cks_type || 'cap_moi');
         
         // Initialize packages list first
         console.log('[DEBUG] Updating packages list...');
@@ -3231,9 +3228,14 @@ function updateCRMPackages() {
 
     const cksTypeInput = document.getElementById('ca2-crm-cks-type');
     if (cksTypeInput) {
-        if (desiredTransaction === 'gia han' && normalizeText(serviceVal).includes('dung thu')) cksTypeInput.value = 'gia_han_thu';
-        else if (desiredTransaction === 'gia han') cksTypeInput.value = 'gia_han';
-        else cksTypeInput.value = 'cap_moi';
+        const normalizedService = normalizeText(serviceVal);
+        if (!normalizedService.includes('cks')) {
+            cksTypeInput.value = 'cap_moi';
+        } else if (!cksTypeInput.value) {
+            if (desiredTransaction === 'gia han' && normalizedService.includes('dung thu')) cksTypeInput.value = 'gia_han_thu';
+            else if (desiredTransaction === 'gia han') cksTypeInput.value = 'gia_han';
+            else cksTypeInput.value = 'cap_moi';
+        }
     }
 
     updateCRMDurationOptions();
