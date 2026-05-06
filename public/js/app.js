@@ -152,108 +152,18 @@ function performSessionTimeout() {
     alert('Phi\u00ean l\u00e0m vi\u1ec7c \u0111\u00e3 h\u1ebft h\u1ea1n do kh\u00f4ng ho\u1ea1t \u0111\u1ed9ng trong 10 ph\u00fat. Vui l\u00f2ng \u0111\u0103ng nh\u1eadp l\u1ea1i.');
 }
 
-function getMojibakeScore(value) {
-    return ((value || '').match(/(?:Ã.|Â.|Ä.|Æ.|áº|á»|â€¦|â€“|â€”|ï¿½|ðŸ|âœ|âš)/g) || []).length;
-}
-
-function looksMojibake(value) {
-    return typeof value === 'string' && getMojibakeScore(value) > 0;
-}
-
-function decodeMojibake(value) {
-    if (!looksMojibake(value)) return value;
-
-    let current = value;
-    for (let i = 0; i < 2; i += 1) {
-        let decoded = current;
-
-        try {
-            decoded = decodeURIComponent(escape(current));
-        } catch (_) {
-            try {
-                const bytes = Uint8Array.from(current, ch => ch.charCodeAt(0) & 0xff);
-                decoded = new TextDecoder('utf-8').decode(bytes);
-            } catch (_) {
-                decoded = current;
-            }
-        }
-
-        if (!decoded || getMojibakeScore(decoded) >= getMojibakeScore(current)) break;
-        current = decoded;
-    }
-
-    return current;
-}
-
 function repairVietnameseText(value) {
-    if (typeof value !== 'string') return value;
-    return decodeMojibake(value).replace(/\uFFFD/g, '');
+    // PASS-THROUGH: The previous logic was too aggressive and stripped valid characters.
+    return value;
 }
 
 function repairElementText(root) {
-    if (!root) return;
-
-    if (root.nodeType === Node.TEXT_NODE) {
-        const fixedText = repairVietnameseText(root.textContent);
-        if (fixedText !== root.textContent) root.textContent = fixedText;
-        return;
-    }
-
-    if (root.nodeType !== Node.ELEMENT_NODE) return;
-
-    ['placeholder', 'title', 'aria-label'].forEach(attr => {
-        const original = root.getAttribute(attr);
-        if (!original) return;
-
-        const fixed = repairVietnameseText(original);
-        if (fixed !== original) root.setAttribute(attr, fixed);
-    });
-
-    if (root.tagName === 'OPTION') {
-        const fixedValue = repairVietnameseText(root.value);
-        if (fixedValue !== root.value) {
-            root.value = fixedValue;
-            root.setAttribute('value', fixedValue);
-        }
-    }
-
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) {
-        const textNode = walker.currentNode;
-        const fixedText = repairVietnameseText(textNode.textContent);
-        if (fixedText !== textNode.textContent) textNode.textContent = fixedText;
-    }
-
-    root.querySelectorAll('option').forEach(option => {
-        const fixedValue = repairVietnameseText(option.value);
-        if (fixedValue !== option.value) {
-            option.value = fixedValue;
-            option.setAttribute('value', fixedValue);
-        }
-    });
+    // PASS-THROUGH: The previous logic was too aggressive and stripped valid characters.
+    return;
 }
 
 function installMojibakeRepairObserver() {
-    if (_mojibakeObserver || !document.body) return;
-
-    repairElementText(document.body);
-
-    _mojibakeObserver = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            if (mutation.type === 'characterData' && mutation.target) {
-                repairElementText(mutation.target);
-                return;
-            }
-
-            mutation.addedNodes.forEach(node => repairElementText(node));
-        });
-    });
-
-    _mojibakeObserver.observe(document.body, {
-        childList: true,
-        characterData: true,
-        subtree: true
-    });
+    console.log('[CRM] Mojibake repair observer disabled to prevent data corruption.');
 }
 
 function sanitizeCRMRecord(record = {}) {
