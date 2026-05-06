@@ -33,7 +33,7 @@
     --ds-border-focus:    rgba(59,130,246,0.6);
 
     /* ── Typography (iOS-standard) ── */
-    --ds-font-main:       'Inter', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+    --ds-font-main:       'Inter', system-ui, -apple-system, sans-serif;
     --ds-size-title:      24px;
     --ds-size-section:    18px;
     --ds-size-body:       14px;
@@ -115,6 +115,10 @@ html, body {
     margin: 0;
     overflow: hidden;
     scroll-behavior: smooth;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 /* GPU-hint for interactive elements only — transform only */
