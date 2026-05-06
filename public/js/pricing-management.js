@@ -176,9 +176,6 @@ class PricingManager {
         }
     }
 
-        this.updateTotal();
-    }
-
     static addNewProductGroup() {
         const newGroup = prompt('Nhập tên nhóm sản phẩm mới (Ví dụ: Phần mềm kế toán, HĐĐT...):');
         if (newGroup && newGroup.trim()) {
