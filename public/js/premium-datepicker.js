@@ -83,11 +83,12 @@ const PremiumDatePicker = (() => {
                 mode: 'single',
                 dateFormat: 'Y-m-d',
                 displayFormat: 'd/m/Y',
-                label: 'CHỌN NGÀY',
+                label: 'CH\u1eccN NG\u00c0Y',
                 showFooter: false,
                 minYear: 2015,
                 maxYear: 2035,
                 appendTo: null,
+                placement: 'auto', // 'auto', 'bottom', 'right', 'left', 'top'
                 onSelect: null,
                 onClear: null,
                 onChange: null,
@@ -568,8 +569,42 @@ const PremiumDatePicker = (() => {
 
         _position() {
             const rect = this.trigger.getBoundingClientRect();
-            const top = rect.bottom + window.scrollY + 10;
-            const left = Math.max(10, Math.min(window.innerWidth - 350, rect.left + window.scrollX));
+            const pickerWidth = 340;
+            const pickerHeight = 420; // Estimated height with padding
+            const padding = 10;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            let top = rect.bottom + window.scrollY + padding;
+            let left = rect.left + window.scrollX;
+
+            const placement = this.opts.placement;
+
+            if (placement === 'right' || (placement === 'auto' && rect.bottom + pickerHeight > windowHeight)) {
+                // Try right
+                if (rect.right + pickerWidth + padding < windowWidth) {
+                    top = rect.top + window.scrollY;
+                    left = rect.right + window.scrollX + padding;
+                } else if (rect.left - pickerWidth - padding > 0) {
+                    // Try left
+                    top = rect.top + window.scrollY;
+                    left = rect.left + window.scrollX - pickerWidth - padding;
+                } else if (rect.top - pickerHeight - padding > 0) {
+                    // Try top
+                    top = rect.top + window.scrollY - pickerHeight - padding;
+                    left = rect.left + window.scrollX;
+                }
+            } else if (placement === 'left') {
+                top = rect.top + window.scrollY;
+                left = rect.left + window.scrollX - pickerWidth - padding;
+            } else if (placement === 'top') {
+                top = rect.top + window.scrollY - pickerHeight - padding;
+            }
+
+            // Final boundary safety
+            left = Math.max(padding, Math.min(windowWidth - pickerWidth - padding, left));
+            top = Math.max(padding, top);
+
             this.containerEl.style.top = `${top}px`;
             this.containerEl.style.left = `${left}px`;
         }

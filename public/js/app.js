@@ -282,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (startInput && window.PremiumDatePicker) {
         PremiumDatePicker.attach(startInput, {
             mode: 'single',
+            placement: 'right',
             dateFormat: 'Y-m-d',
             label: 'CH\u1eccN NG\u00c0Y',
             onSelect: (date) => {
