@@ -2923,16 +2923,16 @@ function renderCA2CRM() {
                         <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'D\u1ecbch v\u1ee5'}</span>
                     </div>
                 </div>
-                <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2; pointer-events: none;">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ng\u00e0y h\u1ebft h\u1ea1n</div>
-                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
-                </div>
                 <div class="flex justify-center relative min-w-[130px]" style="z-index: 2; pointer-events: none;">
                     ${showBadge ? `
                     <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
                         ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
                     </span>
                     ` : ''}
+                </div>
+                <div class="text-center relative bg-black/40 px-5 py-2.5 rounded-xl border border-white/5 shadow-inner" style="z-index: 2; pointer-events: none; min-width: 110px;">
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ng\u00e0y h\u1ebft h\u1ea1n</div>
+                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
                 <div class="flex justify-end gap-2 relative" style="z-index: 20;">
                     <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" 
