@@ -1493,39 +1493,58 @@
                         </div>
                     </div>
 
-                    <div id="settings-tab-system" class="settings-tab-content hidden space-y-6" role="tabpanel">
+                    <div id="settings-tab-system" class="settings-tab-content hidden space-y-8" role="tabpanel">
                         <div class="content-grid">
-                            <div class="ios-glass-card">
-                                <div class="settings-card-heading mb-6">
-                                    <div>
-                                        <p class="settings-eyebrow">H&#x1EC7; th&#x1ED1;ng cục bộ</p>
-                                        <h4 class="text-xl font-black text-white tracking-tight">Cấu hình lưu trữ</h4>
-                                    </div>
-                                    <div class="settings-mini-icon bg-emerald-500/15 text-emerald-300">
-                                        <i class="fas fa-folder-open"></i>
+                            <!-- Local Storage Config -->
+                            <div class="ios-glass-card group hover:border-orange-500/30 transition-all duration-500">
+                                <div class="settings-card-heading mb-8">
+                                    <div class="flex items-center gap-5">
+                                        <div class="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 text-2xl shadow-inner border border-emerald-500/10 group-hover:scale-110 transition-transform">
+                                            <i class="fas fa-folder-tree"></i>
+                                        </div>
+                                        <div>
+                                            <p class="settings-eyebrow mb-1">Cấu hình cục bộ</p>
+                                            <h4 class="text-2xl font-black text-white tracking-tighter">Đường dẫn lưu trữ</h4>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <label class="settings-field-label">Thư mục tải file mặc định</label>
-                                <div class="flex gap-6 mt-2">
-                                    <div class="relative flex-1">
-                                        <i class="fas fa-hdd absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                                        <input id="settings-storage-path" type="text" placeholder="C:/Downloads/CA2_Automation" class="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none focus:border-orange-500 transition-all">
+                                <div class="space-y-4">
+                                    <label class="settings-field-label ml-1">Thư mục tải file mặc định (Máy khách)</label>
+                                    <div class="flex flex-col sm:flex-row gap-4 p-2 bg-white/5 rounded-3xl border border-white/5 focus-within:border-orange-500/30 transition-all">
+                                        <div class="relative flex-1">
+                                            <i class="fas fa-hdd absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                            <input id="settings-storage-path" type="text" placeholder="C:/Downloads/CA2_Automation" 
+                                                   class="w-full bg-transparent border-0 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none ring-0">
+                                        </div>
+                                        <button onclick="saveSystemSettings()" 
+                                                class="bg-orange-gradient text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                                            <i class="fas fa-save"></i> LƯU CÀI ĐẶT
+                                        </button>
                                     </div>
-                                    <button onclick="saveSystemSettings()" class="bg-orange-gradient text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-orange-900/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-4">
-                                        <i class="fas fa-save"></i> LƯU
-                                    </button>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-2 flex items-center gap-2">
+                                        <i class="fas fa-info-circle text-orange-500/50"></i> Lưu tại máy tính đang sử dụng
+                                    </p>
                                 </div>
                             </div>
 
-                            <div class="ios-glass-card border-l-4 border-l-blue-500">
-                                <p class="settings-eyebrow">Điều hướng nhanh</p>
-                                <h4 class="text-xl font-black text-white tracking-tight">Quản lý Bảng giá</h4>
-                                <p class="text-sm text-slate-400 leading-relaxed mb-6">
-                                    Cập nhật các gói dịch vụ, giá tiền và thời hạn áp dụng trên toàn hệ thống.
+                            <!-- Pricing Shortcut -->
+                            <div class="ios-glass-card border-l-4 border-l-blue-500 group hover:border-blue-500/30 transition-all duration-500">
+                                <div class="settings-card-heading mb-6">
+                                    <div>
+                                        <p class="settings-eyebrow">Dịch vụ & Bảng giá</p>
+                                        <h4 class="text-2xl font-black text-white tracking-tighter">Quản lý Bảng giá</h4>
+                                    </div>
+                                    <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 text-xl border border-blue-500/10 group-hover:rotate-12 transition-transform">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-slate-400 leading-relaxed mb-10 font-medium">
+                                    Điều chỉnh các gói cước, số lượng và đơn giá áp dụng trên toàn hệ thống Automation CA2.
                                 </p>
-                                <button onclick="showPage('settings-pricing')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-4">
-                                    <i class="fas fa-external-link-alt"></i> Mở quản lý bảng giá
+                                <button onclick="showPage('settings-pricing')" 
+                                        class="w-full bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest border border-blue-500/20 transition-all flex items-center justify-center gap-4 group-hover:shadow-lg group-hover:shadow-blue-900/20">
+                                    <i class="fas fa-external-link-alt text-sm"></i> Truy cập Bảng giá
                                 </button>
                             </div>
                         </div>
@@ -1542,13 +1561,13 @@
                                     </button>
                                 </div>
 
-                                <div class="overflow-hidden rounded-3xl border border-white/10 bg-black/20">
-                                    <table class="w-full text-left">
+                                <div class="overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl">
+                                    <table class="w-full text-left border-collapse">
                                         <thead>
-                                            <tr class="bg-white/5">
-                                                <th class="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Người dùng</th>
-                                                <th class="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Vai trò</th>
-                                                <th class="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                            <tr class="bg-white/5 border-b border-white/5">
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Người dùng</th>
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Vai trò</th>
+                                                <th class="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
                                             </tr>
                                         </thead>
                                         <tbody id="admin-user-list" class="divide-y divide-white/5">
@@ -1645,12 +1664,7 @@
                     <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-4 mb-1 block">Nhóm Sản phẩm</label>
                     <select id="filter-group" onchange="PricingManager.render()" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-orange-500">
                         <option value="all">Tất cả Nhóm</option>
-                        <option value="CKS">CKS Token</option>
-                        <option value="RS">Remote Signing</option>
-                        <option value="SP">Sign Platform</option>
-                        <option value="eINVOICE">eINVOICE</option>
-                        <option value="IVM">IVM</option>
-                        <option value="EBH">Bảo hiểm xã hội</option>
+                        <!-- Dynamically populated by PricingManager.render() -->
                     </select>
                 </div>
                 <div class="flex-1 min-w-[200px]">
@@ -1712,7 +1726,12 @@
                 <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="label-premium">Nhóm Sản phẩm *</label>
+                            <div class="flex justify-between items-center">
+                                <label class="label-premium">Nhóm Sản phẩm *</label>
+                                <button onclick="PricingManager.addNewProductGroup()" class="text-[10px] font-black text-orange-400 hover:text-orange-300 transition-all uppercase tracking-widest flex items-center gap-1">
+                                    <i class="fas fa-plus-circle"></i> Thêm mới
+                                </button>
+                            </div>
                             <select id="field-group" class="input-premium">
                                 <option value="CKS">CKS Token</option>
                                 <option value="RS">Remote Signing</option>

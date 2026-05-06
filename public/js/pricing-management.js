@@ -54,6 +54,8 @@ class PricingManager {
             return matchGroup && matchSubject && matchTransaction;
         });
 
+        this.syncFilterGroups();
+
         tbody.innerHTML = '';
         if (filtered.length === 0) {
             emptyState.classList.remove('hidden');
@@ -174,14 +176,85 @@ class PricingManager {
         }
     }
 
+        this.updateTotal();
+    }
+
+    static addNewProductGroup() {
+        const newGroup = prompt('Nhập tên nhóm sản phẩm mới (Ví dụ: Phần mềm kế toán, HĐĐT...):');
+        if (newGroup && newGroup.trim()) {
+            const trimmed = newGroup.trim();
+            const select = document.getElementById('field-group');
+            if (!select) return;
+
+            // Check if already exists in options
+            const exists = Array.from(select.options).some(opt => opt.value === trimmed);
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = trimmed;
+                opt.textContent = trimmed;
+                select.appendChild(opt);
+            }
+            
+            select.value = trimmed;
+            
+            // Force refresh custom select UI
+            if (typeof refreshCustomSelects === 'function') {
+                refreshCustomSelects();
+            }
+        }
+    }
+
+    static syncFilterGroups() {
+        const filterSelect = document.getElementById('filter-group');
+        if (!filterSelect) return;
+
+        const currentValue = filterSelect.value;
+        const groups = [...new Set(this.draftItems.map(item => item.product_group))].filter(Boolean);
+        
+        // Hardcoded defaults to ensure they always exist
+        const defaults = ['CKS', 'RS', 'SP', 'eINVOICE', 'IVM', 'EBH'];
+        const allGroups = [...new Set([...defaults, ...groups])];
+
+        // Only rebuild if there's a change or it's empty
+        const existingValues = Array.from(filterSelect.options).map(opt => opt.value);
+        const needsUpdate = allGroups.some(g => !existingValues.includes(g)) || existingValues.length <= 1;
+
+        if (needsUpdate) {
+            console.log('[PRICING] Syncing filter groups:', allGroups);
+            const scrollPos = filterSelect.scrollTop;
+            filterSelect.innerHTML = '<option value="all">Tất cả Nhóm</option>';
+            
+            allGroups.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                filterSelect.appendChild(opt);
+            });
+            
+            filterSelect.value = currentValue;
+            if (typeof refreshCustomSelects === 'function') {
+                refreshCustomSelects();
+            }
+        }
+    }
+
     static resetModal() {
-        document.getElementById('field-code').value = '';
-        document.getElementById('field-package').value = '';
-        document.getElementById('field-fee-service').value = '0';
-        document.getElementById('field-fee-token').value = '0';
-        document.getElementById('field-fee-vat').value = '0';
-        document.getElementById('field-notes').value = '';
-        document.getElementById('field-active').checked = true;
+        const fCode = document.getElementById('field-code');
+        const fPkg = document.getElementById('field-package');
+        const fSvc = document.getElementById('field-fee-service');
+        const fTok = document.getElementById('field-fee-token');
+        const fVat = document.getElementById('field-fee-vat');
+        const fNotes = document.getElementById('field-notes');
+        const fActive = document.getElementById('field-active');
+
+        if (fCode) fCode.value = '';
+        if (fPkg) fPkg.value = '';
+        if (fSvc) fSvc.value = '0';
+        if (fTok) fTok.value = '0';
+        if (fVat) fVat.value = '0';
+        if (fNotes) fNotes.value = '';
+        if (fActive) fActive.checked = true;
+        
         document.querySelectorAll('.field-subject').forEach(cb => cb.checked = false);
         this.updateTotal();
     }
