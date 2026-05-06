@@ -2991,6 +2991,13 @@ function renderCA2CRM() {
         const isExpired = daysLeft < 0;
         const statusLabel = isExpired ? '\u0110\u00e3 h\u1ebft h\u1ea1n' : `C\u00f2n ${daysLeft} ng\u00e0y`;
 
+        const normalizedSvc = normalizeText(c.service_type || '');
+        const showBadge = normalizedSvc.includes('cks') || 
+                          normalizedSvc.includes('chu ky so') || 
+                          normalizedSvc.includes('remote signing') || 
+                          normalizedSvc.includes('bao hiem') || 
+                          normalizedSvc.includes('ebh');
+
         // Ensure all types use the same editCRM handler
         return `
             <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" 
@@ -3011,9 +3018,11 @@ function renderCA2CRM() {
                     <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
                 <div class="flex justify-center relative min-w-[130px]" style="z-index: 2; pointer-events: none;">
+                    ${showBadge ? `
                     <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
                         ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
                     </span>
+                    ` : ''}
                 </div>
                 <div class="flex justify-end gap-2 relative" style="z-index: 20;">
                     <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" 
