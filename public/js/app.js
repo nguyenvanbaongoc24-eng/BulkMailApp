@@ -64,7 +64,7 @@ async function checkBackgroundMailStatus() {
         if (!res.ok) return false;
         const campaigns = await res.json();
         const running = campaigns.some(c => 
-            c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i' || c.status === 'Äang xá»­ lÃ½'
+            c.status === '\u0110ang g\u1EEDi' || c.status === '\u0110ang h\u00E0ng \u0111\u1EE3i' || c.status === '\u0110ang x\u1EED l\u00FD'
         );
         _isBackgroundMailRunning = running;
         // Update indicator
@@ -149,11 +149,11 @@ function performSessionTimeout() {
     if (timeoutModal) timeoutModal.classList.add('hidden');
     if (authScreen) authScreen.classList.toggle('hidden', false);
     if (appContainer) appContainer.classList.toggle('hidden', true);
-    alert('PhiÃªn lÃ m viá»‡c Ä‘Ã£ háº¿t háº¡n do khÃ´ng hoáº¡t Ä‘á»™ng trong 10 phÃºt. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.');
+    alert('PhiÃƒÆ’Ã‚Âªn lÃƒÆ’Ã‚Â m viÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡c Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n do khÃƒÆ’Ã‚Â´ng hoÃƒÂ¡Ã‚ÂºÃ‚Â¡t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng trong 10 phÃƒÆ’Ã‚Âºt. Vui lÃƒÆ’Ã‚Â²ng Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p lÃƒÂ¡Ã‚ÂºÃ‚Â¡i.');
 }
 
 function getMojibakeScore(value) {
-    return ((value || '').match(/(?:Ã.|Â.|Ä.|Æ.|áº|á»|â€¦|â€“|â€”|ï¿½|ðŸ|âœ|âš)/g) || []).length;
+    return ((value || '').match(/(?:ÃƒÆ’.|Ãƒâ€š.|Ãƒâ€ž.|Ãƒâ€ .|ÃƒÂ¡Ã‚Âº|ÃƒÂ¡Ã‚Â»|ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦|ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“|ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â|ÃƒÂ¯Ã‚Â¿Ã‚Â½|ÃƒÂ°Ã…Â¸|ÃƒÂ¢Ã…â€œ|ÃƒÂ¢Ã…Â¡)/g) || []).length;
 }
 
 function looksMojibake(value) {
@@ -367,13 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize PremiumDatePicker (Single mode â€” CRM Modal)
+    // Initialize PremiumDatePicker (Single mode ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â CRM Modal)
     const startInput = document.getElementById('ca2-crm-start');
     if (startInput && window.PremiumDatePicker) {
         PremiumDatePicker.attach(startInput, {
             mode: 'single',
             dateFormat: 'Y-m-d',
-            label: 'CHá»ŒN NGÃ€Y',
+            label: 'CHÃƒÂ¡Ã‚Â»Ã…â€™N NGÃƒÆ’Ã¢â€šÂ¬Y',
             onSelect: (date) => {
                 console.log('[PDP] Start date selected:', PremiumDatePicker.formatDate(date, 'Y-m-d'));
             }
@@ -493,13 +493,13 @@ function toggleAuthMode() {
     const isRegister = fields.classList.contains('hidden');
     fields.classList.toggle('hidden', !isRegister);
     
-    title.innerText = isRegister ? 'ÄÄƒng kÃ½ tÃ i khoáº£n má»›i' : 'ÄÄƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c quáº£n lÃ½ chiáº¿n dá»‹ch';
+    title.innerText = isRegister ? 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½ tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n mÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi' : 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ tiÃƒÂ¡Ã‚ÂºÃ‚Â¿p tÃƒÂ¡Ã‚Â»Ã‚Â¥c quÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch';
     const btnText = submitBtn.querySelector('.btn-text');
-    if (btnText) btnText.innerText = isRegister ? 'ÄÄƒng kÃ½ ngay' : 'ÄÄƒng nháº­p ngay';
-    else submitBtn.innerText = isRegister ? 'ÄÄƒng kÃ½ ngay' : 'ÄÄƒng nháº­p ngay';
+    if (btnText) btnText.innerText = isRegister ? 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½ ngay' : 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p ngay';
+    else submitBtn.innerText = isRegister ? 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½ ngay' : 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p ngay';
     
-    switchTxt.innerText = isRegister ? 'ÄÃ£ cÃ³ tÃ i khoáº£n?' : 'ChÆ°a cÃ³ tÃ i khoáº£n?';
-    switchBtn.innerText = isRegister ? 'ÄÄƒng nháº­p' : 'Tham gia ngay';
+    switchTxt.innerText = isRegister ? 'Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ cÃƒÆ’Ã‚Â³ tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n?' : 'ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n?';
+    switchBtn.innerText = isRegister ? 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p' : 'Tham gia ngay';
 }
 
 async function handleAuthSubmit() {
@@ -525,7 +525,7 @@ async function handleAuthSubmit() {
             data = await res.json();
         } else {
             const rawText = await res.text();
-            throw new Error(rawText || 'Pháº£n há»“i tá»« server khÃ´ng há»£p lá»‡.');
+            throw new Error(rawText || 'PhÃƒÂ¡Ã‚ÂºÃ‚Â£n hÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“i tÃƒÂ¡Ã‚Â»Ã‚Â« server khÃƒÆ’Ã‚Â´ng hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡.');
         }
         
         // Handle custom success messages explicitly
@@ -541,12 +541,12 @@ async function handleAuthSubmit() {
             saveCurrentSession(data.token, data.user);
             await checkAuth(); 
         } else {
-            errorDiv.innerText = data.error || 'Lá»—i xÃ¡c thá»±c';
+            errorDiv.innerText = data.error || 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i xÃƒÆ’Ã‚Â¡c thÃƒÂ¡Ã‚Â»Ã‚Â±c';
             errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
             errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
         }
     } catch (e) {
-        errorDiv.innerText = 'Lá»—i káº¿t ná»‘i server';
+        errorDiv.innerText = 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server';
         errorDiv.classList.remove('hidden', 'text-green-500', 'bg-green-500/10', 'border-green-500/20');
         errorDiv.classList.add('text-red-500', 'bg-red-500/10', 'border-red-500/20');
     }
@@ -573,7 +573,7 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     const name = nameInput?.value || '';
     const isRegister = registerFields ? !registerFields.classList.contains('hidden') : false;
     const btnText = submitBtn?.querySelector('.btn-text');
-    const originalBtnText = btnText ? btnText.innerText : (submitBtn?.innerText || 'ÄÄƒng nháº­p ngay');
+    const originalBtnText = btnText ? btnText.innerText : (submitBtn?.innerText || 'Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p ngay');
 
     const showAuthMessage = (message, type = 'error') => {
         if (!errorDiv) return;
@@ -600,21 +600,21 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     }
 
     if (!email) {
-        showAuthMessage('Vui lÃ²ng nháº­p email.');
+        showAuthMessage('Vui lÃƒÆ’Ã‚Â²ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p email.');
         emailInput?.focus();
         return;
     }
 
     if (!password) {
-        showAuthMessage('Vui lÃ²ng nháº­p máº­t kháº©u.');
+        showAuthMessage('Vui lÃƒÆ’Ã‚Â²ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p mÃƒÂ¡Ã‚ÂºÃ‚Â­t khÃƒÂ¡Ã‚ÂºÃ‚Â©u.');
         passwordInput?.focus();
         return;
     }
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        if (btnText) btnText.innerText = 'ÄANG Xá»¬ LÃ...';
-        else submitBtn.innerText = 'ÄANG Xá»¬ LÃ...';
+        if (btnText) btnText.innerText = 'Ãƒâ€žÃ‚ÂANG XÃƒÂ¡Ã‚Â»Ã‚Â¬ LÃƒÆ’Ã‚Â...';
+        else submitBtn.innerText = 'Ãƒâ€žÃ‚ÂANG XÃƒÂ¡Ã‚Â»Ã‚Â¬ LÃƒÆ’Ã‚Â...';
         submitBtn.classList.add('opacity-70', 'cursor-not-allowed', 'btn-loading');
     }
 
@@ -641,7 +641,7 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
             data = await res.json();
         } else {
             const rawText = await res.text();
-            throw new Error(rawText || 'Pháº£n há»“i tá»« server khÃ´ng há»£p lá»‡.');
+            throw new Error(rawText || 'PhÃƒÂ¡Ã‚ÂºÃ‚Â£n hÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“i tÃƒÂ¡Ã‚Â»Ã‚Â« server khÃƒÆ’Ã‚Â´ng hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡.');
         }
 
         if (data.message) {
@@ -650,12 +650,12 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
         }
 
         if (!res.ok) {
-            showAuthMessage(data.error || 'KhÃ´ng thá»ƒ Ä‘Äƒng nháº­p.');
+            showAuthMessage(data.error || 'KhÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p.');
             return;
         }
 
         if (!data.token) {
-            showAuthMessage('ÄÄƒng nháº­p tháº¥t báº¡i: server khÃ´ng tráº£ vá» phiÃªn Ä‘Äƒng nháº­p.');
+            showAuthMessage('Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p thÃƒÂ¡Ã‚ÂºÃ‚Â¥t bÃƒÂ¡Ã‚ÂºÃ‚Â¡i: server khÃƒÆ’Ã‚Â´ng trÃƒÂ¡Ã‚ÂºÃ‚Â£ vÃƒÂ¡Ã‚Â»Ã‚Â phiÃƒÆ’Ã‚Âªn Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p.');
             return;
         }
 
@@ -665,9 +665,9 @@ window.handleAuthSubmit = async function handleAuthSubmitPatched() {
     } catch (e) {
         if (timeoutId) clearTimeout(timeoutId);
         if (e.name === 'AbortError') {
-            showAuthMessage('Server pháº£n há»“i quÃ¡ cháº­m. Vui lÃ²ng thá»­ láº¡i.');
+            showAuthMessage('Server phÃƒÂ¡Ã‚ÂºÃ‚Â£n hÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“i quÃƒÆ’Ã‚Â¡ chÃƒÂ¡Ã‚ÂºÃ‚Â­m. Vui lÃƒÆ’Ã‚Â²ng thÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÂ¡Ã‚ÂºÃ‚Â¡i.');
         } else {
-            showAuthMessage(e.message || 'Lá»—i káº¿t ná»‘i server.');
+            showAuthMessage(e.message || 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server.');
         }
         console.error('[AUTH] Submit failed:', e);
     } finally {
@@ -687,14 +687,14 @@ function openAccountSwitcher() {
         const modal = document.getElementById('modal-account-switcher');
         if (!list || !modal) {
             console.error('Account Switcher elements missing from DOM');
-            alert('Lá»—i há»‡ thá»‘ng: KhÃ´ng tÃ¬m tháº¥y khung chá»n tÃ i khoáº£n.');
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng: KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y khung chÃƒÂ¡Ã‚Â»Ã‚Ân tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n.');
             return;
         }
 
         // Check if any session exists
         const token = localStorage.getItem('sb-token');
         if (!token && !currentUser) {
-            alert('KhÃ´ng tÃ¬m tháº¥y phiÃªn Ä‘Äƒng nháº­p.');
+            alert('KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y phiÃƒÆ’Ã‚Âªn Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p.');
             return;
         }
         
@@ -721,14 +721,14 @@ function openAccountSwitcher() {
             saveCurrentSession(localStorage.getItem('sb-token'), currentUser);
         }
 
-        // Filter out the current user â€” they're shown in the header section
+        // Filter out the current user ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â they're shown in the header section
         const otherSessions = savedSessions.filter(s => !(currentUser && String(s.user.id) === String(currentUser.id)));
 
         if (otherSessions.length === 0) {
             list.innerHTML = `
                 <div class="p-6 border-2 border-dashed border-white/5 rounded-2xl text-center space-y-2">
-                    <div class="text-2xl">ðŸ“­</div>
-                    <p class="text-gray-500 font-bold italic text-xs">KhÃ´ng cÃ³ tÃ i khoáº£n nÃ o khÃ¡c Ä‘Æ°á»£c lÆ°u.</p>
+                    <div class="text-2xl">ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â­</div>
+                    <p class="text-gray-500 font-bold italic text-xs">KhÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â³ tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n nÃƒÆ’Ã‚Â o khÃƒÆ’Ã‚Â¡c Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c lÃƒâ€ Ã‚Â°u.</p>
                 </div>
             `;
         } else {
@@ -766,7 +766,7 @@ function openAccountSwitcher() {
         console.log('Account Switcher modal shown');
     } catch (err) {
         console.error('Error in openAccountSwitcher:', err);
-        alert('Lá»—i khá»Ÿi táº¡o danh sÃ¡ch tÃ i khoáº£n: ' + err.message);
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khÃƒÂ¡Ã‚Â»Ã…Â¸i tÃƒÂ¡Ã‚ÂºÃ‚Â¡o danh sÃƒÆ’Ã‚Â¡ch tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n: ' + err.message);
     }
 }
 
@@ -782,7 +782,7 @@ function switchAccount(userId) {
     try {
         const target = savedSessions.find(s => String(s.user.id) === String(userId));
         if (!target) {
-            alert('KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u phiÃªn cho tÃ i khoáº£n nÃ y.');
+            alert('KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u phiÃƒÆ’Ã‚Âªn cho tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n nÃƒÆ’Ã‚Â y.');
             return;
         }
 
@@ -793,8 +793,8 @@ function switchAccount(userId) {
                     <div class="w-20 h-20 bg-blue-600 rounded-[30px] mx-auto flex items-center justify-center text-white text-3xl animate-spin shadow-2xl shadow-blue-600/30">
                         <i class="fas fa-sync-alt"></i>
                     </div>
-                    <h3 class="text-xl font-black text-white">Äang chuyá»ƒn tÃ i khoáº£n...</h3>
-                    <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Há»‡ thá»‘ng Ä‘ang táº£i láº¡i phiÃªn lÃ m viá»‡c</p>
+                    <h3 class="text-xl font-black text-white">Ãƒâ€žÃ‚Âang chuyÃƒÂ¡Ã‚Â»Ã†â€™n tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n...</h3>
+                    <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest">HÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng Ãƒâ€žÃ¢â‚¬Ëœang tÃƒÂ¡Ã‚ÂºÃ‚Â£i lÃƒÂ¡Ã‚ÂºÃ‚Â¡i phiÃƒÆ’Ã‚Âªn lÃƒÆ’Ã‚Â m viÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡c</p>
                 </div>
             `;
         }
@@ -805,7 +805,7 @@ function switchAccount(userId) {
         }, 600);
     } catch (e) {
         console.error('Switch Account Error:', e);
-        alert('CÃ³ lá»—i xáº£y ra khi chuyá»ƒn tÃ i khoáº£n.');
+        alert('CÃƒÆ’Ã‚Â³ lÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i xÃƒÂ¡Ã‚ÂºÃ‚Â£y ra khi chuyÃƒÂ¡Ã‚Â»Ã†â€™n tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n.');
     }
 }
 
@@ -853,23 +853,23 @@ function showPage(pageId) {
     if (navItem) navItem.classList.add('sidebar-item-active');
     
     const titleMap = {
-        'dashboard': 'Báº£ng Ä‘iá»u khiá»ƒn',
+        'dashboard': 'B\u1EA3ng \u0111i\u1EC1u khi\u1EC3n',
         'ca2-crm': 'CA2 CRM',
-        'campaigns': 'Chiáº¿n dá»‹ch Email',
-        'senders': 'TÃ i khoáº£n Gmail',
-        'reports': 'BÃ¡o cÃ¡o chi tiáº¿t',
-        'seo-news': 'Tin Tá»©c Thuáº¿ (AI)',
-        'seo-article': 'Táº¡o BÃ i Viáº¿t SEO',
-        'seo-image': 'Táº¡o áº¢nh AI',
-        'seo-posts': 'Kho LÆ°u Trá»¯ SEO',
-        'lookup-tools': 'Cá»•ng Tra Cá»©u Nghiá»‡p Vá»¥',
-        'settings': 'CÃ i Ä‘áº·t há»‡ thá»‘ng',
-        'quotations': 'Há»£p Ä‘á»“ng & BÃ¡o giÃ¡',
-        'documents': 'Kho TÃ i liá»‡u Sales',
-        'settings-pricing': 'Cáº­p nháº­t Báº£ng giÃ¡'
+        'campaigns': 'Chi\u1EBFn d\u1ECBch Email',
+        'senders': 'T\u00E0i kho\u1EA3n Gmail',
+        'reports': 'B\u00E1o c\u00E1o chi ti\u1EBFt',
+        'seo-news': 'Tin T\u1EE9c Thu\u1EBF (AI)',
+        'seo-article': 'T\u1EA1o B\u00E0i Vi\u1EBFt SEO',
+        'seo-image': 'T\u1EA1o \u1EA2nh AI',
+        'seo-posts': 'Kho L\u01B0u Tr\u1EEF SEO',
+        'lookup-tools': 'C\u1ED5ng Tra C\u1EE9u Nghi\u1EC7p V\u1EE5',
+        'settings': 'C\u00E0i \u0111\u1EB7t h\u1EC7 th\u1ED1ng',
+        'quotations': 'H\u1EE3p \u0111\u1ED3ng & B\u00E1o gi\u00E1',
+        'documents': 'Kho T\u00E0i li\u1EC7u Sales',
+        'settings-pricing': 'C\u1EADp nh\u1EADt B\u1EA3ng gi\u00E1'
     };
     const titleEl = document.getElementById('page-title');
-    if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang chá»§';
+    if (titleEl) titleEl.innerText = titleMap[pageId] || 'Trang ch\u1EE7';
     
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
@@ -934,13 +934,13 @@ async function authedFetch(url, options = {}) {
     };
     const res = await fetch(url, { ...options, headers });
     
-    // Tá»± Ä‘á»™ng xá»­ lÃ½ khi phiÃªn Ä‘Äƒng nháº­p háº¿t háº¡n (401 Unauthorized)
+    // TÃƒÂ¡Ã‚Â»Ã‚Â± Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½ khi phiÃƒÆ’Ã‚Âªn Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n (401 Unauthorized)
     if (res.status === 401) {
-        console.warn('[AUTH] PhiÃªn Ä‘Äƒng nháº­p háº¿t háº¡n (401).');
+        console.warn('[AUTH] PhiÃƒÆ’Ã‚Âªn Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n (401).');
         localStorage.removeItem('sb-token');
-        alert('PhiÃªn lÃ m viá»‡c cá»§a báº¡n Ä‘Ã£ háº¿t háº¡n. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i Ä‘á»ƒ tiáº¿p tá»¥c!');
-        window.location.reload(); // Táº£i láº¡i trang sáº½ tá»± Ä‘á»™ng hiá»‡n mÃ n hÃ¬nh Login
-        return new Promise(() => {}); // Cháº·n tiáº¿n trÃ¬nh tiáº¿p theo Ä‘á»ƒ trÃ¡nh lá»—i logic
+        alert('PhiÃƒÆ’Ã‚Âªn lÃƒÆ’Ã‚Â m viÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡c cÃƒÂ¡Ã‚Â»Ã‚Â§a bÃƒÂ¡Ã‚ÂºÃ‚Â¡n Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n. Vui lÃƒÆ’Ã‚Â²ng Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p lÃƒÂ¡Ã‚ÂºÃ‚Â¡i Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ tiÃƒÂ¡Ã‚ÂºÃ‚Â¿p tÃƒÂ¡Ã‚Â»Ã‚Â¥c!');
+        window.location.reload(); // TÃƒÂ¡Ã‚ÂºÃ‚Â£i lÃƒÂ¡Ã‚ÂºÃ‚Â¡i trang sÃƒÂ¡Ã‚ÂºÃ‚Â½ tÃƒÂ¡Ã‚Â»Ã‚Â± Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng hiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n mÃƒÆ’Ã‚Â n hÃƒÆ’Ã‚Â¬nh Login
+        return new Promise(() => {}); // ChÃƒÂ¡Ã‚ÂºÃ‚Â·n tiÃƒÂ¡Ã‚ÂºÃ‚Â¿n trÃƒÆ’Ã‚Â¬nh tiÃƒÂ¡Ã‚ÂºÃ‚Â¿p theo Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ trÃƒÆ’Ã‚Â¡nh lÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i logic
     }
     
     return res;
@@ -977,8 +977,8 @@ function normalizeText(value) {
         .toString()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/Ä‘/g, 'd')
-        .replace(/Ä/g, 'D')
+        .replace(/Ãƒâ€žÃ¢â‚¬Ëœ/g, 'd')
+        .replace(/Ãƒâ€žÃ‚Â/g, 'D')
         .toLowerCase()
         .replace(/\s+/g, ' ')
         .trim();
@@ -1008,7 +1008,7 @@ function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
 
     console.log('[CRM-Sync] Inferring from:', { pkgName, normalizedPkg });
 
-    if (!pkgName || normalizedPkg.includes('chua co goi')) return '1 nÄƒm';
+    if (!pkgName || normalizedPkg.includes('chua co goi')) return '1 nÃƒâ€žÃ†â€™m';
     
     // Priority: dataset from pricing data
     if (pkgOptionOrName?.dataset?.durationLabel) {
@@ -1018,21 +1018,21 @@ function inferDurationFromPackage(serviceVal, pkgOptionOrName) {
 
     // Regex support for: nam, year, thang, month, so, count
     const yearMatch = normalizedPkg.match(/(\d+)\s*(nam|year)/);
-    if (yearMatch) return `${yearMatch[1]} nÄƒm`;
+    if (yearMatch) return `${yearMatch[1]} nÃƒâ€žÃ†â€™m`;
 
     const monthMatch = normalizedPkg.match(/(\d+)\s*(thang|month)/);
     if (monthMatch) {
         const months = parseInt(monthMatch[1], 10);
-        if (months % 12 === 0 && months <= 60) return `${months / 12} nÄƒm`;
-        return `${months} thÃ¡ng`;
+        if (months % 12 === 0 && months <= 60) return `${months / 12} nÃƒâ€žÃ†â€™m`;
+        return `${months} thÃƒÆ’Ã‚Â¡ng`;
     }
 
     const countMatch = normalizedPkg.match(/(\d+)\s*(so|count|to)/);
-    if (countMatch) return `${countMatch[1]} sá»‘`;
+    if (countMatch) return `${countMatch[1]} sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ`;
 
-    if (normalizedService.includes('hoa don')) return '500 sá»‘';
+    if (normalizedService.includes('hoa don')) return '500 sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ';
     
-    return '1 nÄƒm';
+    return '1 nÃƒâ€žÃ†â€™m';
 }
 
 function syncCRMDurationWithPackage(packageValue = '') {
@@ -1053,9 +1053,9 @@ function syncCRMDurationWithPackage(packageValue = '') {
         const months = parseInt(option.dataset.durationMonths, 10);
         if (months > 0) {
             if (months % 12 === 0) {
-                durationLabel = `${months / 12} nÄƒm`;
+                durationLabel = `${months / 12} nÃƒâ€žÃ†â€™m`;
             } else {
-                durationLabel = `${months} thÃ¡ng`;
+                durationLabel = `${months} thÃƒÆ’Ã‚Â¡ng`;
             }
             console.log('[CRM-Sync] Found numeric months:', months, '-> label:', durationLabel);
         }
@@ -1089,8 +1089,8 @@ function syncCRMDurationWithPackage(packageValue = '') {
         // Exact match on value is best
         if (valNorm === normalizedDurLabel) return true;
         
-        // If label is "1 nÄƒm", match "1 nÄƒm (+3 thÃ¡ng)" or similar
-        // We check if the option text STARTS with the label (e.g. "1 nÄƒm" matches "1 nÄƒm (+3 thÃ¡ng)")
+        // If label is "1 nÃƒâ€žÃ†â€™m", match "1 nÃƒâ€žÃ†â€™m (+3 thÃƒÆ’Ã‚Â¡ng)" or similar
+        // We check if the option text STARTS with the label (e.g. "1 nÃƒâ€žÃ†â€™m" matches "1 nÃƒâ€žÃ†â€™m (+3 thÃƒÆ’Ã‚Â¡ng)")
         if (textNorm.startsWith(normalizedDurLabel)) return true;
         
         return false;
@@ -1198,7 +1198,7 @@ function initializeCRMDateRangePicker() {
         if (dates.length === 1) {
             const fromValue = PremiumDatePicker.formatDate(dates[0], 'Y-m-d');
             startLabel.innerText = PremiumDatePicker.formatDate(dates[0], 'd/m/Y');
-            endLabel.innerText = 'Äáº¿n ngÃ y';
+            endLabel.innerText = 'Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚ÂºÃ‚Â¿n ngÃƒÆ’Ã‚Â y';
             fromInput.value = fromValue;
             toInput.value = '';
             rangeInput.value = fromValue;
@@ -1214,8 +1214,8 @@ function initializeCRMDateRangePicker() {
             clearBtn?.classList.remove('hidden');
             renderCA2CRM();
         } else {
-            startLabel.innerText = 'Tá»« ngÃ y';
-            endLabel.innerText = 'Ä áº¿n ngÃ y';
+            startLabel.innerText = 'TÃƒÂ¡Ã‚Â»Ã‚Â« ngÃƒÆ’Ã‚Â y';
+            endLabel.innerText = 'Ãƒâ€ž ÃƒÂ¡Ã‚ÂºÃ‚Â¿n ngÃƒÆ’Ã‚Â y';
             fromInput.value = '';
             toInput.value = '';
             rangeInput.value = '';
@@ -1226,7 +1226,7 @@ function initializeCRMDateRangePicker() {
 
     const instance = PremiumDatePicker.attach(rangeInput, {
         mode: 'range',
-        label: 'THá»œI GIAN Lá»ŒC',
+        label: 'THÃƒÂ¡Ã‚Â»Ã…â€œI GIAN LÃƒÂ¡Ã‚Â»Ã…â€™C',
         onChange: applyRangeState,
         onClear: () => applyRangeState([])
     });
@@ -1280,7 +1280,7 @@ function refreshPricingUI() {
 function getCRMPrice(service, type, pkg) {
     if (!service) return 0;
     
-    // Pháº§n 3: Logic Ãp dá»¥ng
+    // PhÃƒÂ¡Ã‚ÂºÃ‚Â§n 3: Logic ÃƒÆ’Ã‚Âp dÃƒÂ¡Ã‚Â»Ã‚Â¥ng
     const match = CRM_PRICE_LIST.find(p => 
         p.service_name === service && 
         (p.package_name === pkg || (p.package_name.includes(type) && p.package_name.includes(pkg)))
@@ -1320,13 +1320,13 @@ async function saveCA2CRM() {
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
     };
 
-    // Include CKS type if service contains 'CKS' or 'Chữ ký số' (flexible match)
+    // Include CKS type if service contains 'CKS' or 'ChÃ¡Â»Â¯ kÃƒÂ½ sÃ¡Â»â€˜' (flexible match)
     if (serviceType.toUpperCase().includes('CKS') || serviceType.toUpperCase().includes('CHU KY SO')) {
         body.cks_type = document.getElementById('ca2-crm-cks-type').value || '';
     }
 
     if (!body.mst || !body.company_name) {
-        alert('Vui lÃ²ng nháº­p MÃ£ sá»‘ thuáº¿ vÃ  TÃªn cÃ´ng ty');
+        alert('Vui lÃƒÆ’Ã‚Â²ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p MÃƒÆ’Ã‚Â£ sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ thuÃƒÂ¡Ã‚ÂºÃ‚Â¿ vÃƒÆ’Ã‚Â  TÃƒÆ’Ã‚Âªn cÃƒÆ’Ã‚Â´ng ty');
         return;
     }
 
@@ -1344,9 +1344,9 @@ async function saveCA2CRM() {
             loadCA2CRMData();
         } else {
             const err = await res.json();
-            alert('Lá»—i: ' + (err.error || 'Unknown error'));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + (err.error || 'Unknown error'));
         }
-    } catch (e) { alert('Lá»—i káº¿t ná»‘i server'); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server'); }
 }
 
 // Mission 2: Update payment status directly from table dropdown
@@ -1363,9 +1363,9 @@ async function updatePaymentStatus(id, status) {
             if (item) item.payment_status = status;
             renderCA2CRM();
         } else {
-            alert('Lá»—i cáº­p nháº­t tráº¡ng thÃ¡i thanh toÃ¡n');
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i cÃƒÂ¡Ã‚ÂºÃ‚Â­p nhÃƒÂ¡Ã‚ÂºÃ‚Â­t trÃƒÂ¡Ã‚ÂºÃ‚Â¡ng thÃƒÆ’Ã‚Â¡i thanh toÃƒÆ’Ã‚Â¡n');
         }
-    } catch (e) { alert('Lá»—i káº¿t ná»‘i'); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi'); }
 }
 
 function updateCRMDurationOptions(defaultVal = '') {
@@ -1579,16 +1579,16 @@ function editCRM(id) {
             else console.warn(`[DEBUG] Element not found: ${id}`);
         };
 
-        setText('ca2-crm-modal-title', 'Cập nhật khách hàng');
+        setText('ca2-crm-modal-title', 'CÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t khÃƒÂ¡ch hÃƒÂ ng');
         setVal('ca2-crm-id', c.id);
         setVal('ca2-crm-mst', c.mst);
         setVal('ca2-crm-name', c.company_name);
         setVal('ca2-crm-email', c.email);
         setVal('ca2-crm-phone', c.phone);
         
-        const normalizedServiceType = c.service_type || 'CKS – Cấp mới';
-        setSelectValueSmart('ca2-crm-service', normalizedServiceType, 'CKS – Cấp mới');
-        setSelectValueSmart('ca2-crm-customer-type', c.customer_type, 'Công ty');
+        const normalizedServiceType = c.service_type || 'CKS Ã¢â‚¬â€œ CÃ¡ÂºÂ¥p mÃ¡Â»â€ºi';
+        setSelectValueSmart('ca2-crm-service', normalizedServiceType, 'CKS Ã¢â‚¬â€œ CÃ¡ÂºÂ¥p mÃ¡Â»â€ºi');
+        setSelectValueSmart('ca2-crm-customer-type', c.customer_type, 'CÃƒÂ´ng ty');
         setVal('ca2-crm-start', c.start_date || '');
         setVal('ca2-crm-compensate', c.compensate_months || 0);
         setVal('ca2-crm-cks-type', c.cks_type || 'cap_moi');
@@ -1641,8 +1641,8 @@ async function deleteCRM(id) {
     try {
         const res = await authedFetch(`/api/ca2-crm/${id}`, { method: 'DELETE' });
         if (res.ok) loadCA2CRMData();
-        else alert('Lá»—i khi xÃ³a khÃ¡ch hÃ ng');
-    } catch (e) { alert('Lá»—i káº¿t ná»‘i'); }
+        else alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi xÃƒÆ’Ã‚Â³a khÃƒÆ’Ã‚Â¡ch hÃƒÆ’Ã‚Â ng');
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi'); }
 }
 
 async function createCampaignFromCA2CRM() {
@@ -1659,18 +1659,18 @@ async function createCampaignFromCA2CRM() {
     }
 
     if (recipients.length === 0) {
-        alert('KhÃ´ng tÃ¬m tháº¥y khÃ¡ch hÃ ng nÃ o cÃ³ email há»£p lá»‡.');
+        alert('KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y khÃƒÆ’Ã‚Â¡ch hÃƒÆ’Ã‚Â ng nÃƒÆ’Ã‚Â o cÃƒÆ’Ã‚Â³ email hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡.');
         return;
     }
 
-    if (!confirm(`Táº¡o chiáº¿n dá»‹ch gá»­i mail cho ${recipients.length} khÃ¡ch hÃ ng?`)) return;
+    if (!confirm(`TÃƒÂ¡Ã‚ÂºÃ‚Â¡o chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch gÃƒÂ¡Ã‚Â»Ã‚Â­i mail cho ${recipients.length} khÃƒÆ’Ã‚Â¡ch hÃƒÆ’Ã‚Â ng?`)) return;
 
     try {
         const sendersRes = await authedFetch('/api/senders');
         const senders = await sendersRes.json();
         
         if (!senders || senders.length === 0) {
-            alert('Vui lÃ²ng káº¿t ná»‘i tÃ i khoáº£n Gmail trÆ°á»›c khi gá»­i mail.');
+            alert('Vui lÃƒÆ’Ã‚Â²ng kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n Gmail trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc khi gÃƒÂ¡Ã‚Â»Ã‚Â­i mail.');
             showPage('senders');
             return;
         }
@@ -1679,8 +1679,8 @@ async function createCampaignFromCA2CRM() {
         
         const campaignData = {
             name: `CRM Bulk - ${formatDate(new Date())}`,
-            subject: "ThÃ´ng bÃ¡o vá» dá»‹ch vá»¥ CA2",
-            template: "KÃ­nh gá»­i #TÃªnCÃ´ngTy, dá»‹ch vá»¥ cá»§a quÃ½ khÃ¡ch (MST: #MST) sáº¯p háº¿t háº¡n vÃ o ngÃ y #NgÃ yHáº¿tHáº¡n.",
+            subject: "ThÃƒÆ’Ã‚Â´ng bÃƒÆ’Ã‚Â¡o vÃƒÂ¡Ã‚Â»Ã‚Â dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch vÃƒÂ¡Ã‚Â»Ã‚Â¥ CA2",
+            template: "KÃƒÆ’Ã‚Â­nh gÃƒÂ¡Ã‚Â»Ã‚Â­i #TÃƒÆ’Ã‚ÂªnCÃƒÆ’Ã‚Â´ngTy, dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch vÃƒÂ¡Ã‚Â»Ã‚Â¥ cÃƒÂ¡Ã‚Â»Ã‚Â§a quÃƒÆ’Ã‚Â½ khÃƒÆ’Ã‚Â¡ch (MST: #MST) sÃƒÂ¡Ã‚ÂºÃ‚Â¯p hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n vÃƒÆ’Ã‚Â o ngÃƒÆ’Ã‚Â y #NgÃƒÆ’Ã‚Â yHÃƒÂ¡Ã‚ÂºÃ‚Â¿tHÃƒÂ¡Ã‚ÂºÃ‚Â¡n.",
             attachCert: true,
             senderAccountId: senderId,
             recipients: recipients.map(c => ({
@@ -1698,10 +1698,10 @@ async function createCampaignFromCA2CRM() {
         });
 
         if (res.ok) {
-            alert('Táº¡o chiáº¿n dá»‹ch thÃ nh cÃ´ng!');
+            alert('TÃƒÂ¡Ã‚ÂºÃ‚Â¡o chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             showPage('campaigns');
         }
-    } catch (e) { alert('Lá»—i há»‡ thá»‘ng'); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng'); }
 }
 
 // --- Import Logic ---
@@ -1736,7 +1736,7 @@ async function handleFileSelect(event) {
             const json = XLSX.utils.sheet_to_json(sheet);
             
             if (json.length === 0) {
-                alert('File khÃ´ng cÃ³ dá»¯ liá»‡u');
+                alert('File khÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â³ dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u');
                 return;
             }
 
@@ -1748,29 +1748,29 @@ async function handleFileSelect(event) {
             });
 
             if (res.ok) {
-                alert('Nháº­p dá»¯ liá»‡u thÃ nh cÃ´ng!');
+                alert('NhÃƒÂ¡Ã‚ÂºÃ‚Â­p dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
                 closeCRMImportModal();
                 loadCA2CRMData();
             } else {
                 const err = await res.json();
-                alert('Lá»—i: ' + (err.error || 'Server error'));
+                alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + (err.error || 'Server error'));
             }
         };
         reader.readAsArrayBuffer(file);
-    } catch (e) { alert('Lá»—i xá»­ lÃ½ file'); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½ file'); }
 }
 
 function downloadCRMTemplate() {
     // Columns from the user's screenshot
     const headers = [
-        "NgÃ y", "TÃªn DN", "MST", "Chi cá»¥c Thuáº¿", "Ä‘iá»‡n thoáº¡i D", 
-        "Email Ä‘Äƒng kÃ½", "Dá»‹ch vá»¥", "Thá»i háº¡n", "NgÃ y háº¿t háº¡n"
+        "NgÃƒÆ’Ã‚Â y", "TÃƒÆ’Ã‚Âªn DN", "MST", "Chi cÃƒÂ¡Ã‚Â»Ã‚Â¥c ThuÃƒÂ¡Ã‚ÂºÃ‚Â¿", "Ãƒâ€žÃ¢â‚¬ËœiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i D", 
+        "Email Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½", "DÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch vÃƒÂ¡Ã‚Â»Ã‚Â¥", "ThÃƒÂ¡Ã‚Â»Ã‚Âi hÃƒÂ¡Ã‚ÂºÃ‚Â¡n", "NgÃƒÆ’Ã‚Â y hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n"
     ];
     
     // Sample data
     const sampleData = [
-        ["01/01/2024", "CÃ”NG TY TNHH VÃ Dá»¤ A", "0101010101", "Cáº§u Giáº¥y", "0900000000", "vi-du@email.com", "CKS", "1 nÄƒm", "01/01/2025"],
-        ["15/02/2024", "CÃ”NG TY CP MINH Há»ŒA B", "0202020202", "Hai BÃ  TrÆ°ng", "0911111111", "minh-hoa@email.com", "HDDT", "2 nÄƒm", "15/02/2026"]
+        ["01/01/2024", "CÃƒÆ’Ã¢â‚¬ÂNG TY TNHH VÃƒÆ’Ã‚Â DÃƒÂ¡Ã‚Â»Ã‚Â¤ A", "0101010101", "CÃƒÂ¡Ã‚ÂºÃ‚Â§u GiÃƒÂ¡Ã‚ÂºÃ‚Â¥y", "0900000000", "vi-du@email.com", "CKS", "1 nÃƒâ€žÃ†â€™m", "01/01/2025"],
+        ["15/02/2024", "CÃƒÆ’Ã¢â‚¬ÂNG TY CP MINH HÃƒÂ¡Ã‚Â»Ã…â€™A B", "0202020202", "Hai BÃƒÆ’Ã‚Â  TrÃƒâ€ Ã‚Â°ng", "0911111111", "minh-hoa@email.com", "HDDT", "2 nÃƒâ€žÃ†â€™m", "15/02/2026"]
     ];
 
     // Create worksheet
@@ -1849,7 +1849,7 @@ async function loadRecentCampaigns() {
         const campaigns = await res.json();
         
         // Polling logic
-        const hasActive = campaigns.some(c => c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i' || c.status === 'Äang xá»­ lÃ½');
+        const hasActive = campaigns.some(c => c.status === 'Ãƒâ€žÃ‚Âang gÃƒÂ¡Ã‚Â»Ã‚Â­i' || c.status === 'Ãƒâ€žÃ‚Âang hÃƒÆ’Ã‚Â ng Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã‚Â£i' || c.status === 'Ãƒâ€žÃ‚Âang xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½');
         if (hasActive) {
             loadDashboardStats();
             if (!window.campaignInterval) window.campaignInterval = setInterval(loadRecentCampaigns, 5000);
@@ -1862,9 +1862,9 @@ async function loadRecentCampaigns() {
         const renderItem = c => {
             const successPct = c.total_recipients > 0 ? Math.round((c.sent_count / c.total_recipients) * 100) : 0;
             const isDone = c.status === 'Ho\u00e0n th\u00e0nh';
-            const isRunning = c.status === 'Äang gá»­i' || c.status === 'Äang hÃ ng Ä‘á»£i';
+            const isRunning = c.status === 'Ãƒâ€žÃ‚Âang gÃƒÂ¡Ã‚Â»Ã‚Â­i' || c.status === 'Ãƒâ€žÃ‚Âang hÃƒÆ’Ã‚Â ng Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã‚Â£i';
             const badgeType = isDone ? 'badge-done' : (isRunning ? 'badge-running' : 'badge-pending');
-            const statusLabel = isRunning ? 'Äang gá»­i...' : c.status;
+            const statusLabel = isRunning ? 'Ãƒâ€žÃ‚Âang gÃƒÂ¡Ã‚Â»Ã‚Â­i...' : c.status;
 
             return `
                 <div class="group relative overflow-hidden bg-white/2 hover:bg-white/5 border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4" onclick="showPage('campaigns')">
@@ -1894,11 +1894,11 @@ async function loadRecentCampaigns() {
 
                     <div class="flex items-center gap-2 border-l border-white/5 pl-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         ${!isDone && !isRunning ? `
-                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all" title="Báº¯t Ä‘áº§u gá»­i">
+                            <button onclick="event.stopPropagation(); startCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all" title="BÃƒÂ¡Ã‚ÂºÃ‚Â¯t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u gÃƒÂ¡Ã‚Â»Ã‚Â­i">
                                 <i class="fas fa-play text-xs"></i>
                             </button>
                         ` : ''}
-                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="XÃ³a">
+                        <button onclick="event.stopPropagation(); deleteCampaign('${c.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="XÃƒÆ’Ã‚Â³a">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
@@ -1909,9 +1909,9 @@ async function loadRecentCampaigns() {
         const html = campaigns.map(renderItem).join('');
         const emptyHtml = `
             <div class="empty-state">
-                <div class="empty-icon">ðŸ“§</div>
-                <div class="empty-title">ChÆ°a cÃ³ chiáº¿n dá»‹ch nÃ o</div>
-                <div class="empty-desc">Táº¡o chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i email</div>
+                <div class="empty-icon">ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â§</div>
+                <div class="empty-title">ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch nÃƒÆ’Ã‚Â o</div>
+                <div class="empty-desc">TÃƒÂ¡Ã‚ÂºÃ‚Â¡o chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u tiÃƒÆ’Ã‚Âªn Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ bÃƒÂ¡Ã‚ÂºÃ‚Â¯t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u gÃƒÂ¡Ã‚Â»Ã‚Â­i email</div>
             </div>
         `;
 
@@ -1928,18 +1928,18 @@ async function startCampaign(id) {
         const res = await authedFetch(`/api/campaigns/${id}/send`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-            alert('Chiáº¿n dá»‹ch Ä‘Ã£ báº¯t Ä‘áº§u gá»­i!');
+            alert('ChiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ bÃƒÂ¡Ã‚ÂºÃ‚Â¯t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u gÃƒÂ¡Ã‚Â»Ã‚Â­i!');
             loadRecentCampaigns(); 
         } else {
-            alert('Lá»—i: ' + (data.error || 'KhÃ´ng rÃµ'));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + (data.error || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ'));
         }
     } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i server');
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server');
     }
 }
 
 async function deleteCampaign(id) {
-    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a chiáº¿n dá»‹ch nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.')) return;
+    if (!confirm('BÃƒÂ¡Ã‚ÂºÃ‚Â¡n cÃƒÆ’Ã‚Â³ chÃƒÂ¡Ã‚ÂºÃ‚Â¯c chÃƒÂ¡Ã‚ÂºÃ‚Â¯n muÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœn xÃƒÆ’Ã‚Â³a chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch nÃƒÆ’Ã‚Â y? HÃƒÆ’Ã‚Â nh Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng nÃƒÆ’Ã‚Â y khÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ hoÃƒÆ’Ã‚Â n tÃƒÆ’Ã‚Â¡c.')) return;
     try {
         const res = await authedFetch(`/api/campaigns/${id}`, { method: 'DELETE' });
         if (res.ok) {
@@ -1947,10 +1947,10 @@ async function deleteCampaign(id) {
             loadDashboardStats();
         } else {
             const err = await res.json();
-            alert('Lá»—i khi xÃ³a: ' + (err.error || 'KhÃ´ng rÃµ'));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi xÃƒÆ’Ã‚Â³a: ' + (err.error || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ'));
         }
     } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i server');
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server');
     }
 }
 
@@ -1964,7 +1964,7 @@ async function loadSenders() {
         const res = await authedFetch('/api/senders');
         const senders = await res.json();
         
-        if (countEl) countEl.innerText = `Tá»•ng cá»™ng: ${senders.length} tÃ i khoáº£n`;
+        if (countEl) countEl.innerText = `TÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢ng cÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ng: ${senders.length} tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n`;
         
         list.innerHTML = senders.map(s => {
             const isGmailAPI = s.smtpHost === 'oauth2.google' || s.smtpHost === 'oauth2.googleapis.com';
@@ -1973,7 +1973,7 @@ async function loadSenders() {
                 <div class="list-item">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isGmailAPI ? 'bg-white' : 'bg-orange-gradient/20 text-orange-500'}">
-                            ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : 'âš™ï¸'}
+                            ${isGmailAPI ? '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" class="w-5 h-5">' : 'ÃƒÂ¢Ã…Â¡Ã¢â€žÂ¢ÃƒÂ¯Ã‚Â¸Ã‚Â'}
                         </div>
                         <div>
                             <div class="list-item-title">${s.senderName}</div>
@@ -1983,7 +1983,7 @@ async function loadSenders() {
                     <div class="flex justify-center">
                         <span class="badge-premium badge-done">
                             <span class="badge-dot"></span>
-                            ÄÃ£ káº¿t ná»‘i
+                            Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi
                         </span>
                     </div>
                     <div class="flex justify-center">
@@ -1999,15 +1999,15 @@ async function loadSenders() {
             `;
         }).join('') || `
             <div class="empty-state">
-                <div class="empty-icon">ðŸ”‘</div>
-                <div class="empty-title">ChÆ°a cÃ³ tÃ i khoáº£n nÃ o</div>
-                <div class="empty-desc">Káº¿t ná»‘i Gmail hoáº·c SMTP Ä‘á»ƒ báº¯t Ä‘áº§u gá»­i mail</div>
+                <div class="empty-icon">ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Ëœ</div>
+                <div class="empty-title">ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n nÃƒÆ’Ã‚Â o</div>
+                <div class="empty-desc">KÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi Gmail hoÃƒÂ¡Ã‚ÂºÃ‚Â·c SMTP Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ bÃƒÂ¡Ã‚ÂºÃ‚Â¯t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u gÃƒÂ¡Ã‚Â»Ã‚Â­i mail</div>
             </div>
         `;
         
         const select = document.getElementById('select-sender');
         if (select) {
-            select.innerHTML = '<option value="">-- Chá»n tÃ i khoáº£n gá»­i --</option>' + 
+            select.innerHTML = '<option value="">-- ChÃƒÂ¡Ã‚Â»Ã‚Ân tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n gÃƒÂ¡Ã‚Â»Ã‚Â­i --</option>' + 
                 senders.map(s => `<option value="${s.id}">${s.senderName} (${s.senderEmail})</option>`).join('');
         }
     } catch (e) { console.error('Load Senders Error:', e); }
@@ -2018,27 +2018,27 @@ async function connectGoogleAccount() {
         const res = await authedFetch('/api/auth/google/url');
         const data = await res.json();
         if (data.url) {
-            // Má»Ÿ cá»­a sá»• popup Ä‘á»ƒ káº¿t ná»‘i Gmail OAuth
+            // MÃƒÂ¡Ã‚Â»Ã…Â¸ cÃƒÂ¡Ã‚Â»Ã‚Â­a sÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢ popup Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi Gmail OAuth
             window.open(data.url, 'GoogleAuth', 'width=600,height=700');
         } else {
-            alert('KhÃ´ng láº¥y Ä‘Æ°á»£c URL káº¿t ná»‘i Google. Vui lÃ²ng thá»­ láº¡i.');
+            alert('KhÃƒÆ’Ã‚Â´ng lÃƒÂ¡Ã‚ÂºÃ‚Â¥y Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c URL kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi Google. Vui lÃƒÆ’Ã‚Â²ng thÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÂ¡Ã‚ÂºÃ‚Â¡i.');
         }
     } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i server khi láº¥y URL Google OAuth.');
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server khi lÃƒÂ¡Ã‚ÂºÃ‚Â¥y URL Google OAuth.');
         console.error(e);
     }
 }
 
-// Láº¯ng nghe message tá»« popup OAuth
+// LÃƒÂ¡Ã‚ÂºÃ‚Â¯ng nghe message tÃƒÂ¡Ã‚Â»Ã‚Â« popup OAuth
 window.addEventListener('message', (event) => {
     if (event.data === 'google_auth_success') {
-        alert('Káº¿t ná»‘i Gmail thÃ nh cÃ´ng! Äang táº£i láº¡i danh sÃ¡ch tÃ i khoáº£n...');
+        alert('KÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi Gmail thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng! Ãƒâ€žÃ‚Âang tÃƒÂ¡Ã‚ÂºÃ‚Â£i lÃƒÂ¡Ã‚ÂºÃ‚Â¡i danh sÃƒÆ’Ã‚Â¡ch tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n...');
         loadSenders();
     }
 });
 
 function openAddSenderModal() {
-    document.getElementById('sender-modal-title').innerHTML = 'ThÃªm <span class="text-orange-gradient">tÃ i khoáº£n SMTP</span>';
+    document.getElementById('sender-modal-title').innerHTML = 'ThÃƒÆ’Ã‚Âªm <span class="text-orange-gradient">tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n SMTP</span>';
     document.getElementById('edit-sender-id').value = '';
     document.getElementById('edit-sender-name').value = '';
     document.getElementById('edit-sender-email').value = '';
@@ -2056,7 +2056,7 @@ async function openEditSenderModal(id) {
         const s = senders.find(x => x.id === id);
         if (!s) return;
 
-        document.getElementById('sender-modal-title').innerHTML = 'Chá»‰nh sá»­a <span class="text-orange-gradient">tÃ i khoáº£n SMTP</span>';
+        document.getElementById('sender-modal-title').innerHTML = 'ChÃƒÂ¡Ã‚Â»Ã¢â‚¬Â°nh sÃƒÂ¡Ã‚Â»Ã‚Â­a <span class="text-orange-gradient">tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n SMTP</span>';
         document.getElementById('edit-sender-id').value = s.id;
         document.getElementById('edit-sender-name').value = s.senderName;
         document.getElementById('edit-sender-email').value = s.senderEmail;
@@ -2085,7 +2085,7 @@ async function saveSenderAccount() {
     };
 
     if (!data.senderName || !data.senderEmail || !data.smtpHost || !data.smtpPort) {
-        return alert('Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ cÃ¡c thÃ´ng tin báº¯t buá»™c');
+        return alert('Vui lÃƒÆ’Ã‚Â²ng Ãƒâ€žÃ¢â‚¬ËœiÃƒÂ¡Ã‚Â»Ã‚Ân Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§y Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã‚Â§ cÃƒÆ’Ã‚Â¡c thÃƒÆ’Ã‚Â´ng tin bÃƒÂ¡Ã‚ÂºÃ‚Â¯t buÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢c');
     }
 
     try {
@@ -2106,38 +2106,38 @@ async function saveSenderAccount() {
             loadSenders();
         } else {
             const err = await res.json();
-            alert('Lá»—i: ' + (err.error || 'KhÃ´ng rÃµ'));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + (err.error || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ'));
         }
-    } catch (e) { alert('Lá»—i káº¿t ná»‘i server'); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server'); }
 }
 
 async function deleteSender(id) {
-    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a tÃ i khoáº£n nÃ y?')) return;
+    if (!confirm('BÃƒÂ¡Ã‚ÂºÃ‚Â¡n cÃƒÆ’Ã‚Â³ chÃƒÂ¡Ã‚ÂºÃ‚Â¯c chÃƒÂ¡Ã‚ÂºÃ‚Â¯n muÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœn xÃƒÆ’Ã‚Â³a tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n nÃƒÆ’Ã‚Â y?')) return;
     try {
         const res = await authedFetch(`/api/senders/${id}`, { method: 'DELETE' });
         if (res.ok) loadSenders();
-        else alert('Lá»—i khi xÃ³a tÃ i khoáº£n');
-    } catch (e) { alert('Lá»—i há»‡ thá»‘ng'); }
+        else alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi xÃƒÆ’Ã‚Â³a tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n');
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng'); }
 }
 
 // --- UTILITIES AND OLD CRM LOGIC ---
 function exportCA2CRMToExcel() {
     if (!currentCRMData || currentCRMData.length === 0) {
-        alert('KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘á»ƒ xuáº¥t');
+        alert('KhÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â³ dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ xuÃƒÂ¡Ã‚ÂºÃ‚Â¥t');
         return;
     }
     const wsData = currentCRMData.map(c => ({
         'MST': c.mst,
-        'TÃªn cÃ´ng ty': c.company_name,
+        'TÃƒÆ’Ã‚Âªn cÃƒÆ’Ã‚Â´ng ty': c.company_name,
         'Email': c.email,
-        'Sá»‘ Ä‘iá»‡n thoáº¡i': c.phone,
-        'Dá»‹ch vá»¥': c.service_type || '',
-        'NgÃ y cáº¥p': formatDate(c.start_date),
-        'Thá»i háº¡n/Sá»‘ lÆ°á»£ng': c.package_name || c.duration || '',
-        'ThÃ nh tiá»n': getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
-        'NgÃ y háº¿t háº¡n': formatDate(c.expired_date),
-        'TÃ¬nh tráº¡ng thanh toÃ¡n': c.payment_status === 'paid' ? 'ÄÃ£ thanh toÃ¡n' : 'ChÆ°a thanh toÃ¡n',
-        'Ghi chÃº': c.status_note || ''
+        'SÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ Ãƒâ€žÃ¢â‚¬ËœiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i': c.phone,
+        'DÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch vÃƒÂ¡Ã‚Â»Ã‚Â¥': c.service_type || '',
+        'NgÃƒÆ’Ã‚Â y cÃƒÂ¡Ã‚ÂºÃ‚Â¥p': formatDate(c.start_date),
+        'ThÃƒÂ¡Ã‚Â»Ã‚Âi hÃƒÂ¡Ã‚ÂºÃ‚Â¡n/SÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ lÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£ng': c.package_name || c.duration || '',
+        'ThÃƒÆ’Ã‚Â nh tiÃƒÂ¡Ã‚Â»Ã‚Ân': getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
+        'NgÃƒÆ’Ã‚Â y hÃƒÂ¡Ã‚ÂºÃ‚Â¿t hÃƒÂ¡Ã‚ÂºÃ‚Â¡n': formatDate(c.expired_date),
+        'TÃƒÆ’Ã‚Â¬nh trÃƒÂ¡Ã‚ÂºÃ‚Â¡ng thanh toÃƒÆ’Ã‚Â¡n': c.payment_status === 'paid' ? 'Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ thanh toÃƒÆ’Ã‚Â¡n' : 'ChÃƒâ€ Ã‚Â°a thanh toÃƒÆ’Ã‚Â¡n',
+        'Ghi chÃƒÆ’Ã‚Âº': c.status_note || ''
     }));
     
     const wb = XLSX.utils.book_new();
@@ -2172,7 +2172,7 @@ async function exportMonthlyReport() {
     }
 
     if (filteredData.length === 0) {
-        alert('KhÃ´ng cÃ³ dá»¯ liá»‡u phÃ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i Ä‘á»ƒ xuáº¥t.');
+        alert('KhÃƒÆ’Ã‚Â´ng cÃƒÆ’Ã‚Â³ dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u phÃƒÆ’Ã‚Â¹ hÃƒÂ¡Ã‚Â»Ã‚Â£p vÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi bÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ lÃƒÂ¡Ã‚Â»Ã‚Âc hiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ xuÃƒÂ¡Ã‚ÂºÃ‚Â¥t.');
         return;
     }
 
@@ -2182,33 +2182,33 @@ async function exportMonthlyReport() {
     // Add main title
     worksheet.mergeCells('A1:N1');
     const title = worksheet.getCell('A1');
-    title.value = `DANH SÃCH KHÃCH HÃ€NG ${filterYear !== 'all' ? filterYear : new Date().getFullYear()}`;
+    title.value = `DANH SÃƒÆ’Ã‚ÂCH KHÃƒÆ’Ã‚ÂCH HÃƒÆ’Ã¢â€šÂ¬NG ${filterYear !== 'all' ? filterYear : new Date().getFullYear()}`;
     title.font = { name: 'Times New Roman', size: 16, bold: true };
     title.alignment = { horizontal: 'center' };
 
     // Column Widths
     worksheet.columns = [
         { header: 'STT', width: 5 },
-        { header: 'NgÃ y', width: 15 },
-        { header: 'TÃªn DN', width: 45 },
+        { header: 'NgÃƒÆ’Ã‚Â y', width: 15 },
+        { header: 'TÃƒÆ’Ã‚Âªn DN', width: 45 },
         { header: 'MST', width: 15 },
-        { header: 'Cá»¥c Thuáº¿', width: 15 },
-        { header: 'Äiá»‡n thoáº¡i DN', width: 15 },
-        { header: 'Email Ä‘Äƒng kÃ½', width: 30 },
-        { header: 'Dá»ŠCH Vá»¤', width: 15 },
-        { header: 'Thá»i háº¡n/Sá»‘ lÆ°á»£ng', width: 20 },
-        { header: 'ThÃ nh tiá»n', width: 15 },
-        { header: 'ÄT ngÆ°á»i lÃ m', width: 15 },
-        { header: 'Tá»· lá»‡', width: 10 },
+        { header: 'CÃƒÂ¡Ã‚Â»Ã‚Â¥c ThuÃƒÂ¡Ã‚ÂºÃ‚Â¿', width: 15 },
+        { header: 'Ãƒâ€žÃ‚ÂiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i DN', width: 15 },
+        { header: 'Email Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½', width: 30 },
+        { header: 'DÃƒÂ¡Ã‚Â»Ã…Â CH VÃƒÂ¡Ã‚Â»Ã‚Â¤', width: 15 },
+        { header: 'ThÃƒÂ¡Ã‚Â»Ã‚Âi hÃƒÂ¡Ã‚ÂºÃ‚Â¡n/SÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ lÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£ng', width: 20 },
+        { header: 'ThÃƒÆ’Ã‚Â nh tiÃƒÂ¡Ã‚Â»Ã‚Ân', width: 15 },
+        { header: 'Ãƒâ€žÃ‚ÂT ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi lÃƒÆ’Ã‚Â m', width: 15 },
+        { header: 'TÃƒÂ¡Ã‚Â»Ã‚Â· lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡', width: 10 },
         { header: 'CK KH', width: 10 },
-        { header: 'TÃ¬nh tráº¡ng thanh toÃ¡n', width: 20 }
+        { header: 'TÃƒÆ’Ã‚Â¬nh trÃƒÂ¡Ã‚ÂºÃ‚Â¡ng thanh toÃƒÆ’Ã‚Â¡n', width: 20 }
     ];
 
     // Format Header Row
     const hr = worksheet.getRow(2);
     hr.values = [
-        'STT', 'NgÃ y', 'TÃªn DN', 'MST', 'Cá»¥c Thuáº¿', 'Äiá»‡n thoáº¡i DN', 'Email Ä‘Äƒng kÃ½',
-        'Dá»ŠCH Vá»¤', 'Thá»i háº¡n/Sá»‘ lÆ°á»£ng', 'ThÃ nh tiá»n', 'ÄT ngÆ°á»i lÃ m', 'Tá»· lá»‡', 'CK KH', 'TÃ¬nh tráº¡ng thanh toÃ¡n'
+        'STT', 'NgÃƒÆ’Ã‚Â y', 'TÃƒÆ’Ã‚Âªn DN', 'MST', 'CÃƒÂ¡Ã‚Â»Ã‚Â¥c ThuÃƒÂ¡Ã‚ÂºÃ‚Â¿', 'Ãƒâ€žÃ‚ÂiÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i DN', 'Email Ãƒâ€žÃ¢â‚¬ËœÃƒâ€žÃ†â€™ng kÃƒÆ’Ã‚Â½',
+        'DÃƒÂ¡Ã‚Â»Ã…Â CH VÃƒÂ¡Ã‚Â»Ã‚Â¤', 'ThÃƒÂ¡Ã‚Â»Ã‚Âi hÃƒÂ¡Ã‚ÂºÃ‚Â¡n/SÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ lÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£ng', 'ThÃƒÆ’Ã‚Â nh tiÃƒÂ¡Ã‚Â»Ã‚Ân', 'Ãƒâ€žÃ‚ÂT ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi lÃƒÆ’Ã‚Â m', 'TÃƒÂ¡Ã‚Â»Ã‚Â· lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡', 'CK KH', 'TÃƒÆ’Ã‚Â¬nh trÃƒÂ¡Ã‚ÂºÃ‚Â¡ng thanh toÃƒÆ’Ã‚Â¡n'
     ];
     hr.eachCell((cell) => {
         cell.font = { name: 'Times New Roman', size: 11, bold: true };
@@ -2230,10 +2230,10 @@ async function exportMonthlyReport() {
             c.service_type || '',
             c.package_name || c.duration || '',
             getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) > 0 ? new Intl.NumberFormat('vi-VN').format(getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration)) : '0',
-            currentUser?.full_name || 'Ngá»c',
-            '', // Tá»· lá»‡
+            currentUser?.full_name || 'NgÃƒÂ¡Ã‚Â»Ã‚Âc',
+            '', // TÃƒÂ¡Ã‚Â»Ã‚Â· lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡
             '', // CK KH
-            c.payment_status === 'paid' ? 'ÄÃ£ TT' : 'ChÆ°a TT'
+            c.payment_status === 'paid' ? 'Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ TT' : 'ChÃƒâ€ Ã‚Â°a TT'
         ]);
         row.eachCell((cell) => {
             cell.font = { name: 'Times New Roman', size: 11 };
@@ -2279,7 +2279,7 @@ function handleFileUpload(event) {
             const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, dateNF: 'dd/mm/yyyy' });
             
             if (!rawRows || rawRows.length === 0) {
-                statusEl.innerText = 'File rá»—ng!';
+                statusEl.innerText = 'File rÃƒÂ¡Ã‚Â»Ã¢â‚¬â€ng!';
                 statusEl.className = 'text-sm font-bold text-red-500 text-center';
                 return;
             }
@@ -2287,8 +2287,8 @@ function handleFileUpload(event) {
             // Strict Smart Header Detection
             let headerRowIndex = -1;
             const headerKeywords = [
-                'MST', 'TAX', 'MÃƒ Sá» THUáº¾', 'CÃ”NG TY', 'TÃŠN', 'NAME', 'EMAIL', 'Äá»ŠA CHá»ˆ', 'ADDRESS', 
-                'Háº¾T Háº N', 'EXPIRATION', 'SERIAL', 'Háº N', 'Dá»ŠCH Vá»¤', 'GÃ“I', 'THá»œI GIAN', 'NGÃ€Y Cáº¤P'
+                'MST', 'TAX', 'MÃƒÆ’Ã†â€™ SÃƒÂ¡Ã‚Â»Ã‚Â THUÃƒÂ¡Ã‚ÂºÃ‚Â¾', 'CÃƒÆ’Ã¢â‚¬ÂNG TY', 'TÃƒÆ’Ã…Â N', 'NAME', 'EMAIL', 'Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã…Â A CHÃƒÂ¡Ã‚Â»Ã‹â€ ', 'ADDRESS', 
+                'HÃƒÂ¡Ã‚ÂºÃ‚Â¾T HÃƒÂ¡Ã‚ÂºÃ‚Â N', 'EXPIRATION', 'SERIAL', 'HÃƒÂ¡Ã‚ÂºÃ‚Â N', 'DÃƒÂ¡Ã‚Â»Ã…Â CH VÃƒÂ¡Ã‚Â»Ã‚Â¤', 'GÃƒÆ’Ã¢â‚¬Å“I', 'THÃƒÂ¡Ã‚Â»Ã…â€œI GIAN', 'NGÃƒÆ’Ã¢â€šÂ¬Y CÃƒÂ¡Ã‚ÂºÃ‚Â¤P'
             ];
             
             for (let i = 0; i < Math.min(rawRows.length, 5); i++) { // Check up to 5 rows
@@ -2370,7 +2370,7 @@ function handleFileUpload(event) {
                             obj['Serial'] = val;
                         } else if (val.length > 5 && val.includes(' ') && !isDate(val)) {
                             const lowerVal = val.toLowerCase();
-                            const addressKeywords = ['phÆ°á»ng', 'quáº­n', 'huyá»‡n', 'tá»‰nh', 'thÃ nh phá»‘', 'Ä‘Æ°á»ng', 'ngÃµ', 'sá»‘', 'khu phá»‘', 'xÃ£', 'thá»‹ tráº¥n', 'phá»‘', 'ward', 'district', 'city', 'street'];
+                            const addressKeywords = ['phÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng', 'quÃƒÂ¡Ã‚ÂºÃ‚Â­n', 'huyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n', 'tÃƒÂ¡Ã‚Â»Ã¢â‚¬Â°nh', 'thÃƒÆ’Ã‚Â nh phÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ', 'Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âng', 'ngÃƒÆ’Ã‚Âµ', 'sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ', 'khu phÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ', 'xÃƒÆ’Ã‚Â£', 'thÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ trÃƒÂ¡Ã‚ÂºÃ‚Â¥n', 'phÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ', 'ward', 'district', 'city', 'street'];
                             const isAddress = addressKeywords.some(kw => lowerVal.includes(kw));
                             
                             if (isAddress) {
@@ -2384,15 +2384,15 @@ function handleFileUpload(event) {
                     Object.keys(obj).forEach(k => {
                         const uk = k.toUpperCase().trim();
                         const val = obj[k];
-                        if (uk.includes('MST') || uk.includes('TAX') || uk.includes('MÃƒ Sá» THUáº¾')) obj['MST'] = val;
-                        if (uk.includes('CÃ”NG TY') || uk.includes('TÃŠN') || uk.includes('NAME')) {
+                        if (uk.includes('MST') || uk.includes('TAX') || uk.includes('MÃƒÆ’Ã†â€™ SÃƒÂ¡Ã‚Â»Ã‚Â THUÃƒÂ¡Ã‚ÂºÃ‚Â¾')) obj['MST'] = val;
+                        if (uk.includes('CÃƒÆ’Ã¢â‚¬ÂNG TY') || uk.includes('TÃƒÆ’Ã…Â N') || uk.includes('NAME')) {
                             if (!isDate(val)) obj['TenCongTy'] = val;
                         }
                         if (uk.includes('EMAIL')) obj['Email'] = val;
-                        if ((uk.includes('Háº¾T Háº N') || uk.includes('Háº N GCN') || uk.includes('EXPIRATION') || uk.includes('Háº N')) && !uk.includes('THá»œI Háº N')) {
+                        if ((uk.includes('HÃƒÂ¡Ã‚ÂºÃ‚Â¾T HÃƒÂ¡Ã‚ÂºÃ‚Â N') || uk.includes('HÃƒÂ¡Ã‚ÂºÃ‚Â N GCN') || uk.includes('EXPIRATION') || uk.includes('HÃƒÂ¡Ã‚ÂºÃ‚Â N')) && !uk.includes('THÃƒÂ¡Ã‚Â»Ã…â€œI HÃƒÂ¡Ã‚ÂºÃ‚Â N')) {
                             obj['NgayHetHanChuKySo'] = val;
                         }
-                        if (uk.includes('Äá»ŠA CHá»ˆ') || uk.includes('ADDRESS')) obj['DiaChi'] = val;
+                        if (uk.includes('Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã…Â A CHÃƒÂ¡Ã‚Â»Ã‹â€ ') || uk.includes('ADDRESS')) obj['DiaChi'] = val;
                     });
                 }
                 return obj;
@@ -2405,23 +2405,23 @@ function handleFileUpload(event) {
 
             if (totalRows > 0) {
                 if (rowsWithEmail === totalRows) {
-                    statusEl.innerText = `âœ… ÄÃ£ náº¡p thÃ nh cÃ´ng ${totalRows} dÃ²ng (Dá»¯ liá»‡u chuáº©n).`;
+                    statusEl.innerText = `ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ nÃƒÂ¡Ã‚ÂºÃ‚Â¡p thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng ${totalRows} dÃƒÆ’Ã‚Â²ng (DÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u chuÃƒÂ¡Ã‚ÂºÃ‚Â©n).`;
                     statusEl.className = 'text-sm font-bold text-emerald-400 text-center';
                 } else if (rowsWithEmail > 0) {
-                    statusEl.innerText = `âš ï¸ ÄÃ£ náº¡p ${totalRows} dÃ²ng, nhÆ°ng chá»‰ ${rowsWithEmail} dÃ²ng cÃ³ Email há»£p lá»‡.`;
+                    statusEl.innerText = `ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ nÃƒÂ¡Ã‚ÂºÃ‚Â¡p ${totalRows} dÃƒÆ’Ã‚Â²ng, nhÃƒâ€ Ã‚Â°ng chÃƒÂ¡Ã‚Â»Ã¢â‚¬Â° ${rowsWithEmail} dÃƒÆ’Ã‚Â²ng cÃƒÆ’Ã‚Â³ Email hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡.`;
                     statusEl.className = 'text-sm font-bold text-orange-400 text-center';
                 } else {
-                    statusEl.innerText = `âŒ ÄÃ£ náº¡p ${totalRows} dÃ²ng, nhÆ°ng KHÃ”NG tÃ¬m tháº¥y Email nÃ o!`;
+                    statusEl.innerText = `ÃƒÂ¢Ã‚ÂÃ…â€™ Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ nÃƒÂ¡Ã‚ÂºÃ‚Â¡p ${totalRows} dÃƒÆ’Ã‚Â²ng, nhÃƒâ€ Ã‚Â°ng KHÃƒÆ’Ã¢â‚¬ÂNG tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y Email nÃƒÆ’Ã‚Â o!`;
                     statusEl.className = 'text-sm font-bold text-red-400 text-center';
                 }
             } else {
-                statusEl.innerText = 'KhÃ´ng tÃ¬m tháº¥y dÃ²ng dá»¯ liá»‡u nÃ o!';
+                statusEl.innerText = 'KhÃƒÆ’Ã‚Â´ng tÃƒÆ’Ã‚Â¬m thÃƒÂ¡Ã‚ÂºÃ‚Â¥y dÃƒÆ’Ã‚Â²ng dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u nÃƒÆ’Ã‚Â o!';
                 statusEl.className = 'text-sm font-bold text-orange-400 text-center';
             }
             renderPreviewTable();
         } catch (err) {
             console.error(err);
-            statusEl.innerText = 'Lá»—i xá»­ lÃ½ file!';
+            statusEl.innerText = 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½ file!';
             statusEl.className = 'text-sm font-bold text-red-500 text-center';
         }
     };
@@ -2484,7 +2484,7 @@ function insertVariable(variable) {
 }
 
 function addCustomLink() {
-    const url = prompt('Nháº­p URL liÃªn káº¿t:', 'https://');
+    const url = prompt('NhÃƒÂ¡Ã‚ÂºÃ‚Â­p URL liÃƒÆ’Ã‚Âªn kÃƒÂ¡Ã‚ÂºÃ‚Â¿t:', 'https://');
     if (url) {
         formatDoc('createLink', url);
     }
@@ -2506,7 +2506,7 @@ function handleEditorImage(event) {
         img.style.borderRadius = '8px';
         img.style.cursor = 'pointer';
         img.className = 'email-editor-img';
-        img.title = 'Click Ä‘á»ƒ chá»‰nh kÃ­ch thÆ°á»›c';
+        img.title = 'Click Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ chÃƒÂ¡Ã‚Â»Ã¢â‚¬Â°nh kÃƒÆ’Ã‚Â­ch thÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc';
         
         // Click to select and show resize toolbar
         img.addEventListener('click', function(ev) {
@@ -2552,15 +2552,15 @@ function showImageResizeToolbar(imgEl) {
     toolbar.style.cssText = 'position:fixed;z-index:9999;display:flex;gap:6px;padding:8px 12px;background:rgba(10,10,30,0.95);border:1px solid rgba(249,115,22,0.4);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.6);backdrop-filter:blur(12px);align-items:center;';
     
     const sizes = [
-        { label: 'ðŸ“ Nhá»', w: '300px', desc: '300px' },
-        { label: 'ðŸ“ Vá»«a', w: '450px', desc: '450px' },
-        { label: 'ðŸ–¥ï¸ Lá»›n', w: '600px', desc: '600px' },
-        { label: 'ðŸ”³ Full', w: '100%', desc: '100%' },
+        { label: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â NhÃƒÂ¡Ã‚Â»Ã‚Â', w: '300px', desc: '300px' },
+        { label: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â VÃƒÂ¡Ã‚Â»Ã‚Â«a', w: '450px', desc: '450px' },
+        { label: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â€œÃ‚Â¥ÃƒÂ¯Ã‚Â¸Ã‚Â LÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºn', w: '600px', desc: '600px' },
+        { label: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â³ Full', w: '100%', desc: '100%' },
     ];
     
     // Title
     const title = document.createElement('span');
-    title.textContent = 'KÃ­ch thÆ°á»›c:';
+    title.textContent = 'KÃƒÆ’Ã‚Â­ch thÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc:';
     title.style.cssText = 'font-size:10px;font-weight:900;color:#f97316;text-transform:uppercase;letter-spacing:0.1em;margin-right:4px;white-space:nowrap;';
     toolbar.appendChild(title);
     
@@ -2590,8 +2590,8 @@ function showImageResizeToolbar(imgEl) {
     
     // Delete button
     const delBtn = document.createElement('button');
-    delBtn.textContent = 'ðŸ—‘ï¸';
-    delBtn.title = 'XÃ³a áº£nh';
+    delBtn.textContent = 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â€Ã¢â‚¬ËœÃƒÂ¯Ã‚Â¸Ã‚Â';
+    delBtn.title = 'XÃƒÆ’Ã‚Â³a ÃƒÂ¡Ã‚ÂºÃ‚Â£nh';
     delBtn.style.cssText = 'padding:5px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#ef4444;font-size:12px;cursor:pointer;transition:all 0.15s;margin-left:4px;';
     delBtn.onmouseenter = () => { delBtn.style.background = 'rgba(239,68,68,0.3)'; };
     delBtn.onmouseleave = () => { delBtn.style.background = 'rgba(239,68,68,0.1)'; };
@@ -2605,8 +2605,8 @@ function showImageResizeToolbar(imgEl) {
     
     // Close button
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'âœ•';
-    closeBtn.title = 'ÄÃ³ng';
+    closeBtn.textContent = 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢';
+    closeBtn.title = 'Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â³ng';
     closeBtn.style.cssText = 'padding:4px 8px;border-radius:8px;border:none;background:transparent;color:#666;font-size:14px;cursor:pointer;font-weight:900;transition:all 0.15s;';
     closeBtn.onmouseenter = () => { closeBtn.style.color = '#fff'; };
     closeBtn.onmouseleave = () => { closeBtn.style.color = '#666'; };
@@ -2660,7 +2660,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 img.style.height = 'auto';
                 img.style.display = 'block';
                 img.style.cursor = 'pointer';
-                img.title = 'Click Ä‘á»ƒ chá»‰nh kÃ­ch thÆ°á»›c';
+                img.title = 'Click Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ chÃƒÂ¡Ã‚Â»Ã¢â‚¬Â°nh kÃƒÆ’Ã‚Â­ch thÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc';
                 img.addEventListener('click', function(ev) {
                     ev.preventDefault();
                     ev.stopPropagation();
@@ -2679,10 +2679,10 @@ async function saveCampaign(event) {
     const content = document.getElementById('input-template').innerHTML;
     const attachCert = document.getElementById('toggle-attach-cert')?.checked || false;
 
-    if (!name) return alert('Vui lÃ²ng nháº­p tÃªn chiáº¿n dá»‹ch');
-    if (!subject) return alert('Vui lÃ²ng nháº­p tiÃªu Ä‘á» email');
-    if (!senderId) return alert('Vui lÃ²ng chá»n tÃ i khoáº£n gá»­i');
-    if (!currentRecipientsData || currentRecipientsData.length === 0) return alert('Vui lÃ²ng táº£i file dá»¯ liá»‡u');
+    if (!name) return alert('Vui lÃƒÆ’Ã‚Â²ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p tÃƒÆ’Ã‚Âªn chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch');
+    if (!subject) return alert('Vui lÃƒÆ’Ã‚Â²ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p tiÃƒÆ’Ã‚Âªu Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã‚Â email');
+    if (!senderId) return alert('Vui lÃƒÆ’Ã‚Â²ng chÃƒÂ¡Ã‚Â»Ã‚Ân tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n gÃƒÂ¡Ã‚Â»Ã‚Â­i');
+    if (!currentRecipientsData || currentRecipientsData.length === 0) return alert('Vui lÃƒÆ’Ã‚Â²ng tÃƒÂ¡Ã‚ÂºÃ‚Â£i file dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u');
 
     try {
         const res = await authedFetch('/api/campaigns', {
@@ -2699,22 +2699,22 @@ async function saveCampaign(event) {
         
         const contentType = res.headers.get("content-type");
         if (res.ok) {
-            alert('Táº¡o chiáº¿n dá»‹ch thÃ nh cÃ´ng!');
+            alert('TÃƒÂ¡Ã‚ÂºÃ‚Â¡o chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             closeCreateModal();
             showPage('campaigns');
         } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
-            alert(`Lá»—i: ${err.error || 'N/A'}\nChi tiáº¿t: ${err.message || 'KhÃ´ng rÃµ'}\nGá»£i Ã½: ${err.suggestion || 'LiÃªn há»‡ ká»¹ thuáº­t'}`);
+            alert(`LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ${err.error || 'N/A'}\nChi tiÃƒÂ¡Ã‚ÂºÃ‚Â¿t: ${err.message || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ'}\nGÃƒÂ¡Ã‚Â»Ã‚Â£i ÃƒÆ’Ã‚Â½: ${err.suggestion || 'LiÃƒÆ’Ã‚Âªn hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ kÃƒÂ¡Ã‚Â»Ã‚Â¹ thuÃƒÂ¡Ã‚ÂºÃ‚Â­t'}`);
         } else {
             const html = await res.text();
-            alert('Lá»—i há»‡ thá»‘ng khi táº¡o chiáº¿n dá»‹ch (HTML): ' + html.substring(0, 200));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng khi tÃƒÂ¡Ã‚ÂºÃ‚Â¡o chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch (HTML): ' + html.substring(0, 200));
         }
-    } catch (e) { alert('Lá»—i káº¿t ná»‘i server: ' + e.message); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server: ' + e.message); }
 }
 
 // --- Template Save/Load ---
 async function saveTemplate() {
-    const name = prompt('Äáº·t tÃªn cho máº«u email:', 'Máº«u má»›i');
+    const name = prompt('Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚ÂºÃ‚Â·t tÃƒÆ’Ã‚Âªn cho mÃƒÂ¡Ã‚ÂºÃ‚Â«u email:', 'MÃƒÂ¡Ã‚ÂºÃ‚Â«u mÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi');
     if (!name) return;
     const content = document.getElementById('input-template').innerHTML;
     try {
@@ -2726,18 +2726,18 @@ async function saveTemplate() {
         
         const contentType = res.headers.get("content-type");
         if (res.ok) {
-            alert('ÄÃ£ lÆ°u máº«u thÃ nh cÃ´ng!');
+            alert('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ lÃƒâ€ Ã‚Â°u mÃƒÂ¡Ã‚ÂºÃ‚Â«u thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             loadTemplates();
         } else if (contentType && contentType.indexOf("application/json") !== -1) {
             const err = await res.json();
-            alert(`Lá»—i khi lÆ°u máº«u: ${err.error || 'N/A'}\nChi tiáº¿t: ${err.message || 'KhÃ´ng rÃµ'}\nGá»£i Ã½: ${err.suggestion || 'LiÃªn há»‡ ká»¹ thuáº­t'}`);
+            alert(`LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi lÃƒâ€ Ã‚Â°u mÃƒÂ¡Ã‚ÂºÃ‚Â«u: ${err.error || 'N/A'}\nChi tiÃƒÂ¡Ã‚ÂºÃ‚Â¿t: ${err.message || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ'}\nGÃƒÂ¡Ã‚Â»Ã‚Â£i ÃƒÆ’Ã‚Â½: ${err.suggestion || 'LiÃƒÆ’Ã‚Âªn hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ kÃƒÂ¡Ã‚Â»Ã‚Â¹ thuÃƒÂ¡Ã‚ÂºÃ‚Â­t'}`);
         } else {
             const html = await res.text();
-            alert('Lá»—i há»‡ thá»‘ng (HTML): ' + html.substring(0, 200));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng (HTML): ' + html.substring(0, 200));
         }
     } catch (e) { 
         console.error('[TEMPLATE_SAVE_ERROR]', e); 
-        alert('Lá»—i káº¿t ná»‘i server khi lÆ°u máº«u: ' + e.message);
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server khi lÃƒâ€ Ã‚Â°u mÃƒÂ¡Ã‚ÂºÃ‚Â«u: ' + e.message);
     }
 }
 
@@ -2747,7 +2747,7 @@ async function loadTemplates() {
         const data = await res.json();
         const select = document.getElementById('select-template');
         if (select && Array.isArray(data)) {
-            select.innerHTML = '<option value="">-- Máº«u Ä‘Ã£ lÆ°u --</option>' +
+            select.innerHTML = '<option value="">-- MÃƒÂ¡Ã‚ÂºÃ‚Â«u Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ lÃƒâ€ Ã‚Â°u --</option>' +
                 data.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         }
     } catch (e) {}
@@ -2756,21 +2756,21 @@ async function loadTemplates() {
 async function deleteTemplate() {
     const select = document.getElementById('select-template');
     const id = select.value;
-    if (!id) return alert('Vui lÃ²ng chá»n má»™t máº«u Ä‘á»ƒ xÃ³a');
+    if (!id) return alert('Vui lÃƒÆ’Ã‚Â²ng chÃƒÂ¡Ã‚Â»Ã‚Ân mÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢t mÃƒÂ¡Ã‚ÂºÃ‚Â«u Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ xÃƒÆ’Ã‚Â³a');
     
-    if (!confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a máº«u email nÃ y?')) return;
+    if (!confirm('BÃƒÂ¡Ã‚ÂºÃ‚Â¡n cÃƒÆ’Ã‚Â³ chÃƒÂ¡Ã‚ÂºÃ‚Â¯c chÃƒÂ¡Ã‚ÂºÃ‚Â¯n muÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœn xÃƒÆ’Ã‚Â³a mÃƒÂ¡Ã‚ÂºÃ‚Â«u email nÃƒÆ’Ã‚Â y?')) return;
     
     try {
         const res = await authedFetch(`/api/templates/${id}`, { method: 'DELETE' });
         if (res.ok) {
-            alert('ÄÃ£ xÃ³a máº«u thÃ nh cÃ´ng!');
+            alert('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ xÃƒÆ’Ã‚Â³a mÃƒÂ¡Ã‚ÂºÃ‚Â«u thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             document.getElementById('input-template').innerHTML = '';
             loadTemplates();
         } else {
             const err = await res.json();
-            alert('Lá»—i: ' + (err.error || 'KhÃ´ng rÃµ'));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + (err.error || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ'));
         }
-    } catch (e) { alert('Lá»—i káº¿t ná»‘i server'); }
+    } catch (e) { alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi server'); }
 }
 
 async function applyTemplate() {
@@ -2788,7 +2788,7 @@ async function applyTemplate() {
         }
     } catch (e) {
         console.error(e);
-        alert('Lá»—i khi táº£i máº«u: ' + e.message);
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi tÃƒÂ¡Ã‚ÂºÃ‚Â£i mÃƒÂ¡Ã‚ÂºÃ‚Â«u: ' + e.message);
     }
 }
 
@@ -2804,18 +2804,18 @@ async function loadEmailLogs() {
         if (!logs || logs.length === 0) {
             list.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">ðŸ“ˆ</div>
-                    <div class="empty-title">ChÆ°a cÃ³ dá»¯ liá»‡u bÃ¡o cÃ¡o</div>
-                    <div class="empty-desc">Gá»­i chiáº¿n dá»‹ch Ä‘áº§u tiÃªn Ä‘á»ƒ xem bÃ¡o cÃ¡o chi tiáº¿t</div>
+                    <div class="empty-icon">ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‹â€ </div>
+                    <div class="empty-title">ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u bÃƒÆ’Ã‚Â¡o cÃƒÆ’Ã‚Â¡o</div>
+                    <div class="empty-desc">GÃƒÂ¡Ã‚Â»Ã‚Â­i chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u tiÃƒÆ’Ã‚Âªn Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ xem bÃƒÆ’Ã‚Â¡o cÃƒÆ’Ã‚Â¡o chi tiÃƒÂ¡Ã‚ÂºÃ‚Â¿t</div>
                 </div>
             `;
             return;
         }
 
         list.innerHTML = logs.map(log => {
-            const isSuccess = log.status === 'success' || log.status === 'ThÃ nh cÃ´ng';
+            const isSuccess = log.status === 'success' || log.status === 'ThÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng';
             const badgeType = isSuccess ? 'badge-done' : 'badge-pending';
-            const statusLabel = isSuccess ? 'ThÃ nh cÃ´ng' : 'Tháº¥t báº¡i';
+            const statusLabel = isSuccess ? 'ThÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng' : 'ThÃƒÂ¡Ã‚ÂºÃ‚Â¥t bÃƒÂ¡Ã‚ÂºÃ‚Â¡i';
             const date = new Date(log.created_at).toLocaleString('vi-VN');
 
             return `
@@ -2825,7 +2825,7 @@ async function loadEmailLogs() {
                         <div class="list-item-meta">${date}</div>
                     </div>
                     <div class="flex-1">
-                        <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Chiáº¿n dá»‹ch</div>
+                        <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">ChiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch</div>
                         <div class="text-xs font-bold text-white truncate max-w-[150px]">${log.campaign_name || log.campaigns?.name || 'N/A'}</div>
                     </div>
                     <div class="flex justify-center">
@@ -2835,7 +2835,7 @@ async function loadEmailLogs() {
                         </span>
                     </div>
                     <div class="flex-1 text-right ml-4">
-                        ${!isSuccess ? `<div class="text-[9px] text-red-500 font-medium italic line-clamp-1" title="${log.error_message || ''}">${log.error_message || 'Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh'}</div>` : '<div class="text-[9px] text-green-500/50">OK</div>'}
+                        ${!isSuccess ? `<div class="text-[9px] text-red-500 font-medium italic line-clamp-1" title="${log.error_message || ''}">${log.error_message || 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khÃƒÆ’Ã‚Â´ng xÃƒÆ’Ã‚Â¡c Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹nh'}</div>` : '<div class="text-[9px] text-green-500/50">OK</div>'}
                     </div>
                 </div>
             `;
@@ -2984,7 +2984,7 @@ function renderCA2CRM() {
     listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
-        const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
+        const statusLabel = isExpired ? 'Ã„ÂÃƒÂ£ hÃ¡ÂºÂ¿t hÃ¡ÂºÂ¡n' : `CÃƒÂ²n ${daysLeft} ngÃƒÂ y`;
 
         // Ensure all types use the same editCRM handler
         return `
@@ -2998,11 +2998,11 @@ function renderCA2CRM() {
                     <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
                         <span class="text-white/20">&bull;</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'DÃ¡Â»â€¹ch vÃ¡Â»Â¥'}</span>
                     </div>
                 </div>
                 <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2; pointer-events: none;">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NgÃƒÂ y hÃ¡ÂºÂ¿t hÃ¡ÂºÂ¡n</div>
                     <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
                 <div class="flex justify-center relative min-w-[130px]" style="z-index: 2; pointer-events: none;">
@@ -3014,13 +3014,13 @@ function renderCA2CRM() {
                     <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" 
                             onclick="event.stopPropagation(); editCRM('${c.id}')" 
                             style="pointer-events: auto !important; position: relative; z-index: 25;"
-                            title="Sửa khách hàng">
+                            title="SÃ¡Â»Â­a khÃƒÂ¡ch hÃƒÂ ng">
                         <i class="fas fa-pen"></i>
                     </button>
                     <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" 
                             onclick="event.stopPropagation(); deleteCRM('${c.id}')" 
                             style="pointer-events: auto !important; position: relative; z-index: 25;"
-                            title="Xóa khách hàng">
+                            title="XÃƒÂ³a khÃƒÂ¡ch hÃƒÂ ng">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -3067,14 +3067,14 @@ window.filterCRMByService = function(service) {
 
 
 function formatRelativeTime(dateValue) {
-    if (!dateValue) return 'ChÆ°a cÃ³ thá»i gian';
+    if (!dateValue) return 'ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ thÃƒÂ¡Ã‚Â»Ã‚Âi gian';
     const diffMs = Date.now() - new Date(dateValue).getTime();
     const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
-    if (diffMinutes < 60) return `${diffMinutes} phÃºt trÆ°á»›c`;
+    if (diffMinutes < 60) return `${diffMinutes} phÃƒÆ’Ã‚Âºt trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc`;
     const diffHours = Math.round(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours} giá» trÆ°á»›c`;
+    if (diffHours < 24) return `${diffHours} giÃƒÂ¡Ã‚Â»Ã‚Â trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc`;
     const diffDays = Math.round(diffHours / 24);
-    return `${diffDays} ngÃ y trÆ°á»›c`;
+    return `${diffDays} ngÃƒÆ’Ã‚Â y trÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºc`;
 }
 
 function getToneClass(tone) {
@@ -3086,18 +3086,18 @@ function getToneClass(tone) {
 
 function getCampaignStatusMeta(status) {
     const normalized = normalizeText(status);
-    if (normalized.includes('hoan thanh')) return { tone: 'success', label: 'HoÃ n thÃ nh' };
-    if (normalized.includes('dang gui') || normalized.includes('dang hang doi') || normalized.includes('dang xu ly')) return { tone: 'warning', label: 'Äang cháº¡y' };
-    if (normalized.includes('loi') || normalized.includes('that bai')) return { tone: 'danger', label: 'CÃ³ lá»—i' };
-    return { tone: 'neutral', label: status || 'Chá» xá»­ lÃ½' };
+    if (normalized.includes('hoan thanh')) return { tone: 'success', label: 'HoÃƒÆ’Ã‚Â n thÃƒÆ’Ã‚Â nh' };
+    if (normalized.includes('dang gui') || normalized.includes('dang hang doi') || normalized.includes('dang xu ly')) return { tone: 'warning', label: 'Ãƒâ€žÃ‚Âang chÃƒÂ¡Ã‚ÂºÃ‚Â¡y' };
+    if (normalized.includes('loi') || normalized.includes('that bai')) return { tone: 'danger', label: 'CÃƒÆ’Ã‚Â³ lÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i' };
+    return { tone: 'neutral', label: status || 'ChÃƒÂ¡Ã‚Â»Ã‚Â xÃƒÂ¡Ã‚Â»Ã‚Â­ lÃƒÆ’Ã‚Â½' };
 }
 
 function getLogStatusMeta(status) {
     const normalized = normalizeText(status);
-    if (normalized.includes('success') || normalized.includes('thanh cong') || normalized === 'sent') return { tone: 'success', label: 'ThÃ nh cÃ´ng' };
-    if (normalized.includes('pending') || normalized.includes('retry') || normalized.includes('queue')) return { tone: 'warning', label: 'Äang chá»' };
-    if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('that bai')) return { tone: 'danger', label: 'Tháº¥t báº¡i' };
-    return { tone: 'neutral', label: status || 'KhÃ´ng rÃµ' };
+    if (normalized.includes('success') || normalized.includes('thanh cong') || normalized === 'sent') return { tone: 'success', label: 'ThÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng' };
+    if (normalized.includes('pending') || normalized.includes('retry') || normalized.includes('queue')) return { tone: 'warning', label: 'Ãƒâ€žÃ‚Âang chÃƒÂ¡Ã‚Â»Ã‚Â' };
+    if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('that bai')) return { tone: 'danger', label: 'ThÃƒÂ¡Ã‚ÂºÃ‚Â¥t bÃƒÂ¡Ã‚ÂºÃ‚Â¡i' };
+    return { tone: 'neutral', label: status || 'KhÃƒÆ’Ã‚Â´ng rÃƒÆ’Ã‚Âµ' };
 }
 
 function renderCampaignCard(campaign, compact = false) {
@@ -3114,26 +3114,26 @@ function renderCampaignCard(campaign, compact = false) {
             <div class="ios-campaign-main" onclick="showPage('campaigns')">
                 <div class="ios-campaign-head">
                     <div>
-                        <h4 class="ios-campaign-title">${campaign.name || 'Chiáº¿n dá»‹ch chÆ°a Ä‘áº·t tÃªn'}</h4>
+                        <h4 class="ios-campaign-title">${campaign.name || 'ChiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch chÃƒâ€ Ã‚Â°a Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â·t tÃƒÆ’Ã‚Âªn'}</h4>
                         <p class="ios-campaign-meta">${formatDate(campaign.created_at)} &bull; ${formatRelativeTime(campaign.created_at)}</p>
                     </div>
                     <span class="ios-status-pill ${getToneClass(statusMeta.tone)}">${statusMeta.label}</span>
                 </div>
                 <div class="ios-campaign-stats">
-                    <div><span>NgÆ°á»i nháº­n</span><strong>${total}</strong></div>
-                    <div><span>ÄÃ£ gá»­i</span><strong>${sent}</strong></div>
-                    <div><span>Lá»—i</span><strong>${failed}</strong></div>
+                    <div><span>NgÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi nhÃƒÂ¡Ã‚ÂºÃ‚Â­n</span><strong>${total}</strong></div>
+                    <div><span>Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ gÃƒÂ¡Ã‚Â»Ã‚Â­i</span><strong>${sent}</strong></div>
+                    <div><span>LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i</span><strong>${failed}</strong></div>
                 </div>
                 <div class="ios-progress-wrap">
                     <div class="ios-progress-bar">
                         <div class="ios-progress-fill ${getToneClass(statusMeta.tone)}" style="width:${successPct}%"></div>
                     </div>
-                    <span class="ios-progress-label">${successPct}% hoÃ n táº¥t</span>
+                    <span class="ios-progress-label">${successPct}% hoÃƒÆ’Ã‚Â n tÃƒÂ¡Ã‚ÂºÃ‚Â¥t</span>
                 </div>
             </div>
             <div class="ios-campaign-actions">
-                ${!isDone && !isRunning ? `<button onclick="event.stopPropagation(); startCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-primary" title="Báº¯t Ä‘áº§u gá»­i"><i class="fas fa-play"></i></button>` : ''}
-                <button onclick="event.stopPropagation(); deleteCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-danger" title="XÃ³a chiáº¿n dá»‹ch"><i class="fas fa-trash-alt"></i></button>
+                ${!isDone && !isRunning ? `<button onclick="event.stopPropagation(); startCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-primary" title="BÃƒÂ¡Ã‚ÂºÃ‚Â¯t Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§u gÃƒÂ¡Ã‚Â»Ã‚Â­i"><i class="fas fa-play"></i></button>` : ''}
+                <button onclick="event.stopPropagation(); deleteCampaign('${campaign.id}')" class="ios-icon-btn ios-icon-btn-danger" title="XÃƒÆ’Ã‚Â³a chiÃƒÂ¡Ã‚ÂºÃ‚Â¿n dÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ch"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>
     `;
@@ -3284,9 +3284,9 @@ function refreshSettingsStaticText() {
     
     // Ensure tab buttons maintain their labels if they were somehow cleared
     const tabButtons = [
-        ['tab-settings-account', 'TÃ i khoáº£n'],
-        ['tab-settings-interface', 'Giao diá»‡n'],
-        ['tab-settings-system', 'Há»‡ thá»‘ng']
+        ['tab-settings-account', 'TÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n'],
+        ['tab-settings-interface', 'Giao diÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n'],
+        ['tab-settings-system', 'HÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng']
     ];
     tabButtons.forEach(([id, label]) => {
         const btn = document.getElementById(id);
@@ -3354,7 +3354,7 @@ async function loadSettingsPage() {
     if (lastLogin) lastLogin.innerText = new Date(currentUser.last_sign_in_at).toLocaleString('vi-VN');
     
     if (roleBadge) {
-        roleBadge.innerText = `Vai trÃ²: ${currentUser.role === 'admin' ? 'Quáº£n trá»‹ viÃªn' : 'NhÃ¢n viÃªn'}`;
+        roleBadge.innerText = `Vai trÃƒÆ’Ã‚Â²: ${currentUser.role === 'admin' ? 'QuÃƒÂ¡Ã‚ÂºÃ‚Â£n trÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ viÃƒÆ’Ã‚Âªn' : 'NhÃƒÆ’Ã‚Â¢n viÃƒÆ’Ã‚Âªn'}`;
         roleBadge.className = `settings-role-badge ${
             currentUser.role === 'admin' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
         }`;
@@ -3390,7 +3390,7 @@ async function loadSettingsPage() {
     }
 }
 
-// --- NEW PRICING MANAGEMENT LOGIC (Pháº§n 1, 6, 7, 8) ---
+// --- NEW PRICING MANAGEMENT LOGIC (PhÃƒÂ¡Ã‚ÂºÃ‚Â§n 1, 6, 7, 8) ---
 function renderPricingTable() {
     const tbody = document.getElementById('pricing-table-body');
     const filter = document.getElementById('pricing-service-filter').value;
@@ -3410,11 +3410,11 @@ function renderPricingTable() {
             </td>
             <td class="px-8 py-4 text-center">
                 <span class="px-3 py-1 rounded-lg bg-blue-500/10 text-[10px] font-black text-blue-400 uppercase tracking-tighter">
-                    ${item.customer_group || 'CÃ´ng ty'}
+                    ${item.customer_group || 'CÃƒÆ’Ã‚Â´ng ty'}
                 </span>
             </td>
             <td class="px-8 py-4 text-center">
-                <span class="px-3 py-1 rounded-lg bg-white/5 text-xs font-bold text-gray-300">${item.duration_months} thÃ¡ng</span>
+                <span class="px-3 py-1 rounded-lg bg-white/5 text-xs font-bold text-gray-300">${item.duration_months} thÃƒÆ’Ã‚Â¡ng</span>
             </td>
             <td class="px-8 py-4 text-right">
                 <input type="text" value="${new Intl.NumberFormat('vi-VN').format(item.price)}" 
@@ -3440,12 +3440,12 @@ function updatePricingPrice(index, val) {
     const raw = val.replace(/\D/g, '');
     const price = parseInt(raw);
     if (isNaN(price) || price <= 0) {
-        showToast('GiÃ¡ pháº£i lÃ  sá»‘ dÆ°Æ¡ng!', 'error');
+        showToast('GiÃƒÆ’Ã‚Â¡ phÃƒÂ¡Ã‚ÂºÃ‚Â£i lÃƒÆ’Ã‚Â  sÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœ dÃƒâ€ Ã‚Â°Ãƒâ€ Ã‚Â¡ng!', 'error');
         renderPricingTable();
         return;
     }
     CRM_PRICE_LIST[index].price = price;
-    showToast(`ÄÃ£ cáº­p nháº­t giÃ¡: ${new Intl.NumberFormat('vi-VN').format(price)}Ä‘`, 'success');
+    showToast(`Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ cÃƒÂ¡Ã‚ÂºÃ‚Â­p nhÃƒÂ¡Ã‚ÂºÃ‚Â­t giÃƒÆ’Ã‚Â¡: ${new Intl.NumberFormat('vi-VN').format(price)}Ãƒâ€žÃ¢â‚¬Ëœ`, 'success');
 }
 
 function togglePricingStatus(index) {
@@ -3456,13 +3456,13 @@ function togglePricingStatus(index) {
 function setPricingGroup(group) {
     document.getElementById('add-pricing-group').value = group;
     // UI Update
-    document.getElementById('btn-group-company').classList.toggle('active', group === 'CÃ´ng ty');
-    document.getElementById('btn-group-individual').classList.toggle('active', group === 'CÃ¡ nhÃ¢n/HKD');
+    document.getElementById('btn-group-company').classList.toggle('active', group === 'CÃƒÆ’Ã‚Â´ng ty');
+    document.getElementById('btn-group-individual').classList.toggle('active', group === 'CÃƒÆ’Ã‚Â¡ nhÃƒÆ’Ã‚Â¢n/HKD');
 }
 
 function openAddPricingModal() {
     document.getElementById('modal-add-pricing').classList.remove('hidden');
-    setPricingGroup('CÃ´ng ty'); // Default
+    setPricingGroup('CÃƒÆ’Ã‚Â´ng ty'); // Default
 }
 
 function closeAddPricingModal() {
@@ -3478,14 +3478,14 @@ async function handleAddPricingSubmit() {
     const desc = document.getElementById('add-pricing-desc').value;
 
     if (!pkg || isNaN(price) || price <= 0) {
-        showToast('Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin há»£p lá»‡!', 'error');
+        showToast('Vui lÃƒÆ’Ã‚Â²ng nhÃƒÂ¡Ã‚ÂºÃ‚Â­p Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚ÂºÃ‚Â§y Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã‚Â§ thÃƒÆ’Ã‚Â´ng tin hÃƒÂ¡Ã‚Â»Ã‚Â£p lÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡!', 'error');
         return;
     }
 
     // Safety: No duplicate for same service/package/duration/group
     const duplicate = CRM_PRICE_LIST.find(p => p.service_name === service && p.package_name === pkg && p.duration_months === duration && p.customer_group === group);
     if (duplicate) {
-        showToast('GÃ³i nÃ y Ä‘Ã£ tá»“n táº¡i!', 'warning');
+        showToast('GÃƒÆ’Ã‚Â³i nÃƒÆ’Ã‚Â y Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ tÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“n tÃƒÂ¡Ã‚ÂºÃ‚Â¡i!', 'warning');
         return;
     }
 
@@ -3501,13 +3501,13 @@ async function handleAddPricingSubmit() {
     };
 
     CRM_PRICE_LIST.push(newItem);
-    showToast('ÄÃ£ thÃªm gÃ³i má»›i. Nháº¥n "LÆ°u thay Ä‘á»•i" Ä‘á»ƒ Ä‘á»“ng bá»™ database!', 'success');
+    showToast('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ thÃƒÆ’Ã‚Âªm gÃƒÆ’Ã‚Â³i mÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi. NhÃƒÂ¡Ã‚ÂºÃ‚Â¥n "LÃƒâ€ Ã‚Â°u thay Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i" Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã†â€™ Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“ng bÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ database!', 'success');
     closeAddPricingModal();
     renderPricingTable();
 }
 
 async function deletePricingItem(idOrIndex) {
-    if (!confirm('Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a gÃ³i nÃ y?')) return;
+    if (!confirm('BÃƒÂ¡Ã‚ÂºÃ‚Â¡n cÃƒÆ’Ã‚Â³ chÃƒÂ¡Ã‚ÂºÃ‚Â¯c muÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœn xÃƒÆ’Ã‚Â³a gÃƒÆ’Ã‚Â³i nÃƒÆ’Ã‚Â y?')) return;
     
     if (typeof idOrIndex === 'string' && idOrIndex.length > 5) {
         try {
@@ -3515,7 +3515,7 @@ async function deletePricingItem(idOrIndex) {
             if (!res.ok) throw new Error('Delete failed');
             CRM_PRICE_LIST = CRM_PRICE_LIST.filter(p => p.id !== idOrIndex);
         } catch (e) {
-            showToast('Lá»—i khi xÃ³a: ' + e.message, 'error');
+            showToast('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi xÃƒÆ’Ã‚Â³a: ' + e.message, 'error');
             return;
         }
     } else {
@@ -3523,12 +3523,12 @@ async function deletePricingItem(idOrIndex) {
     }
     
     renderPricingTable();
-    showToast('ÄÃ£ xÃ³a gÃ³i thÃ nh cÃ´ng', 'success');
+    showToast('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ xÃƒÆ’Ã‚Â³a gÃƒÆ’Ã‚Â³i thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng', 'success');
 }
 
 async function saveAllPricing() {
     if (currentUser.role !== 'admin') {
-        showToast('Chá»‰ Admin má»›i cÃ³ quyá»n cáº­p nháº­t báº£ng giÃ¡!', 'error');
+        showToast('ChÃƒÂ¡Ã‚Â»Ã¢â‚¬Â° Admin mÃƒÂ¡Ã‚Â»Ã¢â‚¬Âºi cÃƒÆ’Ã‚Â³ quyÃƒÂ¡Ã‚Â»Ã‚Ân cÃƒÂ¡Ã‚ÂºÃ‚Â­p nhÃƒÂ¡Ã‚ÂºÃ‚Â­t bÃƒÂ¡Ã‚ÂºÃ‚Â£ng giÃƒÆ’Ã‚Â¡!', 'error');
         return;
     }
 
@@ -3547,15 +3547,15 @@ async function saveAllPricing() {
         localStorage.setItem('crm_pricing_data', JSON.stringify(CRM_PRICE_LIST));
         localStorage.setItem('crm_pricing_time', Date.now().toString());
 
-        showToast('ÄÃ£ Ä‘á»“ng bá»™ toÃ n bá»™ báº£ng giÃ¡ há»‡ thá»‘ng!', 'success');
+        showToast('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“ng bÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ toÃƒÆ’Ã‚Â n bÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢ bÃƒÂ¡Ã‚ÂºÃ‚Â£ng giÃƒÆ’Ã‚Â¡ hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng!', 'success');
         updateCRMPackages();
     } catch (err) {
-        showToast('Lá»—i khi lÆ°u: ' + err.message, 'error');
+        showToast('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi lÃƒâ€ Ã‚Â°u: ' + err.message, 'error');
     }
 }
 
 async function resetPricingToDefault() {
-    if (!confirm('Báº¡n muá»‘n reset báº£ng giÃ¡ vá» máº·c Ä‘á»‹nh (XÃ³a sáº¡ch DB vÃ  dÃ¹ng fallback)?')) return;
+    if (!confirm('BÃƒÂ¡Ã‚ÂºÃ‚Â¡n muÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœn reset bÃƒÂ¡Ã‚ÂºÃ‚Â£ng giÃƒÆ’Ã‚Â¡ vÃƒÂ¡Ã‚Â»Ã‚Â mÃƒÂ¡Ã‚ÂºÃ‚Â·c Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹nh (XÃƒÆ’Ã‚Â³a sÃƒÂ¡Ã‚ÂºÃ‚Â¡ch DB vÃƒÆ’Ã‚Â  dÃƒÆ’Ã‚Â¹ng fallback)?')) return;
     localStorage.removeItem('crm_pricing_data');
     localStorage.removeItem('crm_pricing_time');
     location.reload();
@@ -3610,14 +3610,14 @@ async function saveSystemSettings() {
             body: JSON.stringify({ default_storage_path: path })
         });
         if (res.ok) {
-            alert('ÄÃ£ lÆ°u cáº¥u hÃ¬nh há»‡ thá»‘ng thÃ nh cÃ´ng!');
+            alert('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ lÃƒâ€ Ã‚Â°u cÃƒÂ¡Ã‚ÂºÃ‚Â¥u hÃƒÆ’Ã‚Â¬nh hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             // Update local state
             if (currentUser.settings) currentUser.settings.default_storage_path = path;
         } else {
-            alert('Lá»—i khi lÆ°u cáº¥u hÃ¬nh.');
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi lÃƒâ€ Ã‚Â°u cÃƒÂ¡Ã‚ÂºÃ‚Â¥u hÃƒÆ’Ã‚Â¬nh.');
         }
     } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i: ' + e.message);
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi: ' + e.message);
     }
 }
 
@@ -3625,11 +3625,11 @@ async function refreshUserList() {
     const list = document.getElementById('admin-user-list');
     if (!list) return;
     
-    list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-500">Äang táº£i danh sÃ¡ch...</td></tr>';
+    list.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-gray-500">Ãƒâ€žÃ‚Âang tÃƒÂ¡Ã‚ÂºÃ‚Â£i danh sÃƒÆ’Ã‚Â¡ch...</td></tr>';
     
     try {
         const res = await authedFetch('/api/admin/users');
-        if (!res.ok) throw new Error('KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ngÆ°á»i dÃ¹ng');
+        if (!res.ok) throw new Error('KhÃƒÆ’Ã‚Â´ng thÃƒÂ¡Ã‚Â»Ã†â€™ tÃƒÂ¡Ã‚ÂºÃ‚Â£i danh sÃƒÆ’Ã‚Â¡ch ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng');
         
         const users = await res.json();
         list.innerHTML = '';
@@ -3661,13 +3661,13 @@ async function refreshUserList() {
                     <p class="text-xs font-medium text-gray-400">${new Date(u.created_at).toLocaleDateString('vi-VN')}</p>
                 </td>
                 <td class="px-6 py-1.5 text-right">
-                    ${isMe ? '<span class="text-[9px] text-gray-600 font-black italic">Äang sá»­ dá»¥ng</span>' : `
+                    ${isMe ? '<span class="text-[9px] text-gray-600 font-black italic">Ãƒâ€žÃ‚Âang sÃƒÂ¡Ã‚Â»Ã‚Â­ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng</span>' : `
                         <div class="flex justify-end gap-2">
                             <button onclick="changeUserRole('${u.id}', '${u.role === 'admin' ? 'staff' : 'admin'}')" class="text-[9px] font-black uppercase text-blue-400 hover:text-white border border-blue-400/30 hover:bg-blue-400 px-3 py-1.5 rounded-lg transition-all">
-                                Äá»•i thÃ nh ${u.role === 'admin' ? 'Staff' : 'Admin'}
+                                Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i thÃƒÆ’Ã‚Â nh ${u.role === 'admin' ? 'Staff' : 'Admin'}
                             </button>
                             <button onclick="deleteUser('${u.id}')" class="text-[9px] font-black uppercase text-red-500 hover:text-white border border-red-500/30 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all">
-                                XÃ³a
+                                XÃƒÆ’Ã‚Â³a
                             </button>
                         </div>
                     `}
@@ -3681,7 +3681,7 @@ async function refreshUserList() {
 }
 
 async function changeUserRole(id, newRole) {
-    if (!confirm(`XÃ¡c nháº­n thay Ä‘á»•i vai trÃ² ngÆ°á»i dÃ¹ng thÃ nh ${newRole.toUpperCase()}?`)) return;
+    if (!confirm(`XÃƒÆ’Ã‚Â¡c nhÃƒÂ¡Ã‚ÂºÃ‚Â­n thay Ãƒâ€žÃ¢â‚¬ËœÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i vai trÃƒÆ’Ã‚Â² ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng thÃƒÆ’Ã‚Â nh ${newRole.toUpperCase()}?`)) return;
     
     try {
         const res = await authedFetch(`/api/admin/users/${id}`, {
@@ -3691,19 +3691,19 @@ async function changeUserRole(id, newRole) {
         });
         
         if (res.ok) {
-            alert('Cáº­p nháº­t vai trÃ² thÃ nh cÃ´ng!');
+            alert('CÃƒÂ¡Ã‚ÂºÃ‚Â­p nhÃƒÂ¡Ã‚ÂºÃ‚Â­t vai trÃƒÆ’Ã‚Â² thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             refreshUserList();
         } else {
             const err = await res.json();
-            alert('Lá»—i: ' + err.error);
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + err.error);
         }
     } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i: ' + e.message);
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi: ' + e.message);
     }
 }
 
 async function deleteUser(id) {
-    if (!confirm('XÃ¡c nháº­n xÃ³a tÃ i khoáº£n ngÆ°á»i dÃ¹ng nÃ y?')) return;
+    if (!confirm('XÃƒÆ’Ã‚Â¡c nhÃƒÂ¡Ã‚ÂºÃ‚Â­n xÃƒÆ’Ã‚Â³a tÃƒÆ’Ã‚Â i khoÃƒÂ¡Ã‚ÂºÃ‚Â£n ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng nÃƒÆ’Ã‚Â y?')) return;
     
     try {
         const res = await authedFetch(`/api/admin/users/${id}`, {
@@ -3711,13 +3711,13 @@ async function deleteUser(id) {
         });
         
         if (res.ok) {
-            alert('ÄÃ£ xÃ³a quyá»n truy cáº­p ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng!');
+            alert('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ xÃƒÆ’Ã‚Â³a quyÃƒÂ¡Ã‚Â»Ã‚Ân truy cÃƒÂ¡Ã‚ÂºÃ‚Â­p ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng thÃƒÆ’Ã‚Â nh cÃƒÆ’Ã‚Â´ng!');
             refreshUserList();
         } else {
-            alert('Lá»—i khi xÃ³a.');
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i khi xÃƒÆ’Ã‚Â³a.');
         }
     } catch (e) {
-        alert('Lá»—i káº¿t ná»‘i: ' + e.message);
+        alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i kÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi: ' + e.message);
     }
 }
 
@@ -3763,7 +3763,7 @@ function renderDocuments() {
                     <button onclick="deleteDoc('marketing-docs', '${f.name}')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
                 </div>
             </div>
-        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">ChÆ°a cÃ³ tÃ i liá»‡u nÃ o.</p>';
+        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ tÃƒÆ’Ã‚Â i liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u nÃƒÆ’Ã‚Â o.</p>';
     }
 
     if (templateList) {
@@ -3784,7 +3784,7 @@ function renderDocuments() {
                     <button onclick="deleteDoc('quotation-templates', '${f.name}')" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
                 </div>
             </div>
-        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">ChÆ°a cÃ³ máº«u bÃ¡o giÃ¡ nÃ o.</p>';
+        `).join('') || '<p class="text-center py-10 text-gray-600 text-xs italic">ChÃƒâ€ Ã‚Â°a cÃƒÆ’Ã‚Â³ mÃƒÂ¡Ã‚ÂºÃ‚Â«u bÃƒÆ’Ã‚Â¡o giÃƒÆ’Ã‚Â¡ nÃƒÆ’Ã‚Â o.</p>';
     }
 }
 
@@ -3799,7 +3799,7 @@ function getFileIcon(name) {
 
 function openUploadDocModal() {
     document.getElementById('modal-upload-doc').classList.remove('hidden');
-    document.getElementById('doc-file-name').innerText = 'Chá»n file hoáº·c kÃ©o tháº£ vÃ o Ä‘Ã¢y';
+    document.getElementById('doc-file-name').innerText = 'ChÃƒÂ¡Ã‚Â»Ã‚Ân file hoÃƒÂ¡Ã‚ÂºÃ‚Â·c kÃƒÆ’Ã‚Â©o thÃƒÂ¡Ã‚ÂºÃ‚Â£ vÃƒÆ’Ã‚Â o Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â¢y';
     selectedUploadFile = null;
     
     // Setup Drag and Drop
@@ -3850,7 +3850,7 @@ function handleDocFileChange(e) {
 
 async function uploadDocument() {
     if (!selectedUploadFile) {
-        alert('Vui lÃ²ng chá»n file');
+        alert('Vui lÃƒÆ’Ã‚Â²ng chÃƒÂ¡Ã‚Â»Ã‚Ân file');
         return;
     }
     const bucket = document.getElementById('upload-doc-bucket').value;
@@ -3859,7 +3859,7 @@ async function uploadDocument() {
     formData.append('bucket', bucket);
 
     const btn = document.getElementById('upload-doc-btn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ÄANG Táº¢I LÃŠN...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Ãƒâ€žÃ‚ÂANG TÃƒÂ¡Ã‚ÂºÃ‚Â¢I LÃƒÆ’Ã…Â N...';
     btn.disabled = true;
 
     try {
@@ -3875,18 +3875,18 @@ async function uploadDocument() {
             loadDocuments();
         } else {
             const err = await res.json();
-            alert('Lá»—i: ' + (err.error || 'Upload tháº¥t báº¡i'));
+            alert('LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i: ' + (err.error || 'Upload thÃƒÂ¡Ã‚ÂºÃ‚Â¥t bÃƒÂ¡Ã‚ÂºÃ‚Â¡i'));
         }
     } catch (e) {
         console.error('Upload Error:', e);
     } finally {
-        btn.innerHTML = 'Báº®T Äáº¦U Táº¢I LÃŠN';
+        btn.innerHTML = 'BÃƒÂ¡Ã‚ÂºÃ‚Â®T Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚ÂºÃ‚Â¦U TÃƒÂ¡Ã‚ÂºÃ‚Â¢I LÃƒÆ’Ã…Â N';
         btn.disabled = false;
     }
 }
 
 async function deleteDoc(bucket, name) {
-    if (!confirm(`XÃ³a file "${name}"?`)) return;
+    if (!confirm(`XÃƒÆ’Ã‚Â³a file "${name}"?`)) return;
     try {
         const res = await authedFetch(`/api/storage/files?bucket=${bucket}&name=${name}`, { method: 'DELETE' });
         if (res.ok) loadDocuments();
