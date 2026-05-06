@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation CA2 - Giải pháp automation gửi email hàng loạt</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="css/premium-ui.css?v=3.2.4">
@@ -50,7 +50,7 @@
         }
 
         body { 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            font-family: 'Inter', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif; 
             background-color: var(--bg-color);
             color: var(--text-main);
             font-size: 14px;
@@ -486,26 +486,26 @@
             </div>
         </div>
         <nav class="flex-1 px-3 space-y-0.5 mt-2 overflow-y-auto pb-4 custom-scrollbar">
-            <div class="nav-section-label">Hệ thống</div>
+            <div class="nav-section-label">H&#x1EC7; th&#x1ED1;ng</div>
             <a href="javascript:void(0)" onclick="showPage('ca2-crm'); return false;" id="nav-ca2-crm" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
                 <span class="mr-3 text-lg group-hover:scale-110 transition-transform">👥</span> <span class="font-bold">CA2 CRM</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('dashboard'); return false;" id="nav-dashboard" class="sidebar-item-active flex items-center px-4 py-3 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">📊</span> <span class="font-semibold">Bảng điều khiển</span>
+                <span class="mr-3 text-lg">📊</span> <span class="font-semibold">B&#7843;ng &#273;i&#7873;u khi&#7875;n</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('campaigns'); return false;" id="nav-campaigns" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">📧</span> <span class="font-semibold">Chiến dịch email</span>
+                <span class="mr-3 text-lg">📧</span> <span class="font-semibold">Chi&#7871;n d&#7883;ch email</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('senders'); return false;" id="nav-senders" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">🔑</span> <span class="font-semibold">Tài khoản Gmail</span>
+                <span class="mr-3 text-lg">🔑</span> <span class="font-semibold">T&#224;i kho&#7843;n Gmail</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">📈</span> <span class="font-semibold">Báo cáo</span>
+                <span class="mr-3 text-lg">📈</span> <span class="font-semibold">B&#225;o c&#225;o</span>
             </a>
 
-            <div class="nav-section-label">Hợp đồng & Tài liệu</div>
+            <div class="nav-section-label">H&#x1EE3;p &#x111;&#x1ED3;ng & T&#224;i li&#x1EC7;u</div>
                 <a href="javascript:void(0)" onclick="showPage('quotations'); return false;" id="nav-quotations" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">📄</span> <span class="font-semibold text-sm">Quản lý Báo giá</span>
+                    <span class="mr-3 text-lg">📄</span> <span class="font-semibold text-sm">Qu&#7843;n l&#253; B&#225;o gi&#225;</span>
                 </a>
                 <a href="javascript:void(0)" onclick="showPage('documents'); return false;" id="nav-documents" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                     <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">Kho Tài liệu Sales</span>
@@ -513,7 +513,7 @@
 
             <div class="nav-section-label">SEO Tools AI</div>
                 <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">📰</span> <span class="font-semibold text-sm">Tin Tức Thuế</span>
+                    <span class="mr-3 text-lg">📰</span> <span class="font-semibold text-sm">Tin T&#7913;c Thu&#7871;</span>
                 </a>
                 <a href="javascript:void(0)" onclick="showPage('seo-article'); return false;" id="nav-seo-article" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                     <span class="mr-3 text-lg">✍️</span> <span class="font-semibold text-sm">Tạo Bài Viết SEO</span>
@@ -525,9 +525,9 @@
                     <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">My Posts</span>
                 </a>
 
-            <div class="nav-section-label">Cài đặt</div>
+            <div class="nav-section-label">C&#224;i &#x111;&#x1EB7;t</div>
                 <a href="javascript:void(0)" onclick="showPage('settings'); return false;" id="nav-settings" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold text-sm">Cài đặt hệ thống</span>
+                    <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold text-sm">C&#224;i &#x111;&#x1EB7;t hệ thống</span>
                 </a>
             <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
                 <a href="ca2-automation://open" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
@@ -569,11 +569,11 @@
                 <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white transition-all">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h2 id="page-title" class="text-2xl font-bold text-white tracking-tight">Bảng điều khiển</h2>
+                <h2 id="page-title" class="text-2xl font-bold text-white tracking-tight">B&#7843;ng &#273;i&#7873;u khi&#7875;n</h2>
             </div>
             <div class="flex items-center gap-4">
                 <!-- Background Mail Indicator -->
-                <div id="bg-mail-indicator" style="display: none;" class="px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-black uppercase tracking-widest items-center gap-4 animate-pulse mr-2 shadow-lg shadow-orange-900/20" title="Hệ thống đang gửi mail ngầm">
+                <div id="bg-mail-indicator" style="display: none;" class="px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-black uppercase tracking-widest items-center gap-4 animate-pulse mr-2 shadow-lg shadow-orange-900/20" title="H&#x1EC7; th&#x1ED1;ng đang gửi mail ngầm">
                     <i class="fas fa-paper-plane fa-bounce"></i> Đang gửi mail ngầm
                 </div>
                 
@@ -674,7 +674,7 @@
             <div id="view-quotations" class="hidden main-container">
                 <div class="page-header">
                     <div>
-                        <h2 class="page-title">Quản lý Báo giá</h2>
+                        <h2 class="page-title">Qu&#7843;n l&#253; B&#225;o gi&#225;</h2>
                         <p class="page-subtitle">Theo dõi, xuất file và quản lý báo giá chuyên nghiệp</p>
                     </div>
                     <div class="flex gap-4">
@@ -872,10 +872,10 @@
                                 </select>
                             </div>
                             
-                            <!-- Báo cáo tháng Button -->
+                            <!-- B&#225;o c&#225;o tháng Button -->
                             <button onclick="exportMonthlyReport()" class="group relative px-6 py-2.5 bg-emerald-500/10 text-emerald-400 font-bold text-[0.85rem] rounded-[999px] border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all shadow-[0_4px_15px_rgba(16,185,129,0.1)] hover:shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] active:scale-[0.97] flex items-center gap-4 overflow-hidden h-[42px] backdrop-blur-md">
                                 <div class="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-white/20 to-emerald-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                                <i class="fas fa-chart-bar"></i> Báo cáo tháng
+                                <i class="fas fa-chart-bar"></i> B&#225;o c&#225;o tháng
                             </button>
                         </div>
 
@@ -1382,7 +1382,7 @@
                     </button>
                     <button onclick="switchSettingsTab('system')" id="tab-settings-system" class="tab-ios" role="tab" aria-selected="false">
                         <i class="fas fa-server"></i>
-                        <span>Hệ thống</span>
+                        <span>H&#x1EC7; th&#x1ED1;ng</span>
                     </button>
                 </div>
 
@@ -1487,7 +1487,7 @@
                                 <p class="settings-eyebrow">Trải nghiệm iOS</p>
                                 <h4 class="text-xl font-black text-white tracking-tight">Cấu hình linh hoạt</h4>
                                 <p class="text-sm text-slate-400 leading-relaxed">
-                                    Hệ thống tự động lưu lựa chọn giao diện của bạn vào LocalStorage để duy trì trạng thái khi tải lại trang.
+                                    H&#x1EC7; th&#x1ED1;ng tự động lưu lựa chọn giao diện của bạn vào LocalStorage để duy trì trạng thái khi tải lại trang.
                                 </p>
                             </div>
                         </div>
@@ -1498,7 +1498,7 @@
                             <div class="ios-glass-card">
                                 <div class="settings-card-heading mb-6">
                                     <div>
-                                        <p class="settings-eyebrow">Hệ thống cục bộ</p>
+                                        <p class="settings-eyebrow">H&#x1EC7; th&#x1ED1;ng cục bộ</p>
                                         <h4 class="text-xl font-black text-white tracking-tight">Cấu hình lưu trữ</h4>
                                     </div>
                                     <div class="settings-mini-icon bg-emerald-500/15 text-emerald-300">
@@ -1967,7 +1967,7 @@
                                 <button onclick="insertVariable('#NgàyHếtHạn')" class="text-[9px] font-extrabold uppercase tracking-widest px-2 py-1 bg-orange-500/10 text-orange-500 rounded-md hover:text-white hover:bg-orange-500/30 transition-all border border-orange-500/20">#NgàyHếtHạn</button>
                                 <div class="w-full mt-2 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
                                     <span class="text-[10px] text-blue-400 font-bold leading-relaxed block">
-                                        💡 <b>Lưu ý:</b> Đặt con trỏ vào vị trí muốn chèn trong soạn thảo, sau đó bấm vào các nút <span class="text-orange-400">#TAG</span> phía trên. Hệ thống sẽ tự động thay thế bằng dữ liệu thực tế khi gửi mail.
+                                        💡 <b>Lưu ý:</b> Đặt con trỏ vào vị trí muốn chèn trong soạn thảo, sau đó bấm vào các nút <span class="text-orange-400">#TAG</span> phía trên. H&#x1EC7; th&#x1ED1;ng sẽ tự động thay thế bằng dữ liệu thực tế khi gửi mail.
                                     </span>
                                 </div>
                             </div>
