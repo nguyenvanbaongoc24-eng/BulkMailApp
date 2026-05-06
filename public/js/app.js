@@ -1483,6 +1483,19 @@ function updateCRMBonusMonths() {
 
 function openAddCRMModal() {
     console.log('[DEBUG] openAddCRMModal started');
+    
+    const modal = document.getElementById('modal-ca2-crm');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        modal.style.pointerEvents = 'auto';
+        modal.style.zIndex = '9999';
+        console.log('[DEBUG] Modal unhidden immediately');
+    } else {
+        console.error('[DEBUG] CRITICAL: Modal modal-ca2-crm not found');
+        return;
+    }
+
     try {
         const setVal = (id, val) => {
             const el = document.getElementById(id);
@@ -1526,25 +1539,14 @@ function openAddCRMModal() {
         console.log('[DEBUG] Calling updateCRMPackages');
         updateCRMPackages();
         
-        const modal = document.getElementById('modal-ca2-crm');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.style.display = 'flex'; // Force flex display
-            modal.style.pointerEvents = 'auto';
-            modal.style.zIndex = '9999';
-            console.log('[DEBUG] Modal unhidden');
-        } else {
-            console.error('[DEBUG] CRITICAL: Modal modal-ca2-crm not found');
-        }
-
         // Refresh custom selects to sync UI
         if (typeof refreshCustomSelects === 'function') {
             refreshCustomSelects();
         }
 
-        repairElementText(document.getElementById('modal-ca2-crm'));
+        repairElementText(modal);
     } catch (err) {
-        console.error('[DEBUG] Error in openAddCRMModal:', err);
+        console.error('[DEBUG] Error populating openAddCRMModal:', err);
     }
 }
 
