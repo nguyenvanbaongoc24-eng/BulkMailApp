@@ -3155,6 +3155,7 @@ function mapCRMServiceToPricing(val) {
     if (normalized.includes('hoa don dien tu')) return { group: 'eINVOICE', transaction: transaction === 'all' ? 'cap moi' : transaction };
     if (normalized.includes('bao hiem') || normalized.includes('ebh')) return { group: 'EBH', transaction: transaction === 'all' ? 'cap moi' : transaction };
     if (normalized.includes('sign platform')) return { group: 'SP', transaction: 'all' };
+    if (normalized.includes('ivm') || normalized.includes('dau vao')) return { group: 'IVM', transaction: 'all' };
     return { group: val, transaction: 'all' };
 }
 
@@ -3176,17 +3177,69 @@ async function loadCRMPrices() {
             transaction_type: item.transaction_type || ''
         }));
 
-        // Standardize service names for EBH/BHXH and CKS
+        // Standardize service names
         CRM_PRICE_LIST.forEach(p => {
             if (p.service_name === 'B\u1ea3o hi\u1ec3m x\u00e3 h\u1ed9i') p.service_name = 'EBH';
             if (p.service_name === 'H\u00f3a \u0111\u01a1n \u0111i\u1ec7n t\u1eed') p.service_name = 'eINVOICE';
             if (p.service_name === 'Ch\u1eef k\u00fd s\u1ed1' || p.service_name === 'Ch\u1eef k\u00fd s\u1ed1 CA2') p.service_name = 'CKS';
+            if (p.service_name === 'Qu\u1ea3n l\u00fd H\u0110 \u0111\u1ea7u v\u00e0o' || p.service_name === 'IVM') p.service_name = 'IVM';
         });
 
+        populateCRMServiceDropdown();
         refreshPricingUI();
     } catch (err) {
         console.error('[CRM] Error loading prices:', err);
     }
+}
+
+function populateCRMServiceDropdown() {
+    const select = document.getElementById('ca2-crm-service');
+    if (!select) return;
+
+    // Get unique service groups from price list
+    const groups = [...new Set(CRM_PRICE_LIST.map(p => p.service_name))];
+    
+    // Mapping for display names
+    const displayMap = {
+        'CKS': 'Ch\u1eef k\u00fd s\u1ed1 CA2',
+        'RS': 'CA2 Remote Signing',
+        'SP': 'CA2 Sign Platform',
+        'eINVOICE': 'H\u00f3a \u0111\u01a1n \u0111i\u1ec7n t\u1eed',
+        'IVM': 'Qu\u1ea3n l\u00fd H\u0110 \u0111\u1ea7u v\u00e0o (IVM)',
+        'EBH': 'Ph\u1ea7n m\u1ec1m b\u1ea3o hi\u1ec3m EBH'
+    };
+
+    const currentVal = select.value;
+    select.innerHTML = '';
+
+    groups.forEach(group => {
+        const displayName = displayMap[group] || group;
+        
+        // For CKS and eINVOICE, we often have sub-types (C?p m?i / Gia h?n)
+        if (group === 'CKS') {
+            ['C\u1ea5p m\u1edbi', 'Gia h\u1ea1n', 'Gia h\u1ea1n d\u00f9ng th\u1eed'].forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = `${displayName} \u2013 ${t}`;
+                opt.textContent = `${displayName} \u2013 ${t}`;
+                select.appendChild(opt);
+            });
+        } else if (group === 'eINVOICE') {
+            ['C\u1ea5p m\u1edbi', 'Gia h\u1ea1n'].forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = `${displayName} \u2013 ${t}`;
+                opt.textContent = `${displayName} \u2013 ${t}`;
+                select.appendChild(opt);
+            });
+        } else {
+            const opt = document.createElement('option');
+            opt.value = displayName;
+            opt.textContent = displayName;
+            select.appendChild(opt);
+        }
+    });
+
+    if (currentVal) select.value = currentVal;
+    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
 }
 
 function updateCRMPackages() {
