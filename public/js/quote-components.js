@@ -68,7 +68,7 @@ class QuoteGenerator {
             <meta charset='utf-8'>
             <title>Báo giá Tự động</title>
             <style>
-                body { font-family: Arial, sans-serif; color: #1e293b; }
+                body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                 th, td { border: 1px solid #cbd5e1; padding: 12px; text-align: center; font-size: 14px; }
                 th { background-color: #2563eb; color: white; font-weight: bold; }

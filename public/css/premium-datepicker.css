@@ -19,8 +19,8 @@
     --pdp-accent-glow: rgba(244, 121, 32, 0.45);
     --pdp-accent-bg: rgba(244, 121, 32, 0.15);
     --pdp-radius: 32px;
-    --pdp-font: 'Inter', -apple-system, sans-serif;
-    --pdp-font-title: 'Montserrat', sans-serif;
+    --pdp-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --pdp-font-title: 'Inter', system-ui, -apple-system, sans-serif;
     --pdp-ease: cubic-bezier(0.16, 1, 0.3, 1);
     --pdp-duration: 0.3s;
 }
