@@ -9,63 +9,73 @@
    0. DESIGN TOKENS
    ========================================================== */
 :root {
+    /* ── Spacing Scale (8px system) ── */
+    --ds-space-2:         8px;
+    --ds-space-3:         12px;
+    --ds-space-4:         16px;
+    --ds-space-5:         20px;
+    --ds-space-6:         24px;
+    --ds-space-8:         32px;
+    --ds-gutter:          24px;
+
     /* ── Surfaces (Deep Dark) ── */
-    --ds-bg:              #0f1117;
-    --ds-bg-gradient:     radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 40%), linear-gradient(180deg, #0f1117 0%, #0b0d13 100%);
-    --ds-surface:         rgba(15, 23, 42, 0.7);
+    --ds-bg:              #020617;
+    --ds-bg-gradient:     radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 40%), linear-gradient(180deg, #020617 0%, #01030a 100%);
+    --ds-surface:         rgba(15, 23, 42, 0.75);
     --ds-surface-solid:   #0f172a;
-    --ds-surface-elevated:rgba(30, 41, 59, 0.6);
-    --ds-surface-hover:   rgba(255,255,255,0.04);
-    --ds-surface-active:  rgba(255,255,255,0.07);
+    --ds-surface-elevated:rgba(30, 41, 59, 0.7);
+    --ds-surface-hover:   rgba(255,255,255,0.06);
+    --ds-surface-active:  rgba(255,255,255,0.08);
 
     /* ── Borders ── */
-    --ds-border:          rgba(255,255,255,0.05);
-    --ds-border-hover:    rgba(255,255,255,0.12);
-    --ds-border-focus:    rgba(59,130,246,0.5);
+    --ds-border:          rgba(255,255,255,0.08);
+    --ds-border-hover:    rgba(255,255,255,0.15);
+    --ds-border-focus:    rgba(59,130,246,0.6);
 
-    /* ── Typography ── */
-    --ds-text:            #f0f4f8;
-    --ds-text-secondary:  #94a3b8;
-    --ds-text-muted:      #64748b;
-    --ds-text-placeholder:#475569;
+    /* ── Typography (iOS-standard) ── */
+    --ds-font-main:       'Inter', 'Be Vietnam Pro', -apple-system, sans-serif;
+    --ds-size-title:      24px;
+    --ds-size-section:    18px;
+    --ds-size-body:       14px;
+    --ds-size-small:      12px;
+    --ds-line-height:     1.6;
+    --ds-text:            #f8fafc;
+    --ds-text-secondary:  #cbd5e1;
+    --ds-text-muted:      #94a3b8;
+    --ds-text-placeholder:#64748b;
 
     /* ── Accents ── */
     --ds-blue:            #3b82f6;
-    --ds-blue-glow:       rgba(59,130,246,0.2);
+    --ds-blue-glow:       rgba(59,130,246,0.25);
     --ds-orange:          #f97316;
-    --ds-orange-glow:     rgba(249,115,22,0.2);
-    --ds-green:           #22c55e;
-    --ds-green-glow:      rgba(34,197,94,0.2);
+    --ds-orange-glow:     rgba(249,115,22,0.25);
+    --ds-green:           #10b981;
+    --ds-green-glow:      rgba(16,185,129,0.25);
     --ds-red:             #ef4444;
-    --ds-red-glow:        rgba(239,68,68,0.2);
+    --ds-red-glow:        rgba(239,68,68,0.25);
     --ds-amber:           #f59e0b;
-    --ds-amber-glow:      rgba(245,158,11,0.2);
+    --ds-amber-glow:      rgba(245,158,11,0.25);
     --ds-purple:          #a855f7;
 
-    /* ── Shadows (Deeper) ── */
-    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.25);
-    --ds-shadow-md:       0 10px 30px rgba(0,0,0,0.4);
-    --ds-shadow-lg:       0 20px 50px rgba(0,0,0,0.5);
-    --ds-shadow-glow-orange: 0 8px 30px -4px rgba(249,115,22,0.35);
-    --ds-shadow-glow-blue:   0 8px 30px -4px rgba(59,130,246,0.3);
+    /* ── Shadows (Premium Depth) ── */
+    --ds-shadow-sm:       0 2px 8px rgba(0,0,0,0.3);
+    --ds-shadow-md:       0 12px 32px rgba(0,0,0,0.45);
+    --ds-shadow-lg:       0 24px 60px rgba(0,0,0,0.55);
+    --ds-shadow-glow-orange: 0 8px 30px -4px rgba(249,115,22,0.4);
+    --ds-shadow-glow-blue:   0 8px 30px -4px rgba(59,130,246,0.35);
 
-    /* ── Radii (Consistent) ── */
+    /* ── Radii ── */
     --ds-radius-sm:       8px;
-    --ds-radius-md:       10px;
+    --ds-radius-md:       12px;
     --ds-radius-lg:       16px;
     --ds-radius-xl:       24px;
-    --ds-radius-pill:     9999px;
-    --ds-radius-card:     16px;
-    --ds-radius-btn:      10px;
-    --ds-radius-input:    10px;
+    --ds-radius-card:     20px;
+    --ds-radius-btn:      12px;
 
-    /* ── Motion (iOS-smooth) ── */
+    /* ── Motion ── */
     --ds-ease:            cubic-bezier(0.4, 0, 0.2, 1);
     --ds-ease-spring:     cubic-bezier(0.22, 1, 0.36, 1);
-    --ds-ease-bounce:     cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ds-duration-fast:   150ms;
     --ds-duration:        250ms;
-    --ds-duration-slow:   350ms;
 }
 
 /* ── Light Mode Design Tokens (Clean, no plastic) ── */
@@ -155,11 +165,20 @@ button, [role="button"], a[onclick],
 
 .content {
     flex: 1;
-    padding: 24px;
+    padding: var(--ds-gutter);
     scroll-behavior: smooth;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    /* Max-width container for better layout on large screens */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.content > div {
+    width: 100%;
+    max-width: 1440px; /* Optimized for readability */
 }
 
 /* Fix overlapping screens */
@@ -266,16 +285,18 @@ button:active, [role="button"]:active {
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     border: 1px solid var(--ds-border) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25) !important;
-    transition: all 0.25s ease !important;
+    border-radius: var(--ds-radius-card) !important;
+    box-shadow: var(--ds-shadow-md) !important;
+    padding: var(--ds-space-6) !important; /* Unified padding 24px */
+    margin-bottom: var(--ds-space-4) !important; /* Margin bottom 16px */
+    transition: all var(--ds-duration) var(--ds-ease) !important;
 }
 
 .bg-glass:hover,
 .bg-glass\/40:hover {
-    transform: scale(1.01);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.005);
+    box-shadow: var(--ds-shadow-lg) !important;
+    border-color: var(--ds-border-hover) !important;
 }
 
 .card-glow {
@@ -1032,12 +1053,14 @@ header::after {
    19. GLASS CARDS (Premium feel)
    ========================================================== */
 .card, .stat-card, .list-item, .glass-card-premium {
-    background: rgba(255,255,255,0.03);
-    backdrop-filter: blur(12px);
-    border-radius: 16px;
-    padding: 20px;
-    border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    background: var(--ds-surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--ds-radius-card);
+    padding: var(--ds-space-6); /* 24px */
+    margin-bottom: var(--ds-space-6); /* 24px */
+    border: 1px solid var(--ds-border);
+    box-shadow: var(--ds-shadow-md);
     transition: background-color var(--ds-duration-slow) var(--ds-ease),
                 border-color var(--ds-duration-slow) var(--ds-ease),
                 transform var(--ds-duration-slow) var(--ds-ease),
@@ -1120,12 +1143,25 @@ header::after {
 /* ==========================================================
    25. TYPOGRAPHY SYSTEM
    ========================================================== */
-/* Title — bold, tight tracking */
-.typo-title {
-    font-size: 22px;
-    font-weight: 700;
+h1, h2, h3, h4, h5, h6 {
+    color: var(--ds-text);
+    font-weight: 800;
     letter-spacing: -0.02em;
-    line-height: 1.3;
+    line-height: 1.2;
+}
+
+body {
+    font-family: var(--ds-font-main);
+    font-size: var(--ds-size-body);
+    line-height: var(--ds-line-height);
+    color: var(--ds-text);
+}
+
+.typo-title {
+    font-size: var(--ds-size-title);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     color: var(--ds-text);
 }
 
@@ -1167,12 +1203,16 @@ header::after {
 /* Primary Button (iOS Style) */
 .btn-primary, .bg-orange-gradient {
     background: linear-gradient(135deg, #ff7a18, #ff9a3c) !important;
-    border-radius: 12px;
-    padding: 10px 16px;
-    font-weight: 600;
+    border-radius: var(--ds-radius-btn);
+    padding: 12px 24px;
+    font-weight: 700;
     color: white;
     transition: all 0.2s ease;
     border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ds-space-3);
 }
 .btn-primary:hover, .bg-orange-gradient:hover {
     transform: translateY(-1px);
@@ -1184,11 +1224,15 @@ header::after {
     background: transparent;
     border: 1px solid var(--ds-border);
     color: var(--ds-text-secondary);
-    padding: 10px 20px;
-    border-radius: var(--ds-radius-md);
+    padding: 12px 24px;
+    border-radius: var(--ds-radius-btn);
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     transition: all var(--ds-duration) var(--ds-ease);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ds-space-3);
 }
 .btn-secondary:hover {
     border-color: var(--ds-border-hover);
@@ -1310,7 +1354,7 @@ header::after {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: var(--ds-space-8); /* 32px */
 }
 .page-title {
     font-size: 24px;
@@ -1406,8 +1450,8 @@ header::after {
 .settings-hero {
     display: flex;
     align-items: center;
-    gap: 22px;
-    padding: 28px;
+    gap: var(--ds-space-6);
+    padding: var(--ds-space-8);
 }
 
 .settings-hero::before,
@@ -2665,11 +2709,11 @@ button:hover, .item:hover {
     display: flex;
     flex-direction: column;
     flex: 0 0 auto;
-    gap: 20px;
+    gap: var(--ds-space-5); /* 20px */
     align-items: stretch !important;
     justify-content: flex-start !important;
     min-height: auto !important;
-    padding: 16px 24px !important;
+    padding: var(--ds-space-4) var(--ds-space-6) !important; /* 16px 24px */
     animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
@@ -2708,13 +2752,13 @@ button:hover, .item:hover {
     align-self: stretch !important;
     display: flex !important;
     width: 100% !important;
-    margin-top: 12px !important; 
-    margin-bottom: 20px !important;
+    margin-top: var(--ds-space-3) !important; 
+    margin-bottom: var(--ds-space-5) !important;
     background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px solid rgba(255, 255, 255, 0.04) !important;
-    border-radius: 16px !important;
-    padding: 6px !important;
-    gap: 4px;
+    border: 1px solid var(--ds-border) !important;
+    border-radius: var(--ds-radius-lg) !important;
+    padding: var(--ds-space-2) !important;
+    gap: var(--ds-space-1, 4px);
 }
 
 .tab-ios {
