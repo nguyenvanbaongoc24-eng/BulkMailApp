@@ -211,7 +211,7 @@ class PricingManager {
         const currentValue = filterSelect.value;
         const groups = [...new Set(this.draftItems.map(item => item.product_group))].filter(Boolean);
         
-        // Hardcoded defaults to ensure they always exist
+        // Hardcoded technical codes
         const defaults = ['CKS', 'RS', 'SP', 'eINVOICE', 'IVM', 'EBH'];
         const allGroups = [...new Set([...defaults, ...groups])];
 
@@ -221,13 +221,13 @@ class PricingManager {
 
         if (needsUpdate) {
             console.log('[PRICING] Syncing filter groups:', allGroups);
-            const scrollPos = filterSelect.scrollTop;
             filterSelect.innerHTML = '<option value="all">Tất cả Nhóm</option>';
             
             allGroups.forEach(g => {
                 const opt = document.createElement('option');
                 opt.value = g;
-                opt.textContent = g;
+                // Use friendly name from PricingEngine if available
+                opt.textContent = window.PricingEngine ? PricingEngine.getFriendlyGroupName(g) : g;
                 filterSelect.appendChild(opt);
             });
             
