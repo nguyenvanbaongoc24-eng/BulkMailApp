@@ -2977,7 +2977,7 @@ function renderCA2CRM() {
         const statusLabel = isExpired ? '\u0110\u00e3 h\u1ebft h\u1ea1n' : `C\u00f2n ${daysLeft} ng\u00e0y`;
 
         return `
-            <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" data-crm-id="${c.id}" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto;">
+            <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" onclick="editCRM('${c.id}')" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto;">
                 ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 rounded-2xl" style="pointer-events: none;"></div>' : ''}
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all rounded-2xl" style="pointer-events: none;"></div>
                 <div class="flex-1 relative" style="z-index: 2;">
@@ -2985,11 +2985,11 @@ function renderCA2CRM() {
                     <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
                         <span class="text-white/20">&bull;</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'D\u1ecbch v\u1ee5'}</span>
+                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
                     </div>
                 </div>
                 <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2;">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">NgÃ y háº¿t háº¡n</div>
+                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
                     <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
                 <div class="flex justify-center relative min-w-[130px]" style="z-index: 2;">
@@ -2998,10 +2998,10 @@ function renderCA2CRM() {
                     </span>
                 </div>
                 <div class="flex justify-end gap-2 relative" style="z-index: 2;">
-                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" data-edit-id="${c.id}" title="S\u1eeda kh\u00e1ch h\u00e0ng">
+                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" onclick="event.stopPropagation(); editCRM('${c.id}')" title="Sửa khách hàng">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" data-delete-id="${c.id}" title="X\u00f3a kh\u00e1ch h\u00e0ng">
+                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" onclick="event.stopPropagation(); deleteCRM('${c.id}')" title="Xóa khách hàng">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -3009,11 +3009,9 @@ function renderCA2CRM() {
         `;
     }).join('');
 
-    // EVENT DELEGATION: Attach click handlers via JS (not inline onclick)
-    setupCRMListClickHandlers();
-
     if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
 }
+
 
 // Filter CRM by service from chips
 window.filterCRMByService = function(service) {
@@ -3045,43 +3043,8 @@ window.filterCRMByService = function(service) {
 };
 
 // ===== EVENT DELEGATION FOR CRM LIST =====
-function setupCRMListClickHandlers() {
-    const listContainer = document.getElementById('ca2-crm-list');
-    if (!listContainer || listContainer.dataset.listenersAttached) return;
+// Removed setupCRMListClickHandlers in favor of direct onclick handlers for reliability
 
-    listContainer.addEventListener('click', function(e) {
-        // Check if delete button was clicked
-        const deleteBtn = e.target.closest('.crm-delete-btn');
-        if (deleteBtn) {
-            e.stopPropagation();
-            const id = deleteBtn.dataset.deleteId;
-            console.log('[CRM-CLICK] Delete button clicked, ID:', id);
-            deleteCRM(id);
-            return;
-        }
-
-        // Check if edit button was clicked
-        const editBtn = e.target.closest('.crm-edit-btn');
-        if (editBtn) {
-            e.stopPropagation();
-            const id = editBtn.dataset.editId;
-            console.log('[CRM-CLICK] Edit button clicked, ID:', id);
-            editCRM(id);
-            return;
-        }
-
-        // Check if row was clicked
-        const row = e.target.closest('.crm-row');
-        if (row) {
-            const id = row.dataset.crmId;
-            console.log('[CRM-CLICK] Row clicked, ID:', id);
-            editCRM(id);
-            return;
-        }
-    });
-    listContainer.dataset.listenersAttached = 'true';
-    console.log('[CRM] Event delegation attached to list container');
-}
 
 
 function formatRelativeTime(dateValue) {
