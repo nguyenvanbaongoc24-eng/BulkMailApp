@@ -1550,7 +1550,7 @@ function editCRM(id) {
         console.error('[ERROR] No ID provided to editCRM');
         return;
     }
-    console.log('[DEBUG] Edit CRM clicked for ID:', id);
+    
     try {
         if (!currentCRMData || currentCRMData.length === 0) {
             console.error('[ERROR] currentCRMData is empty, cannot find record');
@@ -1562,8 +1562,11 @@ function editCRM(id) {
             console.error('[ERROR] CRM record not found in state for ID:', id);
             return;
         }
+        
         const c = sanitizeCRMRecord(found);
-        console.log('[DEBUG] CRM record data found:', c);
+        
+        // --- MANDATORY LOGGING AS REQUESTED ---
+        console.log(`[DEBUG] Edit CRM clicked - Service: ${c.service_type}, PackageID: ${c.id}, PackageName: ${c.package_name}`);
 
         const setVal = (id, val) => {
             const el = document.getElementById(id);
@@ -1576,16 +1579,16 @@ function editCRM(id) {
             else console.warn(`[DEBUG] Element not found: ${id}`);
         };
 
-        setText('ca2-crm-modal-title', 'C\u1eadp nh\u1eadt kh\u00e1ch h\u00e0ng');
+        setText('ca2-crm-modal-title', 'Cập nhật khách hàng');
         setVal('ca2-crm-id', c.id);
         setVal('ca2-crm-mst', c.mst);
         setVal('ca2-crm-name', c.company_name);
         setVal('ca2-crm-email', c.email);
         setVal('ca2-crm-phone', c.phone);
         
-        const normalizedServiceType = c.service_type || 'CKS \u2013 C\u1ea5p m\u1edbi';
-        setSelectValueSmart('ca2-crm-service', normalizedServiceType, 'CKS \u2013 C\u1ea5p m\u1edbi');
-        setSelectValueSmart('ca2-crm-customer-type', c.customer_type, 'C\u00f4ng ty');
+        const normalizedServiceType = c.service_type || 'CKS – Cấp mới';
+        setSelectValueSmart('ca2-crm-service', normalizedServiceType, 'CKS – Cấp mới');
+        setSelectValueSmart('ca2-crm-customer-type', c.customer_type, 'Công ty');
         setVal('ca2-crm-start', c.start_date || '');
         setVal('ca2-crm-compensate', c.compensate_months || 0);
         setVal('ca2-crm-cks-type', c.cks_type || 'cap_moi');
@@ -1600,7 +1603,7 @@ function editCRM(id) {
         
         // Set amount (Recalculate with restored package)
         try {
-            const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || document.getElementById('ca2-crm-package')?.value);
+            const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || document.getElementById('ca2-crm-package')?.value || '');
             setVal('ca2-crm-amount', new Intl.NumberFormat('vi-VN').format(price));
         } catch (priceErr) {
             console.warn('[DEBUG] Error calculating price during edit:', priceErr);
@@ -1616,13 +1619,20 @@ function editCRM(id) {
 
         const modal = document.getElementById('modal-ca2-crm');
         if (modal) {
+            // UNIFIED OPEN LOGIC - Open for all types
             modal.classList.remove('hidden');
-            console.log('[DEBUG] Edit modal opened successfully');
+            modal.style.display = 'flex'; // Force flex display
+            modal.style.pointerEvents = 'auto';
+            modal.style.zIndex = '9999';
+            console.log('[DEBUG] Edit modal opened successfully for type:', c.service_type);
         } else {
             console.error('[DEBUG] CRITICAL: Modal modal-ca2-crm not found');
         }
     } catch (err) {
         console.error('[DEBUG] CRITICAL ERROR in editCRM:', err);
+        // Fallback: try to open modal even if some field population failed
+        const modal = document.getElementById('modal-ca2-crm');
+        if (modal) modal.classList.remove('hidden');
     }
 }
 
@@ -2974,13 +2984,16 @@ function renderCA2CRM() {
     listContainer.innerHTML = filtered.map(c => {
         const daysLeft = calculateRemainingDays(c.expired_date);
         const isExpired = daysLeft < 0;
-        const statusLabel = isExpired ? '\u0110\u00e3 h\u1ebft h\u1ea1n' : `C\u00f2n ${daysLeft} ng\u00e0y`;
+        const statusLabel = isExpired ? 'Đã hết hạn' : `Còn ${daysLeft} ngày`;
 
+        // Ensure all types use the same editCRM handler
         return `
-            <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" onclick="editCRM('${c.id}')" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto;">
+            <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" 
+                 onclick="editCRM('${c.id}')" 
+                 style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto !important; z-index: 10;">
                 ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 rounded-2xl" style="pointer-events: none;"></div>' : ''}
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all rounded-2xl" style="pointer-events: none;"></div>
-                <div class="flex-1 relative" style="z-index: 2;">
+                <div class="flex-1 relative" style="z-index: 2; pointer-events: none;">
                     <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
                     <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
@@ -2988,20 +3001,26 @@ function renderCA2CRM() {
                         <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'Dịch vụ'}</span>
                     </div>
                 </div>
-                <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2;">
+                <div class="text-center relative bg-black/30 px-5 py-2.5 rounded-xl border border-white/5" style="z-index: 2; pointer-events: none;">
                     <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ngày hết hạn</div>
                     <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
                 </div>
-                <div class="flex justify-center relative min-w-[130px]" style="z-index: 2;">
+                <div class="flex justify-center relative min-w-[130px]" style="z-index: 2; pointer-events: none;">
                     <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
                         ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
                     </span>
                 </div>
-                <div class="flex justify-end gap-2 relative" style="z-index: 2;">
-                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" onclick="event.stopPropagation(); editCRM('${c.id}')" title="Sửa khách hàng">
+                <div class="flex justify-end gap-2 relative" style="z-index: 20;">
+                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" 
+                            onclick="event.stopPropagation(); editCRM('${c.id}')" 
+                            style="pointer-events: auto !important; position: relative; z-index: 25;"
+                            title="Sửa khách hàng">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" onclick="event.stopPropagation(); deleteCRM('${c.id}')" title="Xóa khách hàng">
+                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" 
+                            onclick="event.stopPropagation(); deleteCRM('${c.id}')" 
+                            style="pointer-events: auto !important; position: relative; z-index: 25;"
+                            title="Xóa khách hàng">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>

@@ -212,6 +212,7 @@
         #auth-screen.hidden {
             pointer-events: none !important;
             visibility: hidden !important;
+            display: none !important;
         }
 
         /* Main content area must be interactive */
@@ -231,16 +232,26 @@
         #view-ca2-crm .page-header * {
             pointer-events: auto !important;
             position: relative;
+            z-index: 10;
         }
         #view-ca2-crm .card,
         #view-ca2-crm .card * {
             pointer-events: auto !important;
         }
+        #ca2-crm-list {
+            position: relative;
+            z-index: 5;
+            pointer-events: auto !important;
+        }
         #ca2-crm-list > div {
             pointer-events: auto !important;
             position: relative;
-            z-index: 5;
+            z-index: 10;
             cursor: pointer;
+        }
+        #ca2-crm-list button, 
+        #ca2-crm-list i {
+            pointer-events: auto !important;
         }
 
         /* Quotations view */
