@@ -1098,11 +1098,16 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-3xl font-black text-white tracking-tight">Tin tức Thuế <span class="text-orange-gradient">Tự động</span></h2>
-                        <p class="text-gray-400 font-medium text-sm mt-1">Cập nhật mỗi 12 tiếng từ báo uy tín (vnexpress)</p>
+                        <p class="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1">Cập nhật mỗi 12 giờ hoặc thủ công</p>
                     </div>
-                    <button onclick="loadSEONews()" class="bg-white/5 border border-white/10 px-6 py-3 rounded-xl hover:bg-white/10 transition-all font-bold text-sm active:scale-95 shadow-lg shadow-black/20 flex items-center gap-4">
-                        <i class="fas fa-sync text-orange-500"></i> Làm mới
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <button onclick="refreshSEONews()" id="btn-refresh-news" class="px-5 py-3 bg-white/5 hover:bg-orange-gradient text-white rounded-2xl font-bold text-sm transition-all border border-white/10 flex items-center gap-3">
+                            <i class="fas fa-sync-alt"></i> Cập nhật bản tin
+                        </button>
+                        <button onclick="loadSEONews()" class="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center shadow-lg shadow-black/20">
+                            <i class="fas fa-redo-alt text-xs text-gray-400"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- SEO News Filter & Search UI -->

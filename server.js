@@ -2638,6 +2638,18 @@ app.delete('/api/seo/posts/:id', authenticate, async (req, res) => {
     }
 });
 
+app.post('/api/seo/refresh-news', authenticate, async (req, res) => {
+    try {
+        console.log('[SEO] Manual news refresh triggered by user:', req.user.id);
+        await seoService.crawlTaxNews(supabase);
+        res.json({ success: true, message: 'Đã cập nhật bản tin Thuế thành công.' });
+    } catch (err) {
+        console.error('[SEO] Manual refresh failed:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // --- Final Catch-all Global Error Handler (ENSURE JSON) ---
 app.use((err, req, res, next) => {
     console.error('[GLOBAL_ERROR_HANDLER]', err);

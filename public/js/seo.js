@@ -32,7 +32,15 @@ let g_seoPosts = {};
 async function loadSEONews() {
     isSEONewsLoaded = true;
     const grid = document.getElementById('seo-news-grid');
-    grid.innerHTML = '<div class="col-span-full text-center text-orange-400 font-bold p-10"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải bản tin Thuế cập nhật nhất...</div>';
+    grid.innerHTML = `
+        <div class="col-span-full text-center p-20 animate-pulse">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500/10 mb-4">
+                <i class="fas fa-spider text-orange-500 text-2xl fa-spin"></i>
+            </div>
+            <p class="text-orange-400 font-black text-xl tracking-tight">Đang đồng bộ dữ liệu bản tin...</p>
+            <p class="text-gray-500 text-sm mt-2 font-medium italic">Hệ thống AI đang quét các nguồn tin uy tín: Luật Việt Nam, VnExpress...</p>
+        </div>
+    `;
     try {
         const res = await authedFetch('/api/seo/news');
         const data = await res.json();
@@ -42,6 +50,42 @@ async function loadSEONews() {
         renderSEONews(globalSEONews);
     } catch (e) {
         grid.innerHTML = `<div class="col-span-full p-10 text-red-500 font-bold bg-red-500/10 rounded-2xl border border-red-500/20">Lỗi tải tin tức: ${e.message}</div>`;
+    }
+}
+
+async function refreshSEONews() {
+    const btn = document.getElementById('btn-refresh-news');
+    const oldHtml = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang quét tin mới...';
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    
+    try {
+        const res = await authedFetch('/api/seo/refresh-news', { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.error) throw new Error(data.error);
+        
+        // Success feedback
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i> Hoàn tất!';
+        btn.classList.replace('bg-white/5', 'bg-green-600');
+        
+        // Reload list
+        await loadSEONews();
+        
+        setTimeout(() => {
+            btn.innerHTML = oldHtml;
+            btn.classList.replace('bg-green-600', 'bg-white/5');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }, 3000);
+        
+    } catch (e) {
+        alert('Lỗi cập nhật tin tức: ' + e.message);
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
 
