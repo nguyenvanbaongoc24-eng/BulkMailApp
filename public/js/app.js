@@ -2902,6 +2902,14 @@ function renderCA2CRM() {
         const isExpired = daysLeft < 0;
         const statusLabel = isExpired ? '\u0110\u00e3 h\u1ebft h\u1ea1n' : `C\u00f2n ${daysLeft} ng\u00e0y`;
 
+        // Payment status logic
+        const isPaid = c.payment_status === 'paid';
+        const paymentLabel = isPaid ? 'Đã thanh toán' : 'Chưa thanh toán';
+        const nextPaymentStatus = isPaid ? 'unpaid' : 'paid';
+        const paymentBadgeClass = isPaid 
+            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40' 
+            : 'bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/40';
+
         const normalizedSvc = normalizeText(c.service_type || '');
         const showBadge = normalizedSvc.includes('cks') || 
                           normalizedSvc.includes('chu ky so') || 
@@ -2924,12 +2932,18 @@ function renderCA2CRM() {
                         <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'D\u1ecbch v\u1ee5'}</span>
                     </div>
                 </div>
-                <div class="flex justify-center relative min-w-[130px]" style="z-index: 2; pointer-events: none;">
+                <div class="flex flex-wrap justify-center items-center gap-2 relative min-w-[280px]" style="z-index: 5; pointer-events: auto;">
                     ${showBadge ? `
-                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5">
+                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5 whitespace-nowrap">
                         ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
                     </span>
                     ` : ''}
+                    
+                    <span onclick="event.stopPropagation(); updatePaymentStatus('${c.id}', '${nextPaymentStatus}')" 
+                          class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-1.5 whitespace-nowrap transition-all active:scale-95 cursor-pointer"
+                          title="Click để đổi trạng thái thanh toán">
+                        <i class="fas ${isPaid ? 'fa-check-double' : 'fa-clock'}"></i> ${paymentLabel}
+                    </span>
                 </div>
                 <div class="text-center relative bg-black/40 px-5 py-2.5 rounded-xl border border-white/5 shadow-inner" style="z-index: 2; pointer-events: none; min-width: 110px;">
                     <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ng\u00e0y h\u1ebft h\u1ea1n</div>
