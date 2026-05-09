@@ -2919,49 +2919,68 @@ function renderCA2CRM() {
 
         // Ensure all types use the same editCRM handler
         return `
-            <div class="crm-row p-5 rounded-2xl border ${isExpired ? 'border-red-500/30' : 'border-white/10 hover:border-orange-500/30'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-3 relative group" 
+            <div class="crm-row p-4 md:p-5 rounded-[24px] border ${isExpired ? 'border-red-500/20 bg-red-500/5' : 'border-white/5 bg-white/2 hover:border-orange-500/20'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-4 relative group" 
                  onclick="editCRM('${c.id}')" 
-                 style="background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border-radius: 16px; pointer-events: auto !important; z-index: 10;">
-                ${isExpired ? '<div class="absolute inset-0 bg-red-500/5 rounded-2xl" style="pointer-events: none;"></div>' : ''}
-                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all rounded-2xl" style="pointer-events: none;"></div>
-                <div class="flex-1 relative" style="z-index: 2; pointer-events: none;">
-                    <div class="text-base font-black text-white mb-1 drop-shadow-md">${c.company_name || 'N/A'}</div>
-                    <div class="text-xs font-bold text-gray-400 flex items-center gap-2">
-                        <span class="text-orange-400"><i class="fas fa-hashtag"></i> ${c.mst || '---'}</span>
-                        <span class="text-white/20">&bull;</span>
-                        <span class="text-blue-400"><i class="fas fa-layer-group"></i> ${c.service_type || 'D\u1ecbch v\u1ee5'}</span>
+                 style="backdrop-filter: blur(16px); pointer-events: auto !important; z-index: 10;">
+                
+                <!-- Subtle Gradient Glow -->
+                <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-all rounded-[24px]" style="pointer-events: none;"></div>
+                
+                <!-- Left: Company & Meta Info -->
+                <div class="flex-1 min-w-0 relative z-[2] pointer-events: none;">
+                    <div class="flex items-center gap-3 mb-1.5">
+                        <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/10 group-hover:scale-110 transition-transform">
+                            <i class="fas ${normalizedSvc.includes('cks') ? 'fa-signature' : (normalizedSvc.includes('ebh') ? 'fa-heart-pulse' : 'fa-file-invoice-dollar')}"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-base font-black text-white leading-tight truncate drop-shadow-sm">${c.company_name || 'N/A'}</div>
+                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                <span class="text-orange-500/80">${c.mst || '---'}</span>
+                                <span class="opacity-20">|</span>
+                                <span class="text-blue-400/80">${c.service_type || 'Dịch vụ'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-[11px] font-bold text-gray-400/60 ml-[52px]">
+                        <span class="flex items-center gap-1.5"><i class="far fa-calendar-alt"></i> Hết hạn: ${formatDate(c.expired_date)}</span>
+                        ${c.phone ? `<span class="flex items-center gap-1.5"><i class="fas fa-phone-alt"></i> ${c.phone}</span>` : ''}
                     </div>
                 </div>
-                <div class="flex flex-wrap justify-center items-center gap-2 relative min-w-[280px]" style="z-index: 5; pointer-events: auto;">
-                    <span onclick="event.stopPropagation(); updatePaymentStatus('${c.id}', '${nextPaymentStatus}')" 
-                          class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-1.5 whitespace-nowrap transition-all active:scale-95 cursor-pointer"
-                          title="Click để đổi trạng thái thanh toán">
-                        <i class="fas ${isPaid ? 'fa-check-double' : 'fa-clock'}"></i> ${paymentLabel}
-                    </span>
 
-                    ${showBadge ? `
-                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-1.5 whitespace-nowrap">
-                        ${isExpired ? '<i class="fas fa-exclamation-circle fa-beat-fade"></i>' : '<i class="fas fa-check-circle"></i>'} ${statusLabel}
-                    </span>
-                    ` : ''}
-                </div>
-                <div class="text-center relative bg-black/40 px-5 py-2.5 rounded-xl border border-white/5 shadow-inner" style="z-index: 2; pointer-events: none; min-width: 110px;">
-                    <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Ng\u00e0y h\u1ebft h\u1ea1n</div>
-                    <div class="text-sm font-black ${isExpired ? 'text-red-400' : 'text-white'}">${formatDate(c.expired_date)}</div>
-                </div>
-                <div class="flex justify-end gap-2 relative" style="z-index: 20;">
-                    <button class="crm-edit-btn w-11 h-11 rounded-xl bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center shadow-lg active:scale-95 opacity-70 group-hover:opacity-100" 
-                            onclick="event.stopPropagation(); editCRM('${c.id}')" 
-                            style="pointer-events: auto !important; position: relative; z-index: 25;"
-                            title="S\u1eeda kh\u00e1ch h\u00e0ng">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    <button class="crm-delete-btn w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 transition-all flex items-center justify-center shadow-lg active:scale-95" 
-                            onclick="event.stopPropagation(); deleteCRM('${c.id}')" 
-                            style="pointer-events: auto !important; position: relative; z-index: 25;"
-                            title="X\u00f3a kh\u00e1ch h\u00e0ng">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                <!-- Right: Status Badges & Actions -->
+                <div class="flex flex-wrap items-center md:justify-end gap-3 md:gap-6 relative z-[5]">
+                    <!-- Combined Status Group -->
+                    <div class="flex items-center gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5 shadow-inner pointer-events-auto">
+                        <!-- Payment Status Badge -->
+                        <div onclick="event.stopPropagation(); updatePaymentStatus('${c.id}', '${nextPaymentStatus}')" 
+                             class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+                             title="Click để đổi trạng thái thanh toán">
+                            <div class="w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}"></div>
+                            ${paymentLabel}
+                        </div>
+
+                        <!-- Expiry Status Badge -->
+                        ${showBadge ? `
+                        <div class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-2.5">
+                            <i class="fas ${isExpired ? 'fa-calendar-times' : 'fa-hourglass-half'}"></i>
+                            ${statusLabel}
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2 pointer-events-auto">
+                        <button class="w-11 h-11 rounded-xl bg-white/5 hover:bg-blue-500 hover:text-white text-gray-400 border border-white/10 hover:border-blue-500/30 transition-all flex items-center justify-center shadow-lg active:scale-95" 
+                                onclick="event.stopPropagation(); editCRM('${c.id}')" 
+                                title="Sửa thông tin">
+                            <i class="fas fa-pen text-sm"></i>
+                        </button>
+                        <button class="w-11 h-11 rounded-xl bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 border border-white/10 hover:border-red-500/30 transition-all flex items-center justify-center shadow-lg active:scale-95" 
+                                onclick="event.stopPropagation(); deleteCRM('${c.id}')" 
+                                title="Xóa">
+                            <i class="fas fa-trash-alt text-sm"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
