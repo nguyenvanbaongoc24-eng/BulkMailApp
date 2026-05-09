@@ -2816,10 +2816,10 @@ function renderCA2CRM() {
         filtered = filtered.filter(c => matchesCRMServiceFilter(c.service_type, filterType));
     }
     if (filterYear !== 'all') {
-        filtered = filtered.filter(c => c.expired_date && new Date(c.expired_date).getFullYear().toString() === filterYear);
+        filtered = filtered.filter(c => c.start_date && new Date(c.start_date).getFullYear().toString() === filterYear);
     }
     if (filterMonth !== 'all') {
-        filtered = filtered.filter(c => c.expired_date && (new Date(c.expired_date).getMonth() + 1).toString() === filterMonth);
+        filtered = filtered.filter(c => c.start_date && (new Date(c.start_date).getMonth() + 1).toString() === filterMonth);
     }
     if (fromDateStr || toDateStr) {
         const fromD = fromDateStr ? new Date(fromDateStr) : null;
@@ -2827,10 +2827,10 @@ function renderCA2CRM() {
         if (fromD) fromD.setHours(0, 0, 0, 0);
         if (toD) toD.setHours(23, 59, 59, 999);
         filtered = filtered.filter(c => {
-            if (!c.expired_date) return false;
-            const expD = new Date(c.expired_date);
-            if (fromD && expD < fromD) return false;
-            if (toD && expD > toD) return false;
+            if (!c.start_date) return false;
+            const startD = new Date(c.start_date);
+            if (fromD && startD < fromD) return false;
+            if (toD && startD > toD) return false;
             return true;
         });
     }
