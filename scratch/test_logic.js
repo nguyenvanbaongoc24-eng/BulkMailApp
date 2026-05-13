@@ -20,26 +20,49 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
         const durStr = String(duration || '').toLowerCase();
         let resultDate = null;
         
+        // Handle CKS service types with bonus months
         if (cksType) {
             const yearsMatch = durStr.match(/(\d+)/);
             const years = yearsMatch ? parseInt(yearsMatch[1]) : 1;
-            let bonusMonths = years * 3;
+            
+            let bonusMonths = 0;
+            if (cksType === 'gia_han_thu') {
+                bonusMonths = 3 + (years * 3);
+            } else {
+                bonusMonths = years * 3;
+            }
+            
             const result = new Date(start);
             result.setFullYear(result.getFullYear() + years);
             result.setMonth(result.getMonth() + bonusMonths);
             resultDate = result;
         } else {
+            // Default calculation for non-CKS services
             let daysToAdd = 0;
             let years = 0;
+
+            if (durStr.includes('số') || durStr.includes('so')) {
+                return null;
+            }
+
             const yearsMatch = durStr.match(/(\d+)\s*(năm|nam|year|y|n)/i);
             if (yearsMatch) {
                 years = parseInt(yearsMatch[1]);
             } else {
-                years = parseInt(durStr);
+                const val = parseInt(durStr);
+                if (!isNaN(val) && val <= 10) {
+                    years = val;
+                }
             }
+
             if (!isNaN(years) && years > 0) {
-                daysToAdd = years * 365;
+                if (durStr.includes('gia hạn') || durStr.includes('gia han')) {
+                    daysToAdd = years * 365 + (years * 90);
+                } else {
+                    daysToAdd = years * 365;
+                }
             }
+
             if (daysToAdd > 0) {
                 resultDate = new Date(start.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
             }
@@ -49,6 +72,7 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
             if (compensateMonths > 0) {
                 resultDate.setMonth(resultDate.getMonth() + parseInt(compensateMonths));
             }
+            if (isNaN(resultDate.getTime())) return null;
             return resultDate.toISOString().split('T')[0];
         }
         return null;

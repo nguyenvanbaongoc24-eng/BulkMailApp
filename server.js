@@ -1225,12 +1225,22 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
             // Default calculation for non-CKS services
             let daysToAdd = 0;
             let years = 0;
+
+            // Robust check: if duration contains "số" or "so" (quantity), don't treat it as years
+            if (durStr.includes('số') || durStr.includes('so')) {
+                return null; // Expiration not applicable or depends on usage
+            }
+
             // Added 'nam' (no accent) to support normalized frontend values
             const yearsMatch = durStr.match(/(\d+)\s*(năm|nam|year|y|n)/i);
             if (yearsMatch) {
                 years = parseInt(yearsMatch[1]);
             } else {
-                years = parseInt(durStr);
+                // Only parse as years if it's a small number to avoid "500" trap
+                const val = parseInt(durStr);
+                if (!isNaN(val) && val <= 10) {
+                    years = val;
+                }
             }
 
             if (!isNaN(years) && years > 0) {
@@ -1251,6 +1261,8 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
             if (compensateMonths > 0) {
                 resultDate.setMonth(resultDate.getMonth() + parseInt(compensateMonths));
             }
+            // Final safety check before calling toISOString to prevent server crash
+            if (isNaN(resultDate.getTime())) return null;
             return resultDate.toISOString().split('T')[0];
         }
         return null;
@@ -1297,9 +1309,10 @@ app.get('/api/ca2-crm', authenticate, async (req, res) => {
 app.post('/api/ca2-crm', authenticate, async (req, res) => {
     try {
         const { mst, company_name, email, phone, service_type, start_date, duration, cks_type, compensate_months, customer_type, package_name } = req.body;
-        
-        // Auto-calculate expiration with CKS type and compensation support
-        const expirationDate = calculateExpirationDate(start_date, duration, (service_type === 'CKS' || service_type === 'Ch\u1eef k\u00fd s\u1ed1') ? (cks_type || '') : '', compensate_months || 0);
+        // Auto-calculate expiration with robust service type detection
+        const svcTypeNorm = normalizeStr(service_type);
+        const isCKS = svcTypeNorm.includes('cks') || svcTypeNorm.includes('chu ky so');
+        const expirationDate = calculateExpirationDate(start_date, duration, isCKS ? (cks_type || '') : '', compensate_months || 0);
 
         const insertData = {
             mst, 
@@ -1348,7 +1361,7 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
             }
         });
 
-        if (updates.start_date || updates.duration || updates.cks_type || updates.compensate_months !== undefined) {
+        if (updates.start_date || updates.duration || updates.cks_type || updates.compensate_months !== undefined || updates.service_type) {
             const { data: current, error: fetchErr } = await getClient(req.token).from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
             
             if (fetchErr || !current) {
