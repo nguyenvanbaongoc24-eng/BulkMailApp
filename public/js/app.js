@@ -1231,8 +1231,9 @@ async function saveCA2CRM() {
         compensate_months: parseInt(document.getElementById('ca2-crm-compensate').value) || 0
     };
 
-    // Include CKS type if service contains 'CKS' or 'Chữ ký số' (flexible match)
-    if (serviceType.toUpperCase().includes('CKS') || serviceType.toUpperCase().includes('CHU KY SO')) {
+    // Include CKS type if service contains 'CKS' or 'Chữ ký số' (robust check)
+    const normalizedService = normalizeText(serviceType);
+    if (normalizedService.includes('cks') || normalizedService.includes('chu ky so')) {
         body.cks_type = document.getElementById('ca2-crm-cks-type').value || '';
     }
 

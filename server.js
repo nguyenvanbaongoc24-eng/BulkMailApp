@@ -1178,12 +1178,28 @@ app.delete('/api/storage/files', authenticate, async (req, res) => {
 
 // CA2 CRM Internal Tool API
 /**
+ * Helper to normalize Vietnamese text for robust comparisons
+ */
+function normalizeStr(str) {
+    if (!str) return '';
+    return str.toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\u0111/g, 'd')
+        .replace(/\u0110/g, 'D')
+        .toLowerCase()
+        .trim();
+}
+
+/**
  * Helper to calculate expiration date based on start date and duration string
  */
 function calculateExpirationDate(startDate, duration, cksType = '', compensateMonths = 0) {
     if (!startDate || !duration) return null;
     try {
         const start = new Date(startDate);
+        if (isNaN(start.getTime())) return null;
+        
         const durStr = String(duration || '').toLowerCase();
         let resultDate = null;
         
@@ -1218,7 +1234,7 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
             }
 
             if (!isNaN(years) && years > 0) {
-                if (durStr.includes('gia hạn')) {
+                if (durStr.includes('gia hạn') || durStr.includes('gia han')) {
                     daysToAdd = years * 365 + (years * 90);
                 } else {
                     daysToAdd = years * 365;
@@ -1230,7 +1246,7 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
             }
         }
 
-        if (resultDate) {
+        if (resultDate && !isNaN(resultDate.getTime())) {
             // Apply compensation months if any
             if (compensateMonths > 0) {
                 resultDate.setMonth(resultDate.getMonth() + parseInt(compensateMonths));
@@ -1239,6 +1255,7 @@ function calculateExpirationDate(startDate, duration, cksType = '', compensateMo
         }
         return null;
     } catch (e) {
+        console.error('[CRM] Expire calculation error:', e.message);
         return null;
     }
 }
@@ -1315,26 +1332,39 @@ app.post('/api/ca2-crm', authenticate, async (req, res) => {
 app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
     try {
         const { id } = req.params;
-        // Allow all fields from req.body to pass through as updates
-        const updates = { ...req.body };
+        console.log(`[CRM] Updating record ${id}...`);
         
-        // Remove strictly internal or non-DB fields only if necessary
-        // (Removing previous delete calls for customer_type and package_name as they now exist in DB)
+        // Define allowed fields to prevent schema errors if frontend sends extra data
+        const allowedFields = [
+            'mst', 'company_name', 'email', 'phone', 'service_type', 
+            'start_date', 'duration', 'cks_type', 'compensate_months', 
+            'customer_type', 'package_name', 'payment_status', 'notes'
+        ];
+        
+        const updates = {};
+        allowedFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        });
 
         if (updates.start_date || updates.duration || updates.cks_type || updates.compensate_months !== undefined) {
-            // Need to fetch current values if one is missing to recalculate
             const { data: current, error: fetchErr } = await getClient(req.token).from('customers').select('*').eq('id', id).eq('user_id', req.user.id).single();
             
             if (fetchErr || !current) {
-                console.error('[CRM] Record not found for update:', id);
+                console.warn('[CRM] Record not found for date sync:', id);
             } else {
                 const sDate = updates.start_date || current.start_date;
                 const dur = updates.duration || current.duration;
-                const svcType = updates.service_type || current.service_type;
+                const svcTypeRaw = updates.service_type || current.service_type || '';
+                const svcTypeNorm = normalizeStr(svcTypeRaw);
                 const cksType = updates.cks_type || current.cks_type || '';
                 const compensate = updates.compensate_months !== undefined ? updates.compensate_months : (current.compensate_months || 0);
                 
-                updates.expired_date = calculateExpirationDate(sDate, dur, (svcType.toUpperCase().includes('CKS') || svcType.toUpperCase().includes('CHU KY SO')) ? cksType : '', compensate);
+                // Robust check for CKS service
+                const isCKS = svcTypeNorm.includes('cks') || svcTypeNorm.includes('chu ky so');
+                updates.expired_date = calculateExpirationDate(sDate, dur, isCKS ? cksType : '', compensate);
+                console.log(`[CRM] Recalculated expiry: ${updates.expired_date} (isCKS: ${isCKS})`);
             }
         }
 
@@ -1344,9 +1374,18 @@ app.patch('/api/ca2-crm/:id', authenticate, async (req, res) => {
             .eq('user_id', req.user.id)
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[CRM] Supabase update error:', error.message);
+            throw error;
+        }
+        
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy khách hàng hoặc bạn không có quyền chỉnh sửa.' });
+        }
+
         res.json({ success: true, data: data[0] });
     } catch (err) {
+        console.error('[CRM] PATCH Exception:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
