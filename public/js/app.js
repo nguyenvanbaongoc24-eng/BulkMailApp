@@ -2960,7 +2960,7 @@ function renderCA2CRM() {
                         <!-- Payment Status Badge -->
                         <div onclick="event.stopPropagation(); updatePaymentStatus('${c.id}', '${nextPaymentStatus}')" 
                              class="justify-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer"
-                             style="width: 160px; flex-shrink: 0;"
+                             style="width: 180px; flex-shrink: 0;"
                              title="Click để đổi trạng thái thanh toán">
                             <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPaid ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}"></div>
                             <span class="truncate whitespace-nowrap">${paymentLabel}</span>
@@ -2973,7 +2973,7 @@ function renderCA2CRM() {
                             <i class="fas ${isExpired ? 'fa-calendar-times' : 'fa-hourglass-half'}"></i>
                             <span class="truncate whitespace-nowrap">${statusLabel}</span>
                         </div>
-                        ` : `<div style="width: 160px; flex-shrink: 0;" class="hidden md:block"></div>`}
+                        ` : `<div style="width: 160px; flex-shrink: 0;"></div>`}
                     </div>
 
                     <!-- Action Buttons -->
