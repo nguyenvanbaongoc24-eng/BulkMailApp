@@ -1256,7 +1256,12 @@ async function saveCA2CRM() {
             loadCA2CRMData();
         } else {
             const err = await res.json();
-            alert('Lỗi: ' + (err.error || 'Unknown error'));
+            const errMsg = err.error || 'Unknown error';
+            if (errMsg.includes('duplicate key value violates unique constraint')) {
+                alert('Lỗi: Khách hàng này đã có dịch vụ này trong hệ thống. Vui lòng chọn sản phẩm/dịch vụ khác.');
+            } else {
+                alert('Lỗi: ' + errMsg);
+            }
         }
     } catch (e) { alert('Lỗi kết nối server'); }
 }
@@ -3918,3 +3923,88 @@ function closeModal(id) {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
 }
+
+// ==========================================
+// CRM Autocomplete Logic
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const mstInput = document.getElementById('ca2-crm-mst');
+    const suggestionsContainer = document.getElementById('mst-suggestions');
+    if (mstInput && suggestionsContainer) {
+        let hideTimeout;
+        
+        mstInput.addEventListener('input', () => {
+            const val = mstInput.value.trim().toLowerCase();
+            if (!val) {
+                suggestionsContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Search in currentCRMData
+            if (typeof currentCRMData === 'undefined') return;
+            
+            const matches = currentCRMData.filter(c => c.mst && c.mst.toLowerCase().includes(val));
+            
+            // Deduplicate by MST to avoid showing same company multiple times
+            const uniqueMatches = [];
+            const seenMsts = new Set();
+            for (const m of matches) {
+                if (!seenMsts.has(m.mst)) {
+                    seenMsts.add(m.mst);
+                    uniqueMatches.push(m);
+                }
+            }
+            
+            if (uniqueMatches.length === 0) {
+                suggestionsContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Build UI
+            suggestionsContainer.innerHTML = '';
+            uniqueMatches.slice(0, 5).forEach(match => {
+                const item = document.createElement('div');
+                item.className = 'mst-suggestion-item';
+                item.innerHTML = `
+                    <div class="mst-suggestion-title">${match.company_name}</div>
+                    <div class="mst-suggestion-meta">
+                        <span><i class="fas fa-hashtag"></i> ${match.mst}</span>
+                        ${match.phone ? `<span><i class="fas fa-phone"></i> ${match.phone}</span>` : ''}
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    // Populate fields
+                    mstInput.value = match.mst || '';
+                    document.getElementById('ca2-crm-name').value = match.company_name || '';
+                    document.getElementById('ca2-crm-email').value = match.email || '';
+                    document.getElementById('ca2-crm-phone').value = match.phone || '';
+                    if (match.customer_type) {
+                        const typeSelect = document.getElementById('ca2-crm-customer-type');
+                        if (typeSelect) typeSelect.value = match.customer_type;
+                    }
+                    suggestionsContainer.classList.add('hidden');
+                    
+                    // Trigger refresh if using premium selects
+                    if (typeof refreshCustomSelects === 'function') refreshCustomSelects();
+                });
+                suggestionsContainer.appendChild(item);
+            });
+            
+            suggestionsContainer.classList.remove('hidden');
+        });
+        
+        // Hide on blur with small delay to allow click
+        mstInput.addEventListener('blur', () => {
+            hideTimeout = setTimeout(() => {
+                suggestionsContainer.classList.add('hidden');
+            }, 200);
+        });
+        
+        mstInput.addEventListener('focus', () => {
+            if (mstInput.value.trim() && suggestionsContainer.children.length > 0) {
+                clearTimeout(hideTimeout);
+                suggestionsContainer.classList.remove('hidden');
+            }
+        });
+    }
+});
