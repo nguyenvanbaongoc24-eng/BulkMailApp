@@ -2959,7 +2959,7 @@ function renderCA2CRM() {
                     <div class="flex items-center gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5 shadow-inner pointer-events-auto">
                         <!-- Payment Status Badge -->
                         <div onclick="event.stopPropagation(); updatePaymentStatus('${c.id}', '${nextPaymentStatus}')" 
-                             class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+                             class="w-[165px] justify-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer"
                              title="Click để đổi trạng thái thanh toán">
                             <div class="w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}"></div>
                             ${paymentLabel}
@@ -2967,11 +2967,11 @@ function renderCA2CRM() {
 
                         <!-- Expiry Status Badge -->
                         ${showBadge ? `
-                        <div class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-2.5">
+                        <div class="w-[145px] justify-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-2.5">
                             <i class="fas ${isExpired ? 'fa-calendar-times' : 'fa-hourglass-half'}"></i>
                             ${statusLabel}
                         </div>
-                        ` : ''}
+                        ` : `<div class="w-[145px] hidden md:block"></div>`}
                     </div>
 
                     <!-- Action Buttons -->
