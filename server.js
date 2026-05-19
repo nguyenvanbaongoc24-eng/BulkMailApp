@@ -2629,8 +2629,14 @@ app.post('/api/seo/generate-image', authenticate, async (req, res) => {
             .limit(1);
 
         if (!cacheErr && cached && cached.length > 0) {
-            console.log('[IMAGE_GENERATION_SUCCESS] Returned cached image URL.');
-            return res.json(cached[0]);
+            const cachedUrl = cached[0].image_url || '';
+            // If it's an old Supabase URL (which contains broken/corrupted HTML), bypass the cache
+            if (!cachedUrl.includes('supabase.co')) {
+                console.log('[IMAGE_GENERATION_SUCCESS] Returned cached image URL:', cachedUrl);
+                return res.json(cached[0]);
+            } else {
+                console.log('[IMAGE_GENERATION] Cache hit but it was a broken Supabase URL. Bypassing cache to generate a fresh Pollinations URL.');
+            }
         }
 
         // 2. Generate and upload using HuggingFace
