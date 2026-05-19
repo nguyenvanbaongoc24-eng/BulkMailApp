@@ -352,7 +352,9 @@ async function generateSEOImage() {
             // Retry with different seed
             const retryImg = new Image();
             const retrySeed = Math.floor(Math.random() * 999999);
-            const retryUrl = data.image_url.replace(/seed=\d+/, `seed=${retrySeed}`);
+            const retryUrl = (data.image_url && data.image_url.includes('seed='))
+                ? data.image_url.replace(/seed=\d+/, `seed=${retrySeed}`)
+                : `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=768&height=768&seed=${retrySeed}&nologo=true`;
             
             const retryTimeout = setTimeout(() => {
                 retryImg.src = '';

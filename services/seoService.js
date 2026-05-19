@@ -92,15 +92,58 @@ User input: "${rawPrompt.substring(0, 300)}"`;
     
     console.log('[AI IMAGE] Final prompt:', safePrompt, '(length:', safePrompt.length, ')');
 
-    // Step 3: Return direct Pollinations URL (browser will load it directly)
-    // This approach is 100% reliable because:
-    // - No server-side download (eliminates Render Free Tier timeout)
-    // - No Supabase upload needed
-    // - Pollinations sends Access-Control-Allow-Origin: * (canvas watermarking works)
-    // - Pollinations CDN is on Cloudflare (fast worldwide, not blocked by ISPs)
     const seed = Math.floor(Math.random() * 1000000);
+
+    // Step 3: Server-side generation using paid API Key (if configured)
+    if (process.env.POLLINATIONS_API_KEY) {
+        console.log('[AI IMAGE] Paid POLLINATIONS_API_KEY detected. Generating server-side...');
+        try {
+            // Using the paid key makes generation extremely fast (< 1s)
+            const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=768&height=768&seed=${seed}&nologo=true&key=${process.env.POLLINATIONS_API_KEY}`;
+            const response = await axios.get(pollinationsUrl, {
+                responseType: 'arraybuffer',
+                timeout: 15000 // 15 seconds is more than enough for paid key
+            });
+
+            const buf = response.data;
+            // Verify buffer
+            let isValid = false;
+            if (buf && buf.length > 100) {
+                if (buf[0] === 0xFF && buf[1] === 0xD8) isValid = true; // JPEG
+                else if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) isValid = true; // PNG
+                const head = Buffer.from(buf).toString('utf8', 0, 50);
+                if (head.includes('<!DOCTYPE') || head.includes('<html')) isValid = false;
+            }
+
+            if (isValid) {
+                console.log('[AI IMAGE] Successfully generated image server-side. Uploading to Supabase...');
+                const bucketName = 'seo-images';
+                const fileName = `${userId}/${Date.now()}_paid_image.jpg`;
+
+                // Ensure bucket exists
+                await supabaseAdmin.storage.createBucket(bucketName, { public: true });
+
+                const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+                    .from(bucketName)
+                    .upload(fileName, buf, { contentType: 'image/jpeg', upsert: true });
+
+                if (!uploadError) {
+                    const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fileName);
+                    console.log('[AI IMAGE] Successfully uploaded and obtained public URL:', publicUrl);
+                    return publicUrl;
+                } else {
+                    console.warn('[AI IMAGE] Supabase upload failed, falling back to direct browser URL. Error:', uploadError.message);
+                }
+            } else {
+                console.warn('[AI IMAGE] Received corrupt or HTML response from Pollinations, falling back to direct URL.');
+            }
+        } catch (err) {
+            console.error('[AI IMAGE] Server-side paid generation failed. Falling back to direct URL. Error:', err.message);
+        }
+    }
+
+    // Step 4: Fallback to direct client-side URL (without leaking the secret API key)
     const directUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=768&height=768&seed=${seed}&nologo=true`;
-    
     console.log('[AI IMAGE] Returning direct Pollinations URL for browser-side loading');
     return directUrl;
 }
