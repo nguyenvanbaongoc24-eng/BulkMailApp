@@ -93,37 +93,69 @@
     --ds-duration-slow:   350ms;
 }
 
-/* ── Light Mode Design Tokens (Clean, no plastic) ── */
+/* ── Light Mode Design Tokens — CA2-CRM-LightTheme-Fix ── */
 .light-mode {
-    --ds-bg:              #F4F6FB;
-    --ds-bg-gradient:     linear-gradient(180deg, #F4F6FB 0%, #E9EDF5 100%);
+    /* ── Tầng nền — đủ tối để card #FFFFFF nổi lên rõ ràng ── */
+    --ds-bg:              #E8EAF2;
+    --ds-bg-gradient:     linear-gradient(180deg, #ECEEF5 0%, #E4E6F0 100%);
     --ds-surface:         #FFFFFF;
     --ds-surface-solid:   #FFFFFF;
     --ds-surface-elevated:#FFFFFF;
-    --ds-surface-hover:   rgba(0,0,0,0.02);
-    --ds-surface-active:  rgba(0,0,0,0.04);
+    --ds-surface-hover:   #F0F2F8;
+    --ds-surface-active:  #E8EAF0;
 
-    --ds-border:          rgba(0,0,0,0.05);
-    --ds-border-hover:    rgba(0,0,0,0.08);
-    --border-strong:      rgba(0,0,0,0.14);
+    /* ── Borders — rõ ràng hơn, không bị vô hình ── */
+    --ds-border:          rgba(99,102,141,0.16);
+    --ds-border-hover:    rgba(99,102,141,0.24);
+    --ds-border-focus:    rgba(255,107,43,0.6);
+    --border-strong:      rgba(99,102,141,0.28);
+    --border-subtle:      rgba(99,102,141,0.10);
 
-    --ds-text:            #0F1120;
-    --ds-text-secondary:  #5A6082;
-    --ds-text-muted:      #9BA3C0;
-    --ds-text-placeholder:#94a3b8;
+    /* ── Typography — clear hierarchy ── */
+    --ds-text:            #0F1225;
+    --ds-text-secondary:  #4B5280;
+    --ds-text-muted:      #8B90B8;
+    --ds-text-placeholder:#B0B5D0;
 
-    --ds-orange-soft:     rgba(255,107,43,0.08);
+    /* ── Accent ── */
+    --ds-orange-soft:     rgba(255,107,43,0.10);
+    --accent-orange:      #FF6B2B;
+    --accent-orange-soft: rgba(255,107,43,0.10);
+    --accent-orange-border: rgba(255,107,43,0.25);
 
-    /* Sidebar keeps dark theme for contrast split */
+    /* ── Status colors — đậm hơn, có bg + border ── */
+    --status-success:       #16A34A;
+    --status-success-bg:    rgba(22,163,74,0.10);
+    --status-success-border: rgba(22,163,74,0.22);
+
+    --status-danger:        #DC2626;
+    --status-danger-bg:     rgba(220,38,38,0.10);
+    --status-danger-border: rgba(220,38,38,0.22);
+
+    --status-warning:       #D97706;
+    --status-warning-bg:    rgba(217,119,6,0.10);
+    --status-warning-border: rgba(217,119,6,0.22);
+
+    --status-info:          #2563EB;
+    --status-info-bg:       rgba(37,99,235,0.10);
+    --status-info-border:   rgba(37,99,235,0.22);
+
+    --status-neutral:       #4B5280;
+    --status-neutral-bg:    rgba(75,82,128,0.08);
+    --status-neutral-border: rgba(75,82,128,0.18);
+
+    /* ── Sidebar keeps dark theme for contrast split ── */
     --sidebar-bg:         #1A1D2E;
     --sidebar-active:     rgba(255,107,43,0.18);
     --sidebar-border:     rgba(255,255,255,0.06);
 
-    --ds-shadow-sm:       0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-    --ds-shadow-md:       0 4px 20px rgba(0,0,0,0.08);
-    --ds-shadow-lg:       0 12px 40px rgba(0,0,0,0.1);
-    --ds-shadow-card:     0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --ds-shadow-elevated: 0 8px 24px rgba(0,0,0,0.10);
+    /* ── Shadows — tạo depth tầng lớp cho Light Mode ── */
+    --ds-shadow-sm:       0 1px 3px rgba(30,40,90,0.07), 0 1px 2px rgba(30,40,90,0.05);
+    --ds-shadow-md:       0 4px 12px rgba(30,40,90,0.08), 0 2px 4px rgba(30,40,90,0.05);
+    --ds-shadow-lg:       0 8px 24px rgba(30,40,90,0.10), 0 4px 8px rgba(30,40,90,0.06);
+    --ds-shadow-card:     0 2px 8px rgba(30,40,80,0.08), 0 1px 3px rgba(30,40,80,0.05);
+    --ds-shadow-elevated: 0 8px 24px rgba(30,40,90,0.12), 0 4px 8px rgba(30,40,90,0.07);
+    --ds-shadow-focus:    0 0 0 3px rgba(255,107,43,0.20);
 }
 
 
@@ -3189,4 +3221,491 @@ button:hover, .item:hover {
   );
   background-size: 200% auto;
   animation: shimmer 1.5s infinite linear;
+}
+
+/* ==========================================================
+   19. LIGHT THEME — STAT CARD FIX (CA2-CRM-LightTheme-Fix)
+   ========================================================== */
+
+/* ── Base Card (Light-aware) ── */
+.light-mode .bg-glass,
+.light-mode .bg-glass\/40,
+.light-mode [class*="bg-glass"] {
+  box-shadow: var(--ds-shadow-sm) !important;
+  border-color: var(--ds-border) !important;
+}
+.light-mode .bg-glass:hover,
+.light-mode .bg-glass\/40:hover {
+  box-shadow: var(--ds-shadow-md) !important;
+  border-color: var(--ds-border-hover) !important;
+}
+
+/* ── Stat Card ── */
+.stat-card {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Accent bar trên cùng theo màu metric */
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: var(--card-color, var(--ds-orange));
+  opacity: 0.6;
+}
+
+.stat-card--expired  { --card-color: var(--status-danger, var(--ds-red)); }
+.stat-card--warn30   { --card-color: var(--status-warning, var(--ds-amber)); }
+.stat-card--warn60   { --card-color: var(--status-warning, var(--ds-amber)); }
+.stat-card--total    { --card-color: var(--status-info, var(--ds-blue)); }
+
+/* Label trên stat card */
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+/* Số stat */
+.stat-number {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ds-text);
+}
+
+.stat-number.danger  { color: var(--status-danger, var(--ds-red)); }
+.stat-number.warning { color: var(--status-warning, var(--ds-amber)); }
+.stat-number.info    { color: var(--status-info, var(--ds-blue)); }
+.stat-number.success { color: var(--status-success, var(--ds-green)); }
+
+/* ==========================================================
+   20. LIGHT THEME — DASHBOARD HERO STATS
+   ========================================================== */
+.dashboard-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.hero-stat-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  padding: 24px;
+  box-shadow: var(--ds-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat-card .number {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.hero-stat-card .label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-text-muted);
+  margin-top: 4px;
+}
+
+/* ==========================================================
+   21. LIGHT THEME — CRM STATS GRID (4-column)
+   ========================================================== */
+.crm-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.crm-stat--total   { border-top: 3px solid var(--status-info, var(--ds-blue)); }
+.crm-stat--active  { border-top: 3px solid var(--status-success, var(--ds-green)); }
+.crm-stat--expiring { border-top: 3px solid var(--status-warning, var(--ds-amber)); }
+.crm-stat--expired  { border-top: 3px solid var(--status-danger, var(--ds-red)); }
+
+/* ==========================================================
+   22. LIGHT THEME — BADGE FIX (Màu đậm + border rõ)
+   ========================================================== */
+.light-mode .badge-success {
+  color: var(--status-success);
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
+}
+
+.light-mode .badge-fail,
+.light-mode .badge-error {
+  color: var(--status-danger);
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+}
+
+.light-mode .badge-pending,
+.light-mode .badge-warning {
+  color: var(--status-warning);
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+}
+
+/* Badge Paid/Unpaid (CRM specific) */
+.badge-paid {
+  background: var(--status-success-bg, var(--ds-green-soft));
+  color: var(--status-success, var(--ds-green));
+  border: 1px solid var(--status-success-border, rgba(34,197,94,0.20));
+}
+
+.badge-unpaid {
+  background: var(--status-danger-bg, var(--ds-red-soft));
+  color: var(--status-danger, var(--ds-red));
+  border: 1px solid var(--status-danger-border, rgba(239,68,68,0.20));
+}
+
+.badge-days-ok {
+  background: var(--status-info-bg, rgba(37,99,235,0.10));
+  color: var(--status-info, var(--ds-blue));
+  border: 1px solid var(--status-info-border, rgba(37,99,235,0.20));
+}
+
+.badge-expiring {
+  background: var(--status-warning-bg, rgba(217,119,6,0.10));
+  color: var(--status-warning, var(--ds-amber));
+  border: 1px solid var(--status-warning-border, rgba(245,158,11,0.20));
+}
+
+.badge-expired {
+  background: var(--status-danger-bg, var(--ds-red-soft));
+  color: var(--status-danger, var(--ds-red));
+  border: 1px solid var(--status-danger-border, rgba(239,68,68,0.20));
+}
+
+.badge-complete {
+  background: var(--status-success-bg, var(--ds-green-soft));
+  color: var(--status-success, var(--ds-green));
+  border: 1px solid var(--status-success-border, rgba(34,197,94,0.20));
+  padding: 4px 10px;
+  font-size: 10px;
+}
+
+/* Light mode — service badges readable */
+.light-mode .badge-cks {
+  color: #c2410c;
+  background: rgba(249,115,22,0.08);
+  border-color: rgba(249,115,22,0.20);
+}
+.light-mode .badge-hddt {
+  color: #0369a1;
+  background: rgba(14,165,233,0.08);
+  border-color: rgba(14,165,233,0.20);
+}
+.light-mode .badge-ebh {
+  color: #047857;
+  background: rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.20);
+}
+.light-mode .badge-invoice {
+  color: #7c3aed;
+  background: rgba(168,85,247,0.08);
+  border-color: rgba(168,85,247,0.20);
+}
+.light-mode .badge-other {
+  color: #be123c;
+  background: rgba(244,63,94,0.08);
+  border-color: rgba(244,63,94,0.20);
+}
+
+/* ==========================================================
+   23. LIGHT THEME — DATE FILTER PANEL FIX (Critical)
+   ========================================================== */
+.light-mode .filter-date-panel,
+.light-mode .premium-date-filter,
+.light-mode [class*="date-filter"],
+.light-mode [class*="date-range"] {
+  background: var(--ds-surface) !important;
+  border: 1px solid var(--ds-border) !important;
+  color: var(--ds-text) !important;
+  box-shadow: var(--ds-shadow-md) !important;
+  border-radius: var(--ds-radius-md);
+}
+
+.light-mode .filter-date-panel label,
+.light-mode .premium-date-filter label {
+  color: var(--ds-text-secondary) !important;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.light-mode .filter-date-panel input,
+.light-mode .premium-date-filter input,
+.light-mode .filter-date-panel select,
+.light-mode .premium-date-filter select {
+  background: var(--ds-surface-hover) !important;
+  border: 1px solid var(--ds-border) !important;
+  color: var(--ds-text) !important;
+  border-radius: var(--ds-radius-sm);
+  padding: 6px 10px;
+}
+
+.light-mode .filter-date-panel input:focus,
+.light-mode .premium-date-filter input:focus {
+  border-color: var(--accent-orange, var(--ds-orange)) !important;
+  box-shadow: var(--ds-shadow-focus) !important;
+  outline: none;
+}
+
+/* Nút Lọc dữ liệu */
+.btn-filter {
+  background: var(--ds-orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-filter:hover {
+  background: #e55a1e;
+  box-shadow: 0 4px 12px rgba(255,107,43,0.30);
+}
+
+/* ==========================================================
+   24. LIGHT THEME — SERVICE TABS (Pill Switcher)
+   ========================================================== */
+.service-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--ds-surface-hover);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: 20px;
+}
+
+.service-tab {
+  padding: 7px 18px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: all 0.22s var(--ds-ease-spring);
+  white-space: nowrap;
+  user-select: none;
+  background: transparent;
+  border: none;
+}
+
+.service-tab:hover:not(.active) {
+  color: var(--ds-text);
+  background: rgba(255,107,43,0.06);
+}
+
+.service-tab.active {
+  background: var(--ds-orange);
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(255,107,43,0.30);
+}
+
+/* ==========================================================
+   25. LIGHT THEME — STATUS TOGGLE (Còn hạn / Hết hạn)
+   ========================================================== */
+.status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  padding: 8px 20px;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.toggle-item:hover {
+  color: var(--ds-text);
+}
+
+.toggle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.toggle-item.active-ok .toggle-dot { background: var(--status-success, var(--ds-green)); }
+.toggle-item.active-ok             { color: var(--status-success, var(--ds-green)); font-weight: 600; }
+
+.toggle-item.active-exp .toggle-dot { background: var(--status-danger, var(--ds-red)); }
+.toggle-item.active-exp             { color: var(--status-danger, var(--ds-red)); font-weight: 600; }
+
+.toggle-count {
+  background: var(--ds-surface-hover);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ds-text-secondary);
+}
+
+/* ==========================================================
+   26. LIGHT THEME — CAMPAIGN SECTION
+   ========================================================== */
+.campaign-section {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  padding: 20px;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.campaign-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.campaign-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.campaign-see-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-orange);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.campaign-see-all:hover { opacity: 0.7; }
+
+/* ── Campaign Row Item ── */
+.campaign-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-hover);
+  margin-bottom: 8px;
+  transition: all 0.18s ease;
+}
+
+.campaign-row:last-child { margin-bottom: 0; }
+
+.campaign-row:hover {
+  border-color: var(--ds-border-hover);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-sm);
+}
+
+/* Check icon */
+.campaign-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--status-success-bg, var(--ds-green-soft));
+  border: 1.5px solid var(--status-success-border, rgba(34,197,94,0.22));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--status-success, var(--ds-green));
+  flex-shrink: 0;
+}
+
+.campaign-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text);
+  flex: 1;
+  line-height: 1.3;
+}
+
+.campaign-meta {
+  font-size: 11px;
+  color: var(--ds-text-muted);
+  margin-top: 3px;
+}
+
+/* Progress bar */
+.progress-bar-wrap {
+  width: 120px;
+  height: 4px;
+  background: var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--status-success, var(--ds-green));
+  border-radius: var(--ds-radius-pill);
+  transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+
+/* ==========================================================
+   27. LIGHT THEME — TABLE ROW OVERRIDE
+   ========================================================== */
+.light-mode thead th {
+  background: rgba(232,234,242,0.92) !important;
+  backdrop-filter: blur(8px);
+  color: var(--ds-text-secondary);
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.light-mode tbody tr:nth-child(even) {
+  background: rgba(240,242,248,0.5);
+}
+
+.light-mode tbody tr:hover {
+  background: var(--ds-surface-hover) !important;
+}
+
+.light-mode tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 0 rgba(255,107,43,0.4);
+}
+
+.light-mode tbody td {
+  color: var(--ds-text-secondary);
 }
