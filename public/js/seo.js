@@ -389,7 +389,7 @@ async function generateSEOImage() {
                 placeholder.classList.remove('hidden');
             };
             retryImg.crossOrigin = "anonymous";
-            retryImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(retryUrl)}`;
+            retryImg.src = retryUrl; // Fallback to raw URL directly if proxy is not ready/fails
         };
         tempImg.crossOrigin = "anonymous"; // Crucial for canvas
         tempImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(data.image_url)}`;
