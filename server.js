@@ -53,7 +53,7 @@ app.get('/api/diag', async (req, res) => {
         
         res.json({
             nodeVersion: process.version,
-            diagCommit: "c14092e",
+            diagCommit: "6859afd",
             heartbeat: hb,
             hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
             hasSmtpUser: !!process.env.SMTP_USER,
