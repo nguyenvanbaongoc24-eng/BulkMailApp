@@ -3771,6 +3771,11 @@ button:hover, .item:hover {
   backdrop-filter: blur(24px) !important;
   -webkit-backdrop-filter: blur(24px) !important;
   transition: all 0.25s var(--ds-ease-spring) !important;
+  margin-bottom: 14px !important; /* Fixed spacing of 14px */
+}
+
+.crm-row:last-child {
+  margin-bottom: 0 !important;
 }
 
 .crm-row:hover {

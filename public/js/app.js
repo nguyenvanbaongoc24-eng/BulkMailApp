@@ -2923,7 +2923,7 @@ function renderCA2CRM() {
 
         // Ensure all types use the same editCRM handler
         return `
-            <div class="crm-row ${isExpired ? 'crm-row-expired' : 'crm-row-active'} p-4 md:p-5 rounded-[24px] border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-4 relative group" 
+            <div class="crm-row ${isExpired ? 'crm-row-expired' : 'crm-row-active'} p-4 md:p-5 rounded-[24px] border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer relative group" 
                  onclick="editCRM('${c.id}')" 
                  style="pointer-events: auto !important; z-index: 10;">
                 
