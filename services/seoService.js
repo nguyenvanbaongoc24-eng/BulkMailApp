@@ -95,7 +95,7 @@ User input: "${rawPrompt}"`;
     console.log('[AI IMAGE] Trying primary generator: Pollinations.ai (Flux)...');
     try {
         const seed = Math.floor(Math.random() * 1000000);
-        const pollinationsUrl = `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
         console.log(`[AI IMAGE] Pollinations URL: ${pollinationsUrl}`);
         const pollRes = await axios.get(pollinationsUrl, { responseType: 'arraybuffer', timeout: 35000 });
         imageBuffer = pollRes.data;
