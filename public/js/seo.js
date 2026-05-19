@@ -245,9 +245,8 @@ async function generateImageFromArticleContent() {
         window.showPage('seo-image');
     }
     
-    // Generate an optimized English prompt based on the title
-    // Simplified translation/format for better AI results
-    const prompt = `A professional, high-quality editorial illustration for a blog post about: "${title}". Cinematic lighting, photorealistic, business office style, 8k resolution, clean composition.`;
+    // Generate an optimized Vietnamese prompt based on the title
+    const prompt = `Một bức ảnh minh họa chuyên nghiệp, chất lượng cao cho bài viết về: "${title}". Phong cách văn phòng công sở hiện đại, góc nhìn đẹp, sắc nét.`;
     
     const promptInput = document.getElementById('seo-image-prompt');
     if (promptInput) {
