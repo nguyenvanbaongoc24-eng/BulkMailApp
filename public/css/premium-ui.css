@@ -3765,19 +3765,32 @@ button:hover, .item:hover {
 
 /* ─── Customer CRM Row ─── */
 .crm-row {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  transition: all 0.22s var(--ds-ease-spring) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  transition: all 0.25s var(--ds-ease-spring) !important;
+}
+
+.crm-row:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+  border-color: rgba(255, 107, 43, 0.35) !important;
+  box-shadow: 0 12px 40px 0 rgba(255, 107, 43, 0.08), 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+  transform: translateY(-2px) translateX(2px) !important;
 }
 
 .light-mode .crm-row {
-  background: var(--ds-surface, #ffffff) !important;
-  border-color: var(--ds-border, rgba(99,102,141,0.16)) !important;
-  box-shadow: var(--ds-shadow-sm) !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(99, 102, 141, 0.12) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
 }
 
 .light-mode .crm-row:hover {
+  background: rgba(255, 255, 255, 0.85) !important;
   border-color: var(--ds-orange, #FF6B2B) !important;
-  box-shadow: var(--ds-shadow-md) !important;
-  transform: translateX(2px) translateY(-1px) !important;
+  box-shadow: 0 12px 40px 0 rgba(255, 107, 43, 0.08), 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
+  transform: translateY(-2px) translateX(2px) !important;
 }
