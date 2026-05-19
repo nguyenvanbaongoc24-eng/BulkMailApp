@@ -85,21 +85,46 @@ User input: "${rawPrompt}"`;
         .replace(/police|investigator/gi, 'financial auditor')
         .replace(/nsfw|nude|blood|violence/gi, 'professional business');
         
-    safePrompt += ", professional, highly detailed, photorealistic, 8k resolution, cinematic lighting";
+    // Keep prompt SHORT for Pollinations URL (long prompts cause slowness/timeouts)
+    safePrompt = safePrompt.substring(0, 200).trim();
+    safePrompt += ", professional, photorealistic, cinematic lighting";
     
     console.log('[AI IMAGE] Safe Prompt:', safePrompt);
+    console.log('[AI IMAGE] Prompt length:', safePrompt.length);
 
     let imageBuffer = null;
 
-    // Try Pollinations.ai (Flux) first as primary generator - extremely fast, reliable, beautiful, and free!
+    // Helper: validate that a buffer is actually a JPEG/PNG image, not HTML
+    function isValidImageBuffer(buf) {
+        if (!buf || buf.length < 100) return false;
+        // JPEG starts with FF D8
+        if (buf[0] === 0xFF && buf[1] === 0xD8) return true;
+        // PNG starts with 89 50 4E 47
+        if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
+        // Check if it's HTML (error page)
+        const head = Buffer.from(buf).toString('utf8', 0, 50);
+        if (head.includes('<!DOCTYPE') || head.includes('<html')) return false;
+        return true; // Unknown format but not HTML
+    }
+
+    // Try Pollinations.ai (Flux) first - free, no API key needed
     console.log('[AI IMAGE] Trying primary generator: Pollinations.ai (Flux)...');
     try {
         const seed = Math.floor(Math.random() * 1000000);
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
-        console.log(`[AI IMAGE] Pollinations URL: ${pollinationsUrl}`);
-        const pollRes = await axios.get(pollinationsUrl, { responseType: 'arraybuffer', timeout: 35000 });
-        imageBuffer = pollRes.data;
-        console.log('[AI IMAGE] Successfully generated image via Pollinations.ai (Primary)');
+        // Use 768x768 for faster generation (1024x1024 takes 50+ seconds)
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=768&height=768&seed=${seed}&nologo=true`;
+        console.log(`[AI IMAGE] Pollinations URL length: ${pollinationsUrl.length}`);
+        const pollRes = await axios.get(pollinationsUrl, { 
+            responseType: 'arraybuffer', 
+            timeout: 120000,  // 120s timeout - Pollinations can be slow on first request
+            maxRedirects: 5
+        });
+        if (isValidImageBuffer(pollRes.data)) {
+            imageBuffer = pollRes.data;
+            console.log('[AI IMAGE] Successfully generated image via Pollinations.ai (Primary). Size:', imageBuffer.length);
+        } else {
+            console.warn('[AI IMAGE] Pollinations returned non-image data (HTML?). Size:', pollRes.data.length);
+        }
     } catch (pollErr) {
         console.warn('[AI IMAGE] Pollinations primary failed, trying HuggingFace fallbacks... Error:', pollErr.message);
     }

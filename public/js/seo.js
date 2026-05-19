@@ -311,16 +311,17 @@ async function generateSEOImage() {
         
         // Create a new image to cache and bind load event
         const tempImg = new Image();
+        const isDataUri = data.image_url && data.image_url.startsWith('data:');
         
-        // Add timeout fallback - if image doesn't load in 45s, show error
+        // Add timeout fallback - if image doesn't load in 60s, show error
         const imgTimeout = setTimeout(() => {
             tempImg.src = ''; // Cancel loading
-            alert('Ảnh tải quá lâu (timeout). Dịch vụ AI (HuggingFace) có thể đang bận hoặc quá tải. Vui lòng thử lại sau ít phút.');
+            alert('Ảnh tải quá lâu (timeout). Dịch vụ AI có thể đang bận. Vui lòng thử lại sau ít phút.');
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
             loading.classList.add('hidden');
             placeholder.classList.remove('hidden');
-        }, 45000);
+        }, 60000);
         
         tempImg.onload = async () => {
             clearTimeout(imgTimeout);
@@ -344,17 +345,15 @@ async function generateSEOImage() {
         };
         tempImg.onerror = () => {
             clearTimeout(imgTimeout);
-            console.error('[AI Image] Image failed to load from URL:', data.image_url);
-            // Update loading text to show retry status
+            console.error('[AI Image] Primary load failed. URL type:', isDataUri ? 'data-uri' : 'remote');
             const loadingText = loading.querySelector('p');
             if (loadingText) loadingText.innerText = 'Ảnh không tải được, đang thử lại lần cuối...';
             
-            // Auto-retry once with a different seed
-            const retryUrl = data.image_url.replace(/seed=\d+/, `seed=${Math.floor(Math.random() * 999999)}`);
+            // Retry: if proxy failed, try direct URL; if direct failed, try proxy
             const retryImg = new Image();
             const retryTimeout = setTimeout(() => {
                 retryImg.src = '';
-                alert('Không thể tải ảnh từ Pollinations.ai sau nhiều lần thử. Vui lòng thử một prompt khác hoặc thử lại sau.');
+                alert('Không thể tải ảnh sau nhiều lần thử. Vui lòng thử prompt khác hoặc thử lại sau.');
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 loading.classList.add('hidden');
@@ -388,11 +387,26 @@ async function generateSEOImage() {
                 loading.classList.add('hidden');
                 placeholder.classList.remove('hidden');
             };
-            retryImg.crossOrigin = "anonymous";
-            retryImg.src = retryUrl; // Fallback to raw URL directly if proxy is not ready/fails
+            
+            if (isDataUri) {
+                // Data URI failed (shouldn't happen), no retry possible
+                retryImg.src = data.image_url;
+            } else {
+                // If proxy failed, try direct URL
+                retryImg.crossOrigin = "anonymous";
+                retryImg.src = data.image_url;
+            }
         };
-        tempImg.crossOrigin = "anonymous"; // Crucial for canvas
-        tempImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(data.image_url)}`;
+        
+        // Set image source based on URL type
+        if (isDataUri) {
+            // Base64 data URI: load directly, no proxy, no crossOrigin needed
+            tempImg.src = data.image_url;
+        } else {
+            // Remote URL: use proxy to bypass ISP DNS blocks and enable CORS for canvas
+            tempImg.crossOrigin = "anonymous";
+            tempImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(data.image_url)}`; 
+        }
         
     } catch (e) {
         alert('Lỗi gọi API vẽ ảnh: ' + e.message);
