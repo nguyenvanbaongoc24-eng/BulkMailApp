@@ -311,17 +311,17 @@ async function generateSEOImage() {
         
         // Create a new image to cache and bind load event
         const tempImg = new Image();
-        const isDataUri = data.image_url && data.image_url.startsWith('data:');
+        const isPollinations = data.image_url && data.image_url.includes('image.pollinations.ai');
         
-        // Add timeout fallback - if image doesn't load in 60s, show error
+        // Pollinations images can take 30-90s to generate on first request
         const imgTimeout = setTimeout(() => {
-            tempImg.src = ''; // Cancel loading
+            tempImg.src = '';
             alert('Ảnh tải quá lâu (timeout). Dịch vụ AI có thể đang bận. Vui lòng thử lại sau ít phút.');
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
             loading.classList.add('hidden');
             placeholder.classList.remove('hidden');
-        }, 60000);
+        }, 120000); // 120s timeout for Pollinations generation
         
         tempImg.onload = async () => {
             clearTimeout(imgTimeout);
@@ -331,7 +331,7 @@ async function generateSEOImage() {
                     imgEl.src = watermarkedBase64;
                 } catch (err) {
                     console.error('Lỗi chèn logo:', err);
-                    imgEl.src = tempImg.src; // fallback to original
+                    imgEl.src = tempImg.src;
                 }
             } else {
                 imgEl.src = tempImg.src;
@@ -341,24 +341,27 @@ async function generateSEOImage() {
             preview.classList.add('flex');
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            isSEOPostsLoaded = false; // force reload next time
+            isSEOPostsLoaded = false;
         };
         tempImg.onerror = () => {
             clearTimeout(imgTimeout);
-            console.error('[AI Image] Primary load failed. URL type:', isDataUri ? 'data-uri' : 'remote');
+            console.error('[AI Image] Failed to load:', data.image_url?.substring(0, 80));
             const loadingText = loading.querySelector('p');
-            if (loadingText) loadingText.innerText = 'Ảnh không tải được, đang thử lại lần cuối...';
+            if (loadingText) loadingText.innerText = 'Ảnh không tải được, đang thử lại với seed khác...';
             
-            // Retry: if proxy failed, try direct URL; if direct failed, try proxy
+            // Retry with different seed
             const retryImg = new Image();
+            const retrySeed = Math.floor(Math.random() * 999999);
+            const retryUrl = data.image_url.replace(/seed=\d+/, `seed=${retrySeed}`);
+            
             const retryTimeout = setTimeout(() => {
                 retryImg.src = '';
-                alert('Không thể tải ảnh sau nhiều lần thử. Vui lòng thử prompt khác hoặc thử lại sau.');
+                alert('Không thể tải ảnh sau nhiều lần thử. Vui lòng thử lại sau.');
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 loading.classList.add('hidden');
                 placeholder.classList.remove('hidden');
-            }, 30000);
+            }, 90000);
             
             retryImg.onload = async () => {
                 clearTimeout(retryTimeout);
@@ -381,32 +384,21 @@ async function generateSEOImage() {
             };
             retryImg.onerror = () => {
                 clearTimeout(retryTimeout);
-                alert('Không thể tải ảnh từ dịch vụ AI. Nguyên nhân có thể do prompt chứa từ nhạy cảm hoặc bộ phận xử lý đang quá tải.\n\nGợi ý:\n• Thử mô tả bằng tiếng Anh\n• Dùng mô tả đơn giản hơn\n• Đợi vài phút rồi thử lại');
+                alert('Không thể tải ảnh từ dịch vụ AI.\n\nGợi ý:\n• Thử mô tả bằng tiếng Anh\n• Dùng mô tả đơn giản hơn\n• Đợi vài phút rồi thử lại');
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 loading.classList.add('hidden');
                 placeholder.classList.remove('hidden');
             };
-            
-            if (isDataUri) {
-                // Data URI failed (shouldn't happen), no retry possible
-                retryImg.src = data.image_url;
-            } else {
-                // If proxy failed, try direct URL
-                retryImg.crossOrigin = "anonymous";
-                retryImg.src = data.image_url;
-            }
+            // Pollinations has CORS: * so crossOrigin works
+            retryImg.crossOrigin = "anonymous";
+            retryImg.src = retryUrl;
         };
         
-        // Set image source based on URL type
-        if (isDataUri) {
-            // Base64 data URI: load directly, no proxy, no crossOrigin needed
-            tempImg.src = data.image_url;
-        } else {
-            // Remote URL: use proxy to bypass ISP DNS blocks and enable CORS for canvas
-            tempImg.crossOrigin = "anonymous";
-            tempImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(data.image_url)}`; 
-        }
+        // Load image directly from Pollinations (CORS: * enabled)
+        // No proxy needed - Pollinations CDN on Cloudflare serves worldwide
+        tempImg.crossOrigin = "anonymous";
+        tempImg.src = data.image_url;
         
     } catch (e) {
         alert('Lỗi gọi API vẽ ảnh: ' + e.message);

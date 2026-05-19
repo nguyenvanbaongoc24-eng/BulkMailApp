@@ -39,201 +39,70 @@ Yêu cầu:
 }
 
 async function generateImageUrl(rawPrompt, supabaseAdmin, userId) {
-    if (!process.env.HUGGINGFACE_API_KEY) {
-        throw new Error('HUGGINGFACE_API_KEY không được định cấu hình trong .env');
-    }
-
+    // Step 1: Refine prompt with Groq AI (fast, < 2 seconds)
     let refinedPrompt = rawPrompt;
     try {
         if (process.env.GROQ_API_KEY) {
             console.log('[AI IMAGE] Refining prompt with Groq...');
             const refinementPrompt = `You are a professional AI image prompt engineer. 
-Transform the user's raw input into a SHORT, highly descriptive, visual English prompt for an AI image generator.
+Transform the user's raw input into a SHORT (max 15 words), highly descriptive, visual English prompt for an AI image generator.
 Rules:
-1. Output ONLY the refined English prompt. No explanations.
+1. Output ONLY the refined English prompt. No explanations, no quotes.
 2. Translate from Vietnamese to English if needed.
-3. Focus on a high-quality, professional, photorealistic, or editorial illustration style.
-4. If the input is about accounting/tax, make the image professional, modern, and trustworthy.
+3. Focus on professional, clean, modern editorial illustration style.
+4. Keep it VERY SHORT - max 15 words.
 
-User input: "${rawPrompt}"`;
+User input: "${rawPrompt.substring(0, 300)}"`;
 
             const response = await axios.post(GROQ_API_URL, {
                 model: 'llama-3.3-70b-versatile',
                 messages: [{ role: 'user', content: refinementPrompt }],
                 temperature: 0.6,
-                max_tokens: 150
+                max_tokens: 60
             }, {
                 headers: {
                     'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                timeout: 10000
             });
 
             refinedPrompt = response.data.choices[0].message.content.trim();
-            refinedPrompt = refinedPrompt.replace(/^(Refined prompt:|Prompt:|"|')/gi, '').replace(/("|')$/g, '').trim();
+            refinedPrompt = refinedPrompt.replace(/^(Refined prompt:|Prompt:|Here is|"|')/gi, '').replace(/("|')$/g, '').trim();
+            console.log('[AI IMAGE] Groq refined prompt:', refinedPrompt);
         }
     } catch (e) {
         console.warn('[AI IMAGE] Groq refinement failed, using raw. Error:', e.message);
     }
 
-    // SANITIZER: Replace risky words with safe alternatives
-    let safePrompt = refinedPrompt.toLowerCase()
-        .replace(/tax audit investigation/gi, 'professional tax consulting illustration')
+    // Step 2: Sanitize prompt
+    let safePrompt = refinedPrompt
+        .replace(/[#*_~`>]/g, '')  // Remove Markdown
+        .replace(/\n+/g, ' ')
+        .replace(/tax audit investigation/gi, 'professional tax consulting')
         .replace(/fraud/gi, 'financial compliance')
         .replace(/evasion/gi, 'strategy')
         .replace(/crime|prison|jail|arrest/gi, 'legal documentation')
         .replace(/police|investigator/gi, 'financial auditor')
         .replace(/nsfw|nude|blood|violence/gi, 'professional business');
-        
-    // Keep prompt SHORT for Pollinations URL (long prompts cause slowness/timeouts)
-    safePrompt = safePrompt.substring(0, 200).trim();
-    safePrompt += ", professional, photorealistic, cinematic lighting";
     
-    console.log('[AI IMAGE] Safe Prompt:', safePrompt);
-    console.log('[AI IMAGE] Prompt length:', safePrompt.length);
+    // Keep prompt SHORT - critical for Pollinations performance
+    safePrompt = safePrompt.substring(0, 150).trim();
+    if (!safePrompt) safePrompt = 'professional business office illustration';
+    
+    console.log('[AI IMAGE] Final prompt:', safePrompt, '(length:', safePrompt.length, ')');
 
-    let imageBuffer = null;
-
-    // Helper: validate that a buffer is actually a JPEG/PNG image, not HTML
-    function isValidImageBuffer(buf) {
-        if (!buf || buf.length < 100) return false;
-        // JPEG starts with FF D8
-        if (buf[0] === 0xFF && buf[1] === 0xD8) return true;
-        // PNG starts with 89 50 4E 47
-        if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
-        // Check if it's HTML (error page)
-        const head = Buffer.from(buf).toString('utf8', 0, 50);
-        if (head.includes('<!DOCTYPE') || head.includes('<html')) return false;
-        return true; // Unknown format but not HTML
-    }
-
-    // Try Pollinations.ai (Flux) first - free, no API key needed
-    console.log('[AI IMAGE] Trying primary generator: Pollinations.ai (Flux)...');
-    try {
-        const seed = Math.floor(Math.random() * 1000000);
-        // Use 768x768 for faster generation (1024x1024 takes 50+ seconds)
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=768&height=768&seed=${seed}&nologo=true`;
-        console.log(`[AI IMAGE] Pollinations URL length: ${pollinationsUrl.length}`);
-        const pollRes = await axios.get(pollinationsUrl, { 
-            responseType: 'arraybuffer', 
-            timeout: 120000,  // 120s timeout - Pollinations can be slow on first request
-            maxRedirects: 5
-        });
-        if (isValidImageBuffer(pollRes.data)) {
-            imageBuffer = pollRes.data;
-            console.log('[AI IMAGE] Successfully generated image via Pollinations.ai (Primary). Size:', imageBuffer.length);
-        } else {
-            console.warn('[AI IMAGE] Pollinations returned non-image data (HTML?). Size:', pollRes.data.length);
-        }
-    } catch (pollErr) {
-        console.warn('[AI IMAGE] Pollinations primary failed, trying HuggingFace fallbacks... Error:', pollErr.message);
-    }
-
-    if (!imageBuffer) {
-        const models = [
-            'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
-            'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
-            'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1'
-        ];
-
-        for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
-            const modelUrl = models[modelIdx];
-            console.log(`[AI IMAGE] Tying model: ${modelUrl}`);
-            
-            let success = false;
-            // Retry logic: up to 3 times
-            for (let attempt = 1; attempt <= 3; attempt++) {
-                console.log(`[IMAGE_GENERATION_START] Requesting HuggingFace API (Attempt ${attempt}/3)...`);
-                try {
-                    const hfRes = await axios.post(modelUrl, { inputs: safePrompt }, {
-                        headers: {
-                            'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        responseType: 'arraybuffer',
-                        timeout: 60000 // 60s timeout
-                    });
-
-                    imageBuffer = hfRes.data;
-                    success = true;
-                    break; // Break retry loop on success
-                } catch (err) {
-                    console.error(`[IMAGE_GENERATION_RETRY] Attempt ${attempt} failed on model ${modelIdx}. Error:`, err.message);
-                    
-                    // Handle 503 Model Loading
-                    if (err.response && err.response.status === 503) {
-                        console.log('[AI IMAGE] Model is loading... Waiting 20 seconds before retry.');
-                        await new Promise(resolve => setTimeout(resolve, 20000));
-                    } else if (err.response && err.response.data) {
-                        try {
-                            const errBody = JSON.parse(err.response.data.toString());
-                            console.error('[AI IMAGE] HF API Error:', errBody);
-                            if (errBody.error && errBody.error.toLowerCase().includes('nsfw')) {
-                                console.error('[IMAGE_GENERATION_FAILED] Unsafe content detected by HF.');
-                            }
-                        } catch (e) {} // Not JSON
-                        // Wait 5s for normal retries
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                    } else {
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                    }
-                }
-            }
-            
-            if (success) {
-                console.log(`[AI IMAGE] Successfully generated image from model ${modelUrl}`);
-                break; // Break model loop on success
-            }
-        }
-    }
-
-    if (!imageBuffer && process.env.DEEPAI_API_KEY) {
-        console.log('[AI IMAGE] HuggingFace models failed. Trying fallback: DeepAI...');
-        try {
-            const formData = new URLSearchParams();
-            formData.append('text', safePrompt);
-            
-            const deepRes = await axios.post('https://api.deepai.org/api/text2img', formData, {
-                headers: { 'api-key': process.env.DEEPAI_API_KEY },
-                timeout: 30000
-            });
-            
-            if (deepRes.data && deepRes.data.output_url) {
-                console.log('[AI IMAGE] DeepAI generated output URL:', deepRes.data.output_url);
-                const imgFetch = await axios.get(deepRes.data.output_url, { responseType: 'arraybuffer' });
-                imageBuffer = imgFetch.data;
-                console.log('[AI IMAGE] Successfully generated image via DeepAI Fallback');
-            }
-        } catch (deepErr) {
-            console.error('[AI IMAGE] DeepAI fallback failed:', deepErr.message);
-        }
-    }
-
-    if (!imageBuffer) {
-        throw new Error('Tất cả các dịch vụ vẽ ảnh AI đều đang bận (Pollinations, HuggingFace & DeepAI). Vui lòng thử lại sau.');
-    }
-
-    // Upload to Supabase Storage
-    console.log('[AI IMAGE] Uploading to Supabase Storage (seo-images)...');
-    const bucketName = 'seo-images';
-    const fileName = `${userId}/${Date.now()}_hf_image.jpg`;
-
-    // Try to create bucket just in case (ignore error if it exists)
-    await supabaseAdmin.storage.createBucket(bucketName, { public: true });
-
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from(bucketName)
-        .upload(fileName, imageBuffer, { contentType: 'image/jpeg', upsert: true });
-
-    if (uploadError) {
-        // Fallback: If bucket creation failed (due to constraints) and upload failed, use base64
-        console.warn('[AI IMAGE] Upload to Supabase failed, falling back to base64 Data URI. Error:', uploadError.message);
-        const base64Str = Buffer.from(imageBuffer, 'binary').toString('base64');
-        return `data:image/jpeg;base64,${base64Str}`;
-    }
-
-    const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fileName);
-    return publicUrl;
+    // Step 3: Return direct Pollinations URL (browser will load it directly)
+    // This approach is 100% reliable because:
+    // - No server-side download (eliminates Render Free Tier timeout)
+    // - No Supabase upload needed
+    // - Pollinations sends Access-Control-Allow-Origin: * (canvas watermarking works)
+    // - Pollinations CDN is on Cloudflare (fast worldwide, not blocked by ISPs)
+    const seed = Math.floor(Math.random() * 1000000);
+    const directUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=768&height=768&seed=${seed}&nologo=true`;
+    
+    console.log('[AI IMAGE] Returning direct Pollinations URL for browser-side loading');
+    return directUrl;
 }
 
 async function crawlTaxNews(supabaseAdmin) {
