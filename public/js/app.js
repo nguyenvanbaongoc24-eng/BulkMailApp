@@ -2912,9 +2912,7 @@ function renderCA2CRM() {
         const isPaid = c.payment_status === 'paid';
         const paymentLabel = isPaid ? 'Đã thanh toán' : 'Chưa thanh toán';
         const nextPaymentStatus = isPaid ? 'unpaid' : 'paid';
-        const paymentBadgeClass = isPaid 
-            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40' 
-            : 'bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/40';
+        const paymentBadgeClass = isPaid ? 'badge-paid' : 'badge-unpaid';
 
         const normalizedSvc = normalizeText(c.service_type || '');
         const showBadge = normalizedSvc.includes('cks') || 
@@ -2925,9 +2923,9 @@ function renderCA2CRM() {
 
         // Ensure all types use the same editCRM handler
         return `
-            <div class="crm-row p-4 md:p-5 rounded-[24px] border ${isExpired ? 'border-red-500/20 bg-red-500/5' : 'border-white/5 bg-white/2 hover:border-orange-500/20'} flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-4 relative group" 
+            <div class="crm-row ${isExpired ? 'crm-row-expired' : 'crm-row-active'} p-4 md:p-5 rounded-[24px] border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all cursor-pointer mb-4 relative group" 
                  onclick="editCRM('${c.id}')" 
-                 style="backdrop-filter: blur(16px); pointer-events: auto !important; z-index: 10;">
+                 style="pointer-events: auto !important; z-index: 10;">
                 
                 <!-- Subtle Gradient Glow -->
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-all rounded-[24px]" style="pointer-events: none;"></div>
@@ -2956,19 +2954,19 @@ function renderCA2CRM() {
                 <!-- Right: Status Badges & Actions -->
                 <div class="flex flex-wrap items-center md:justify-end gap-3 md:gap-6 relative z-[5]">
                     <!-- Combined Status Group -->
-                    <div class="flex items-center gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5 shadow-inner pointer-events-auto">
+                    <div class="flex items-center gap-2 status-badge-group p-1.5 rounded-2xl shadow-inner pointer-events-auto">
                         <!-- Payment Status Badge -->
                         <div onclick="event.stopPropagation(); updatePaymentStatus('${c.id}', '${nextPaymentStatus}')" 
                              class="justify-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${paymentBadgeClass} shadow-lg flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer"
                              style="width: 180px; flex-shrink: 0;"
                              title="Click để đổi trạng thái thanh toán">
-                            <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPaid ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}"></div>
+                            <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPaid ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}"></div>
                             <span class="truncate whitespace-nowrap">${paymentLabel}</span>
                         </div>
 
                         <!-- Expiry Status Badge -->
                         ${showBadge ? `
-                        <div class="justify-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20' : (daysLeft <= 60 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20')} shadow-lg flex items-center gap-2.5"
+                        <div class="justify-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isExpired ? 'badge-expired' : (daysLeft <= 60 ? 'badge-expiring' : 'badge-days-ok')} shadow-lg flex items-center gap-2.5"
                              style="width: 160px; flex-shrink: 0;">
                             <i class="fas ${isExpired ? 'fa-calendar-times' : 'fa-hourglass-half'}"></i>
                             <span class="truncate whitespace-nowrap">${statusLabel}</span>

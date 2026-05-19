@@ -36,17 +36,17 @@
         }
 
         .light-mode {
-            --bg-color: #f8fafc;
-            --sidebar-bg: #ffffff;
-            --text-main: #1e293b; /* Dark Slate for better reading */
-            --text-muted: #64748b;
+            --bg-color: #E8EAF2; /* Premium Slate background to pop white cards */
+            --sidebar-bg: #111318; /* Persistent dark sidebar */
+            --text-main: #0F1225; /* Highly readable deep navy text */
+            --text-muted: #4B5280;
             --glass-bg: #ffffff;
-            --glass-border: rgba(0, 0, 0, 0.06);
+            --glass-border: rgba(99, 102, 141, 0.16);
             --input-bg: #ffffff;
-            --input-border: rgba(0, 0, 0, 0.1);
-            --input-text: #0f172a;
-            --brand-orange: #ea580c;
-            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --input-border: rgba(99, 102, 141, 0.2);
+            --input-text: #0F1225;
+            --brand-orange: #FF6B2B;
+            --card-shadow: 0 4px 20px rgba(30, 40, 90, 0.08);
         }
 
         body { 
@@ -178,17 +178,6 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
-        }
-        .light-mode aside {
-            border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
-        }
-        .light-mode aside nav a:not(.sidebar-item-active) {
-            color: #334155 !important;
-            font-weight: 600 !important;
-        }
-        .light-mode aside nav a:not(.sidebar-item-active):hover {
-            background: rgba(0, 0, 0, 0.03) !important;
-            color: #0f172a !important;
         }
         .light-mode .card-glow:hover {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
@@ -785,7 +774,7 @@
                     </div>
 
                     <!-- Date Range Filter Group (SaaS Premium) -->
-                    <div class="flex items-center gap-6 bg-[#0f172a]/80 backdrop-blur-2xl px-3 py-2 rounded-[24px] border border-[rgba(255,255,255,0.08)] shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all">
+                    <div class="flex items-center gap-6 premium-filter-bar px-3 py-2 rounded-[24px] transition-all">
                         <div class="relative flex-1 group cursor-pointer overflow-hidden rounded-[20px]" id="crm-date-range-wrapper">
                             <div class="flex items-center justify-between px-4 py-2 bg-transparent border-0 outline-none w-full min-w-[280px]">
                                 <div class="flex flex-col">
@@ -797,7 +786,7 @@
                                         <i id="crm-date-clear-btn" class="fas fa-times-circle text-gray-400 hover:text-white cursor-pointer ml-2 hidden transition-all duration-200" title="Xóa bộ lọc" style="position:relative; z-index: 10;"></i>
                                     </div>
                                 </div>
-                                <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-orange-500 group-hover:bg-orange-500/10 group-hover:scale-105 transition-all">
+                                <div class="w-10 h-10 rounded-full premium-filter-icon-btn flex items-center justify-center text-orange-500 group-hover:bg-orange-500/10 group-hover:scale-105 transition-all">
                                     <i class="far fa-calendar-alt"></i>
                                 </div>
                             </div>
@@ -808,8 +797,8 @@
                             <input type="hidden" id="crm-filter-to-date">
                         </div>
                         
-                        <div class="w-px h-10 bg-white/10 mx-1"></div>
-
+                        <div class="w-px h-10 premium-filter-separator mx-1"></div>
+ 
                         <button onclick="renderCA2CRM()" class="bg-gradient-to-br from-orange-500 to-orange-600 text-white px-8 py-3.5 rounded-[18px] text-xs font-black shadow-lg shadow-orange-900/40 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-4 mr-1">
                             <i class="fas fa-filter text-[10px]"></i>
                             Lọc dữ liệu
@@ -1602,48 +1591,6 @@
             </div>
 
 
-            <!-- Modal Edit Post -->
-            <div id="modal-seo-edit" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 hidden">
-                <div class="modal-premium w-full max-w-5xl h-[85vh] flex flex-col rounded-[40px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10">
-                    <!-- Header -->
-                    <div class="p-6 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-orange-500/10 to-transparent relative">
-                        <div class="flex items-center gap-6">
-                            <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white text-xl shadow-lg shadow-orange-900/30">
-                                <i class="fas fa-pen-nib"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-black tracking-tight text-white mb-1" id="seo-modal-title">Nội dung bài viết</h3>
-                                <p class="text-[10px] text-orange-400 font-bold uppercase tracking-widest" id="seo-modal-subtitle">Markdown Format</p>
-                            </div>
-                        </div>
-                        <button onclick="closeSEOModal()" class="w-10 h-10 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 rounded-2xl transition-all flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
-                    </div>
-                    
-                    <!-- Content -->
-                    <div class="flex-1 bg-black/40 overflow-hidden relative">
-                        <!-- Raw Markdown Textarea -->
-                        <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-6 bg-transparent text-sm font-medium text-gray-200 resize-none leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
-                    </div>
-                    
-                    <!-- Footer -->
-                    <div class="p-6 border-t border-white/5 flex justify-between gap-6 bg-white/5">
-                        <div class="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest gap-4">
-                            <i class="fas fa-info-circle"></i> Bạn có thể copy toàn bộ nội dung để dán vào Web.
-                        </div>
-                        <div class="flex gap-4">
-                            <button onclick="closeSEOModal()" class="px-8 py-3 rounded-[16px] bg-white/10 font-bold hover:bg-white/20 transition-all text-sm">Đóng</button>
-                            <button onclick="generateImageFromArticleContent()" class="px-8 py-3 rounded-[16px] bg-blue-600 hover:bg-blue-500 font-black text-white shadow-xl shadow-blue-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-4 items-center">
-                                <i class="fas fa-magic"></i>
-                                Tạo Prompt & Vẽ ảnh
-                            </button>
-                            <button onclick="copySEOContent()" class="px-8 py-3 rounded-[16px] bg-orange-gradient font-black text-white shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-4 items-center">
-                                <i class="fas fa-copy"></i>
-                                Copy Toàn bộ
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
 
         <!-- Settings: Pricing Management View (NEW) -->
@@ -1712,7 +1659,7 @@
         </div>
 
         <!-- Modal: Add/Edit Pricing Item -->
-        <div id="modal-pricing-crud" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-6 hidden">
+        <div id="modal-pricing-crud" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-6 hidden">
             <div class="modal-premium w-full max-w-2xl rounded-[40px] overflow-hidden border border-white/10">
                 <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/2">
                     <div class="flex items-center gap-6">
@@ -1891,7 +1838,7 @@
 
 
     <!-- Modal Create Campaign -->
-    <div id="modal-create" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-50 overflow-y-auto">
+    <div id="modal-create" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-[9999] overflow-y-auto">
         <div class="min-h-screen flex items-center justify-center p-6">
             <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-7xl p-6 shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-orange-600/10 blur-[100px] -z-10 rounded-full"></div>
@@ -2090,7 +2037,7 @@
     </div>
 
     <!-- Modal Edit Sender -->
-    <div id="modal-edit-sender" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-50 overflow-y-auto">
+    <div id="modal-edit-sender" class="fixed inset-0 bg-[#050510]/95 backdrop-blur-xl hidden z-[9999] overflow-y-auto">
         <div class="min-h-screen flex items-center justify-center p-6">
             <div class="bg-[#0a0a1a] border border-white/10 rounded-[48px] w-full max-w-4xl p-6 shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-[200px] h-[200px] bg-orange-600/10 blur-[80px] -z-10 rounded-full"></div>
@@ -2148,7 +2095,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
     <!-- Modal: Add/Edit CA2 CRM -->
-    <div id="modal-ca2-crm" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+    <div id="modal-ca2-crm" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
         <div class="modal-premium w-full max-w-[1100px] rounded-[24px] overflow-hidden animate-in zoom-in duration-300">
             <div class="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-orange-500/10 to-transparent">
                 <div>
@@ -2298,7 +2245,7 @@
     </div>
 
     <!-- Modal: CRM Import Options -->
-    <div id="modal-crm-import" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[60] hidden flex items-center justify-center p-6">
+    <div id="modal-crm-import" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[9999] hidden flex items-center justify-center p-6">
         <div class="bg-[#050510] border border-white/10 w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div class="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-white/2">
                 <div>
@@ -2342,7 +2289,7 @@
     </div>
 
     <!-- Modal: Account Switcher -->
-    <div id="modal-account-switcher" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-6" style="display:none;">
+    <div id="modal-account-switcher" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] hidden items-center justify-center p-6" style="display:none;">
         <div class="modal-premium w-full max-w-[420px] rounded-[32px] overflow-hidden" style="animation: switcherFadeIn 0.3s ease-out;">
             <!-- Header -->
             <div class="p-6 pb-6 border-b border-white/5 relative bg-gradient-to-br from-blue-600/15 via-indigo-500/10 to-transparent">
@@ -2408,7 +2355,7 @@
     </style>
 
     <!-- Session Timeout Warning Modal -->
-    <div id="modal-session-timeout" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <div id="modal-session-timeout" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
         <div class="modal-premium w-full max-w-sm rounded-[30px] overflow-hidden animate-in zoom-in duration-300">
             <div class="p-6 text-center space-y-6">
                 <div class="w-20 h-20 bg-orange-500/20 rounded-full mx-auto flex items-center justify-center text-4xl text-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.3)] animate-pulse">
@@ -2432,7 +2379,7 @@
     </div>
 
     <!-- Create Quotation Modal (Modular) -->
-    <div id="modal-quotation" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <div id="modal-quotation" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
         <div class="modal-premium w-full max-w-[1280px] h-[90vh] rounded-[40px] overflow-hidden animate-in fade-in scale-in duration-300 flex flex-col">
             <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/2">
                 <div>
@@ -2657,7 +2604,7 @@
     </div>
 
     <!-- Upload Document Modal -->
-    <div id="modal-upload-doc" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <div id="modal-upload-doc" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
         <div class="modal-premium w-full max-w-lg rounded-[40px] overflow-hidden animate-in zoom-in duration-300">
             <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
@@ -2869,5 +2816,48 @@
             }
         }, 1000);
     </script>
+
+    <!-- Modal Edit Post (Moved to Root) -->
+    <div id="modal-seo-edit" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000004] flex items-center justify-center p-6 hidden">
+        <div class="modal-premium w-full max-w-5xl h-[85vh] flex flex-col rounded-[40px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10">
+            <!-- Header -->
+            <div class="p-6 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-orange-500/10 to-transparent relative">
+                <div class="flex items-center gap-6">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-gradient flex items-center justify-center text-white text-xl shadow-lg shadow-orange-900/30">
+                        <i class="fas fa-pen-nib"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black tracking-tight text-white mb-1" id="seo-modal-title">Nội dung bài viết</h3>
+                        <p class="text-[10px] text-orange-400 font-bold uppercase tracking-widest" id="seo-modal-subtitle">Markdown Format</p>
+                    </div>
+                </div>
+                <button onclick="closeSEOModal()" class="w-10 h-10 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 rounded-2xl transition-all flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
+            </div>
+            
+            <!-- Content -->
+            <div class="flex-1 bg-black/40 overflow-hidden relative">
+                <!-- Raw Markdown Textarea -->
+                <textarea id="seo-modal-content" class="absolute inset-0 w-full h-full border-0 outline-none p-6 bg-transparent text-sm font-medium text-gray-200 resize-none leading-relaxed custom-scrollbar tracking-wide" placeholder="..." readonly></textarea>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-6 border-t border-white/5 flex justify-between gap-6 bg-white/5">
+                <div class="flex items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest gap-4">
+                    <i class="fas fa-info-circle"></i> Bạn có thể copy toàn bộ nội dung để dán vào Web.
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="closeSEOModal()" class="px-8 py-3 rounded-[16px] bg-white/10 font-bold hover:bg-white/20 transition-all text-sm">Đóng</button>
+                    <button onclick="generateImageFromArticleContent()" class="px-8 py-3 rounded-[16px] bg-blue-600 hover:bg-blue-500 font-black text-white shadow-xl shadow-blue-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-4 items-center">
+                        <i class="fas fa-magic"></i>
+                        Tạo Prompt & Vẽ ảnh
+                    </button>
+                    <button onclick="copySEOContent()" class="px-8 py-3 rounded-[16px] bg-orange-gradient font-black text-white shadow-xl shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all text-sm flex gap-4 items-center">
+                        <i class="fas fa-copy"></i>
+                        Copy Toàn bộ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -3278,18 +3278,18 @@ button:hover, .item:hover {
 }
 
 /* Số stat */
-.stat-number {
+.stat-number, .stat-value {
   font-size: 32px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: var(--ds-text);
+  color: var(--ds-text) !important;
 }
 
-.stat-number.danger  { color: var(--status-danger, var(--ds-red)); }
-.stat-number.warning { color: var(--status-warning, var(--ds-amber)); }
-.stat-number.info    { color: var(--status-info, var(--ds-blue)); }
-.stat-number.success { color: var(--status-success, var(--ds-green)); }
+.stat-number.danger, .stat-value.text-red-400 { color: var(--status-danger, var(--ds-red)) !important; }
+.stat-number.warning, .stat-value.text-orange-400 { color: var(--status-warning, var(--ds-amber)) !important; }
+.stat-number.info, .stat-value.text-blue-400 { color: var(--status-info, var(--ds-blue)) !important; }
+.stat-number.success, .stat-value.text-green-400 { color: var(--status-success, var(--ds-green)) !important; }
 
 /* ==========================================================
    20. LIGHT THEME — DASHBOARD HERO STATS
@@ -3708,4 +3708,76 @@ button:hover, .item:hover {
 
 .light-mode tbody td {
   color: var(--ds-text-secondary);
+}
+
+/* ─── Premium Filter Bar (Date Filter Group) ─── */
+.premium-filter-bar {
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.light-mode .premium-filter-bar {
+  background: var(--ds-surface, #ffffff) !important;
+  border: 1px solid var(--ds-border, rgba(99,102,141,0.16)) !important;
+  box-shadow: var(--ds-shadow-md, 0 8px 32px rgba(30,40,90,0.08)) !important;
+}
+
+.premium-filter-separator {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.light-mode .premium-filter-separator {
+  background: rgba(99, 102, 141, 0.16) !important;
+}
+
+.premium-filter-icon-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.light-mode .premium-filter-icon-btn {
+  background: rgba(99, 102, 141, 0.08) !important;
+  border: 1px solid rgba(99, 102, 141, 0.12) !important;
+}
+
+.light-mode #crm-date-clear-btn:hover {
+  color: #0F1225 !important;
+}
+
+/* ─── Stat Label legibility in Light Mode ─── */
+.light-mode .stat-label {
+  color: var(--ds-text-secondary, #4B5280) !important;
+  opacity: 0.85 !important;
+}
+
+/* ─── Status Badge Group inside Customer Rows ─── */
+.status-badge-group {
+  background: rgba(0, 0, 0, 0.20) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.light-mode .status-badge-group {
+  background: rgba(232, 234, 242, 0.6) !important;
+  border: 1px solid var(--ds-border) !important;
+}
+
+/* ─── Customer CRM Row ─── */
+.crm-row {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.22s var(--ds-ease-spring) !important;
+}
+
+.light-mode .crm-row {
+  background: var(--ds-surface, #ffffff) !important;
+  border-color: var(--ds-border, rgba(99,102,141,0.16)) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.light-mode .crm-row:hover {
+  border-color: var(--ds-orange, #FF6B2B) !important;
+  box-shadow: var(--ds-shadow-md) !important;
+  transform: translateX(2px) translateY(-1px) !important;
 }

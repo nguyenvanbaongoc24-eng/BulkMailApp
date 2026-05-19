@@ -89,61 +89,76 @@ User input: "${rawPrompt}"`;
     
     console.log('[AI IMAGE] Safe Prompt:', safePrompt);
 
-    const models = [
-        'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
-        'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
-        'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1'
-    ];
-
     let imageBuffer = null;
 
-    for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
-        const modelUrl = models[modelIdx];
-        console.log(`[AI IMAGE] Tying model: ${modelUrl}`);
-        
-        let success = false;
-        // Retry logic: up to 3 times
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            console.log(`[IMAGE_GENERATION_START] Requesting HuggingFace API (Attempt ${attempt}/3)...`);
-            try {
-                const hfRes = await axios.post(modelUrl, { inputs: safePrompt }, {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    responseType: 'arraybuffer',
-                    timeout: 60000 // 60s timeout
-                });
+    // Try Pollinations.ai (Flux) first as primary generator - extremely fast, reliable, beautiful, and free!
+    console.log('[AI IMAGE] Trying primary generator: Pollinations.ai (Flux)...');
+    try {
+        const seed = Math.floor(Math.random() * 1000000);
+        const pollinationsUrl = `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
+        console.log(`[AI IMAGE] Pollinations URL: ${pollinationsUrl}`);
+        const pollRes = await axios.get(pollinationsUrl, { responseType: 'arraybuffer', timeout: 35000 });
+        imageBuffer = pollRes.data;
+        console.log('[AI IMAGE] Successfully generated image via Pollinations.ai (Primary)');
+    } catch (pollErr) {
+        console.warn('[AI IMAGE] Pollinations primary failed, trying HuggingFace fallbacks... Error:', pollErr.message);
+    }
 
-                imageBuffer = hfRes.data;
-                success = true;
-                break; // Break retry loop on success
-            } catch (err) {
-                console.error(`[IMAGE_GENERATION_RETRY] Attempt ${attempt} failed on model ${modelIdx}. Error:`, err.message);
-                
-                // Handle 503 Model Loading
-                if (err.response && err.response.status === 503) {
-                    console.log('[AI IMAGE] Model is loading... Waiting 20 seconds before retry.');
-                    await new Promise(resolve => setTimeout(resolve, 20000));
-                } else if (err.response && err.response.data) {
-                    try {
-                        const errBody = JSON.parse(err.response.data.toString());
-                        console.error('[AI IMAGE] HF API Error:', errBody);
-                        if (errBody.error && errBody.error.toLowerCase().includes('nsfw')) {
-                            console.error('[IMAGE_GENERATION_FAILED] Unsafe content detected by HF.');
-                        }
-                    } catch (e) {} // Not JSON
-                    // Wait 5s for normal retries
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                } else {
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+    if (!imageBuffer) {
+        const models = [
+            'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
+            'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
+            'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1'
+        ];
+
+        for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
+            const modelUrl = models[modelIdx];
+            console.log(`[AI IMAGE] Tying model: ${modelUrl}`);
+            
+            let success = false;
+            // Retry logic: up to 3 times
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                console.log(`[IMAGE_GENERATION_START] Requesting HuggingFace API (Attempt ${attempt}/3)...`);
+                try {
+                    const hfRes = await axios.post(modelUrl, { inputs: safePrompt }, {
+                        headers: {
+                            'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        responseType: 'arraybuffer',
+                        timeout: 60000 // 60s timeout
+                    });
+
+                    imageBuffer = hfRes.data;
+                    success = true;
+                    break; // Break retry loop on success
+                } catch (err) {
+                    console.error(`[IMAGE_GENERATION_RETRY] Attempt ${attempt} failed on model ${modelIdx}. Error:`, err.message);
+                    
+                    // Handle 503 Model Loading
+                    if (err.response && err.response.status === 503) {
+                        console.log('[AI IMAGE] Model is loading... Waiting 20 seconds before retry.');
+                        await new Promise(resolve => setTimeout(resolve, 20000));
+                    } else if (err.response && err.response.data) {
+                        try {
+                            const errBody = JSON.parse(err.response.data.toString());
+                            console.error('[AI IMAGE] HF API Error:', errBody);
+                            if (errBody.error && errBody.error.toLowerCase().includes('nsfw')) {
+                                console.error('[IMAGE_GENERATION_FAILED] Unsafe content detected by HF.');
+                            }
+                        } catch (e) {} // Not JSON
+                        // Wait 5s for normal retries
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    }
                 }
             }
-        }
-        
-        if (success) {
-            console.log(`[AI IMAGE] Successfully generated image from model ${modelUrl}`);
-            break; // Break model loop on success
+            
+            if (success) {
+                console.log(`[AI IMAGE] Successfully generated image from model ${modelUrl}`);
+                break; // Break model loop on success
+            }
         }
     }
 
@@ -170,17 +185,7 @@ User input: "${rawPrompt}"`;
     }
 
     if (!imageBuffer) {
-        console.log('[AI IMAGE] Previous models failed. Trying final fallback: Pollinations (Flux)...');
-        try {
-            const seed = Math.floor(Math.random() * 1000000);
-            const pollinationsUrl = `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
-            const pollRes = await axios.get(pollinationsUrl, { responseType: 'arraybuffer', timeout: 40000 });
-            imageBuffer = pollRes.data;
-            console.log('[AI IMAGE] Successfully generated image via Pollinations.ai Fallback');
-        } catch (pollErr) {
-            console.error('[AI IMAGE] Pollinations fallback also failed:', pollErr.message);
-            throw new Error('Tất cả các dịch vụ vẽ ảnh AI đều đang bận (HuggingFace, DeepAI & Pollinations). Vui lòng thử lại sau.');
-        }
+        throw new Error('Tất cả các dịch vụ vẽ ảnh AI đều đang bận (Pollinations, HuggingFace & DeepAI). Vui lòng thử lại sau.');
     }
 
     // Upload to Supabase Storage

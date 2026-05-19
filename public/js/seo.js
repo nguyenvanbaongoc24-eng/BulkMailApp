@@ -3,6 +3,10 @@ let isSEONewsLoaded = false;
 let isSEOPostsLoaded = false;
 let g_seoPosts = {};
 
+// Expose functions called by app.js showPage to prevent ReferenceErrors
+window.loadTaxNews = function() { loadSEONews(); };
+window.loadMySavedPosts = function() { loadSEOPosts(); };
+
 // Hook into app.js showPage using a more robust method
 (function() {
     const checkPage = (pageId) => {
@@ -385,10 +389,10 @@ async function generateSEOImage() {
                 placeholder.classList.remove('hidden');
             };
             retryImg.crossOrigin = "anonymous";
-            retryImg.src = retryUrl;
+            retryImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(retryUrl)}`;
         };
         tempImg.crossOrigin = "anonymous"; // Crucial for canvas
-        tempImg.src = data.image_url;
+        tempImg.src = `/api/seo/proxy-image?url=${encodeURIComponent(data.image_url)}`;
         
     } catch (e) {
         alert('Lỗi gọi API vẽ ảnh: ' + e.message);
@@ -480,12 +484,13 @@ async function loadSEOPosts() {
                 let html = '';
                 data.images.forEach((img, idx) => {
                     const delay = idx * 50;
+                    const proxiedUrl = `/api/seo/proxy-image?url=${encodeURIComponent(img.image_url)}`;
                     html += `
                         <div class="rounded-3xl border border-white/5 flex flex-col bg-white/5 group relative hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/20 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4" style="animation-delay: ${delay}ms; animation-fill-mode: both;">
-                            <img src="${img.image_url}" class="w-full h-48 object-cover rounded-t-3xl" />
+                            <img src="${proxiedUrl}" class="w-full h-48 object-cover rounded-t-3xl" />
                             <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 rounded-3xl">
                                 <p class="text-[10px] text-white/80 line-clamp-3 mb-4 font-medium leading-relaxed">${img.prompt}</p>
-                                <a href="${img.image_url}" download target="_blank" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors">
+                                <a href="${proxiedUrl}" download target="_blank" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors">
                                     <i class="fas fa-download mr-1"></i> Full HD
                                 </a>
                             </div>

@@ -2654,6 +2654,25 @@ app.post('/api/seo/generate-image', authenticate, async (req, res) => {
 });
 
 
+app.get('/api/seo/proxy-image', async (req, res) => {
+    try {
+        const { url } = req.query;
+        if (!url) return res.status(400).send('Missing url parameter');
+
+        console.log('[IMAGE_PROXY] Fetching URL:', url);
+        const imgRes = await axios.get(url, { responseType: 'arraybuffer', timeout: 25000 });
+
+        res.set('Content-Type', imgRes.headers['content-type'] || 'image/jpeg');
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Cache-Control', 'public, max-age=86400');
+        res.send(imgRes.data);
+    } catch (e) {
+        console.error('[IMAGE_PROXY_ERROR]:', e.message);
+        res.status(500).send(e.message);
+    }
+});
+
+
 app.get('/api/seo/posts', authenticate, async (req, res) => {
     try {
         const { data: posts, error: error1 } = await supabase
