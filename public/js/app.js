@@ -196,7 +196,8 @@ function setSelectValueSmart(id, value, fallback = '') {
         const fuzzy = [...select.options].find(opt => {
             const optionValue = normalizeText(repairVietnameseText(opt.value));
             const optionLabel = normalizeText(repairVietnameseText(opt.textContent));
-            return optionValue === normalizedCandidate || optionLabel === normalizedCandidate;
+            const rawName = normalizeText(opt.dataset.rawName || '');
+            return optionValue === normalizedCandidate || optionLabel === normalizedCandidate || (rawName && rawName === normalizedCandidate);
         });
 
         if (fuzzy) {
@@ -3243,8 +3244,11 @@ function updateCRMPackages() {
     itemsToDisplay.forEach(p => {
         const opt = document.createElement('option');
         const durationLabel = inferDurationFromPackage(serviceVal, `${p.duration_months || ''} thang ${p.package_name || ''}`);
-        opt.value = repairVietnameseText(p.package_name);
-        opt.textContent = `${repairVietnameseText(p.package_name)} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}\u0111`;
+        const rawPackageName = repairVietnameseText(p.package_name);
+        const formattedName = `${rawPackageName} - ${new Intl.NumberFormat('vi-VN').format(p.price || 0)}\u0111`;
+        opt.value = formattedName;
+        opt.textContent = formattedName;
+        opt.dataset.rawName = rawPackageName;
         opt.dataset.price = String(p.price || 0);
         opt.dataset.durationLabel = durationLabel;
         opt.dataset.durationMonths = String(p.duration_months || '');
