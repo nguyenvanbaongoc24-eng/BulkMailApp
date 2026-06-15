@@ -41,3 +41,6 @@ CREATE POLICY "Allow anon delete certificates" ON storage.objects
 -- 6. VERIFY
 SELECT column_name, data_type FROM information_schema.columns
 WHERE table_name = 'certificates' ORDER BY ordinal_position;
+
+-- 7. CHO PHÉP THÊM NHIỀU DỊCH VỤ TRÙNG NHAU CHO MỘT KHÁCH HÀNG
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_mst_user_service_key;

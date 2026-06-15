@@ -1259,7 +1259,7 @@ async function saveCA2CRM() {
             const err = await res.json();
             const errMsg = err.error || 'Unknown error';
             if (errMsg.includes('duplicate key value violates unique constraint')) {
-                alert('Lỗi: Khách hàng này đã có dịch vụ này trong hệ thống. Vui lòng chọn sản phẩm/dịch vụ khác.');
+                alert('Lỗi: Ràng buộc cơ sở dữ liệu ngăn chặn việc này. Vui lòng chạy lệnh SQL để bỏ chặn (ALTER TABLE customers DROP CONSTRAINT customers_mst_user_service_key;).');
             } else {
                 alert('Lỗi: ' + errMsg);
             }
