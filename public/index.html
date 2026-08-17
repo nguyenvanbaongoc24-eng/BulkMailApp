@@ -866,6 +866,12 @@
                                 <div class="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-white/20 to-emerald-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                                 <i class="fas fa-chart-bar"></i> B&#225;o c&#225;o tháng
                             </button>
+
+                            <!-- Báo cáo tuần Button -->
+                            <button onclick="openWeeklyReportModal()" class="group relative px-6 py-2.5 bg-blue-500/10 text-blue-400 font-bold text-[0.85rem] rounded-[999px] border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all shadow-[0_4px_15px_rgba(59,130,246,0.1)] hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:-translate-y-[1px] active:scale-[0.97] flex items-center gap-4 overflow-hidden h-[42px] backdrop-blur-md">
+                                <div class="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/20 to-blue-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                                <i class="fas fa-calendar-week"></i> B&#225;o c&#225;o tuần
+                            </button>
                         </div>
 
                         <!-- Search & Actions -->
@@ -2638,6 +2644,8 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/docx@9.1.1/build/index.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="js/premium-datepicker.js?v=1.0.0"></script>
     <script src="js/pricingEngine.js"></script>
     <script src="js/pricing-management.js?v=1.1.0"></script>
@@ -2645,6 +2653,7 @@
     <script src="js/app.js?v=1.3.3"></script>
     <script src="js/seo.js?v=1.1.0"></script>
     <script src="js/premium-ui.js?v=2.0.3"></script>
+    <script src="js/weekly-report.js?v=1.0.0"></script>
     <!-- Modal: Add Pricing Package (Redesigned) -->
     <div id="modal-add-pricing" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000003] flex items-center justify-center p-6 hidden">
         <div class="modal-premium w-full max-w-xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in duration-200">
@@ -2859,5 +2868,146 @@
             </div>
         </div>
     </div>
+    <!-- Modal: Weekly Report (Báo cáo tuần) -->
+    <div id="modal-weekly-report" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000005] flex items-center justify-center p-4 hidden" onclick="if(event.target===this)closeWeeklyReportModal()">
+        <div class="modal-premium w-full max-w-3xl max-h-[92vh] rounded-[32px] overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in duration-200 flex flex-col" style="background: var(--glass-bg); backdrop-filter: blur(40px);">
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-white/5 bg-gradient-to-r from-blue-500/10 to-transparent flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center">
+                        <i class="fas fa-calendar-week text-blue-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-white tracking-tight">Báo cáo tuần</h3>
+                        <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Weekly Report</p>
+                    </div>
+                </div>
+                <button onclick="closeWeeklyReportModal()" class="w-10 h-10 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-500 rounded-2xl transition-all flex items-center justify-center">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body (scrollable) -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-8 py-6 space-y-6">
+
+                <!-- Date Range -->
+                <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+                    <label class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-3 block">Tuần báo cáo</label>
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 mb-1 block">Từ ngày</label>
+                            <input type="date" id="wr-from-date" onchange="calculateAndFillWeeklyRevenue()" class="w-full bg-black/40 border border-white/10 focus:border-blue-500/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all" />
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-600 text-xs mt-5"></i>
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 mb-1 block">Đến ngày</label>
+                            <input type="date" id="wr-to-date" onchange="calculateAndFillWeeklyRevenue()" class="w-full bg-black/40 border border-white/10 focus:border-blue-500/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 1: Công việc hoạt động trong tuần -->
+                <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center text-xs font-black">1</span>
+                        <h4 class="text-sm font-black text-white">Công việc hoạt động trong tuần</h4>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Số lượng gọi khách hàng</label>
+                            <input type="number" id="wr-call-count" min="0" placeholder="VD: 7" class="w-full bg-black/40 border border-white/10 focus:border-orange-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-2 block">Các công việc làm trong tuần</label>
+                            <div id="wr-work-list"></div>
+                            <button type="button" onclick="addWorkItem('wr-work-list')" class="mt-2 text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-2 transition-all hover:translate-x-1">
+                                <i class="fas fa-plus-circle"></i> Thêm công việc
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Kết quả đạt được -->
+                <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-7 h-7 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center text-xs font-black">2</span>
+                        <h4 class="text-sm font-black text-white">Kết quả đạt được</h4>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Doanh thu đạt được <span class="text-green-400">(tự động tính từ CRM)</span></label>
+                            <div class="relative">
+                                <input type="text" id="wr-revenue" readonly data-raw="0" class="w-full bg-green-500/5 border border-green-500/20 rounded-xl px-4 py-2.5 text-sm text-green-400 font-black outline-none cursor-default" />
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-green-500/60 font-bold">VNĐ</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Đánh giá kết quả xếp loại so chỉ tiêu tuần trước</label>
+                            <input type="text" id="wr-evaluation" placeholder="VD: Chưa hoàn thành" class="w-full bg-black/40 border border-white/10 focus:border-green-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Thuận lợi</label>
+                            <textarea id="wr-advantages" rows="2" placeholder="VD: Có nhiều thời gian để sắp xếp lại công việc" class="w-full bg-black/40 border border-white/10 focus:border-green-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all resize-none"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Khó khăn</label>
+                            <textarea id="wr-difficulties" rows="2" placeholder="VD: Đã hết kỳ kê khai nên nhu cầu mua và cấp CKS cũng giảm đi rõ rệt" class="w-full bg-black/40 border border-white/10 focus:border-green-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: Kế hoạch tuần tới -->
+                <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-black">3</span>
+                        <h4 class="text-sm font-black text-white">Kế hoạch tuần tới</h4>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Số lượng gọi khách hàng</label>
+                            <input type="number" id="wr-next-call-count" min="0" placeholder="VD: 10" class="w-full bg-black/40 border border-white/10 focus:border-purple-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-2 block">Các công việc dự kiến tuần tới</label>
+                            <div id="wr-next-work-list"></div>
+                            <button type="button" onclick="addWorkItem('wr-next-work-list')" class="mt-2 text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-2 transition-all hover:translate-x-1">
+                                <i class="fas fa-plus-circle"></i> Thêm công việc
+                            </button>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Chỉ tiêu doanh thu</label>
+                            <input type="text" id="wr-revenue-target" placeholder="VD: 15.000.000" class="w-full bg-black/40 border border-white/10 focus:border-purple-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: Đề xuất, kiến nghị -->
+                <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-black">4</span>
+                        <h4 class="text-sm font-black text-white">Đề xuất, kiến nghị</h4>
+                    </div>
+                    <textarea id="wr-suggestions" rows="3" placeholder="Nhập đề xuất, kiến nghị..." class="w-full bg-black/40 border border-white/10 focus:border-amber-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all resize-none"></textarea>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-5 border-t border-white/5 flex items-center justify-between gap-4 flex-shrink-0 bg-white/[0.02]">
+                <div class="flex items-center text-[10px] text-gray-500 font-bold uppercase tracking-widest gap-2">
+                    <i class="fas fa-info-circle"></i> Doanh thu tự động tính từ dữ liệu CRM
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeWeeklyReportModal()" class="px-6 py-3 rounded-2xl bg-white/10 font-bold hover:bg-white/20 transition-all text-sm text-gray-300">
+                        Đóng
+                    </button>
+                    <button onclick="exportWeeklyReportToWord()" class="px-8 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 font-black text-white shadow-xl shadow-blue-900/40 hover:shadow-blue-500/50 hover:scale-[1.02] active:scale-95 transition-all text-sm flex items-center gap-3">
+                        <i class="fas fa-file-word"></i> Xuất Word
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
