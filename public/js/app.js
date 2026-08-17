@@ -22,6 +22,7 @@ let currentSenderData = [];
 let currentEmailLogs = [];
 let selectedUploadFile = null;
 let currentCRMTab = 'active'; // 'active' or 'expired'
+let currentCRMSubFilter = 'all'; // 'all', 'active', 'expiring'
 let currentCRMSort = { field: 'created_at', order: 'desc' }; // Default sorting
 let _mojibakeObserver = null;
 
@@ -871,7 +872,42 @@ async function loadCA2CRMData() {
 
 function switchCRMTab(tab) {
     currentCRMTab = tab;
+    currentCRMSubFilter = 'all';
     renderCA2CRM();
+}
+
+window.filterCRMByStat = function(statType) {
+    if (statType === 'expired') {
+        currentCRMTab = 'expired';
+        currentCRMSubFilter = 'all';
+    } else {
+        currentCRMTab = 'active';
+        currentCRMSubFilter = statType;
+    }
+    renderCA2CRM();
+};
+
+function updateStatCardsActiveState() {
+    const cards = {
+        'all': document.getElementById('card-stat-total'),
+        'active': document.getElementById('card-stat-active'),
+        'expiring': document.getElementById('card-stat-expiring'),
+        'expired': document.getElementById('card-stat-expired')
+    };
+    Object.values(cards).forEach(card => {
+        if (card) card.classList.remove('active-total', 'active-active', 'active-expiring', 'active-expired');
+    });
+    if (currentCRMTab === 'expired') {
+        if (cards['expired']) cards['expired'].classList.add('active-expired');
+    } else {
+        if (currentCRMSubFilter === 'active' && cards['active']) {
+            cards['active'].classList.add('active-active');
+        } else if (currentCRMSubFilter === 'expiring' && cards['expiring']) {
+            cards['expiring'].classList.add('active-expiring');
+        } else if (cards['all']) {
+            cards['all'].classList.add('active-total');
+        }
+    }
 }
 
 function handleCRMSort(field) {
@@ -2809,6 +2845,22 @@ function renderCA2CRM() {
     const listContainer = document.getElementById('ca2-crm-list');
     if (!listContainer) return;
 
+    // Sync tab button styles
+    const activeTabBtn = document.getElementById('tab-crm-active');
+    const expiredTabBtn = document.getElementById('tab-crm-expired');
+    if (activeTabBtn && expiredTabBtn) {
+        if (currentCRMTab === 'active') {
+            activeTabBtn.className = 'px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-4 bg-white/10 text-white';
+            expiredTabBtn.className = 'px-8 py-3 rounded-xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-4 bg-transparent';
+        } else {
+            activeTabBtn.className = 'px-8 py-3 rounded-xl font-black text-xs text-gray-500 hover:text-white transition-all flex items-center gap-4 bg-transparent';
+            expiredTabBtn.className = 'px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-4 bg-white/10 text-white';
+        }
+    }
+
+    // Sync stat cards active state
+    if (typeof updateStatCardsActiveState === 'function') updateStatCardsActiveState();
+
     const filterType = document.getElementById('crm-filter-service').value;
     const filterYear = document.getElementById('crm-filter-year')?.value || 'all';
     const filterMonth = document.getElementById('crm-filter-month')?.value || 'all';
@@ -2870,6 +2922,18 @@ function renderCA2CRM() {
         ? calculateRemainingDays(c.expired_date) >= 0
         : calculateRemainingDays(c.expired_date) < 0
     );
+
+    // Apply sub-filter from stat card clicks
+    if (currentCRMTab === 'active' && currentCRMSubFilter !== 'all') {
+        if (currentCRMSubFilter === 'active') {
+            filtered = filtered.filter(c => calculateRemainingDays(c.expired_date) > 60);
+        } else if (currentCRMSubFilter === 'expiring') {
+            filtered = filtered.filter(c => {
+                const days = calculateRemainingDays(c.expired_date);
+                return days >= 0 && days <= 60;
+            });
+        }
+    }
 
     const totalEl = document.getElementById('ca2-crm-total');
     const activeEl = document.getElementById('ca2-crm-active');

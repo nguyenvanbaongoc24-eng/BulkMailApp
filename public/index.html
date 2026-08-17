@@ -407,6 +407,28 @@
             margin-top: 0 !important;
             padding-top: 20px !important;
         }
+
+        /* CRM stat-cards active glows */
+        .stat-card.active-total {
+            border-color: rgba(59, 130, 246, 0.4) !important;
+            background: rgba(59, 130, 246, 0.05) !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.1) !important;
+        }
+        .stat-card.active-active {
+            border-color: rgba(34, 197, 94, 0.4) !important;
+            background: rgba(34, 197, 94, 0.05) !important;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.1) !important;
+        }
+        .stat-card.active-expiring {
+            border-color: rgba(249, 115, 22, 0.4) !important;
+            background: rgba(249, 115, 22, 0.05) !important;
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.1) !important;
+        }
+        .stat-card.active-expired {
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            background: rgba(239, 68, 68, 0.05) !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.1) !important;
+        }
     </style>
 </head>
 <body class="bg-dark-purple">
@@ -741,19 +763,19 @@
                 </div>
 
                 <div class="stats-row">
-                    <div class="stat-card">
+                    <div class="stat-card" id="card-stat-total" onclick="filterCRMByStat('all')" style="cursor: pointer;">
                         <div class="stat-value" id="ca2-crm-total">0</div>
                         <div class="stat-label">Tổng khách hàng</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" id="card-stat-active" onclick="filterCRMByStat('active')" style="cursor: pointer;">
                         <div class="stat-value text-green-400" id="ca2-crm-active">0</div>
                         <div class="stat-label">Đang hoạt động</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" id="card-stat-expiring" onclick="filterCRMByStat('expiring')" style="cursor: pointer;">
                         <div class="stat-value text-orange-400" id="ca2-crm-expiring">0</div>
                         <div class="stat-label">Sắp hết hạn</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" id="card-stat-expired" onclick="filterCRMByStat('expired')" style="cursor: pointer;">
                         <div class="stat-value text-red-400" id="ca2-crm-expired">0</div>
                         <div class="stat-label">Đã hết hạn</div>
                     </div>
