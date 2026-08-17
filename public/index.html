@@ -807,91 +807,81 @@
                 </div>
 
                 <div class="card section">
-                    <div class="px-6 pt-6 pb-2 border-b border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-                        <!-- Filters Group -->
-                        <div class="flex flex-wrap items-center gap-6 w-full xl:w-auto">
+                    <div class="px-6 py-4 border-b border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent flex flex-wrap items-center justify-between gap-4">
+                        <!-- Left Group: Filters & Reports -->
+                        <div class="flex flex-wrap items-center gap-3">
                             <!-- Service Filter -->
-                            <div class="w-full sm:w-auto">
-                                <select id="crm-filter-service" onchange="loadCA2CRMData()" data-icon="fas fa-layer-group text-orange-500">
-                                    <option value="all">Tất cả dịch vụ</option>
-                                    <option value="CKS">Chữ ký số (CKS)</option>
-                                    <option value="HDDT">H.Đơn Đ.Tử (HDDT)</option>
-                                    <option value="EBH">Bảo hiểm (EBH)</option>
-                                    <option value="HOA_DON">Hóa đơn (Khác)</option>
-                                </select>
-                            </div>
+                            <select id="crm-filter-service" onchange="loadCA2CRMData()" data-icon="fas fa-cube text-orange-500">
+                                <option value="all">Tất cả dịch vụ</option>
+                                <option value="CKS">Chữ ký số (CKS)</option>
+                                <option value="HDDT">H.Đơn Đ.Tử (HDDT)</option>
+                                <option value="EBH">Bảo hiểm (EBH)</option>
+                                <option value="HOA_DON">Hóa đơn (Khác)</option>
+                            </select>
 
                             <!-- Sort Filter -->
-                            <div class="w-full sm:w-auto">
-                                <select id="ca2-crm-sort-order" onchange="renderCA2CRM()" data-icon="fas fa-sort-amount-down text-blue-400">
-                                    <option value="newest">Mới nhất</option>
-                                    <option value="soonest">Hạn gần nhất</option>
-                                    <option value="latest">Hạn xa nhất</option>
-                                </select>
-                            </div>
+                            <select id="ca2-crm-sort-order" onchange="renderCA2CRM()" data-icon="fas fa-sort-amount-down text-blue-400">
+                                <option value="newest">Mới nhất</option>
+                                <option value="soonest">Hạn gần nhất</option>
+                                <option value="latest">Hạn xa nhất</option>
+                            </select>
 
-                            <!-- Vertical Divider -->
-                            <div class="hidden xl:block w-px h-8 bg-white/10 mx-1"></div>
+                            <!-- Year Filter -->
+                            <select id="crm-filter-year" onchange="renderCA2CRM()" data-icon="far fa-calendar text-gray-400">
+                                <option value="all">Tất cả năm</option>
+                                <option value="2024">Năm 2024</option>
+                                <option value="2025">Năm 2025</option>
+                                <option value="2026">Năm 2026</option>
+                                <option value="2027">Năm 2027</option>
+                                <option value="2028">Năm 2028</option>
+                            </select>
 
-                            <!-- Date Range Group -->
-                            <div class="flex flex-wrap items-center gap-4">
-                                <select id="crm-filter-year" onchange="renderCA2CRM()" data-icon="far fa-calendar text-gray-400">
-                                    <option value="all">Tất cả năm</option>
-                                    <option value="2024">Năm 2024</option>
-                                    <option value="2025">Năm 2025</option>
-                                    <option value="2026">Năm 2026</option>
-                                    <option value="2027">Năm 2027</option>
-                                    <option value="2028">Năm 2028</option>
-                                </select>
-
-                                <select id="crm-filter-month" onchange="renderCA2CRM()" data-icon="far fa-calendar-alt text-gray-400">
-                                    <option value="all">Tất cả tháng</option>
-                                    <option value="1">Tháng 1</option>
-                                    <option value="2">Tháng 2</option>
-                                    <option value="3">Tháng 3</option>
-                                    <option value="4">Tháng 4</option>
-                                    <option value="5">Tháng 5</option>
-                                    <option value="6">Tháng 6</option>
-                                    <option value="7">Tháng 7</option>
-                                    <option value="8">Tháng 8</option>
-                                    <option value="9">Tháng 9</option>
-                                    <option value="10">Tháng 10</option>
-                                    <option value="11">Tháng 11</option>
-                                    <option value="12">Tháng 12</option>
-                                </select>
-                            </div>
+                            <!-- Month Filter -->
+                            <select id="crm-filter-month" onchange="renderCA2CRM()" data-icon="far fa-calendar-alt text-gray-400">
+                                <option value="all">Tất cả tháng</option>
+                                <option value="1">Tháng 1</option>
+                                <option value="2">Tháng 2</option>
+                                <option value="3">Tháng 3</option>
+                                <option value="4">Tháng 4</option>
+                                <option value="5">Tháng 5</option>
+                                <option value="6">Tháng 6</option>
+                                <option value="7">Tháng 7</option>
+                                <option value="8">Tháng 8</option>
+                                <option value="9">Tháng 9</option>
+                                <option value="10">Tháng 10</option>
+                                <option value="11">Tháng 11</option>
+                                <option value="12">Tháng 12</option>
+                            </select>
                             
-                            <!-- B&#225;o c&#225;o tháng Button -->
-                            <button onclick="exportMonthlyReport()" class="group relative px-6 py-2.5 bg-emerald-500/10 text-emerald-400 font-bold text-[0.85rem] rounded-[999px] border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all shadow-[0_4px_15px_rgba(16,185,129,0.1)] hover:shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] active:scale-[0.97] flex items-center gap-4 overflow-hidden h-[42px] backdrop-blur-md">
+                            <!-- Báo cáo tháng Button -->
+                            <button onclick="exportMonthlyReport()" class="group relative px-5 py-2 bg-emerald-500/10 text-emerald-400 font-bold text-xs rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all shadow-[0_4px_12px_rgba(16,185,129,0.1)] hover:shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:-translate-y-[1px] active:scale-[0.97] flex items-center gap-2 overflow-hidden h-[44px] backdrop-blur-md">
                                 <div class="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-white/20 to-emerald-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                                <i class="fas fa-chart-bar"></i> B&#225;o c&#225;o tháng
+                                <i class="fas fa-chart-bar text-[13px]"></i> Báo cáo tháng
                             </button>
 
                             <!-- Báo cáo tuần Button -->
-                            <button onclick="openWeeklyReportModal()" class="group relative px-6 py-2.5 bg-blue-500/10 text-blue-400 font-bold text-[0.85rem] rounded-[999px] border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all shadow-[0_4px_15px_rgba(59,130,246,0.1)] hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:-translate-y-[1px] active:scale-[0.97] flex items-center gap-4 overflow-hidden h-[42px] backdrop-blur-md">
+                            <button onclick="openWeeklyReportModal()" class="group relative px-5 py-2 bg-blue-500/10 text-blue-400 font-bold text-xs rounded-xl border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all shadow-[0_4px_12px_rgba(59,130,246,0.1)] hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:-translate-y-[1px] active:scale-[0.97] flex items-center gap-2 overflow-hidden h-[44px] backdrop-blur-md">
                                 <div class="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/20 to-blue-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                                <i class="fas fa-calendar-week"></i> B&#225;o c&#225;o tuần
+                                <i class="fas fa-calendar-week text-[13px]"></i> Báo cáo tuần
                             </button>
                         </div>
 
-                        <!-- Search & Actions -->
-                        <div class="flex flex-wrap items-center gap-6 w-full xl:w-auto mt-4 xl:mt-0">
+                        <!-- Right Group: Search & Actions -->
+                        <div class="flex flex-wrap items-center gap-3">
                             <!-- Search Input -->
-                            <div class="relative group w-full sm:w-64">
+                            <div class="relative group w-full sm:w-60">
                                 <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-500 group-focus-within:text-orange-500 transition-colors"></i>
                                 </div>
-                                <input type="text" id="ca2-crm-search" onkeyup="renderCA2CRM()" placeholder="Tìm MST hoặc Tên..." class="w-full pl-11 pr-4 h-[42px] bg-black/40 border border-white/10 focus:border-orange-500/50 rounded-xl text-xs text-white font-bold outline-none ring-0 placeholder:text-gray-600 shadow-inner transition-all">
+                                <input type="text" id="ca2-crm-search" onkeyup="renderCA2CRM()" placeholder="Tìm MST hoặc Tên..." class="w-full pl-11 pr-4 h-[44px] bg-black/40 border border-white/10 focus:border-orange-500/50 rounded-xl text-xs text-white font-bold outline-none ring-0 placeholder:text-gray-600 shadow-inner transition-all">
                             </div>
 
-                            <div class="flex items-center gap-4 w-full sm:w-auto">
-                                <button onclick="exportCA2CRMToExcel()" class="flex-1 sm:flex-none justify-center bg-white/5 text-green-400 px-5 h-[42px] rounded-xl font-bold border border-white/10 hover:border-green-500/50 hover:bg-green-500/10 transition-all text-xs flex items-center gap-4 shadow-lg">
-                                    <i class="fas fa-file-excel"></i> Xuất Excel
-                                </button>
-                                <button onclick="createCampaignFromCA2CRM()" class="flex-1 sm:flex-none justify-center bg-orange-gradient text-white px-5 h-[42px] rounded-xl font-bold shadow-lg shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all text-xs flex items-center gap-4">
-                                    <i class="fas fa-paper-plane text-[10px]"></i> Gửi Mail
-                                </button>
-                            </div>
+                            <button onclick="exportCA2CRMToExcel()" class="bg-white/5 text-green-400 px-5 h-[44px] rounded-xl font-bold border border-white/10 hover:border-green-500/50 hover:bg-green-500/10 transition-all text-xs flex items-center gap-2 shadow-lg">
+                                <i class="fas fa-file-excel text-[13px]"></i> Xuất Excel
+                            </button>
+                            <button onclick="createCampaignFromCA2CRM()" class="bg-orange-gradient text-white px-5 h-[44px] rounded-xl font-bold shadow-lg shadow-orange-900/40 hover:scale-105 active:scale-95 transition-all text-xs flex items-center gap-2">
+                                <i class="fas fa-paper-plane text-[11px]"></i> Gửi Mail
+                            </button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -2998,6 +2988,9 @@
                     <i class="fas fa-info-circle"></i> Doanh thu tự động tính từ dữ liệu CRM
                 </div>
                 <div class="flex gap-3">
+                    <button onclick="clearWeeklyReportDraft()" class="px-6 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold transition-all text-sm">
+                        Xóa nháp
+                    </button>
                     <button onclick="closeWeeklyReportModal()" class="px-6 py-3 rounded-2xl bg-white/10 font-bold hover:bg-white/20 transition-all text-sm text-gray-300">
                         Đóng
                     </button>

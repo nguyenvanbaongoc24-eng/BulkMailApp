@@ -15,33 +15,38 @@ function openWeeklyReportModal() {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // Auto-detect current week (Monday → Sunday)
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon...
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + diffToMonday);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
+    // Try to load draft first
+    const hasDraft = loadWeeklyReportDraft();
 
-    const fmt = (d) => d.toISOString().split('T')[0];
-    document.getElementById('wr-from-date').value = fmt(monday);
-    document.getElementById('wr-to-date').value = fmt(sunday);
+    if (!hasDraft) {
+        // Auto-detect current week (Monday → Sunday)
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon...
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + diffToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
 
-    // Reset form fields
-    document.getElementById('wr-call-count').value = '';
-    document.getElementById('wr-evaluation').value = '';
-    document.getElementById('wr-advantages').value = '';
-    document.getElementById('wr-difficulties').value = '';
-    document.getElementById('wr-next-call-count').value = '';
-    document.getElementById('wr-revenue-target').value = '';
-    document.getElementById('wr-suggestions').value = '';
+        const fmt = (d) => d.toISOString().split('T')[0];
+        document.getElementById('wr-from-date').value = fmt(monday);
+        document.getElementById('wr-to-date').value = fmt(sunday);
 
-    // Reset dynamic work items — keep 1 placeholder each
-    resetWorkItems('wr-work-list');
-    resetWorkItems('wr-next-work-list');
+        // Reset form fields
+        document.getElementById('wr-call-count').value = '';
+        document.getElementById('wr-evaluation').value = '';
+        document.getElementById('wr-advantages').value = '';
+        document.getElementById('wr-difficulties').value = '';
+        document.getElementById('wr-next-call-count').value = '';
+        document.getElementById('wr-revenue-target').value = '';
+        document.getElementById('wr-suggestions').value = '';
 
-    // Calculate revenue
+        // Reset dynamic work items — keep 1 placeholder each
+        resetWorkItems('wr-work-list');
+        resetWorkItems('wr-next-work-list');
+    }
+
+    // Always recalculate revenue
     calculateAndFillWeeklyRevenue();
 }
 
@@ -77,6 +82,7 @@ function addWorkItem(containerId) {
         </button>
     `;
     container.appendChild(row);
+    saveWeeklyReportDraft();
 }
 
 function removeWorkItem(btn) {
@@ -84,6 +90,7 @@ function removeWorkItem(btn) {
     const container = row.parentElement;
     if (container.children.length > 1) {
         row.remove();
+        saveWeeklyReportDraft();
     }
 }
 
@@ -381,3 +388,143 @@ async function exportWeeklyReportToWord() {
         }
     }
 }
+
+// ==========================================
+// DRAFT STORAGE (Save / Load / Clear)
+// ==========================================
+function saveWeeklyReportDraft() {
+    try {
+        const data = collectWeeklyReportData();
+        localStorage.setItem('ca2_weekly_report_draft', JSON.stringify(data));
+        console.log('[WeeklyReport] Draft saved automatically.');
+    } catch (e) {
+        console.error('[WeeklyReport] Error saving draft:', e);
+    }
+}
+
+function loadWeeklyReportDraft() {
+    try {
+        const draftStr = localStorage.getItem('ca2_weekly_report_draft');
+        if (!draftStr) return false;
+        
+        const data = JSON.parse(draftStr);
+        if (!data) return false;
+
+        if (data.fromDate) document.getElementById('wr-from-date').value = data.fromDate;
+        if (data.toDate) document.getElementById('wr-to-date').value = data.toDate;
+        if (data.callCount) document.getElementById('wr-call-count').value = data.callCount;
+        
+        // Restore work list
+        if (data.workItems && data.workItems.length > 0) {
+            const container = document.getElementById('wr-work-list');
+            if (container) {
+                container.innerHTML = '';
+                data.workItems.forEach(itemText => {
+                    const row = document.createElement('div');
+                    row.className = 'wr-work-row flex items-center gap-3 mb-2 animate-fade-in';
+                    row.innerHTML = `
+                        <span class="text-orange-400 font-bold text-xs select-none">+</span>
+                        <input type="text" placeholder="Nhập công việc..." value="${itemText.replace(/"/g, '&quot;')}" 
+                            class="flex-1 bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+                        <button type="button" onclick="removeWorkItem(this)" 
+                            class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center justify-center text-xs">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+        }
+
+        if (data.evaluation) document.getElementById('wr-evaluation').value = data.evaluation;
+        if (data.advantages) document.getElementById('wr-advantages').value = data.advantages;
+        if (data.difficulties) document.getElementById('wr-difficulties').value = data.difficulties;
+        if (data.nextCallCount) document.getElementById('wr-next-call-count').value = data.nextCallCount;
+        
+        // Restore next work list
+        if (data.nextWorkItems && data.nextWorkItems.length > 0) {
+            const container = document.getElementById('wr-next-work-list');
+            if (container) {
+                container.innerHTML = '';
+                data.nextWorkItems.forEach(itemText => {
+                    const row = document.createElement('div');
+                    row.className = 'wr-work-row flex items-center gap-3 mb-2 animate-fade-in';
+                    row.innerHTML = `
+                        <span class="text-orange-400 font-bold text-xs select-none">+</span>
+                        <input type="text" placeholder="Nhập công việc..." value="${itemText.replace(/"/g, '&quot;')}" 
+                            class="flex-1 bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+                        <button type="button" onclick="removeWorkItem(this)" 
+                            class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center justify-center text-xs">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+        }
+
+        if (data.revenueTarget) document.getElementById('wr-revenue-target').value = data.revenueTarget;
+        if (data.suggestions) document.getElementById('wr-suggestions').value = data.suggestions;
+
+        console.log('[WeeklyReport] Draft loaded successfully.');
+        return true;
+    } catch (e) {
+        console.error('[WeeklyReport] Error loading draft:', e);
+        return false;
+    }
+}
+
+function clearWeeklyReportDraft() {
+    if (confirm('Bạn có chắc chắn muốn xóa toàn bộ nội dung nháp đã nhập không?')) {
+        localStorage.removeItem('ca2_weekly_report_draft');
+        
+        // Reset to default
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + diffToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const fmt = (d) => d.toISOString().split('T')[0];
+        document.getElementById('wr-from-date').value = fmt(monday);
+        document.getElementById('wr-to-date').value = fmt(sunday);
+
+        document.getElementById('wr-call-count').value = '';
+        document.getElementById('wr-evaluation').value = '';
+        document.getElementById('wr-advantages').value = '';
+        document.getElementById('wr-difficulties').value = '';
+        document.getElementById('wr-next-call-count').value = '';
+        document.getElementById('wr-revenue-target').value = '';
+        document.getElementById('wr-suggestions').value = '';
+
+        resetWorkItems('wr-work-list');
+        resetWorkItems('wr-next-work-list');
+
+        calculateAndFillWeeklyRevenue();
+
+        if (typeof showToast === 'function') {
+            showToast('Đã xóa dữ liệu nháp', 'info');
+        }
+    }
+}
+
+function setupDraftAutoSave() {
+    const modal = document.getElementById('modal-weekly-report');
+    if (modal) {
+        modal.addEventListener('input', () => {
+            saveWeeklyReportDraft();
+        });
+        modal.addEventListener('change', () => {
+            saveWeeklyReportDraft();
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupDraftAutoSave);
+} else {
+    setupDraftAutoSave();
+}
+
