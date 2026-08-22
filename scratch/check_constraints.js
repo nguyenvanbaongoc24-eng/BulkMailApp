@@ -1,25 +1,24 @@
-const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-async function checkConstraints() {
-    console.log('Checking table constraints for customers...');
+async function check() {
+    // We can query the pg_constraint table via a custom function or we can just try to execute a raw query if there's a postgres endpoint, but Supabase doesn't expose raw SQL directly via the JS client unless through RPC.
+    // However, I can look at the error the user got. The error was "duplicate key value violates unique constraint".
+    // I can try inserting a duplicate to see the exact constraint name in the error message.
     
-    // We can query pg_indexes or information_schema via a RPC or direct query if possible,
-    // but since we only have normal query permissions, we can test inserting a duplicate MST with a different service.
-    // Let's query information about the table constraints if we have access, or try a dry run.
-    try {
-        const { data, error } = await supabase.rpc('get_table_constraints', { table_name: 'customers' });
-        if (error) {
-            console.log('RPC check failed (might not exist):', error.message);
-            // Alternative: let's query the supabase API or read setup_supabase.sql if we can find it
-        } else {
-            console.log('Constraints:', data);
-        }
-    } catch (e) {
-        console.error(e);
-    }
+    // Instead of querying constraint, let me try inserting a mock record twice.
+    const mockMst = '1201697826';
+    const mockService = 'Chữ ký số CA2 – Cấp mới';
+    const mockUser = 'test_user_id';
+    
+    // Actually, I can just create an SQL file for the user to run in Supabase SQL editor:
+    // ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_mst_service_type_key;
+    // Or similar.
+    
+    // Let's query the database to see what's in the setup_supabase.sql that might give a hint.
 }
 
-checkConstraints();
+check();
