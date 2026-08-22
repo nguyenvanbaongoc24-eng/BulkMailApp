@@ -1226,9 +1226,20 @@ function refreshPricingUI() {
 }
 
 function getCRMPrice(service, type, pkg) {
-    if (!service) return 0;
+    if (!pkg && !service) return 0;
     
-    // Ph\u1ea7n 3: Logic \u00c1p d\u1ee5ng
+    // 1. If pkg string contains formatted price e.g. "12 tháng - 1.793.880đ"
+    if (pkg && typeof pkg === 'string') {
+        const match = pkg.match(/-\s*([\d.,]+)\s*đ?/i);
+        if (match && match[1]) {
+            const parsed = parseInt(match[1].replace(/[.,]/g, ''), 10);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+    }
+
+    if (!service) return 0;
+
+    // 2. Exact match in CRM_PRICE_LIST
     const match = CRM_PRICE_LIST.find(p => 
         p.service_name === service && 
         (p.package_name === pkg || (p.package_name.includes(type) && p.package_name.includes(pkg)))
@@ -1239,7 +1250,7 @@ function getCRMPrice(service, type, pkg) {
     // Fallback search
     const results = CRM_PRICE_LIST.filter(p => p.service_name.includes(service));
     if (results.length > 0) {
-        const byPkg = results.find(p => p.package_name.includes(pkg) || p.duration_months == pkg.replace(/\D/g, ''));
+        const byPkg = results.find(p => p.package_name.includes(pkg) || (pkg && p.duration_months == pkg.replace(/\D/g, '')));
         if (byPkg) return byPkg.price;
     }
 

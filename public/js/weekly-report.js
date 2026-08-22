@@ -122,8 +122,45 @@ function parseLocalDate(str, isEnd = false) {
     return d;
 }
 
+// Helper: parse price from CRM record (package_name, amount, price, total)
+function extractCRMPrice(c) {
+    if (!c) return 0;
+
+    // 1. Extract from package_name string: e.g. "12 tháng - 1.793.880đ", "3 Năm - 1.100.000đ", "300 Số - 300.000đ", "10000 Số - 3.500.000đ"
+    if (c.package_name && typeof c.package_name === 'string') {
+        const match = c.package_name.match(/-\s*([\d.,]+)\s*đ?/i);
+        if (match && match[1]) {
+            const rawNum = match[1].replace(/[.,]/g, '');
+            const parsed = parseInt(rawNum, 10);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+    }
+
+    // 2. Extract from amount, price, total fields if present
+    if (c.amount) {
+        const parsed = parseInt(String(c.amount).replace(/\D/g, ''), 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    if (c.price) {
+        const parsed = parseInt(String(c.price).replace(/\D/g, ''), 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    if (c.total) {
+        const parsed = parseInt(String(c.total).replace(/\D/g, ''), 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+
+    // 3. Fallback: getCRMPrice
+    if (typeof getCRMPrice === 'function') {
+        const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration);
+        if (price && price > 0) return price;
+    }
+
+    return 0;
+}
+
 // ==========================================
-// REVENUE CALCULATION (Báo giá & CRM)
+// REVENUE CALCULATION (CRM & Báo giá)
 // ==========================================
 async function calculateAndFillWeeklyRevenue(isUserTriggered = false) {
     const fromStr = document.getElementById('wr-from-date')?.value;
@@ -137,67 +174,66 @@ async function calculateAndFillWeeklyRevenue(isUserTriggered = false) {
 
     let totalRevenue = 0;
     let matchCount = 0;
-    let quotations = [];
 
-    // 1. Fetch fresh quotations from API
+    // 1. Luôn tải dữ liệu CRM mới nhất
+    let crmData = window.currentCRMData || [];
     try {
-        const res = await authedFetch('/api/quotations');
-        if (res.ok) {
-            const data = await res.json();
-            quotations = Array.isArray(data) ? data : [];
-            if (window.quoteManagerInstance) {
-                window.quoteManagerInstance.state.quotations = quotations;
+        const resCRM = await authedFetch('/api/ca2-crm');
+        if (resCRM.ok) {
+            const { data } = await resCRM.json();
+            if (Array.isArray(data)) {
+                crmData = data.map(sanitizeCRMRecord);
+                window.currentCRMData = crmData;
             }
-        } else if (window.quoteManagerInstance?.state?.quotations) {
-            quotations = window.quoteManagerInstance.state.quotations;
         }
-    } catch (err) {
-        console.warn('[WeeklyReport] Failed to fetch quotations:', err);
-        quotations = window.quoteManagerInstance?.state?.quotations || [];
+    } catch (e) {
+        console.warn('[WeeklyReport] CRM fetch error:', e);
     }
 
-    // 2. Calculate revenue from quotations in date range
-    if (quotations && quotations.length > 0) {
-        quotations.forEach(q => {
-            const qDateStr = q.created_at || q.date;
-            if (!qDateStr) return;
-            const d = new Date(qDateStr);
+    // 2. Tính doanh thu từ dữ liệu CRM trong khoảng tuần đã chọn (start_date hoặc created_at)
+    if (crmData && crmData.length > 0) {
+        crmData.forEach(c => {
+            const dateStr = c.start_date || c.created_at;
+            if (!dateStr) return;
+            const d = new Date(dateStr);
             if (d >= fromDate && d <= toDate) {
-                let quoteTotal = 0;
-                if (q.items && Array.isArray(q.items) && q.items.length > 0) {
-                    quoteTotal = q.items.reduce((sum, it) => sum + (Number(it.total) || (Number(it.price) * (Number(it.quantity) || 1)) || 0), 0);
-                } else {
-                    quoteTotal = Number(q.total) || Number(q.price) || 0;
+                const price = extractCRMPrice(c);
+                if (price > 0) {
+                    totalRevenue += price;
+                    matchCount++;
                 }
-                totalRevenue += quoteTotal;
-                matchCount++;
             }
         });
     }
 
-    // 3. Fallback / supplementary: Calculate from CRM data if quotations total is 0
+    // 3. Bổ sung thêm từ Báo giá (Quotations) nếu có
     if (totalRevenue === 0) {
-        if (!window.currentCRMData || window.currentCRMData.length === 0) {
-            try {
-                const resCRM = await authedFetch('/api/ca2-crm');
-                if (resCRM.ok) {
-                    const { data } = await resCRM.json();
-                    window.currentCRMData = (data || []).map(sanitizeCRMRecord);
+        let quotations = window.quoteManagerInstance?.state?.quotations || [];
+        try {
+            const res = await authedFetch('/api/quotations');
+            if (res.ok) {
+                const data = await res.json();
+                quotations = Array.isArray(data) ? data : [];
+                if (window.quoteManagerInstance) {
+                    window.quoteManagerInstance.state.quotations = quotations;
                 }
-            } catch (e) {}
-        }
+            }
+        } catch (err) {}
 
-        if (window.currentCRMData && window.currentCRMData.length > 0) {
-            window.currentCRMData.forEach(c => {
-                if (!c.start_date && !c.created_at) return;
-                const d = new Date(c.start_date || c.created_at);
+        if (quotations && quotations.length > 0) {
+            quotations.forEach(q => {
+                const qDateStr = q.created_at || q.date;
+                if (!qDateStr) return;
+                const d = new Date(qDateStr);
                 if (d >= fromDate && d <= toDate) {
-                    const price = (typeof getCRMPrice === 'function') 
-                        ? getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) 
-                        : 0;
-                    const cPrice = price || Number(c.price) || Number(c.total) || 0;
-                    if (cPrice > 0) {
-                        totalRevenue += cPrice;
+                    let quoteTotal = 0;
+                    if (q.items && Array.isArray(q.items) && q.items.length > 0) {
+                        quoteTotal = q.items.reduce((sum, it) => sum + (Number(it.total) || (Number(it.price) * (Number(it.quantity) || 1)) || 0), 0);
+                    } else {
+                        quoteTotal = Number(q.total) || Number(q.price) || 0;
+                    }
+                    if (quoteTotal > 0) {
+                        totalRevenue += quoteTotal;
                         matchCount++;
                     }
                 }
@@ -216,7 +252,7 @@ async function calculateAndFillWeeklyRevenue(isUserTriggered = false) {
             revenueEl.value = '0';
             revenueEl.dataset.raw = 0;
             if (typeof showToast === 'function') {
-                showToast('Không có báo giá/giao dịch trong tuần này. Bạn có thể tự nhập số tiền.', 'info');
+                showToast('Không có giao dịch/báo giá trong tuần này. Bạn có thể tự nhập số tiền.', 'info');
             }
         }
     }
