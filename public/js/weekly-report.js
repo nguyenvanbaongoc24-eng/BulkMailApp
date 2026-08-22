@@ -9,7 +9,7 @@
 // ==========================================
 // MODAL OPEN / CLOSE
 // ==========================================
-function openWeeklyReportModal() {
+async function openWeeklyReportModal() {
     const modal = document.getElementById('modal-weekly-report');
     if (!modal) return;
     modal.classList.remove('hidden');
@@ -28,7 +28,12 @@ function openWeeklyReportModal() {
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
 
-        const fmt = (d) => d.toISOString().split('T')[0];
+        const fmt = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
         document.getElementById('wr-from-date').value = fmt(monday);
         document.getElementById('wr-to-date').value = fmt(sunday);
 
@@ -38,6 +43,7 @@ function openWeeklyReportModal() {
         document.getElementById('wr-advantages').value = '';
         document.getElementById('wr-difficulties').value = '';
         document.getElementById('wr-next-call-count').value = '';
+        document.getElementById('wr-revenue').value = '0';
         document.getElementById('wr-revenue-target').value = '';
         document.getElementById('wr-suggestions').value = '';
 
@@ -46,8 +52,8 @@ function openWeeklyReportModal() {
         resetWorkItems('wr-next-work-list');
     }
 
-    // Always recalculate revenue
-    calculateAndFillWeeklyRevenue();
+    // Always recalculate revenue from Báo giá (Quotations)
+    await calculateAndFillWeeklyRevenue();
 }
 
 function closeWeeklyReportModal() {
@@ -94,35 +100,89 @@ function removeWorkItem(btn) {
     }
 }
 
+// Helper: parse date to local date (start of day or end of day)
+function parseLocalDate(str, isEnd = false) {
+    if (!str) return null;
+    const parts = str.split('-');
+    if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        return isEnd ? new Date(year, month, day, 23, 59, 59, 999) : new Date(year, month, day, 0, 0, 0, 0);
+    }
+    const d = new Date(str);
+    if (isEnd) d.setHours(23, 59, 59, 999);
+    else d.setHours(0, 0, 0, 0);
+    return d;
+}
+
 // ==========================================
-// REVENUE CALCULATION
+// REVENUE CALCULATION (Báo giá & CRM)
 // ==========================================
-function calculateAndFillWeeklyRevenue() {
-    const fromStr = document.getElementById('wr-from-date').value;
-    const toStr = document.getElementById('wr-to-date').value;
+async function calculateAndFillWeeklyRevenue() {
+    const fromStr = document.getElementById('wr-from-date')?.value;
+    const toStr = document.getElementById('wr-to-date')?.value;
     const revenueEl = document.getElementById('wr-revenue');
 
     if (!fromStr || !toStr || !revenueEl) return;
 
-    const fromDate = new Date(fromStr);
-    const toDate = new Date(toStr);
-    // Set toDate to end of day
-    toDate.setHours(23, 59, 59, 999);
-
-    const allData = window.currentCRMData || [];
+    const fromDate = parseLocalDate(fromStr, false);
+    const toDate = parseLocalDate(toStr, true);
 
     let totalRevenue = 0;
-    allData.forEach(c => {
-        if (!c.start_date) return;
-        const d = new Date(c.start_date);
-        if (d >= fromDate && d <= toDate) {
-            const price = getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration);
-            totalRevenue += price || 0;
+    let quotations = window.quoteManagerInstance?.state?.quotations || [];
+
+    // 1. Fetch quotations if not already loaded
+    try {
+        if (!quotations || quotations.length === 0) {
+            const res = await authedFetch('/api/quotations');
+            if (res.ok) {
+                const data = await res.json();
+                quotations = Array.isArray(data) ? data : [];
+                if (window.quoteManagerInstance) {
+                    window.quoteManagerInstance.state.quotations = quotations;
+                }
+            }
         }
-    });
+    } catch (err) {
+        console.warn('[WeeklyReport] Failed to fetch quotations:', err);
+    }
+
+    // 2. Calculate revenue from quotations in date range
+    if (quotations && quotations.length > 0) {
+        quotations.forEach(q => {
+            const qDateStr = q.created_at || q.date;
+            if (!qDateStr) return;
+            const d = new Date(qDateStr);
+            if (d >= fromDate && d <= toDate) {
+                let quoteTotal = 0;
+                if (q.items && Array.isArray(q.items) && q.items.length > 0) {
+                    quoteTotal = q.items.reduce((sum, it) => sum + (Number(it.total) || (Number(it.price) * (Number(it.quantity) || 1)) || 0), 0);
+                } else {
+                    quoteTotal = Number(q.total) || Number(q.price) || 0;
+                }
+                totalRevenue += quoteTotal;
+            }
+        });
+    }
+
+    // 3. Fallback / supplementary: Calculate from CRM data if quotations total is 0
+    if (totalRevenue === 0 && window.currentCRMData && window.currentCRMData.length > 0) {
+        window.currentCRMData.forEach(c => {
+            if (!c.start_date && !c.created_at) return;
+            const d = new Date(c.start_date || c.created_at);
+            if (d >= fromDate && d <= toDate) {
+                const price = (typeof getCRMPrice === 'function') 
+                    ? getCRMPrice(c.service_type, c.customer_type, c.package_name || c.duration) 
+                    : 0;
+                totalRevenue += price || Number(c.price) || Number(c.total) || 0;
+            }
+        });
+    }
 
     revenueEl.value = new Intl.NumberFormat('vi-VN').format(totalRevenue);
     revenueEl.dataset.raw = totalRevenue;
+    saveWeeklyReportDraft();
 }
 
 // ==========================================
@@ -293,11 +353,23 @@ async function exportWeeklyReportToWord() {
     }));
 
     // Doanh thu
+    let displayRevenue = data.revenue ? String(data.revenue).trim() : '0';
+    if (!displayRevenue || displayRevenue === '0') {
+        if (data.revenueRaw && data.revenueRaw > 0) {
+            displayRevenue = new Intl.NumberFormat('vi-VN').format(data.revenueRaw);
+        } else {
+            displayRevenue = '0';
+        }
+    }
+    const finalRevenueStr = (displayRevenue.toLowerCase().includes('đ') || displayRevenue.toLowerCase().includes('vnđ')) 
+        ? displayRevenue 
+        : `${displayRevenue} đ`;
+
     children.push(new Paragraph({
         children: [
             new TextRun({ text: '-   ', font: 'Times New Roman', size: 26 }),
             new TextRun({ text: 'Doanh thu đạt bao nhiêu : ', font: 'Times New Roman', size: 26, bold: true }),
-            new TextRun({ text: data.revenue, font: 'Times New Roman', size: 26, bold: true })
+            new TextRun({ text: finalRevenueStr, font: 'Times New Roman', size: 26, bold: true })
         ],
         spacing: { after: 60 },
         indent: { left: convertInchesToTwip(0.3) }
@@ -461,6 +533,11 @@ function loadWeeklyReportDraft() {
                     container.appendChild(row);
                 });
             }
+        }
+
+        if (data.revenue) {
+            document.getElementById('wr-revenue').value = data.revenue;
+            if (data.revenueRaw) document.getElementById('wr-revenue').dataset.raw = data.revenueRaw;
         }
 
         if (data.revenueTarget) document.getElementById('wr-revenue-target').value = data.revenueTarget;
