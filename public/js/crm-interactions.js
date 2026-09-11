@@ -21,7 +21,7 @@
     let crmExtInitialized = false;
 
     function isAuthenticated() {
-        return !!(localStorage.getItem('sb-token') && window.currentUser);
+        return !!localStorage.getItem('sb-token');
     }
 
     // ================================================

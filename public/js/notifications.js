@@ -26,7 +26,7 @@
     // Kiểm tra người dùng đã xác thực chưa (có token hợp lệ)
     function isAuthenticated() {
         const token = localStorage.getItem('sb-token');
-        return !!(token && window.currentUser);
+        return !!token;
     }
 
     function initNotificationModule() {

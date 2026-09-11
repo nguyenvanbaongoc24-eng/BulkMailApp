@@ -17,17 +17,18 @@
     let isInitialized = false;
 
     function isAuthenticated() {
-        return !!(localStorage.getItem('sb-token') && window.currentUser);
+        return !!localStorage.getItem('sb-token');
     }
 
     function initDashboardCharts() {
         if (!isAuthenticated()) return;
         if (!document.getElementById('view-dashboard')) return;
-        if (isInitialized) return;
-        isInitialized = true;
 
         injectChartsContainer();
         loadAndRenderCharts();
+
+        if (isInitialized) return;
+        isInitialized = true;
 
         // Lắng nghe thay đổi Theme (Dark/Light mode) để vẽ lại biểu đồ cho phù hợp màu nền
         const observer = new MutationObserver((mutations) => {
@@ -40,14 +41,18 @@
         observer.observe(document.body, { attributes: true });
 
         // Hook an toàn vào showPage để vẽ lại biểu đồ mỗi khi người dùng bấm vào Dashboard
-        if (typeof window.showPage === 'function') {
+        if (typeof window.showPage === 'function' && !window.showPage._chartsHooked) {
             const originalShowPage = window.showPage;
             window.showPage = function (pageId) {
                 originalShowPage(pageId);
                 if (pageId === 'dashboard') {
-                    setTimeout(loadAndRenderCharts, 100);
+                    setTimeout(() => {
+                        injectChartsContainer();
+                        loadAndRenderCharts();
+                    }, 100);
                 }
             };
+            window.showPage._chartsHooked = true;
         }
 
         // Lắng nghe sự kiện chuyển trang để cập nhật nếu đang ở dashboard
@@ -490,14 +495,14 @@
 
     // Auto-init: chỉ khởi động sau khi app.js xác thực thành công (phát event 'ca2:auth:ready')
     document.addEventListener('ca2:auth:ready', function () {
-        setTimeout(initDashboardCharts, 250);
+        setTimeout(initDashboardCharts, 100);
     });
 
-    // Fallback: nếu reload trang mà token hợp lệ và user đã đăng nhập xong
+    // Fallback: nếu reload trang mà token hợp lệ
     setTimeout(function () {
-        if (!isInitialized && isAuthenticated()) {
+        if (isAuthenticated()) {
             initDashboardCharts();
         }
-    }, 2000);
+    }, 800);
 
 })();

@@ -357,6 +357,7 @@ async function checkAuth() {
 
         if (res.ok) {
             currentUser = await res.json();
+            window.currentUser = currentUser;
             updateUserUI();
             
             // Show Settings for everyone as requested by user
@@ -475,6 +476,7 @@ function handleLogout() {
     // Clear stored session
     localStorage.removeItem('sb-token');
     currentUser = null;
+    window.currentUser = null;
     showAuthScreen(true);
 }
 
