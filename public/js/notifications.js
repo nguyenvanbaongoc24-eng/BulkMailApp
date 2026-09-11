@@ -18,18 +18,36 @@
     let readIds = new Set();
     let pollTimer = null;
     let isDropdownOpen = false;
+    let isModuleInitialized = false;
 
     // Local storage key for fallback
     const LOCAL_READ_KEY = 'ca2_read_notifications_v1';
 
+    // Kiểm tra người dùng đã xác thực chưa (có token hợp lệ)
+    function isAuthenticated() {
+        const token = localStorage.getItem('sb-token');
+        return !!(token && window.currentUser);
+    }
+
     function initNotificationModule() {
+        // Bảo vệ: chỉ chạy 1 lần và khi đã đăng nhập
+        if (isModuleInitialized) return;
+        if (!isAuthenticated()) {
+            console.warn('[NOTIF] Bỏ qua init - chưa xác thực.');
+            return;
+        }
+        isModuleInitialized = true;
+
         loadLocalReadIds();
         injectBellUI();
         fetchAndRefreshNotifications();
 
         // Bắt đầu Polling định kỳ mỗi 45 giây
         if (pollTimer) clearInterval(pollTimer);
-        pollTimer = setInterval(fetchAndRefreshNotifications, 45000);
+        pollTimer = setInterval(() => {
+            if (!isAuthenticated()) return; // dừng nếu token bị xóa
+            fetchAndRefreshNotifications();
+        }, 45000);
 
         // Lắng nghe sự kiện click ra ngoài để đóng dropdown
         document.addEventListener('click', (e) => {
@@ -152,6 +170,8 @@
     // DATA FETCHING & AGGREGATION
     // ==========================================
     async function fetchAndRefreshNotifications() {
+        // Guard: không gọi API nếu chưa xác thực
+        if (!isAuthenticated()) return;
         try {
             const [crmNotifications, campaignNotifications, taskNotifications, serverReadRes] = await Promise.all([
                 fetchCRMExpirations(),
@@ -199,14 +219,15 @@
     async function fetchCRMExpirations() {
         const items = [];
         try {
+            // Guard: không gọi API nếu chưa xác thực
+            if (!isAuthenticated()) return items;
             let data = window.currentCRMData;
             if (!data || data.length === 0) {
                 if (typeof authedFetch === 'function') {
                     const res = await authedFetch('/api/ca2-crm');
-                    if (res.ok) {
-                        const json = await res.json();
-                        data = json.data || [];
-                    }
+                    if (!res || !res.ok) return items;
+                    const json = await res.json();
+                    data = json.data || [];
                 }
             }
             if (!Array.isArray(data)) return items;
@@ -601,11 +622,18 @@
         handleItemClick: handleItemClick
     };
 
-    // Auto-init khi DOM sẵn sàng
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNotificationModule);
-    } else {
-        setTimeout(initNotificationModule, 100);
-    }
+    // Auto-init: chờ event 'ca2:auth:ready' do app.js phát ra SAU KHI đăng nhập thành công
+    // Điều này đảm bảo không gọi API khi chưa xác thực
+    document.addEventListener('ca2:auth:ready', function() {
+        setTimeout(initNotificationModule, 200);
+    });
+
+    // Fallback: nếu app.js đã login xong rồi (ví dụ reload trang có token hợp lệ),
+    // kiểm tra lại sau 2s
+    setTimeout(function() {
+        if (!isModuleInitialized && isAuthenticated()) {
+            initNotificationModule();
+        }
+    }, 2000);
 
 })();

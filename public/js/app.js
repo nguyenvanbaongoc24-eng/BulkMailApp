@@ -377,8 +377,12 @@ async function checkAuth() {
             try { if (window.PricingManager) PricingManager.init(); } catch(e) { console.warn('[INIT] PricingManager skipped:', e); }
             try { if (window.PricingEngine) PricingEngine.init(); } catch(e) {}
 
+            // Phát event báo hiệu đã xác thực thành công — dùng bởi các additive module (notifications, charts...)
+            document.dispatchEvent(new CustomEvent('ca2:auth:ready', { detail: { user: currentUser } }));
+
             // Load dashboard stats as initial page
             showPage('dashboard');
+
         } else {
             localStorage.removeItem('sb-token');
             showAuthScreen(true);
