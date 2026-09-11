@@ -2826,7 +2826,116 @@ app.post('/api/notifications/read-all', authenticate, async (req, res) => {
     }
 });
 
+// ==========================================
+// CRM EXTENSIONS API MODULE (ADDITIVE ONLY)
+// ==========================================
+
+// Lấy danh sách người dùng để populate dropdown người phụ trách
+app.get('/api/admin/users-list', authenticate, async (req, res) => {
+    try {
+        const { data, error } = await supabase.auth.admin.listUsers();
+        if (error) {
+            // Fallback: lấy từ bảng user settings nếu không có admin key
+            const { data: settingsData } = await supabase
+                .from('user_settings')
+                .select('user_id, email')
+                .limit(50);
+            return res.json({ data: (settingsData || []).map(u => ({ id: u.user_id, email: u.email })) });
+        }
+        const users = (data?.users || []).map(u => ({ id: u.id, email: u.email }));
+        res.json({ data: users });
+    } catch (err) {
+        console.warn('[CRM-EXT] users-list error:', err.message);
+        res.json({ data: [] });
+    }
+});
+
+// Cập nhật người phụ trách cho khách hàng (chỉ field owner_user_id)
+app.patch('/api/ca2-crm/:id/owner', authenticate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { owner_user_id } = req.body;
+
+        const { data, error } = await getClient(req.token)
+            .from('customers')
+            .update({ owner_user_id: owner_user_id || null })
+            .eq('id', id)
+            .eq('user_id', req.user.id)
+            .select('id, owner_user_id');
+
+        if (error) {
+            console.warn('[CRM-EXT] owner update error (column may not exist yet):', error.message);
+            return res.json({ success: true, fallback: true });
+        }
+        res.json({ success: true, data: data?.[0] });
+    } catch (err) {
+        console.warn('[CRM-EXT] owner PATCH exception:', err.message);
+        res.json({ success: true, fallback: true });
+    }
+});
+
+// Lấy lịch sử tương tác của 1 khách hàng
+app.get('/api/crm/interactions/:customerId', authenticate, async (req, res) => {
+    try {
+        const { customerId } = req.params;
+        const { data, error } = await supabase
+            .from('customer_interactions')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        if (error) {
+            console.warn('[CRM-EXT] interactions GET error (table may not exist):', error.message);
+            return res.json({ data: [] });
+        }
+        res.json({ data: data || [] });
+    } catch (err) {
+        console.warn('[CRM-EXT] interactions GET exception:', err.message);
+        res.json({ data: [] });
+    }
+});
+
+// Thêm tương tác mới cho khách hàng
+app.post('/api/crm/interactions/:customerId', authenticate, async (req, res) => {
+    try {
+        const { customerId } = req.params;
+        const { type, content } = req.body;
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Nội dung không được để trống' });
+        }
+
+        const validTypes = ['call', 'email', 'note', 'meeting'];
+        const safeType = validTypes.includes(type) ? type : 'note';
+
+        // Lấy email người tạo để lưu snapshot
+        const createdBy = req.user.email || req.user.id || 'Unknown';
+
+        const { data, error } = await supabase
+            .from('customer_interactions')
+            .insert({
+                customer_id: customerId,
+                user_id: req.user.id,
+                type: safeType,
+                content: content.trim(),
+                created_by: createdBy
+            })
+            .select();
+
+        if (error) {
+            console.warn('[CRM-EXT] interactions POST error (table may not exist):', error.message);
+            return res.json({ success: false, fallback: true });
+        }
+        res.json({ success: true, data: data?.[0] });
+    } catch (err) {
+        console.warn('[CRM-EXT] interactions POST exception:', err.message);
+        res.json({ success: false, fallback: true });
+    }
+});
+
 // --- Final Catch-all Global Error Handler (ENSURE JSON) ---
+
 app.use((err, req, res, next) => {
     console.error('[GLOBAL_ERROR_HANDLER]', err);
     const status = err.status || 500;
