@@ -78,23 +78,60 @@ function resetWorkItems(containerId) {
     addWorkItem(containerId);
 }
 
-function addWorkItem(containerId) {
+function addWorkItem(containerId, initialData = {}) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // Normalize input (hỗ trợ cả string cũ lẫn object mới)
+    const data = typeof initialData === 'string'
+        ? { text: initialData, is_done: false, due_date: null }
+        : (initialData || {});
+
+    const isDone = !!data.is_done;
+    const textVal = (data.text || '').replace(/"/g, '&quot;');
+    const dueDateVal = data.due_date || '';
+
     const row = document.createElement('div');
-    row.className = 'wr-work-row flex items-center gap-3 mb-2 animate-fade-in';
+    row.className = 'wr-work-row flex items-center gap-2 mb-2 animate-fade-in group';
     row.innerHTML = `
-        <span class="text-orange-400 font-bold text-xs select-none">+</span>
-        <input type="text" placeholder="Nhập công việc..." 
-            class="flex-1 bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
+        <label class="flex items-center cursor-pointer p-1 rounded hover:bg-white/10" title="Đánh dấu hoàn thành">
+            <input type="checkbox" class="wr-task-done w-4 h-4 rounded text-orange-500 bg-white/10 border-white/20 focus:ring-orange-500 focus:ring-offset-0 cursor-pointer transition-all" 
+                ${isDone ? 'checked' : ''} onchange="handleTaskItemChange(this)" />
+        </label>
+        <input type="text" placeholder="Nhập công việc..." value="${textVal}" 
+            class="wr-task-text flex-1 bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-3 py-2 text-sm text-white placeholder:text-gray-600 outline-none transition-all ${isDone ? 'line-through text-gray-500 opacity-60' : ''}" 
+            oninput="handleTaskItemChange(this)" />
+        <div class="relative flex items-center" title="Hạn chót hoàn thành (Deadline)">
+            <input type="date" value="${dueDateVal}" 
+                class="wr-task-date bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-2.5 py-1.5 text-xs text-orange-300 outline-none transition-all cursor-pointer w-32" 
+                onchange="handleTaskItemChange(this)" />
+        </div>
         <button type="button" onclick="removeWorkItem(this)" 
-            class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center justify-center text-xs">
+            class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center justify-center text-xs flex-shrink-0" title="Xoá">
             <i class="fas fa-times"></i>
         </button>
     `;
     container.appendChild(row);
     saveWeeklyReportDraft();
+}
+
+function handleTaskItemChange(el) {
+    const row = el.closest('.wr-work-row');
+    if (row) {
+        const checkbox = row.querySelector('.wr-task-done');
+        const textInput = row.querySelector('.wr-task-text');
+        if (checkbox && textInput) {
+            if (checkbox.checked) {
+                textInput.classList.add('line-through', 'text-gray-500', 'opacity-60');
+            } else {
+                textInput.classList.remove('line-through', 'text-gray-500', 'opacity-60');
+            }
+        }
+    }
+    saveWeeklyReportDraft();
+    if (window.CA2Notifications && typeof window.CA2Notifications.refresh === 'function') {
+        window.CA2Notifications.refresh();
+    }
 }
 
 function removeWorkItem(btn) {
@@ -103,6 +140,9 @@ function removeWorkItem(btn) {
     if (container.children.length > 1) {
         row.remove();
         saveWeeklyReportDraft();
+        if (window.CA2Notifications && typeof window.CA2Notifications.refresh === 'function') {
+            window.CA2Notifications.refresh();
+        }
     }
 }
 
@@ -286,9 +326,18 @@ function collectWorkItems(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return [];
     const items = [];
-    container.querySelectorAll('.wr-work-row input[type="text"]').forEach(input => {
-        const val = input.value.trim();
-        if (val) items.push(val);
+    container.querySelectorAll('.wr-work-row').forEach(row => {
+        const textInput = row.querySelector('.wr-task-text') || row.querySelector('input[type="text"]');
+        const doneInput = row.querySelector('.wr-task-done') || row.querySelector('input[type="checkbox"]');
+        const dateInput = row.querySelector('.wr-task-date') || row.querySelector('input[type="date"]');
+        const val = textInput ? textInput.value.trim() : '';
+        if (val) {
+            items.push({
+                text: val,
+                is_done: doneInput ? doneInput.checked : false,
+                due_date: (dateInput && dateInput.value) ? dateInput.value : null
+            });
+        }
     });
     return items;
 }
@@ -357,8 +406,9 @@ async function exportWeeklyReportToWord() {
         });
     };
 
-    // Helper: bullet item
-    const bulletItem = (text, indentLevel = 0.5) => {
+    // Helper: bullet item (hỗ trợ cả chuỗi lẫn object { text, is_done, due_date })
+    const bulletItem = (item, indentLevel = 0.5) => {
+        const text = (typeof item === 'object' && item !== null) ? (item.text || '') : String(item || '');
         return new Paragraph({
             children: [
                 new TextRun({ text: '+ ', font: 'Times New Roman', size: 26 }),
@@ -585,19 +635,8 @@ function loadWeeklyReportDraft() {
             const container = document.getElementById('wr-work-list');
             if (container) {
                 container.innerHTML = '';
-                data.workItems.forEach(itemText => {
-                    const row = document.createElement('div');
-                    row.className = 'wr-work-row flex items-center gap-3 mb-2 animate-fade-in';
-                    row.innerHTML = `
-                        <span class="text-orange-400 font-bold text-xs select-none">+</span>
-                        <input type="text" placeholder="Nhập công việc..." value="${itemText.replace(/"/g, '&quot;')}" 
-                            class="flex-1 bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
-                        <button type="button" onclick="removeWorkItem(this)" 
-                            class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center justify-center text-xs">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-                    container.appendChild(row);
+                data.workItems.forEach(item => {
+                    addWorkItem('wr-work-list', item);
                 });
             }
         }
@@ -612,19 +651,8 @@ function loadWeeklyReportDraft() {
             const container = document.getElementById('wr-next-work-list');
             if (container) {
                 container.innerHTML = '';
-                data.nextWorkItems.forEach(itemText => {
-                    const row = document.createElement('div');
-                    row.className = 'wr-work-row flex items-center gap-3 mb-2 animate-fade-in';
-                    row.innerHTML = `
-                        <span class="text-orange-400 font-bold text-xs select-none">+</span>
-                        <input type="text" placeholder="Nhập công việc..." value="${itemText.replace(/"/g, '&quot;')}" 
-                            class="flex-1 bg-white/5 border border-white/10 focus:border-orange-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all" />
-                        <button type="button" onclick="removeWorkItem(this)" 
-                            class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center justify-center text-xs">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-                    container.appendChild(row);
+                data.nextWorkItems.forEach(item => {
+                    addWorkItem('wr-next-work-list', item);
                 });
             }
         }

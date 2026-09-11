@@ -2727,6 +2727,104 @@ app.post('/api/seo/refresh-news', authenticate, async (req, res) => {
     }
 });
 
+// ==========================================
+// NOTIFICATIONS API MODULE (ADDITIVE ONLY)
+// ==========================================
+app.get('/api/notifications', authenticate, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', req.user.id)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.warn('[NOTIF] Query warning (table may not exist yet):', error.message);
+            return res.json({ data: [] });
+        }
+        res.json({ data: data || [] });
+    } catch (err) {
+        console.warn('[NOTIF] Exception:', err.message);
+        res.json({ data: [] });
+    }
+});
+
+app.post('/api/notifications/save', authenticate, async (req, res) => {
+    try {
+        const { notifications } = req.body;
+        if (!notifications || !Array.isArray(notifications) || notifications.length === 0) {
+            return res.json({ success: true, count: 0 });
+        }
+
+        const toInsert = notifications.map(n => ({
+            user_id: req.user.id,
+            type: n.type || 'system',
+            title: n.title,
+            message: n.message || '',
+            ref_id: n.ref_id ? String(n.ref_id) : null,
+            is_read: !!n.is_read,
+            created_at: n.created_at || new Date().toISOString()
+        }));
+
+        const { data, error } = await supabase
+            .from('notifications')
+            .insert(toInsert)
+            .select();
+
+        if (error) {
+            console.warn('[NOTIF] Insert error (table may not exist yet):', error.message);
+            return res.json({ success: false, fallback: true });
+        }
+
+        res.json({ success: true, data });
+    } catch (err) {
+        console.warn('[NOTIF] Save exception:', err.message);
+        res.json({ success: false, fallback: true });
+    }
+});
+
+app.post('/api/notifications/read', authenticate, async (req, res) => {
+    try {
+        const { id, ref_id } = req.body;
+        let query = supabase.from('notifications').update({ is_read: true }).eq('user_id', req.user.id);
+        
+        if (id) {
+            query = query.eq('id', id);
+        } else if (ref_id) {
+            query = query.eq('ref_id', String(ref_id));
+        }
+
+        const { error } = await query;
+        if (error) {
+            console.warn('[NOTIF] Mark read warning:', error.message);
+            return res.json({ success: true, fallback: true });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.warn('[NOTIF] Mark read exception:', err.message);
+        res.json({ success: true, fallback: true });
+    }
+});
+
+app.post('/api/notifications/read-all', authenticate, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('user_id', req.user.id)
+            .eq('is_read', false);
+
+        if (error) {
+            console.warn('[NOTIF] Mark all read warning:', error.message);
+            return res.json({ success: true, fallback: true });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.warn('[NOTIF] Mark all read exception:', err.message);
+        res.json({ success: true, fallback: true });
+    }
+});
 
 // --- Final Catch-all Global Error Handler (ENSURE JSON) ---
 app.use((err, req, res, next) => {
