@@ -845,19 +845,31 @@ function toggleSidebar() {
 // --- API Helper ---
 async function authedFetch(url, options = {}) {
     const token = localStorage.getItem('sb-token');
+    if (!token) {
+        console.warn('[AUTH] Không có token, bỏ qua authedFetch:', url);
+        return { ok: false, status: 401, json: async () => ({ error: 'Unauthorized' }) };
+    }
     const headers = { 
         ...options.headers,
         'Authorization': `Bearer ${token}`
     };
     const res = await fetch(url, { ...options, headers });
     
-    // T\u1ef1 \u0111\u1ed9ng x\u1eed l\u00fd khi phi\u00ean \u0111\u0103ng nh\u1eadp h\u1ebft h\u1ea1n (401 Unauthorized)
+    // Tự động xử lý khi phiên đăng nhập hết hạn (401 Unauthorized)
     if (res.status === 401) {
         console.warn('[AUTH] Phiên đăng nhập hết hạn (401).');
         localStorage.removeItem('sb-token');
-        alert('Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại để tiếp tục!');
-        window.location.reload(); // T\u1ea3i l\u1ea1i trang s\u1ebd t\u1ef1 \u0111\u1ed9ng hi\u1ec7n m\u00e0n h\u00ecnh Login
-        return new Promise(() => {}); // Ch\u1eb7n ti\u1ebfn tr\u00ecnh ti\u1ebfp theo \u0111\u1ec3 tr\u00e1nh l\u1ed7i logic
+        const authScreen = document.getElementById('auth-screen');
+        const isAlreadyOnAuthScreen = authScreen && !authScreen.classList.contains('hidden');
+        // Chỉ alert & reload nếu người dùng đang trong phiên làm việc thực sự (không phải đang ở màn hình login)
+        if (!isAlreadyOnAuthScreen && window.currentUser) {
+            window.currentUser = null;
+            alert('Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại để tiếp tục!');
+            window.location.reload();
+        } else {
+            showAuthScreen(true);
+        }
+        return new Promise(() => {}); // Chặn tiến trình tiếp theo để tránh lỗi logic
     }
     
     return res;

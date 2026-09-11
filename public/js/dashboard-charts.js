@@ -16,8 +16,15 @@
     let renewalChartInstance = null;
     let isInitialized = false;
 
+    function isAuthenticated() {
+        return !!(localStorage.getItem('sb-token') && window.currentUser);
+    }
+
     function initDashboardCharts() {
+        if (!isAuthenticated()) return;
         if (!document.getElementById('view-dashboard')) return;
+        if (isInitialized) return;
+        isInitialized = true;
 
         injectChartsContainer();
         loadAndRenderCharts();
@@ -118,6 +125,7 @@
     // DATA EXTRACTION & AGGREGATION
     // ==========================================
     async function loadAndRenderCharts() {
+        if (!isAuthenticated()) return;
         if (typeof Chart === 'undefined') {
             console.warn('[CHARTS] Chart.js chưa được nạp. Sẽ thử lại sau...');
             setTimeout(loadAndRenderCharts, 500);
@@ -210,7 +218,7 @@
         if (window.currentCRMData && window.currentCRMData.length > 0) {
             return window.currentCRMData;
         }
-        if (typeof authedFetch === 'function') {
+        if (typeof authedFetch === 'function' && isAuthenticated()) {
             try {
                 const res = await authedFetch('/api/ca2-crm');
                 if (res.ok) {
@@ -226,7 +234,7 @@
         if (window.quoteManagerInstance?.state?.quotations) {
             return window.quoteManagerInstance.state.quotations;
         }
-        if (typeof authedFetch === 'function') {
+        if (typeof authedFetch === 'function' && isAuthenticated()) {
             try {
                 const res = await authedFetch('/api/quotations');
                 if (res.ok) {
@@ -480,11 +488,16 @@
         refresh: loadAndRenderCharts
     };
 
-    // Auto-init khi DOM sẵn sàng
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDashboardCharts);
-    } else {
-        setTimeout(initDashboardCharts, 200);
-    }
+    // Auto-init: chỉ khởi động sau khi app.js xác thực thành công (phát event 'ca2:auth:ready')
+    document.addEventListener('ca2:auth:ready', function () {
+        setTimeout(initDashboardCharts, 250);
+    });
+
+    // Fallback: nếu reload trang mà token hợp lệ và user đã đăng nhập xong
+    setTimeout(function () {
+        if (!isInitialized && isAuthenticated()) {
+            initDashboardCharts();
+        }
+    }, 2000);
 
 })();

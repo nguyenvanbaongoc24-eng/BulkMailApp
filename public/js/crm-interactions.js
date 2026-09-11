@@ -195,6 +195,7 @@
 
     async function loadOwnerOptions() {
         try {
+            if (!isAuthenticated()) return;
             if (typeof authedFetch !== 'function') return;
             const res = await authedFetch('/api/admin/users-list');
             if (!res || !res.ok) return;
@@ -507,6 +508,7 @@
     // ================================================
 
     function initCRMExtensions() {
+        if (!isAuthenticated()) return;
         if (crmExtInitialized) return;
         crmExtInitialized = true;
         console.log('[CRM-EXT] Khởi động CRM Extensions module...');
