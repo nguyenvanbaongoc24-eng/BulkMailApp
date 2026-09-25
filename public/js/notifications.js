@@ -96,41 +96,38 @@
         container.className = 'relative inline-block text-left';
         container.innerHTML = `
             <button id="notif-bell-btn" type="button" 
-                class="relative w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition-all shadow-md focus:outline-none"
+                class="notif-bell-button"
                 title="Thông báo hệ thống">
-                <i class="fas fa-bell text-base transition-transform group-hover:rotate-12"></i>
+                <i class="fas fa-bell text-[15px]"></i>
                 <!-- Unread Badge -->
-                <span id="notif-badge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg shadow-red-900/50 animate-pulse border border-white/20">
-                    0
-                </span>
+                <span id="notif-badge" class="hidden">0</span>
             </button>
 
             <!-- Dropdown Panel -->
-            <div id="notif-dropdown" class="hidden absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-[#111318]/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[9999] overflow-hidden transition-all transform origin-top-right">
+            <div id="notif-dropdown" class="hidden notif-dropdown-panel">
                 <!-- Header -->
-                <div class="px-4 py-3.5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base">🔔</span>
-                        <h3 class="text-sm font-black text-white uppercase tracking-wider">Thông báo</h3>
-                        <span id="notif-count-label" class="text-[10px] bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded-full">0 mới</span>
+                <div class="notif-header">
+                    <div class="notif-title-group">
+                        <span class="text-sm">🔔</span>
+                        <h3 class="notif-header-title">Thông báo</h3>
+                        <span id="notif-count-label" class="notif-count-badge">0 chưa đọc</span>
                     </div>
-                    <button id="notif-read-all-btn" class="text-[11px] text-orange-400 hover:text-orange-300 font-bold transition-all hover:underline flex items-center gap-1">
-                        <i class="fas fa-check-double text-[10px]"></i> Đọc tất cả
+                    <button id="notif-read-all-btn" class="notif-read-all-button" type="button">
+                        <i class="fas fa-check-double text-[11px]"></i> Đọc tất cả
                     </button>
                 </div>
 
                 <!-- Notification Items List -->
-                <div id="notif-list-body" class="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-white/5">
+                <div id="notif-list-body" class="notif-list-container custom-scrollbar">
                     <div class="p-6 text-center text-xs text-gray-400">
                         <i class="fas fa-spinner fa-spin mr-1"></i> Đang tải thông báo...
                     </div>
                 </div>
 
                 <!-- Footer -->
-                <div class="p-2.5 text-center bg-white/[0.01] border-t border-white/5">
-                    <span class="text-[10px] text-gray-500 font-semibold tracking-wide">
-                        Tự động cập nhật mỗi 45 giây
-                    </span>
+                <div class="notif-footer">
+                    <i class="fas fa-sync-alt text-[10px] opacity-60"></i>
+                    <span>Tự động cập nhật mỗi 45 giây</span>
                 </div>
             </div>
         `;
@@ -247,10 +244,12 @@
                     items.push({
                         id: `crm-exp-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
-                        icon: '⏳',
-                        iconBg: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-                        title: `HĐ đã hết hạn: ${name}`,
-                        desc: `MST: ${mst} • Quá hạn ${Math.abs(daysLeft)} ngày (${formatVNDate(c.expired_date)})`,
+                        badgeText: 'Đã hết hạn',
+                        badgeClass: 'notif-badge-danger',
+                        iconClass: 'notif-icon-danger',
+                        iconHtml: '<i class="fas fa-file-invoice"></i>',
+                        title: name,
+                        desc: `MST: ${mst || '—'} • Quá hạn ${Math.abs(daysLeft)} ngày (${formatVNDate(c.expired_date)})`,
                         timestamp: c.expired_date,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
@@ -261,10 +260,12 @@
                     items.push({
                         id: `crm-exp30-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
-                        icon: '⏳',
-                        iconBg: 'bg-red-500/20 text-red-400 border-red-500/30',
-                        title: `Sắp hết hạn (${daysLeft} ngày): ${name}`,
-                        desc: `MST: ${mst} • Hạn đến ${formatVNDate(c.expired_date)}`,
+                        badgeText: `Còn ${daysLeft} ngày`,
+                        badgeClass: 'notif-badge-danger',
+                        iconClass: 'notif-icon-danger',
+                        iconHtml: '<i class="fas fa-hourglass-half"></i>',
+                        title: name,
+                        desc: `MST: ${mst || '—'} • Hạn chót: ${formatVNDate(c.expired_date)}`,
                         timestamp: c.expired_date,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
@@ -275,10 +276,12 @@
                     items.push({
                         id: `crm-exp60-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
-                        icon: '⚠️',
-                        iconBg: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                        title: `Cần chuẩn bị gia hạn (60 ngày): ${name}`,
-                        desc: `MST: ${mst} • Còn ${daysLeft} ngày (${formatVNDate(c.expired_date)})`,
+                        badgeText: `Còn ${daysLeft} ngày`,
+                        badgeClass: 'notif-badge-warning',
+                        iconClass: 'notif-icon-warning',
+                        iconHtml: '<i class="fas fa-calendar-alt"></i>',
+                        title: name,
+                        desc: `MST: ${mst || '—'} • Chuẩn bị gia hạn (${formatVNDate(c.expired_date)})`,
                         timestamp: c.expired_date,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
@@ -311,10 +314,12 @@
                         items.push({
                             id: `camp-err-${c.id}`,
                             type: 'campaign_error',
-                            icon: '🚫',
-                            iconBg: 'bg-red-500/20 text-red-400 border-red-500/30',
-                            title: `Lỗi chiến dịch (${errRate}%): ${c.name || 'Chiến dịch email'}`,
-                            desc: `Có ${errCount}/${total} email bị lỗi gửi. Vui lòng kiểm tra nhật ký gửi!`,
+                            badgeText: `Lỗi gửi ${errRate}%`,
+                            badgeClass: 'notif-badge-danger',
+                            iconClass: 'notif-icon-danger',
+                            iconHtml: '<i class="fas fa-paper-plane"></i>',
+                            title: c.name || 'Chiến dịch email',
+                            desc: `${errCount}/${total} email bị lỗi gửi. Vui lòng kiểm tra nhật ký gửi!`,
                             timestamp: c.created_at || new Date().toISOString(),
                             ref_id: c.id,
                             targetPage: 'campaigns',
@@ -360,9 +365,11 @@
                     items.push({
                         id: `task-overdue-${t.due_date}-${idx}-${encodeURIComponent(t.text.slice(0, 15))}`,
                         type: 'task_reminder',
-                        icon: '⏰',
-                        iconBg: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-                        title: `Công việc quá hạn: ${t.text}`,
+                        badgeText: 'Quá hạn',
+                        badgeClass: 'notif-badge-danger',
+                        iconClass: 'notif-icon-danger',
+                        iconHtml: '<i class="fas fa-calendar-times"></i>',
+                        title: t.text,
                         desc: `${t.source} • Hạn chót: ${formatVNDate(t.due_date)} (${Math.abs(diffDays)} ngày trước)`,
                         timestamp: t.due_date,
                         ref_id: 'weekly-report',
@@ -375,9 +382,11 @@
                     items.push({
                         id: `task-due-${t.due_date}-${idx}-${encodeURIComponent(t.text.slice(0, 15))}`,
                         type: 'task_reminder',
-                        icon: '⏰',
-                        iconBg: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-                        title: `Sắp đến hạn (${dayLabel}): ${t.text}`,
+                        badgeText: `Hạn: ${dayLabel}`,
+                        badgeClass: 'notif-badge-warning',
+                        iconClass: 'notif-icon-warning',
+                        iconHtml: '<i class="fas fa-calendar-check"></i>',
+                        title: t.text,
                         desc: `${t.source} • Hạn chót: ${formatVNDate(t.due_date)}`,
                         timestamp: t.due_date,
                         ref_id: 'weekly-report',
@@ -441,7 +450,7 @@
         }
 
         if (countLabel) {
-            countLabel.innerText = unreadCount > 0 ? `${unreadCount} mới` : 'Hết';
+            countLabel.innerText = unreadCount > 0 ? `${unreadCount} chưa đọc` : '0 chưa đọc';
         }
     }
 
@@ -451,10 +460,12 @@
 
         if (notificationList.length === 0) {
             body.innerHTML = `
-                <div class="p-8 text-center text-gray-500">
-                    <div class="text-3xl mb-2">🎉</div>
-                    <p class="text-xs font-bold text-gray-400">Không có thông báo mới</p>
-                    <p class="text-[11px] text-gray-600 mt-1">Mọi việc đều đang hoạt động tốt!</p>
+                <div class="notif-empty-state">
+                    <div class="notif-empty-icon">
+                        <i class="fas fa-bell-slash"></i>
+                    </div>
+                    <div class="notif-empty-title">Không có thông báo mới</div>
+                    <div class="notif-empty-sub">Mọi việc đều đang hoạt động tốt</div>
                 </div>
             `;
             return;
@@ -463,32 +474,41 @@
         body.innerHTML = notificationList.map(item => {
             const isUnread = !item.is_read;
             const timeAgo = formatRelativeTime(item.timestamp);
+            const badgeText = item.badgeText || (
+                item.type === 'crm_expiry' ? 'Hết hạn' :
+                item.type === 'campaign_error' ? 'Lỗi gửi' :
+                item.type === 'task_reminder' ? 'Nhắc việc' : 'Thông báo'
+            );
+            const iconHtml = item.iconHtml || (item.icon ? (item.icon.startsWith('<') ? item.icon : `<span class="text-sm">${item.icon}</span>`) : '<i class="far fa-bell"></i>');
+            const iconClass = item.iconClass || 'notif-icon-info';
+            const badgeClass = item.badgeClass || 'notif-badge-info';
+
             return `
-                <div class="notif-item p-3.5 hover:bg-white/5 transition-all cursor-pointer flex gap-3 items-start relative group ${isUnread ? 'bg-orange-500/[0.04]' : 'opacity-70'}"
+                <div class="notif-item ${isUnread ? 'is-unread' : 'is-read'}"
                     onclick="window.CA2Notifications.handleItemClick('${item.id}')">
-                    ${isUnread ? '<div class="absolute left-1.5 top-5 w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500"></div>' : ''}
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base border shadow-sm ${item.iconBg}">
-                        ${item.icon}
+                    <div class="notif-status-col">
+                        ${isUnread ? '<span class="notif-unread-dot" title="Chưa đọc"></span>' : '<span class="notif-read-dot"></span>'}
                     </div>
-                    <div class="flex-1 min-w-0 pr-2">
-                        <div class="flex items-center justify-between gap-1 mb-0.5">
-                            <h4 class="text-xs font-bold text-white truncate ${isUnread ? 'font-black text-orange-200' : 'text-gray-300'}">
-                                ${escapeHtml(item.title)}
-                            </h4>
+                    <div class="notif-icon-box ${iconClass}">
+                        ${iconHtml}
+                    </div>
+                    <div class="notif-content-col">
+                        <div class="notif-meta-row">
+                            <span class="notif-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
+                            <span class="notif-time">${timeAgo}</span>
                         </div>
-                        <p class="text-[11px] text-gray-400 line-clamp-2 leading-relaxed mb-1">
+                        <h4 class="notif-title" title="${escapeHtml(item.title)}">
+                            ${escapeHtml(item.title)}
+                        </h4>
+                        <p class="notif-desc">
                             ${escapeHtml(item.desc)}
                         </p>
-                        <div class="flex items-center gap-2 text-[10px] text-gray-500">
-                            <i class="far fa-clock text-[9px]"></i>
-                            <span>${timeAgo}</span>
-                        </div>
                     </div>
                     <button type="button" 
                         onclick="event.stopPropagation(); window.CA2Notifications.markAsRead('${item.id}')"
-                        class="text-gray-500 hover:text-orange-400 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        class="notif-mark-single-btn"
                         title="${isUnread ? 'Đánh dấu đã đọc' : 'Đã đọc'}">
-                        <i class="fas ${isUnread ? 'fa-check' : 'fa-check-circle text-orange-500'} text-xs"></i>
+                        <i class="fas ${isUnread ? 'fa-check' : 'fa-check-circle text-orange-500'}"></i>
                     </button>
                 </div>
             `;
