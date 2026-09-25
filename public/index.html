@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="css/premium-ui.css?v=3.2.4">
     <link rel="stylesheet" href="css/premium-datepicker.css?v=1.0.0">
@@ -972,61 +973,61 @@
                 <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-orange-500 transition-all border border-white/5" title="Chuyển giao diện">
                     <i id="theme-icon" class="fas fa-moon"></i>
                 </button>
-                <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white">
-                    <i class="fas fa-times"></i>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white flex items-center justify-center">
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
         </div>
         <nav class="flex-1 px-3 space-y-0.5 mt-2 overflow-y-auto pb-4 custom-scrollbar">
             <div class="nav-section-label">H&#x1EC7; th&#x1ED1;ng</div>
             <a href="javascript:void(0)" onclick="showPage('ca2-crm'); return false;" id="nav-ca2-crm" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
-                <span class="mr-3 text-lg group-hover:scale-110 transition-transform">👥</span> <span class="font-bold">CA2 CRM</span>
+                <i data-lucide="users" class="w-5 h-5 mr-3 shrink-0 group-hover:scale-110 transition-transform"></i> <span class="font-bold">CA2 CRM</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('dashboard'); return false;" id="nav-dashboard" class="sidebar-item-active flex items-center px-4 py-3 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">📊</span> <span class="font-semibold">B&#7843;ng &#273;i&#7873;u khi&#7875;n</span>
+                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold">B&#7843;ng &#273;i&#7873;u khi&#7875;n</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('campaigns'); return false;" id="nav-campaigns" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">📧</span> <span class="font-semibold">Chi&#7871;n d&#7883;ch email</span>
+                <i data-lucide="mail" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold">Chi&#7871;n d&#7883;ch email</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('senders'); return false;" id="nav-senders" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">🔑</span> <span class="font-semibold">T&#224;i kho&#7843;n Gmail</span>
+                <i data-lucide="at-sign" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold">T&#224;i kho&#7843;n Gmail</span>
             </a>
             <a href="javascript:void(0)" onclick="showPage('reports'); return false;" id="nav-reports" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                <span class="mr-3 text-lg">📈</span> <span class="font-semibold">B&#225;o c&#225;o</span>
+                <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold">B&#225;o c&#225;o</span>
             </a>
 
             <div class="nav-section-label">H&#x1EE3;p &#x111;&#x1ED3;ng & T&#224;i li&#x1EC7;u</div>
                 <a href="javascript:void(0)" onclick="showPage('quotations'); return false;" id="nav-quotations" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">📄</span> <span class="font-semibold text-sm">Qu&#7843;n l&#253; B&#225;o gi&#225;</span>
+                    <i data-lucide="file-text" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">Qu&#7843;n l&#253; B&#225;o gi&#225;</span>
                 </a>
                 <a href="javascript:void(0)" onclick="showPage('documents'); return false;" id="nav-documents" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">Kho Tài liệu Sales</span>
+                    <i data-lucide="folder-kanban" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">Kho Tài liệu Sales</span>
                 </a>
 
             <div class="nav-section-label">SEO Tools AI</div>
                 <a href="javascript:void(0)" onclick="showPage('seo-news'); return false;" id="nav-seo-news" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">📰</span> <span class="font-semibold text-sm">Tin T&#7913;c Thu&#7871;</span>
+                    <i data-lucide="newspaper" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">Tin T&#7913;c Thu&#7871;</span>
                 </a>
                 <a href="javascript:void(0)" onclick="showPage('seo-article'); return false;" id="nav-seo-article" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">✍️</span> <span class="font-semibold text-sm">Tạo Bài Viết SEO</span>
+                    <i data-lucide="pen-tool" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">Tạo Bài Viết SEO</span>
                 </a>
                 <a href="javascript:void(0)" onclick="showPage('seo-image'); return false;" id="nav-seo-image" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">🎨</span> <span class="font-semibold text-sm">Tạo Ảnh AI</span>
+                    <i data-lucide="palette" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">Tạo Ảnh AI</span>
                 </a>
                 <a href="javascript:void(0)" onclick="showPage('seo-posts'); return false;" id="nav-seo-posts" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">📂</span> <span class="font-semibold text-sm">My Posts</span>
+                    <i data-lucide="library" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">My Posts</span>
                 </a>
 
             <div class="nav-section-label">C&#224;i &#x111;&#x1EB7;t</div>
                 <a href="javascript:void(0)" onclick="showPage('settings'); return false;" id="nav-settings" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">⚙️</span> <span class="font-semibold text-sm">C&#224;i &#x111;&#x1EB7;t hệ thống</span>
+                    <i data-lucide="settings" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-sm">C&#224;i &#x111;&#x1EB7;t hệ thống</span>
                 </a>
             <div class="pt-4 border-t border-white/5 space-y-2 mt-4">
                 <a href="ca2-automation://open" class="flex items-center px-4 py-3 text-orange-gradient hover:bg-white/5 rounded-xl transition-all duration-200 group">
-                    <span class="mr-3 text-lg group-hover:scale-110 transition-transform">⚡</span> <span class="font-bold text-sm">Mở Công cụ Local</span>
+                    <i data-lucide="zap" class="w-5 h-5 mr-3 shrink-0 group-hover:scale-110 transition-transform"></i> <span class="font-bold text-sm">Mở Công cụ Local</span>
                 </a>
                 <button onclick="downloadLocalTool()" class="w-full flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
-                    <span class="mr-3 text-lg">⬇️</span> <span class="font-semibold text-[10px] uppercase tracking-widest text-blue-400">Tải Tool trực tiếp (.zip)</span>
+                    <i data-lucide="download" class="w-5 h-5 mr-3 shrink-0"></i> <span class="font-semibold text-[10px] uppercase tracking-widest text-blue-400">Tải Tool trực tiếp (.zip)</span>
                 </button>
             </div>
         </nav>
@@ -1040,10 +1041,10 @@
             </div>
             <div class="grid grid-cols-2 gap-4 px-1">
                 <button onclick="openAccountSwitcher()" class="py-2 px-2 rounded-xl text-[9px] font-bold uppercase tracking-wider text-white bg-blue-600/80 hover:bg-blue-600 transition-all flex items-center justify-center gap-1.5 active:scale-95">
-                    <i class="fas fa-sync-alt"></i> Đổi User
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Đổi User
                 </button>
                 <button onclick="handleLogout()" class="py-2 px-2 rounded-xl text-[9px] font-bold uppercase tracking-wider text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center gap-1.5 border border-white/5 active:scale-95">
-                    <i class="fas fa-sign-out-alt"></i> Thoát
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Thoát
                 </button>
             </div>
         </div>
@@ -1058,8 +1059,8 @@
         <!-- Header -->
         <header class="header h-14 border-b border-white/5 flex items-center justify-between px-4 bg-[#0b0f1a]/90 backdrop-blur-xl z-[1000] sticky top-0">
             <div class="flex items-center gap-6">
-                <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white transition-all">
-                    <i class="fas fa-bars"></i>
+                <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white transition-all flex items-center justify-center">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
                 </button>
                 <h2 id="page-title" class="text-2xl font-bold text-white tracking-tight">B&#7843;ng &#273;i&#7873;u khi&#7875;n</h2>
             </div>
@@ -1069,11 +1070,11 @@
                     <i class="fas fa-paper-plane fa-bounce"></i> Đang gửi mail ngầm
                 </div>
                 
-                <button onclick="showPage('lookup-tools')" class="bg-blue-600/20 text-blue-400 border border-blue-500/20 px-6 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white hover:scale-105 transition-all font-bold shadow-xl flex items-center gap-4">
-                    <span class="text-lg">🏛️</span> Cổng Tra Cứu Nghiệp Vụ
+                <button onclick="showPage('lookup-tools')" class="bg-blue-600/20 text-blue-400 border border-blue-500/20 px-6 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white hover:scale-105 transition-all font-bold shadow-xl flex items-center gap-2">
+                    <i data-lucide="compass" class="w-5 h-5 mr-1 shrink-0"></i> Cổng Tra Cứu Nghiệp Vụ
                 </button>
-                <button onclick="openCreateModal()" class="bg-orange-gradient px-6 py-2.5 text-white rounded-xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/30 flex items-center gap-4">
-                    <span>+</span> Tạo chiến dịch mới
+                <button onclick="openCreateModal()" class="bg-orange-gradient px-6 py-2.5 text-white rounded-xl hover:scale-105 transition-all font-bold shadow-xl shadow-orange-900/30 flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-4 h-4 mr-1 shrink-0"></i> Tạo chiến dịch mới
                 </button>
             </div>
         </header>
@@ -3731,6 +3732,17 @@
             </div>
         </div>
     </div>
-
+    <script>
+        window.refreshLucideIcons = function() {
+            if (typeof lucide !== 'undefined' && lucide && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
+            }
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.refreshLucideIcons);
+        } else {
+            window.refreshLucideIcons();
+        }
+    </script>
 </body>
 </html>

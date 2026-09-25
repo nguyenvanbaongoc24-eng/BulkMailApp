@@ -830,6 +830,7 @@ function showPage(pageId) {
     }
 
     repairElementText(document.getElementById('main-content'));
+    if (window.refreshLucideIcons) window.refreshLucideIcons();
 }
 
 function toggleSidebar() {
