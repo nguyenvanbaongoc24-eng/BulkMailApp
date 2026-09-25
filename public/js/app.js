@@ -765,7 +765,14 @@ function updateUserUI() {
 function showPage(pageId) {
     document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
     const target = document.getElementById(`view-${pageId}`);
-    if (target) target.classList.remove('hidden');
+    if (target) {
+        // Re-trigger CSS fade-in animation on page switch
+        target.style.animation = 'none';
+        target.classList.remove('hidden');
+        // Force reflow to restart animation
+        void target.offsetHeight;
+        target.style.animation = '';
+    }
     
     document.querySelectorAll('aside nav a').forEach(a => a.classList.remove('sidebar-item-active', 'text-orange-gradient'));
     const navItem = document.getElementById(`nav-${pageId}`);
@@ -2880,6 +2887,11 @@ function exportEmailLogs() {
 function renderCA2CRM() {
     const listContainer = document.getElementById('ca2-crm-list');
     if (!listContainer) return;
+
+    // Subtle fade-in when list re-renders (Part 1: smooth transitions)
+    listContainer.classList.remove('ds-fade-in');
+    void listContainer.offsetHeight; // force reflow
+    listContainer.classList.add('ds-fade-in');
 
     // Sync tab button styles
     const activeTabBtn = document.getElementById('tab-crm-active');
