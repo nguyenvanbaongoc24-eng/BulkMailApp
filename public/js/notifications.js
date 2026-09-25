@@ -19,9 +19,40 @@
     let pollTimer = null;
     let isDropdownOpen = false;
     let isModuleInitialized = false;
+    let currentFilter = 'all';
 
     // Local storage key for fallback
     const LOCAL_READ_KEY = 'ca2_read_notifications_v1';
+
+    // Format corporate names from ALL CAPS to clean Title Case
+    function formatCompanyName(name) {
+        if (!name) return '';
+        if (name !== name.toUpperCase()) return name;
+        const acronyms = new Set(['TNHH', 'CP', 'MTV', 'TM', 'DV', 'CA2', 'VN', 'JSC', 'LTD', 'CTCP', 'TMDV', 'XNK', 'MST', 'BĐS', 'XD']);
+        return name
+            .toLowerCase()
+            .split(/\s+/)
+            .map(word => {
+                if (!word) return '';
+                const u = word.toUpperCase();
+                if (acronyms.has(u)) return u;
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            })
+            .join(' ');
+    }
+
+    function setFilter(filter) {
+        currentFilter = filter;
+        const tabs = document.querySelectorAll('.notif-tab');
+        tabs.forEach(t => {
+            if (t.dataset.filter === filter) {
+                t.classList.add('active');
+            } else {
+                t.classList.remove('active');
+            }
+        });
+        renderNotificationItems();
+    }
 
     // Kiểm tra người dùng đã xác thực chưa (có token hợp lệ)
     function isAuthenticated() {
@@ -107,14 +138,24 @@
             <div id="notif-dropdown" class="hidden notif-dropdown-panel">
                 <!-- Header -->
                 <div class="notif-header">
-                    <div class="notif-title-group">
-                        <span class="text-sm">🔔</span>
-                        <h3 class="notif-header-title">Thông báo</h3>
-                        <span id="notif-count-label" class="notif-count-badge">0 chưa đọc</span>
+                    <div class="notif-header-top">
+                        <div class="notif-title-group">
+                            <span class="notif-title-icon"><i class="fas fa-bell"></i></span>
+                            <h3 class="notif-header-title">Thông báo</h3>
+                            <span id="notif-count-label" class="notif-count-badge">0</span>
+                        </div>
+                        <button id="notif-read-all-btn" class="notif-read-all-button" type="button" title="Đánh dấu tất cả là đã đọc">
+                            <i class="fas fa-check-double text-[10px]"></i> Đọc tất cả
+                        </button>
                     </div>
-                    <button id="notif-read-all-btn" class="notif-read-all-button" type="button">
-                        <i class="fas fa-check-double text-[11px]"></i> Đọc tất cả
-                    </button>
+                    <div class="notif-filter-tabs">
+                        <button type="button" class="notif-tab active" data-filter="all" onclick="window.CA2Notifications.setFilter('all')">
+                            Tất cả
+                        </button>
+                        <button type="button" class="notif-tab" data-filter="unread" onclick="window.CA2Notifications.setFilter('unread')">
+                            Chưa đọc (<span id="notif-unread-tab-count">0</span>)
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Notification Items List -->
@@ -126,8 +167,10 @@
 
                 <!-- Footer -->
                 <div class="notif-footer">
-                    <i class="fas fa-sync-alt text-[10px] opacity-60"></i>
-                    <span>Tự động cập nhật mỗi 45 giây</span>
+                    <span class="notif-footer-status">
+                        <span class="notif-pulse-dot"></span> Tự động cập nhật mỗi 45s
+                    </span>
+                    <span class="text-[10px] text-gray-500 font-medium">CA2 Automation</span>
                 </div>
             </div>
         `;
@@ -244,12 +287,14 @@
                     items.push({
                         id: `crm-exp-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
-                        badgeText: 'Đã hết hạn',
+                        badgeText: `Quá hạn ${Math.abs(daysLeft)}d`,
                         badgeClass: 'notif-badge-danger',
                         iconClass: 'notif-icon-danger',
-                        iconHtml: '<i class="fas fa-file-invoice"></i>',
+                        iconHtml: '<i class="fas fa-exclamation-circle"></i>',
                         title: name,
-                        desc: `MST: ${mst || '—'} • Quá hạn ${Math.abs(daysLeft)} ngày (${formatVNDate(c.expired_date)})`,
+                        formattedTitle: formatCompanyName(name),
+                        subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
+                        desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
                         timestamp: c.expired_date,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
@@ -265,7 +310,9 @@
                         iconClass: 'notif-icon-danger',
                         iconHtml: '<i class="fas fa-hourglass-half"></i>',
                         title: name,
-                        desc: `MST: ${mst || '—'} • Hạn chót: ${formatVNDate(c.expired_date)}`,
+                        formattedTitle: formatCompanyName(name),
+                        subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
+                        desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
                         timestamp: c.expired_date,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
@@ -281,7 +328,9 @@
                         iconClass: 'notif-icon-warning',
                         iconHtml: '<i class="fas fa-calendar-alt"></i>',
                         title: name,
-                        desc: `MST: ${mst || '—'} • Chuẩn bị gia hạn (${formatVNDate(c.expired_date)})`,
+                        formattedTitle: formatCompanyName(name),
+                        subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
+                        desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
                         timestamp: c.expired_date,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
@@ -319,6 +368,8 @@
                             iconClass: 'notif-icon-danger',
                             iconHtml: '<i class="fas fa-paper-plane"></i>',
                             title: c.name || 'Chiến dịch email',
+                            formattedTitle: c.name || 'Chiến dịch email',
+                            subText: `${errCount}/${total} email bị lỗi gửi`,
                             desc: `${errCount}/${total} email bị lỗi gửi. Vui lòng kiểm tra nhật ký gửi!`,
                             timestamp: c.created_at || new Date().toISOString(),
                             ref_id: c.id,
@@ -365,12 +416,14 @@
                     items.push({
                         id: `task-overdue-${t.due_date}-${idx}-${encodeURIComponent(t.text.slice(0, 15))}`,
                         type: 'task_reminder',
-                        badgeText: 'Quá hạn',
+                        badgeText: `Quá hạn ${Math.abs(diffDays)}d`,
                         badgeClass: 'notif-badge-danger',
                         iconClass: 'notif-icon-danger',
-                        iconHtml: '<i class="fas fa-calendar-times"></i>',
+                        iconHtml: '<i class="fas fa-tasks"></i>',
                         title: t.text,
-                        desc: `${t.source} • Hạn chót: ${formatVNDate(t.due_date)} (${Math.abs(diffDays)} ngày trước)`,
+                        formattedTitle: t.text,
+                        subText: `${t.source} • Hạn: ${formatVNDate(t.due_date)}`,
+                        desc: `${t.source} • Hạn chót: ${formatVNDate(t.due_date)}`,
                         timestamp: t.due_date,
                         ref_id: 'weekly-report',
                         targetAction: 'openWeeklyReport',
@@ -382,11 +435,13 @@
                     items.push({
                         id: `task-due-${t.due_date}-${idx}-${encodeURIComponent(t.text.slice(0, 15))}`,
                         type: 'task_reminder',
-                        badgeText: `Hạn: ${dayLabel}`,
+                        badgeText: dayLabel,
                         badgeClass: 'notif-badge-warning',
                         iconClass: 'notif-icon-warning',
                         iconHtml: '<i class="fas fa-calendar-check"></i>',
                         title: t.text,
+                        formattedTitle: t.text,
+                        subText: `${t.source} • Hạn: ${formatVNDate(t.due_date)}`,
                         desc: `${t.source} • Hạn chót: ${formatVNDate(t.due_date)}`,
                         timestamp: t.due_date,
                         ref_id: 'weekly-report',
@@ -439,6 +494,7 @@
     function updateBadge() {
         const badge = document.getElementById('notif-badge');
         const countLabel = document.getElementById('notif-count-label');
+        const unreadTabCount = document.getElementById('notif-unread-tab-count');
         if (!badge) return;
 
         const unreadCount = notificationList.filter(n => !n.is_read).length;
@@ -450,7 +506,10 @@
         }
 
         if (countLabel) {
-            countLabel.innerText = unreadCount > 0 ? `${unreadCount} chưa đọc` : '0 chưa đọc';
+            countLabel.innerText = unreadCount > 0 ? `${unreadCount}` : '0';
+        }
+        if (unreadTabCount) {
+            unreadTabCount.innerText = unreadCount;
         }
     }
 
@@ -458,20 +517,25 @@
         const body = document.getElementById('notif-list-body');
         if (!body) return;
 
-        if (notificationList.length === 0) {
+        let displayList = notificationList;
+        if (currentFilter === 'unread') {
+            displayList = notificationList.filter(n => !n.is_read);
+        }
+
+        if (displayList.length === 0) {
             body.innerHTML = `
                 <div class="notif-empty-state">
                     <div class="notif-empty-icon">
                         <i class="fas fa-bell-slash"></i>
                     </div>
-                    <div class="notif-empty-title">Không có thông báo mới</div>
+                    <div class="notif-empty-title">${currentFilter === 'unread' ? 'Không có thông báo chưa đọc' : 'Không có thông báo mới'}</div>
                     <div class="notif-empty-sub">Mọi việc đều đang hoạt động tốt</div>
                 </div>
             `;
             return;
         }
 
-        body.innerHTML = notificationList.map(item => {
+        body.innerHTML = displayList.map(item => {
             const isUnread = !item.is_read;
             const timeAgo = formatRelativeTime(item.timestamp);
             const badgeText = item.badgeText || (
@@ -479,36 +543,35 @@
                 item.type === 'campaign_error' ? 'Lỗi gửi' :
                 item.type === 'task_reminder' ? 'Nhắc việc' : 'Thông báo'
             );
-            const iconHtml = item.iconHtml || (item.icon ? (item.icon.startsWith('<') ? item.icon : `<span class="text-sm">${item.icon}</span>`) : '<i class="far fa-bell"></i>');
+            const iconHtml = item.iconHtml || (item.icon ? (item.icon.startsWith('<') ? item.icon : `<span class="text-sm">${item.icon}</span>`) : '<i class="fas fa-bell"></i>');
             const iconClass = item.iconClass || 'notif-icon-info';
             const badgeClass = item.badgeClass || 'notif-badge-info';
+            const displayTitle = item.formattedTitle || formatCompanyName(item.title) || item.title;
+            const subText = item.subText || item.desc || '';
 
             return `
                 <div class="notif-item ${isUnread ? 'is-unread' : 'is-read'}"
                     onclick="window.CA2Notifications.handleItemClick('${item.id}')">
-                    <div class="notif-status-col">
-                        ${isUnread ? '<span class="notif-unread-dot" title="Chưa đọc"></span>' : '<span class="notif-read-dot"></span>'}
-                    </div>
                     <div class="notif-icon-box ${iconClass}">
                         ${iconHtml}
                     </div>
                     <div class="notif-content-col">
-                        <div class="notif-meta-row">
-                            <span class="notif-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
+                        <div class="notif-title-row">
+                            <h4 class="notif-title" title="${escapeHtml(item.title)}">
+                                ${escapeHtml(displayTitle)}
+                            </h4>
                             <span class="notif-time">${timeAgo}</span>
                         </div>
-                        <h4 class="notif-title" title="${escapeHtml(item.title)}">
-                            ${escapeHtml(item.title)}
-                        </h4>
-                        <p class="notif-desc">
-                            ${escapeHtml(item.desc)}
-                        </p>
+                        <div class="notif-meta-row">
+                            <span class="notif-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
+                            ${subText ? `<span class="notif-subtext">${escapeHtml(subText)}</span>` : ''}
+                        </div>
                     </div>
                     <button type="button" 
                         onclick="event.stopPropagation(); window.CA2Notifications.markAsRead('${item.id}')"
                         class="notif-mark-single-btn"
                         title="${isUnread ? 'Đánh dấu đã đọc' : 'Đã đọc'}">
-                        <i class="fas ${isUnread ? 'fa-check' : 'fa-check-circle text-orange-500'}"></i>
+                        <i class="fas ${isUnread ? 'fa-check' : 'fa-check-circle text-orange-400'}"></i>
                     </button>
                 </div>
             `;
@@ -639,7 +702,8 @@
         refresh: fetchAndRefreshNotifications,
         markAsRead: markAsRead,
         markAllAsRead: markAllAsRead,
-        handleItemClick: handleItemClick
+        handleItemClick: handleItemClick,
+        setFilter: setFilter
     };
 
     // Auto-init: chờ event 'ca2:auth:ready' do app.js phát ra SAU KHI đăng nhập thành công
