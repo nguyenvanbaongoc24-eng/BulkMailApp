@@ -493,7 +493,7 @@
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2">
                             <!-- Nút Tạo báo giá -->
-                            <button onclick="createQuotationForCustomer('${escapeHtml(c.company_name || '')}', '${escapeHtml(c.mst || '')}', '${escapeHtml(c.phone || '')}')" 
+                            <button onclick="createQuotationForCustomerById('${safeId}')" 
                                     class="px-3 py-1.5 rounded-xl bg-orange-500/15 hover:bg-orange-500 text-orange-400 hover:text-white border border-orange-500/30 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-sm"
                                     title="Tạo báo giá gia hạn nhanh cho khách hàng này">
                                 <i class="fas fa-file-invoice-dollar text-[11px]"></i>
@@ -529,6 +529,16 @@
         }).catch(err => {
             console.error('Lỗi sao chép:', err);
         });
+    };
+
+    /**
+     * Tạo báo giá từ ID khách hàng
+     */
+    window.createQuotationForCustomerById = function(id) {
+        const cust = (window.currentCRMData || []).find(c => String(c.id) === String(id));
+        if (cust) {
+            window.createQuotationForCustomer(cust.company_name || '', cust.mst || '', cust.phone || '');
+        }
     };
 
     /**
