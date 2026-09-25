@@ -29,8 +29,8 @@
     --ds-surface-active:  rgba(255,255,255,0.08);
 
     /* ── Sidebar (Persistent Dark) ── */
-    --sidebar-bg:         #0D0F1C;
-    --sidebar-active:     rgba(255, 107, 43, 0.15);
+    --sidebar-bg:         #0f0f14;
+    --sidebar-active:     rgba(124, 58, 237, 0.12);
     --sidebar-border:     rgba(255,255,255,0.06);
 
     /* ── Borders ── */
@@ -549,6 +549,7 @@ aside nav a:active {
 .sidebar-item-active {
     position: relative;
     background: var(--sidebar-active) !important;
+    color: #c4b5fd !important;
 }
 .sidebar-item-active::before {
     content: '';
@@ -558,9 +559,14 @@ aside nav a:active {
     transform: translateY(-50%);
     width: 3px;
     height: 60%;
-    background: var(--ds-orange);
+    background: #7c3aed;
     border-radius: 0 var(--ds-radius-pill) var(--ds-radius-pill) 0;
-    box-shadow: 0 0 12px var(--ds-orange-glow);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
+}
+.sidebar-item-active i[data-lucide],
+.sidebar-item-active svg {
+    color: #a78bfa;
+    stroke: #a78bfa;
 }
 
 
@@ -1401,8 +1407,38 @@ body {
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: rgba(255,255,255,.2);
-    padding: 16px 12px 6px;
+    color: rgba(255,255,255,.25);
+    padding: 20px 12px 6px;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+}
+.nav-section-label:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 8px;
+}
+
+/* Lucide icon sizing in sidebar nav */
+#sidebar nav a i[data-lucide],
+#sidebar nav a svg.lucide {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.75;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, color 0.18s ease;
+}
+#sidebar nav a:not(.sidebar-item-active):hover i[data-lucide],
+#sidebar nav a:not(.sidebar-item-active):hover svg.lucide {
+    color: #e2e8f0;
+    transform: scale(1.08);
+}
+/* Sidebar nav hover */
+#sidebar nav a:not(.sidebar-item-active) {
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+#sidebar nav a:not(.sidebar-item-active):hover {
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
 }
 
 .sidebar-user {
