@@ -148,12 +148,24 @@
                             <i class="fas fa-check-double text-[10px]"></i> Đọc tất cả
                         </button>
                     </div>
-                    <div class="notif-filter-tabs">
+                    <div class="notif-filter-tabs custom-scrollbar">
                         <button type="button" class="notif-tab active" data-filter="all" onclick="window.CA2Notifications.setFilter('all')">
                             Tất cả
                         </button>
                         <button type="button" class="notif-tab" data-filter="unread" onclick="window.CA2Notifications.setFilter('unread')">
                             Chưa đọc (<span id="notif-unread-tab-count">0</span>)
+                        </button>
+                        <button type="button" class="notif-tab" data-filter="crm" onclick="window.CA2Notifications.setFilter('crm')">
+                            Hết hạn HĐ
+                        </button>
+                        <button type="button" class="notif-tab" data-filter="campaign" onclick="window.CA2Notifications.setFilter('campaign')">
+                            Lỗi email
+                        </button>
+                        <button type="button" class="notif-tab" data-filter="quote" onclick="window.CA2Notifications.setFilter('quote')">
+                            Báo giá
+                        </button>
+                        <button type="button" class="notif-tab" data-filter="task" onclick="window.CA2Notifications.setFilter('task')">
+                            Nhắc việc
                         </button>
                     </div>
                 </div>
@@ -185,6 +197,11 @@
         // Gắn sự kiện "Đọc tất cả"
         const readAllBtn = document.getElementById('notif-read-all-btn');
         readAllBtn.addEventListener('click', markAllAsRead);
+
+        // Lắng nghe thay đổi kích thước màn hình để tự căn chỉnh dropdown
+        window.addEventListener('resize', () => {
+            if (isDropdownOpen) positionDropdown();
+        });
     }
 
     function toggleDropdown(e) {
@@ -194,9 +211,33 @@
         isDropdownOpen = !isDropdownOpen;
         if (isDropdownOpen) {
             dropdown.classList.remove('hidden');
+            positionDropdown();
             renderNotificationItems();
         } else {
             dropdown.classList.add('hidden');
+        }
+    }
+
+    function positionDropdown() {
+        const dropdown = document.getElementById('notif-dropdown');
+        const container = document.getElementById('notif-bell-container');
+        if (!dropdown || !container) return;
+
+        // Reset trước khi tính toán
+        dropdown.style.left = '';
+        dropdown.style.right = '';
+
+        const rect = container.getBoundingClientRect();
+        const dropdownWidth = 410;
+        
+        // Nếu căn phải mà panel tràn ra ngoài mép trái màn hình (< 10px)
+        if (rect.right - dropdownWidth < 10) {
+            const shiftLeft = Math.max(10 - rect.left, -(rect.left - 10));
+            dropdown.style.left = `${Math.min(0, shiftLeft)}px`;
+            dropdown.style.right = 'auto';
+        } else {
+            dropdown.style.right = '0px';
+            dropdown.style.left = 'auto';
         }
     }
 
@@ -213,15 +254,16 @@
         // Guard: không gọi API nếu chưa xác thực
         if (!isAuthenticated()) return;
         try {
-            const [crmNotifications, campaignNotifications, taskNotifications, serverReadRes] = await Promise.all([
+            const [crmNotifications, campaignNotifications, quoteNotifications, taskNotifications, serverReadRes] = await Promise.all([
                 fetchCRMExpirations(),
                 fetchCampaignErrors(),
+                fetchQuotationsNotifications(),
                 fetchWeeklyTaskReminders(),
                 fetchServerNotifications()
             ]);
 
             // Tổng hợp và sắp xếp
-            const combined = [...taskNotifications, ...campaignNotifications, ...crmNotifications];
+            const combined = [...taskNotifications, ...quoteNotifications, ...campaignNotifications, ...crmNotifications];
             
             // Lọc trùng theo id
             const uniqueMap = new Map();
@@ -243,7 +285,9 @@
             // Sắp xếp: Chưa đọc lên đầu, sau đó theo thời gian giảm dần
             notificationList.sort((a, b) => {
                 if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
-                return new Date(b.timestamp) - new Date(a.timestamp);
+                const timeA = parseDateSmart(a.timestamp)?.getTime() || 0;
+                const timeB = parseDateSmart(b.timestamp)?.getTime() || 0;
+                return timeB - timeA;
             });
 
             updateBadge();
@@ -275,15 +319,17 @@
             const now = new Date();
             data.forEach(c => {
                 if (!c.expired_date) return;
-                const expDate = new Date(c.expired_date);
-                if (isNaN(expDate.getTime())) return;
+                const expDate = parseDateSmart(c.expired_date);
+                if (!expDate || isNaN(expDate.getTime())) return;
 
                 const daysLeft = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
                 const name = c.company_name || c.customer_name || c.mst || 'Khách hàng';
                 const mst = c.mst || '';
 
+                const itemTimestamp = c.created_at || c.updated_at || c.start_date || c.expired_date;
+
                 if (daysLeft < 0) {
-                    // Đã hết hạn
+                    // Đã hết hạn -> ĐỎ
                     items.push({
                         id: `crm-exp-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
@@ -295,15 +341,15 @@
                         formattedTitle: formatCompanyName(name),
                         subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
                         desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
-                        timestamp: c.expired_date,
+                        timestamp: itemTimestamp,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
                         is_read: false
                     });
-                } else if (daysLeft <= 30) {
-                    // Sắp hết hạn (<= 30 ngày)
+                } else if (daysLeft <= 15) {
+                    // Khẩn cấp (<= 15 ngày) -> ĐỎ
                     items.push({
-                        id: `crm-exp30-${c.id || mst}-${c.expired_date}`,
+                        id: `crm-exp15-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
                         badgeText: `Còn ${daysLeft} ngày`,
                         badgeClass: 'notif-badge-danger',
@@ -313,25 +359,43 @@
                         formattedTitle: formatCompanyName(name),
                         subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
                         desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
-                        timestamp: c.expired_date,
+                        timestamp: itemTimestamp,
+                        ref_id: mst,
+                        targetPage: 'ca2-crm',
+                        is_read: false
+                    });
+                } else if (daysLeft <= 30) {
+                    // Cảnh báo (16 - 30 ngày) -> CAM
+                    items.push({
+                        id: `crm-exp30-${c.id || mst}-${c.expired_date}`,
+                        type: 'crm_expiry',
+                        badgeText: `Còn ${daysLeft} ngày`,
+                        badgeClass: 'notif-badge-warning',
+                        iconClass: 'notif-icon-warning',
+                        iconHtml: '<i class="fas fa-clock"></i>',
+                        title: name,
+                        formattedTitle: formatCompanyName(name),
+                        subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
+                        desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
+                        timestamp: itemTimestamp,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
                         is_read: false
                     });
                 } else if (daysLeft <= 60) {
-                    // Sắp hết hạn (<= 60 ngày)
+                    // Bình thường (31 - 60 ngày) -> VÀNG NHẠT / XÁM
                     items.push({
                         id: `crm-exp60-${c.id || mst}-${c.expired_date}`,
                         type: 'crm_expiry',
                         badgeText: `Còn ${daysLeft} ngày`,
-                        badgeClass: 'notif-badge-warning',
-                        iconClass: 'notif-icon-warning',
+                        badgeClass: 'notif-badge-normal',
+                        iconClass: 'notif-icon-normal',
                         iconHtml: '<i class="fas fa-calendar-alt"></i>',
                         title: name,
                         formattedTitle: formatCompanyName(name),
                         subText: `${mst ? `MST: ${mst}` : ''}${mst ? ' • ' : ''}Hạn: ${formatVNDate(c.expired_date)}`,
                         desc: `MST: ${mst || '—'} • Hạn: ${formatVNDate(c.expired_date)}`,
-                        timestamp: c.expired_date,
+                        timestamp: itemTimestamp,
                         ref_id: mst,
                         targetPage: 'ca2-crm',
                         is_read: false
@@ -371,7 +435,7 @@
                             formattedTitle: c.name || 'Chiến dịch email',
                             subText: `${errCount}/${total} email bị lỗi gửi`,
                             desc: `${errCount}/${total} email bị lỗi gửi. Vui lòng kiểm tra nhật ký gửi!`,
-                            timestamp: c.created_at || new Date().toISOString(),
+                            timestamp: c.created_at || c.updated_at,
                             ref_id: c.id,
                             targetPage: 'campaigns',
                             is_read: false
@@ -385,7 +449,56 @@
         return items;
     }
 
-    // 3. Weekly Report Task Reminders (1 ngày hoặc quá hạn)
+    // 3. Quotations Notifications (Báo giá mới tạo / cập nhật)
+    async function fetchQuotationsNotifications() {
+        const items = [];
+        try {
+            if (!isAuthenticated()) return items;
+            let quotes = window.quoteManagerInstance?.state?.quotations;
+            if (!quotes || quotes.length === 0) {
+                if (typeof authedFetch === 'function') {
+                    const res = await authedFetch('/api/quotations');
+                    if (res && res.ok) {
+                        const json = await res.json();
+                        quotes = Array.isArray(json) ? json : (json.data || []);
+                    }
+                }
+            }
+            if (!Array.isArray(quotes)) return items;
+
+            // Lấy tối đa 10 báo giá gần nhất
+            quotes.slice(0, 10).forEach(q => {
+                if (!q || !q.id) return;
+                const custName = q.customer_name || 'Khách hàng';
+                const service = q.service || 'Báo giá dịch vụ';
+                const total = q.total || q.price || 0;
+                const formattedPrice = total ? `${Number(total).toLocaleString('vi-VN')} đ` : '';
+                const sub = [service, formattedPrice].filter(Boolean).join(' • ');
+
+                items.push({
+                    id: `quote-${q.id}`,
+                    type: 'quote',
+                    badgeText: 'Báo giá',
+                    badgeClass: 'notif-badge-warning',
+                    iconClass: 'notif-icon-info',
+                    iconHtml: '<i class="fas fa-file-invoice-dollar"></i>',
+                    title: custName,
+                    formattedTitle: formatCompanyName(custName),
+                    subText: sub,
+                    desc: sub,
+                    timestamp: q.created_at || q.updated_at,
+                    ref_id: q.id,
+                    targetPage: 'quotations',
+                    is_read: false
+                });
+            });
+        } catch (e) {
+            console.warn('[NOTIF] Lỗi lấy Quotations:', e);
+        }
+        return items;
+    }
+
+    // 4. Weekly Report Task Reminders (1 ngày hoặc quá hạn)
     async function fetchWeeklyTaskReminders() {
         const items = [];
         try {
@@ -405,7 +518,8 @@
 
             allTasks.forEach((t, idx) => {
                 if (!t.due_date || t.is_done) return;
-                const due = new Date(t.due_date);
+                const due = parseDateSmart(t.due_date);
+                if (!due) return;
                 due.setHours(0, 0, 0, 0);
 
                 const diffTime = due.getTime() - today.getTime();
@@ -467,7 +581,7 @@
         };
     }
 
-    // 4. Đồng bộ danh sách thông báo đã đọc từ Server Supabase
+    // 5. Đồng bộ danh sách thông báo đã đọc từ Server Supabase
     async function fetchServerNotifications() {
         try {
             if (typeof authedFetch !== 'function') return;
@@ -499,17 +613,18 @@
 
         const unreadCount = notificationList.filter(n => !n.is_read).length;
         if (unreadCount > 0) {
-            badge.innerText = unreadCount > 99 ? '99+' : unreadCount;
+            badge.innerText = unreadCount > 99 ? '99+' : String(unreadCount);
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
+            badge.innerText = '0';
         }
 
         if (countLabel) {
-            countLabel.innerText = unreadCount > 0 ? `${unreadCount}` : '0';
+            countLabel.innerText = unreadCount > 99 ? '99+' : `${unreadCount}`;
         }
         if (unreadTabCount) {
-            unreadTabCount.innerText = unreadCount;
+            unreadTabCount.innerText = unreadCount > 99 ? '99+' : `${unreadCount}`;
         }
     }
 
@@ -520,16 +635,42 @@
         let displayList = notificationList;
         if (currentFilter === 'unread') {
             displayList = notificationList.filter(n => !n.is_read);
+        } else if (currentFilter === 'crm') {
+            displayList = notificationList.filter(n => n.type === 'crm_expiry');
+        } else if (currentFilter === 'campaign') {
+            displayList = notificationList.filter(n => n.type === 'campaign_error');
+        } else if (currentFilter === 'quote') {
+            displayList = notificationList.filter(n => n.type === 'quote');
+        } else if (currentFilter === 'task') {
+            displayList = notificationList.filter(n => n.type === 'task_reminder');
         }
 
         if (displayList.length === 0) {
+            let emptyTitle = 'Không có thông báo mới ✨';
+            let emptySub = 'Mọi việc đều đang hoạt động tốt';
+            if (currentFilter === 'unread') {
+                emptyTitle = 'Đã đọc hết thông báo ✨';
+                emptySub = 'Bạn không có thông báo nào chưa đọc';
+            } else if (currentFilter === 'crm') {
+                emptyTitle = 'Không có hợp đồng sắp hết hạn';
+                emptySub = 'Tất cả khách hàng đều đang trong hạn';
+            } else if (currentFilter === 'campaign') {
+                emptyTitle = 'Không có lỗi gửi email';
+                emptySub = 'Mọi chiến dịch email đều gửi thành công';
+            } else if (currentFilter === 'quote') {
+                emptyTitle = 'Không có báo giá mới';
+                emptySub = 'Chưa có báo giá nào được tạo gần đây';
+            } else if (currentFilter === 'task') {
+                emptyTitle = 'Không có việc cần nhắc';
+                emptySub = 'Kế hoạch tuần đang đúng tiến độ';
+            }
             body.innerHTML = `
                 <div class="notif-empty-state">
                     <div class="notif-empty-icon">
                         <i class="fas fa-bell-slash"></i>
                     </div>
-                    <div class="notif-empty-title">${currentFilter === 'unread' ? 'Không có thông báo chưa đọc' : 'Không có thông báo mới'}</div>
-                    <div class="notif-empty-sub">Mọi việc đều đang hoạt động tốt</div>
+                    <div class="notif-empty-title">${emptyTitle}</div>
+                    <div class="notif-empty-sub">${emptySub}</div>
                 </div>
             `;
             return;
@@ -541,6 +682,7 @@
             const badgeText = item.badgeText || (
                 item.type === 'crm_expiry' ? 'Hết hạn' :
                 item.type === 'campaign_error' ? 'Lỗi gửi' :
+                item.type === 'quote' ? 'Báo giá' :
                 item.type === 'task_reminder' ? 'Nhắc việc' : 'Thông báo'
             );
             const iconHtml = item.iconHtml || (item.icon ? (item.icon.startsWith('<') ? item.icon : `<span class="text-sm">${item.icon}</span>`) : '<i class="fas fa-bell"></i>');
@@ -551,6 +693,7 @@
 
             return `
                 <div class="notif-item ${isUnread ? 'is-unread' : 'is-read'}"
+                    title="${escapeHtml(item.title)}${subText ? ' — ' + escapeHtml(subText) : ''}"
                     onclick="window.CA2Notifications.handleItemClick('${item.id}')">
                     <div class="notif-icon-box ${iconClass}">
                         ${iconHtml}
@@ -560,11 +703,11 @@
                             <h4 class="notif-title" title="${escapeHtml(item.title)}">
                                 ${escapeHtml(displayTitle)}
                             </h4>
-                            <span class="notif-time">${timeAgo}</span>
+                            <span class="notif-time" title="${item.timestamp ? formatVNDate(item.timestamp) : ''}">${timeAgo}</span>
                         </div>
                         <div class="notif-meta-row">
                             <span class="notif-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
-                            ${subText ? `<span class="notif-subtext">${escapeHtml(subText)}</span>` : ''}
+                            ${subText ? `<span class="notif-subtext" title="${escapeHtml(subText)}">${escapeHtml(subText)}</span>` : ''}
                         </div>
                     </div>
                     <button type="button" 
@@ -639,13 +782,22 @@
             }
             // Tìm và highlight khách hàng trong CRM
             setTimeout(() => {
-                const searchInput = document.getElementById('crm-search-input') || 
-                                    document.querySelector('input[placeholder*="Tìm kiếm"]');
+                const searchInput = document.getElementById('ca2-crm-search') || 
+                                    document.getElementById('crm-search-input') || 
+                                    document.querySelector('input[placeholder*="Tìm MST, Tên"]');
                 if (searchInput && item.ref_id) {
                     searchInput.value = item.ref_id;
                     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    searchInput.dispatchEvent(new Event('keyup', { bubbles: true }));
+                    if (typeof renderCA2CRM === 'function') {
+                        renderCA2CRM();
+                    }
                 }
             }, 300);
+        } else if (item.targetPage === 'quotations') {
+            if (typeof showPage === 'function') {
+                showPage('quotations');
+            }
         } else if (item.targetPage === 'campaigns') {
             if (typeof showPage === 'function') {
                 showPage('campaigns');
@@ -654,16 +806,49 @@
     }
 
     // ==========================================
-    // UTILITIES
+    // UTILITIES: DATE PARSING & RELATIVE TIME
     // ==========================================
+    function parseDateSmart(input) {
+        if (!input) return null;
+        if (input instanceof Date) return isNaN(input.getTime()) ? null : input;
+        if (typeof input === 'number') {
+            const d = new Date(input);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        if (typeof input === 'string') {
+            const trimmed = input.trim();
+            if (!trimmed) return null;
+            // Format: DD/MM/YYYY hoặc DD-MM-YYYY kèm giờ phút
+            const vnMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+            if (vnMatch) {
+                const day = parseInt(vnMatch[1], 10);
+                const month = parseInt(vnMatch[2], 10) - 1;
+                const year = parseInt(vnMatch[3], 10);
+                const hour = vnMatch[4] ? parseInt(vnMatch[4], 10) : 0;
+                const min = vnMatch[5] ? parseInt(vnMatch[5], 10) : 0;
+                const sec = vnMatch[6] ? parseInt(vnMatch[6], 10) : 0;
+                const d = new Date(year, month, day, hour, min, sec);
+                if (!isNaN(d.getTime())) return d;
+            }
+            const d = new Date(trimmed);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    }
+
     function formatRelativeTime(dateInput) {
-        if (!dateInput) return 'Vừa xong';
-        const d = new Date(dateInput);
-        if (isNaN(d.getTime())) return 'Gần đây';
+        const d = parseDateSmart(dateInput);
+        if (!d) return 'Gần đây';
 
         const now = new Date();
-        const diffMs = now - d;
-        const diffSec = Math.floor(diffMs / 1000);
+        const diffMs = now.getTime() - d.getTime();
+
+        // Nếu ngày ở tương lai hơn 1 phút (ví dụ ngày hết hạn của hợp đồng)
+        if (diffMs < -60000) {
+            return formatVNDate(d);
+        }
+
+        const diffSec = Math.floor(Math.abs(diffMs) / 1000);
         const diffMin = Math.floor(diffSec / 60);
         const diffHour = Math.floor(diffMin / 60);
         const diffDay = Math.floor(diffHour / 24);
@@ -672,8 +857,9 @@
         if (diffMin < 60) return `${diffMin} phút trước`;
         if (diffHour < 24) return `${diffHour} giờ trước`;
         if (diffDay === 1) return 'Hôm qua';
-        if (diffDay < 7) return `${diffDay} ngày trước`;
-        return formatVNDate(dateInput);
+        if (diffDay < 30) return `${diffDay} ngày trước`;
+        if (diffDay < 365) return `${Math.floor(diffDay / 30)} tháng trước`;
+        return `${Math.floor(diffDay / 365)} năm trước`;
     }
 
     function formatVNDate(dateStr) {
