@@ -150,17 +150,22 @@ aside#sidebar {
     -webkit-text-fill-color: #F47920 !important;
 }
 
-/* Nav items */
+/* Nav items — smooth transitions */
 aside nav a {
     padding: 8px 12px !important;
     border-radius: 6px !important;
     font-size: 13px !important;
     font-weight: 500 !important;
-    transition: background var(--ds-duration-fast) ease, color var(--ds-duration-fast) ease !important;
+    transition: background-color 180ms ease-out, color 180ms ease-out, transform 150ms ease-out, opacity 150ms ease-out !important;
+    will-change: background-color, color;
 }
 
 aside nav a:hover {
     background: rgba(255,255,255,0.04) !important;
+    transform: translateX(2px);
+}
+aside nav a:active {
+    transform: translateX(1px) scale(0.98);
 }
 
 .sidebar-item-active {
@@ -172,6 +177,7 @@ aside nav a:hover {
     color: #F47920 !important;
     font-weight: 600 !important;
     box-shadow: none !important;
+    transition: background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out !important;
 }
 
 .nav-section-label {
@@ -294,10 +300,12 @@ header.header {
     border-radius: 14px !important;
     background: #16161d !important;
     border: 1px solid rgba(255,255,255,0.06) !important;
+    transition: border-color 200ms ease-out, background-color 200ms ease-out, box-shadow 200ms ease-out, transform 200ms ease-out !important;
+    will-change: border-color, background-color;
 }
 .stat-card:hover {
     border-color: rgba(255,255,255,0.12) !important;
-    transform: none !important;
+    transform: translateY(-1px) !important;
 }
 
 /* CRM stat card active states — subtler */
@@ -451,12 +459,22 @@ header.header {
     box-shadow: none !important;
 }
 
-/* CRM tabs */
+/* CRM tabs — smooth transitions */
 #tab-crm-active,
 #tab-crm-expired {
     border-radius: 8px !important;
     font-size: 12px !important;
     padding: 8px 16px !important;
+    transition: background-color 200ms ease-out, color 200ms ease-out, box-shadow 200ms ease-out, transform 150ms ease-out !important;
+    will-change: background-color, color;
+}
+#tab-crm-active:hover,
+#tab-crm-expired:hover {
+    transform: translateY(-1px);
+}
+#tab-crm-active:active,
+#tab-crm-expired:active {
+    transform: scale(0.97);
 }
 
 /* ==========================================================
@@ -626,11 +644,13 @@ tbody tr:hover {
     font-size: 12px !important;
     padding: 6px 12px !important;
     font-weight: 500 !important;
+    transition: background-color 180ms ease-out, color 180ms ease-out !important;
 }
 .exp-svc-btn {
     border-radius: 6px !important;
     font-size: 12px !important;
     padding: 4px 10px !important;
+    transition: background-color 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out !important;
 }
 
 /* ==========================================================
@@ -1575,21 +1595,431 @@ body.light-mode {
     margin-bottom: 16px !important;
 }
 
-/* Page transitions — subtle fade only */
-.animate-in {
-    animation-duration: 150ms !important;
+/* ==========================================================
+   PART 1: SMOOTH TRANSITIONS & ANIMATIONS
+   GPU-accelerated, 150-250ms, ease-out
+   ========================================================== */
+
+/* --- Page view transition (fade-in on route change) --- */
+@keyframes ds-page-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.main-container {
+    will-change: opacity, transform;
+}
+.main-container:not(.hidden) {
+    animation: ds-page-fade-in 220ms ease-out both;
 }
 
-/* Consistent shadow kill for all interactive elements */
+/* Reusable fade-in helper */
+.animate-in {
+    animation-duration: 180ms !important;
+}
+
+/* --- Data list / table body fade on filter change --- */
+@keyframes ds-list-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.ds-fade-in {
+    animation: ds-list-fade-in 200ms ease-out both;
+}
+#ca2-crm-list,
+#ca2-crm-expired-list {
+    transition: opacity 180ms ease-out;
+}
+
+/* --- Global button transitions --- */
 button {
     box-shadow: none !important;
+    transition: background-color 180ms ease-out, color 180ms ease-out, transform 150ms ease-out, opacity 150ms ease-out !important;
 }
 button:hover {
     box-shadow: none !important;
 }
+button:active {
+    transform: scale(0.97);
+}
 
-/* Exception: Primary CTA buttons can have subtle shadow */
+/* Exception: Primary CTA buttons — subtle shadow on hover */
 .bg-orange-gradient,
 button[class*="bg-orange"] {
     box-shadow: none !important;
+    transition: background-color 180ms ease-out, transform 150ms ease-out !important;
+}
+.bg-orange-gradient:hover,
+button[class*="bg-orange"]:hover {
+    transform: translateY(-1px);
+}
+.bg-orange-gradient:active,
+button[class*="bg-orange"]:active {
+    transform: scale(0.97);
+}
+
+/* --- Select / dropdown transition --- */
+select {
+    transition: border-color 180ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out !important;
+}
+select:focus {
+    border-color: rgba(244, 121, 32, 0.4) !important;
+    box-shadow: 0 0 0 2px rgba(244, 121, 32, 0.08) !important;
+}
+
+/* --- Input focus transition --- */
+input:not([type="hidden"]):not([type="file"]),
+textarea {
+    transition: border-color 180ms ease-out, box-shadow 180ms ease-out !important;
+}
+input:not([type="hidden"]):not([type="file"]):focus,
+textarea:focus {
+    border-color: rgba(244, 121, 32, 0.4) !important;
+    box-shadow: 0 0 0 2px rgba(244, 121, 32, 0.08) !important;
+}
+
+/* --- Modal backdrop + content transitions --- */
+.modal-overlay {
+    transition: opacity 200ms ease-out !important;
+}
+.modal-premium {
+    transition: opacity 200ms ease-out, transform 200ms ease-out !important;
+}
+
+/* --- Table row hover transition --- */
+tbody tr {
+    transition: background-color 150ms ease-out !important;
+}
+
+/* ==========================================================
+   PART 2: LIGHT MODE CONTRAST & DEPTH FIX
+   Reduces "plastic/flat" feel, increases readability
+   All scoped under .light-mode — Dark Mode unaffected
+   ========================================================== */
+
+/* --- 2.1  Card Depth: Layered shadows for "floating" feel --- */
+.light-mode .card,
+.light-mode .stat-card,
+.light-mode .glass-card-premium,
+.light-mode [class*="bg-glass"] {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.light-mode .card:hover,
+.light-mode .stat-card:hover,
+.light-mode .glass-card-premium:hover {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.06),
+        0 8px 24px rgba(0, 0, 0, 0.10) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* --- 2.2  Stat Card Label Contrast --- */
+.light-mode .stat-label,
+.light-mode .uppercase-label {
+    color: #4B5563 !important;   /* Was #9ca3af equivalent — now darker gray-600 */
+    font-weight: 600 !important;
+}
+
+.light-mode .stat-value {
+    color: #111827 !important;   /* Near-black for max contrast */
+}
+
+/* --- 2.3  Card Top Accent Bar — bolder, gradient --- */
+.light-mode .stat-card::after {
+    height: 3px !important;
+    opacity: 1 !important;
+    border-radius: 0 0 2px 2px !important;
+}
+
+/* Active stat card borders — stronger in light mode */
+.light-mode .stat-card.active-total {
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    background: rgba(99, 102, 241, 0.04) !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(99, 102, 241, 0.08) !important;
+}
+.light-mode .stat-card.active-active {
+    border-color: rgba(22, 163, 74, 0.35) !important;
+    background: rgba(22, 163, 74, 0.04) !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(22, 163, 74, 0.08) !important;
+}
+.light-mode .stat-card.active-expiring {
+    border-color: rgba(234, 88, 12, 0.35) !important;
+    background: rgba(234, 88, 12, 0.04) !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(234, 88, 12, 0.08) !important;
+}
+.light-mode .stat-card.active-expired {
+    border-color: rgba(220, 38, 38, 0.35) !important;
+    background: rgba(220, 38, 38, 0.04) !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(220, 38, 38, 0.08) !important;
+}
+
+/* --- 2.4  Primary CTA Buttons — gradient + shadow for affordance --- */
+.light-mode .bg-orange-gradient,
+.light-mode button.bg-orange-gradient,
+.light-mode [class*="bg-orange-gradient"] {
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
+    box-shadow:
+        0 1px 2px rgba(234, 88, 12, 0.20),
+        0 4px 8px rgba(234, 88, 12, 0.15) !important;
+}
+.light-mode .bg-orange-gradient:hover,
+.light-mode button.bg-orange-gradient:hover {
+    background: linear-gradient(135deg, #FB923C 0%, #EA580C 100%) !important;
+    box-shadow:
+        0 2px 4px rgba(234, 88, 12, 0.25),
+        0 6px 16px rgba(234, 88, 12, 0.20) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Secondary buttons — subtle border lift */
+.light-mode .btn-secondary {
+    background: #F9FAFB !important;
+    border: 1px solid #D1D5DB !important;
+    color: #374151 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+.light-mode .btn-secondary:hover {
+    background: #F3F4F6 !important;
+    border-color: #9CA3AF !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* --- 2.5  Borders / Dividers — balanced visibility --- */
+.light-mode .page-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-mode thead tr {
+    background: #F9FAFB !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.08) !important;
+}
+.light-mode thead th {
+    color: #4B5563 !important;   /* Darker than default for readability */
+    font-weight: 600 !important;
+}
+.light-mode tbody tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+.light-mode tbody tr:hover {
+    background: #F9FAFB !important;
+}
+.light-mode tbody td {
+    color: #1F2937 !important;
+}
+
+/* CRM row items — cleaner borders */
+.light-mode .crm-row,
+.light-mode #ca2-crm-list > div {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+.light-mode .crm-row:hover,
+.light-mode #ca2-crm-list > div:hover {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+    background: #FAFBFC !important;
+}
+
+/* --- 2.6  Input/Dropdown Contrast --- */
+.light-mode input:not([type="checkbox"]):not([type="radio"]),
+.light-mode select,
+.light-mode textarea {
+    background: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;  /* Slate-300: visible but not harsh */
+    color: #0F172A !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+.light-mode input:not([type="checkbox"]):not([type="radio"]):hover,
+.light-mode select:hover,
+.light-mode textarea:hover {
+    border-color: #94A3B8 !important;  /* Slate-400 on hover */
+}
+.light-mode input:not([type="checkbox"]):not([type="radio"]):focus,
+.light-mode select:focus,
+.light-mode textarea:focus {
+    border-color: #EA580C !important;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12) !important;
+}
+.light-mode input::placeholder,
+.light-mode textarea::placeholder {
+    color: #9CA3AF !important;  /* Gray-400: visible placeholder */
+}
+
+/* Custom select trigger */
+.light-mode .custom-select-trigger {
+    background: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    color: #1F2937 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Filter chips — stronger in light mode */
+.light-mode .chip {
+    background: #F3F4F6 !important;
+    border: 1px solid #D1D5DB !important;
+    color: #374151 !important;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.03) !important;
+}
+.light-mode .chip:hover {
+    background: #E5E7EB !important;
+    color: #111827 !important;
+    border-color: #9CA3AF !important;
+}
+.light-mode .chip.active {
+    background: rgba(234, 88, 12, 0.08) !important;
+    color: #C2410C !important;
+    border-color: rgba(234, 88, 12, 0.30) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px rgba(234, 88, 12, 0.08) !important;
+}
+
+/* --- 2.7  Badge/Status Contrast (WCAG AA ≥ 4.5:1) --- */
+/* Payment status badges */
+.light-mode [class*="bg-green"][class*="text-green"],
+.light-mode .badge-success {
+    background: rgba(22, 163, 74, 0.10) !important;
+    color: #15803D !important;   /* Green-700 on white: 5.1:1 */
+    border: 1px solid rgba(22, 163, 74, 0.20) !important;
+}
+.light-mode [class*="bg-red"][class*="text-red"],
+.light-mode .badge-danger {
+    background: rgba(220, 38, 38, 0.08) !important;
+    color: #B91C1C !important;   /* Red-700 on white: 5.6:1 */
+    border: 1px solid rgba(220, 38, 38, 0.18) !important;
+}
+.light-mode [class*="bg-orange"][class*="text-orange"]:not(.bg-orange-gradient),
+.light-mode .badge-warning {
+    background: rgba(234, 88, 12, 0.08) !important;
+    color: #C2410C !important;   /* Orange-700 on white: 5.0:1 */
+    border: 1px solid rgba(234, 88, 12, 0.18) !important;
+}
+.light-mode [class*="bg-blue"][class*="text-blue"],
+.light-mode .badge-info {
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #1D4ED8 !important;   /* Blue-700 on white: 5.3:1 */
+    border: 1px solid rgba(37, 99, 235, 0.18) !important;
+}
+
+/* Status indicator dots — stronger in light mode */
+.light-mode .status-indicator.status-success { color: #15803D !important; }
+.light-mode .status-indicator.status-warning { color: #B45309 !important; }
+.light-mode .status-indicator.status-danger  { color: #B91C1C !important; }
+.light-mode .status-indicator.status-info    { color: #4338CA !important; }
+.light-mode .status-indicator.status-neutral { color: #4B5563 !important; }
+
+/* --- 2.8  Header & Sidebar text contrast --- */
+.light-mode #page-title {
+    color: #0F172A !important;
+}
+
+.light-mode .page-title {
+    color: #0F172A !important;
+}
+
+.light-mode .page-subtitle {
+    color: #6B7280 !important;   /* Gray-500: readable on light bg */
+}
+
+/* Sidebar nav text */
+.light-mode aside nav a:not(.sidebar-item-active) {
+    color: #374151 !important;  /* Gray-700: strong readable text */
+}
+
+.light-mode .nav-section-label {
+    color: #6B7280 !important;   /* Was #9CA3AF — now darker for visibility */
+}
+
+/* --- 2.9  Modal depth in light mode --- */
+.light-mode .modal-premium,
+.light-mode .auth-card {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        0 8px 24px rgba(0, 0, 0, 0.12),
+        0 24px 48px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* --- 2.10 Premium filter bar depth --- */
+.light-mode .premium-filter-bar {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* --- 2.11 Scrollbar in light mode --- */
+.light-mode .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.10) !important;
+}
+.light-mode .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.20) !important;
+}
+
+/* --- 2.12 CRM Tabs light mode --- */
+.light-mode #tab-crm-active,
+.light-mode #tab-crm-expired {
+    color: #4B5563 !important;
+}
+
+/* --- 2.13 Dashboard chart cards --- */
+.light-mode #dashboard-charts-container > .card {
+    background: #FFFFFF !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+.light-mode #dashboard-charts-container h3 {
+    color: #1F2937 !important;
+}
+
+/* --- 2.14 Expiring modal in light mode --- */
+.light-mode .exp-time-tab {
+    color: #4B5563 !important;
+}
+.light-mode .exp-svc-btn {
+    border-color: #D1D5DB !important;
+    color: #374151 !important;
+}
+
+/* --- 2.15 Label elements (form labels) --- */
+.light-mode .label-premium {
+    color: #374151 !important;   /* Was rgba(255,255,255,0.35) — dark for light bg */
+    font-weight: 600 !important;
+}
+
+/* --- 2.16 Header action button refinement --- */
+.light-mode .header button[onclick*="openCreateModal"] {
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
+    box-shadow: 0 1px 3px rgba(234, 88, 12, 0.20) !important;
+}
+.light-mode .header button[onclick*="openCreateModal"]:hover {
+    box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25) !important;
+}
+
+/* --- Reduce motion for users who prefer it --- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
