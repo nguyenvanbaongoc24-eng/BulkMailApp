@@ -728,6 +728,51 @@
             outline: 1px solid rgba(203, 213, 225, 0.6) !important;
             box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.15) !important;
         }
+        /* ── Modal Khách hàng sắp hết hạn (Light Mode) ── */
+        .light-mode #modal-expiring-customers .modal-premium {
+            background: rgba(255, 255, 255, 0.98) !important;
+            border: 1px solid #CBD5E1 !important;
+            box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25) !important;
+        }
+        .light-mode #modal-expiring-customers h3,
+        .light-mode #modal-expiring-customers h4 {
+            color: #0F172A !important;
+        }
+        .light-mode #expiring-search-input {
+            background: #FFFFFF !important;
+            border-color: #CBD5E1 !important;
+            color: #0F172A !important;
+        }
+        .light-mode #expiring-search-input::placeholder {
+            color: #94A3B8 !important;
+        }
+        .light-mode .exp-time-tab:not(.bg-gradient-to-r) {
+            background: #F1F5F9 !important;
+            border-color: #E2E8F0 !important;
+            color: #475569 !important;
+        }
+        .light-mode .exp-time-tab:not(.bg-gradient-to-r):hover {
+            background: #E2E8F0 !important;
+            color: #0F172A !important;
+        }
+        .light-mode .exp-svc-btn:not(.bg-white\/20) {
+            color: #475569 !important;
+        }
+        .light-mode .exp-svc-btn.bg-white\/20 {
+            background: #E2E8F0 !important;
+            color: #0F172A !important;
+            border-color: #CBD5E1 !important;
+        }
+        .light-mode #modal-expiring-customers .group.relative {
+            background: #FFFFFF !important;
+            border-color: #E2E8F0 !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .light-mode #modal-expiring-customers .group.relative:hover {
+            background: #F8FAFC !important;
+            border-color: #CBD5E1 !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
         .input-group-premium {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1055,31 +1100,51 @@
 
                 <!-- CRM Overview Row -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="card flex items-center gap-6">
-                        <div class="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 text-xl font-bold">🚫</div>
-                        <div>
-                            <p class="uppercase-label">Đã hết hạn</p>
+                    <div class="card flex items-center gap-6 cursor-pointer hover:border-red-500/50 hover:scale-[1.02] transition-all group" 
+                         onclick="openExpiringCustomersModal('expired')" 
+                         title="Nhấp để xem danh sách khách hàng đã hết hạn">
+                        <div class="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 text-xl font-bold group-hover:scale-110 transition-transform">🚫</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="uppercase-label flex items-center justify-between">
+                                <span>Đã hết hạn</span>
+                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-red-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                            </p>
                             <h4 id="dash-crm-expired" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
-                    <div class="card flex items-center gap-6">
-                        <div class="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-500 text-xl font-bold">⏳</div>
-                        <div>
-                            <p class="uppercase-label">Sắp hết hạn (30d)</p>
+                    <div class="card flex items-center gap-6 cursor-pointer hover:border-orange-500/50 hover:scale-[1.02] transition-all group" 
+                         onclick="openExpiringCustomersModal('30')" 
+                         title="Nhấp để xem danh sách khách hàng sắp hết hạn trong 30 ngày">
+                        <div class="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-500 text-xl font-bold group-hover:scale-110 transition-transform">⏳</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="uppercase-label flex items-center justify-between">
+                                <span>Sắp hết hạn (30d)</span>
+                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-orange-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                            </p>
                             <h4 id="dash-crm-30" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
-                    <div class="card flex items-center gap-6">
-                        <div class="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center text-yellow-500 text-xl font-bold">⚠️</div>
-                        <div>
-                            <p class="uppercase-label">Sắp hết hạn (60d)</p>
+                    <div class="card flex items-center gap-6 cursor-pointer hover:border-yellow-500/50 hover:scale-[1.02] transition-all group" 
+                         onclick="openExpiringCustomersModal('60')" 
+                         title="Nhấp để xem danh sách khách hàng sắp hết hạn trong 60 ngày">
+                        <div class="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center text-yellow-500 text-xl font-bold group-hover:scale-110 transition-transform">⚠️</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="uppercase-label flex items-center justify-between">
+                                <span>Sắp hết hạn (60d)</span>
+                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-yellow-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                            </p>
                             <h4 id="dash-crm-60" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
-                    <div class="card flex items-center gap-6">
-                        <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-500 text-xl font-bold">💎</div>
-                        <div>
-                            <p class="uppercase-label">Tổng khách hàng</p>
+                    <div class="card flex items-center gap-6 cursor-pointer hover:border-blue-500/50 hover:scale-[1.02] transition-all group" 
+                         onclick="openExpiringCustomersModal('all')" 
+                         title="Nhấp để xem danh sách toàn bộ khách hàng">
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-500 text-xl font-bold group-hover:scale-110 transition-transform">💎</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="uppercase-label flex items-center justify-between">
+                                <span>Tổng khách hàng</span>
+                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                            </p>
                             <h4 id="dash-crm-total" class="text-2xl font-black text-white">0</h4>
                         </div>
                     </div>
@@ -1206,9 +1271,16 @@
                         <div class="stat-value text-green-400" id="ca2-crm-active">0</div>
                         <div class="stat-label">Đang hoạt động</div>
                     </div>
-                    <div class="stat-card" id="card-stat-expiring" onclick="filterCRMByStat('expiring')" style="cursor: pointer;">
+                    <div class="stat-card group relative" id="card-stat-expiring" onclick="filterCRMByStat('expiring')" style="cursor: pointer;" title="Nhấp để lọc bảng hoặc bấm icon để mở pop-up">
                         <div class="stat-value text-orange-400" id="ca2-crm-expiring">0</div>
-                        <div class="stat-label">Sắp hết hạn</div>
+                        <div class="stat-label flex items-center justify-center gap-1.5">
+                            <span>Sắp hết hạn</span>
+                            <button type="button" onclick="event.stopPropagation(); openExpiringCustomersModal('all_expiring')" 
+                                    title="Mở pop-up danh sách sắp hết hạn" 
+                                    class="w-5 h-5 rounded-md bg-orange-500/20 hover:bg-orange-500 text-orange-400 hover:text-white flex items-center justify-center text-[10px] transition-all shadow-sm">
+                                <i class="fas fa-up-right-from-square"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="stat-card" id="card-stat-expired" onclick="filterCRMByStat('expired')" style="cursor: pointer;">
                         <div class="stat-value text-red-400" id="ca2-crm-expired">0</div>
@@ -3118,6 +3190,7 @@
     <script src="js/notifications.js?v=1.0.0"></script>
     <script src="js/dashboard-charts.js?v=1.0.0"></script>
     <script src="js/crm-interactions.js?v=1.0.0"></script>
+    <script src="js/crm-expiring-modal.js?v=1.0.0"></script>
     <!-- Modal: Add Pricing Package (Redesigned) -->
     <div id="modal-add-pricing" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000003] flex items-center justify-center p-6 hidden">
         <div class="modal-premium w-full max-w-xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in duration-200">
@@ -3524,6 +3597,132 @@
                     <button id="btn-add-interaction" onclick="addInteraction()"
                             class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-1.5 flex-shrink-0">
                         <i class="fas fa-plus"></i> Thêm
+                    </button>
+                </div>
+            </div>
+        </div>
+    <!-- Modal: Danh sách khách hàng sắp hết hạn (CKS & PMBH) -->
+    <div id="modal-expiring-customers" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000003] hidden flex items-center justify-center p-3 sm:p-6" onclick="if(event.target===this)closeExpiringCustomersModal()">
+        <div class="modal-premium w-full max-w-5xl rounded-[32px] overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[92vh] animate-in zoom-in duration-200">
+            <!-- Modal Header -->
+            <div class="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-transparent flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 text-xl font-bold shadow-lg shadow-orange-900/30 flex-shrink-0">
+                        ⏳
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+                                KHÁCH HÀNG SẮP HẾT HẠN
+                            </h3>
+                            <span id="expiring-results-count" class="px-3 py-0.5 rounded-full text-xs font-black bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                0 khách hàng
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-0.5 font-medium">
+                            Thời hạn sắp hết hạn gần nhất xếp từ trên xuống dưới &bull; CKS (Chữ ký số) &bull; PMBH (Bảo hiểm xã hội)
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Export Excel -->
+                    <button onclick="exportExpiringToExcel()" 
+                            class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-2" 
+                            title="Xuất danh sách ra file Excel">
+                        <i class="fas fa-file-excel text-emerald-400 text-sm"></i>
+                        <span class="hidden sm:inline">Xuất Excel</span>
+                    </button>
+                    <!-- Close Button -->
+                    <button onclick="closeExpiringCustomersModal()" 
+                            class="w-10 h-10 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-2xl transition-all flex items-center justify-center border border-white/5">
+                        <i class="fas fa-times text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Filter & Search Toolbar -->
+            <div class="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex-shrink-0 space-y-3">
+                <!-- Row 1: Time Tabs -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" class="exp-time-tab" data-time-filter="30" onclick="setExpiringTimeFilter('30')">
+                        <i class="fas fa-hourglass-half text-[11px]"></i>
+                        <span>Sắp hết hạn (≤ 30 ngày)</span>
+                        <span id="badge-count-30" class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-black">0</span>
+                    </button>
+                    <button type="button" class="exp-time-tab" data-time-filter="60" onclick="setExpiringTimeFilter('60')">
+                        <i class="fas fa-triangle-exclamation text-[11px]"></i>
+                        <span>Sắp hết hạn (31 - 60 ngày)</span>
+                        <span id="badge-count-60" class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-black">0</span>
+                    </button>
+                    <button type="button" class="exp-time-tab" data-time-filter="all_expiring" onclick="setExpiringTimeFilter('all_expiring')">
+                        <i class="fas fa-clock text-[11px]"></i>
+                        <span>Tất cả sắp hết hạn (≤ 60d)</span>
+                        <span id="badge-count-allexp" class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-black">0</span>
+                    </button>
+                    <button type="button" class="exp-time-tab" data-time-filter="expired" onclick="setExpiringTimeFilter('expired')">
+                        <i class="fas fa-ban text-[11px]"></i>
+                        <span>Đã hết hạn</span>
+                        <span id="badge-count-expired" class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-black">0</span>
+                    </button>
+                    <button type="button" class="exp-time-tab" data-time-filter="all" onclick="setExpiringTimeFilter('all')">
+                        <i class="fas fa-layer-group text-[11px]"></i>
+                        <span>Tất cả khách</span>
+                        <span id="badge-count-all" class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-black">0</span>
+                    </button>
+                </div>
+
+                <!-- Row 2: Search Input & Service Filters -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                    <!-- Search Input -->
+                    <div class="relative flex-1 max-w-md">
+                        <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                        <input type="text" id="expiring-search-input" 
+                               placeholder="Tìm nhanh theo MST, Tên công ty hoặc SĐT..." 
+                               oninput="handleExpiringSearch(this.value)"
+                               class="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder:text-gray-500 outline-none focus:border-orange-500/50 transition-colors">
+                    </div>
+
+                    <!-- Service Pills -->
+                    <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 flex-shrink-0 self-start sm:self-auto overflow-x-auto">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase px-2">Dịch vụ:</span>
+                        <button type="button" class="exp-svc-btn" data-service-filter="all" onclick="setExpiringServiceFilter('all')">
+                            Tất cả
+                        </button>
+                        <button type="button" class="exp-svc-btn" data-service-filter="CKS" onclick="setExpiringServiceFilter('CKS')">
+                            <i class="fas fa-signature text-[10px] mr-1 text-blue-400"></i>CKS
+                        </button>
+                        <button type="button" class="exp-svc-btn" data-service-filter="PMBH" onclick="setExpiringServiceFilter('PMBH')">
+                            <i class="fas fa-shield-heart text-[10px] mr-1 text-emerald-400"></i>PMBH
+                        </button>
+                        <button type="button" class="exp-svc-btn" data-service-filter="HDDT" onclick="setExpiringServiceFilter('HDDT')">
+                            <i class="fas fa-receipt text-[10px] mr-1 text-purple-400"></i>HĐĐT
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Body: Danh sách khách hàng (Scrollable) -->
+            <div id="expiring-customers-list" class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-3 min-h-[320px] max-h-[58vh]">
+                <div class="py-16 flex flex-col items-center justify-center text-center">
+                    <div class="w-10 h-10 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-4"></div>
+                    <p class="text-sm font-bold text-gray-300">Đang chuẩn bị danh sách khách hàng...</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3.5 border-t border-white/5 bg-white/[0.02] flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="text-[11px] text-gray-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+                    <span>💡 Nhấp <strong>MST</strong> để sao chép, nhấp <strong>Báo giá</strong> để tự động tạo file báo giá gia hạn</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="closeExpiringCustomersModal(); showPage('ca2-crm');" 
+                            class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-bold transition-all">
+                        Mở toàn bộ trang CRM
+                    </button>
+                    <button type="button" onclick="closeExpiringCustomersModal()" 
+                            class="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all shadow-lg shadow-orange-500/30">
+                        Đóng
                     </button>
                 </div>
             </div>

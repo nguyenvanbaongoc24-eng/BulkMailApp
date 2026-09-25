@@ -1805,6 +1805,12 @@ async function loadDashboardStats() {
         const crmRes = await authedFetch('/api/ca2-crm');
         const { data: crmData } = await crmRes.json();
         
+        // Cache crmData for Expiring Pop-up & Instant Access
+        if (crmData && Array.isArray(crmData)) {
+            window.currentCRMData = crmData.map(sanitizeCRMRecord);
+            currentCRMData = window.currentCRMData;
+        }
+
         const dashExpired = document.getElementById('dash-crm-expired');
         const dash30 = document.getElementById('dash-crm-30');
         const dash60 = document.getElementById('dash-crm-60');
