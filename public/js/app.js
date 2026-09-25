@@ -1875,8 +1875,8 @@ async function loadRecentCampaigns() {
                     </div>
 
                     <div class="flex flex-col items-end gap-2 shrink-0">
-                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : (isRunning ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20')}">
-                            ${statusLabel}
+                        <span class="status-indicator ${isDone ? 'status-success' : (isRunning ? 'status-info' : 'status-warning')}">
+                            <span class="status-dot ${isRunning ? 'animate-pulse' : ''}"></span> ${statusLabel}
                         </span>
                         
                         <div class="flex items-center gap-2">

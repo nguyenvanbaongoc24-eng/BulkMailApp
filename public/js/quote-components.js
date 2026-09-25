@@ -591,8 +591,8 @@ class QuoteManager {
                         <td class="px-8 py-6 text-center text-xs text-gray-400 font-medium">${date}</td>
                         <td class="px-8 py-6 text-center">
                             ${q.file_url ? 
-                                `<span class="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-full border border-green-500/20"><i class="fas fa-check mr-1"></i> HOÀN TẤT</span>` : 
-                                `<span class="px-3 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-full border border-orange-500/20 animate-pulse"><i class="fas fa-clock mr-1"></i> ĐANG CHỜ</span>`
+                                `<span class="status-indicator status-success"><span class="status-dot"></span> Hoàn tất</span>` : 
+                                `<span class="status-indicator status-warning"><span class="status-dot animate-pulse"></span> Đang chờ</span>`
                             }
                         </td>
                         <td class="px-8 py-6 text-right space-x-2">

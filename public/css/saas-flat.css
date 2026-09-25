@@ -9,37 +9,37 @@
    ========================================================== */
 :root {
     /* Surfaces — darker, flatter, no gradient noise */
-    --ds-bg:              #0C0D14;
-    --ds-bg-gradient:     #0C0D14;
-    --ds-surface:         #13151E;
-    --ds-surface-solid:   #13151E;
-    --ds-surface-elevated:#1A1C28;
+    --ds-bg:              #0a0b14;
+    --ds-bg-gradient:     #0a0b14;
+    --ds-surface:         #16161d;
+    --ds-surface-solid:   #16161d;
+    --ds-surface-elevated:#1c1d27;
     --ds-surface-hover:   rgba(255,255,255,0.03);
     --ds-surface-active:  rgba(255,255,255,0.06);
 
     /* Sidebar */
-    --sidebar-bg:         #0C0D14;
+    --sidebar-bg:         #0f0f14;
 
     /* Borders — subtler */
     --ds-border:          rgba(255,255,255,0.06);
     --ds-border-hover:    rgba(255,255,255,0.10);
 
-    /* Shadows — minimal, no glow */
-    --ds-shadow-sm:       0 1px 2px rgba(0,0,0,0.2);
+    /* Shadows — minimal, subtle depth */
+    --ds-shadow-sm:       0 1px 2px rgba(0,0,0,0.25);
     --ds-shadow-md:       0 2px 8px rgba(0,0,0,0.25);
     --ds-shadow-lg:       0 8px 24px rgba(0,0,0,0.3);
-    --ds-shadow-card:     0 1px 3px rgba(0,0,0,0.2);
+    --ds-shadow-card:     0 2px 8px rgba(0,0,0,0.25);
     --ds-shadow-elevated: 0 4px 16px rgba(0,0,0,0.3);
     --ds-shadow-glow-orange: none;
     --ds-shadow-glow-blue:   none;
 
-    /* Radii — tighter, more professional */
+    /* Radii — 12-16px according to prompt */
     --ds-radius-sm:       6px;
-    --ds-radius-md:       8px;
-    --ds-radius-lg:       10px;
-    --ds-radius-xl:       12px;
-    --ds-radius-card:     10px;
-    --ds-radius-btn:      8px;
+    --ds-radius-md:       10px;
+    --ds-radius-lg:       14px;
+    --ds-radius-xl:       16px;
+    --ds-radius-card:     14px;
+    --ds-radius-btn:      10px;
     --ds-radius-pill:     100px;
 
     /* Motion — faster, subtler */
@@ -262,36 +262,38 @@ header.header {
 }
 
 /* ==========================================================
-   5. CARDS & SURFACES — Flat, solid, no glass
+   5. CARDS & SURFACES — Dark Admin Dashboard
    ========================================================== */
 .card,
 .stat-card,
 .list-item,
 .glass-card-premium {
-    background: #13151E !important;
+    background: #16161d !important;
     border: 1px solid rgba(255,255,255,0.06) !important;
-    border-radius: 10px !important;
-    box-shadow: none !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     outline: none !important;
-    padding: 16px !important;
+    padding: 18px 20px !important;
     margin-bottom: 12px !important;
-    transition: border-color var(--ds-duration) ease !important;
+    transition: border-color var(--ds-duration) ease, box-shadow var(--ds-duration) ease !important;
 }
 
 .card:hover,
 .glass-card-premium:hover {
-    border-color: rgba(255,255,255,0.10) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important;
     transform: none !important;
-    box-shadow: none !important;
-    background: rgba(255,255,255,0.03) !important;
+    background: #191922 !important;
 }
 
 /* Stat cards */
 .stat-card {
-    padding: 16px !important;
-    border-radius: 10px !important;
+    padding: 18px 20px !important;
+    border-radius: 14px !important;
+    background: #16161d !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
 }
 .stat-card:hover {
     border-color: rgba(255,255,255,0.12) !important;
@@ -301,51 +303,83 @@ header.header {
 /* CRM stat card active states — subtler */
 .stat-card.active-total {
     border-color: rgba(99, 102, 241, 0.30) !important;
-    background: rgba(99, 102, 241, 0.04) !important;
+    background: rgba(99, 102, 241, 0.06) !important;
     box-shadow: none !important;
 }
 .stat-card.active-active {
     border-color: rgba(34, 197, 94, 0.30) !important;
-    background: rgba(34, 197, 94, 0.04) !important;
+    background: rgba(34, 197, 94, 0.06) !important;
     box-shadow: none !important;
 }
 .stat-card.active-expiring {
     border-color: rgba(244, 121, 32, 0.30) !important;
-    background: rgba(244, 121, 32, 0.04) !important;
+    background: rgba(244, 121, 32, 0.06) !important;
     box-shadow: none !important;
 }
 .stat-card.active-expired {
     border-color: rgba(239, 68, 68, 0.30) !important;
-    background: rgba(239, 68, 68, 0.04) !important;
+    background: rgba(239, 68, 68, 0.06) !important;
     box-shadow: none !important;
 }
 
 /* Stats row */
 .stats-row {
-    gap: 12px !important;
-    margin-bottom: 16px !important;
+    gap: 14px !important;
+    margin-bottom: 18px !important;
 }
 
 /* Card glow — kill it */
 .card-glow:hover {
-    box-shadow: none !important;
-    border-color: rgba(255,255,255,0.10) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important;
+    border-color: rgba(255,255,255,0.12) !important;
 }
 
 /* ==========================================================
    6. DASHBOARD CRM OVERVIEW CARDS
    ========================================================== */
 .grid.grid-cols-1.md\:grid-cols-4 > .card {
-    padding: 14px 16px !important;
-    gap: 12px !important;
+    padding: 16px 18px !important;
+    border-radius: 14px !important;
+    background: #16161d !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    gap: 14px !important;
 }
 
 .grid.grid-cols-1.md\:grid-cols-4 .w-12.h-12 {
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 8px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
     font-size: 16px !important;
 }
+
+/* Status Indicator — Chấm màu + Text đồng nhất */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.status-indicator .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.status-indicator.status-success { color: #4ade80; }
+.status-indicator.status-success .status-dot { background-color: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+
+.status-indicator.status-warning { color: #fbbf24; }
+.status-indicator.status-warning .status-dot { background-color: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+
+.status-indicator.status-danger { color: #f87171; }
+.status-indicator.status-danger .status-dot { background-color: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+
+.status-indicator.status-info { color: #818cf8; }
+.status-indicator.status-info .status-dot { background-color: #6366f1; box-shadow: 0 0 6px rgba(99,102,241,0.4); }
+
+.status-indicator.status-neutral { color: #94a3b8; }
+.status-indicator.status-neutral .status-dot { background-color: #64748b; }
 
 /* Recent campaigns section */
 .card.section {

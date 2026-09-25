@@ -1109,11 +1109,13 @@
                     <div class="card flex items-center gap-6 cursor-pointer hover:border-red-500/50 hover:scale-[1.02] transition-all group" 
                          onclick="openExpiringCustomersModal('expired')" 
                          title="Nhấp để xem danh sách khách hàng đã hết hạn">
-                        <div class="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 text-xl font-bold group-hover:scale-110 transition-transform">🚫</div>
+                        <div class="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 text-xl font-bold group-hover:scale-110 transition-transform">
+                            <i data-lucide="ban" class="w-5 h-5"></i>
+                        </div>
                         <div class="flex-1 min-w-0">
                             <p class="uppercase-label flex items-center justify-between">
                                 <span>Đã hết hạn</span>
-                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-red-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-red-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
                             </p>
                             <h4 id="dash-crm-expired" class="text-2xl font-black text-white">0</h4>
                         </div>
@@ -1121,11 +1123,13 @@
                     <div class="card flex items-center gap-6 cursor-pointer hover:border-orange-500/50 hover:scale-[1.02] transition-all group" 
                          onclick="openExpiringCustomersModal('30')" 
                          title="Nhấp để xem danh sách khách hàng sắp hết hạn trong 30 ngày">
-                        <div class="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-500 text-xl font-bold group-hover:scale-110 transition-transform">⏳</div>
+                        <div class="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-500 text-xl font-bold group-hover:scale-110 transition-transform">
+                            <i data-lucide="clock" class="w-5 h-5"></i>
+                        </div>
                         <div class="flex-1 min-w-0">
                             <p class="uppercase-label flex items-center justify-between">
                                 <span>Sắp hết hạn (30d)</span>
-                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-orange-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-orange-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
                             </p>
                             <h4 id="dash-crm-30" class="text-2xl font-black text-white">0</h4>
                         </div>
@@ -1133,11 +1137,13 @@
                     <div class="card flex items-center gap-6 cursor-pointer hover:border-yellow-500/50 hover:scale-[1.02] transition-all group" 
                          onclick="openExpiringCustomersModal('60')" 
                          title="Nhấp để xem danh sách khách hàng sắp hết hạn trong 60 ngày">
-                        <div class="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center text-yellow-500 text-xl font-bold group-hover:scale-110 transition-transform">⚠️</div>
+                        <div class="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center text-yellow-500 text-xl font-bold group-hover:scale-110 transition-transform">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        </div>
                         <div class="flex-1 min-w-0">
                             <p class="uppercase-label flex items-center justify-between">
                                 <span>Sắp hết hạn (60d)</span>
-                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-yellow-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-yellow-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
                             </p>
                             <h4 id="dash-crm-60" class="text-2xl font-black text-white">0</h4>
                         </div>
@@ -1145,11 +1151,13 @@
                     <div class="card flex items-center gap-6 cursor-pointer hover:border-blue-500/50 hover:scale-[1.02] transition-all group" 
                          onclick="openExpiringCustomersModal('all')" 
                          title="Nhấp để xem danh sách toàn bộ khách hàng">
-                        <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-500 text-xl font-bold group-hover:scale-110 transition-transform">💎</div>
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-500 text-xl font-bold group-hover:scale-110 transition-transform">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </div>
                         <div class="flex-1 min-w-0">
                             <p class="uppercase-label flex items-center justify-between">
                                 <span>Tổng khách hàng</span>
-                                <i class="fas fa-arrow-up-right-from-square text-[10px] text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity"></i>
                             </p>
                             <h4 id="dash-crm-total" class="text-2xl font-black text-white">0</h4>
                         </div>

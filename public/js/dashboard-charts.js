@@ -85,7 +85,9 @@
                 <div class="flex items-center justify-between mb-4">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">📈</span>
+                            <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-bold border border-emerald-500/20">
+                                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                            </span>
                             <h3 class="text-sm font-black text-white uppercase tracking-wider">Xu hướng doanh thu theo tháng</h3>
                         </div>
                         <p class="text-[11px] text-gray-500 mt-1">Tổng hợp doanh thu chốt từ CRM & Báo giá</p>
@@ -101,17 +103,23 @@
 
             <!-- Chart 2: Tỷ lệ gia hạn hợp đồng -->
             <div class="card p-6 rounded-2xl border border-white/5 bg-white/[0.02] shadow-xl relative overflow-hidden flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-2">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold">📊</span>
+                            <span class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm font-bold border border-indigo-500/20">
+                                <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                            </span>
                             <h3 class="text-sm font-black text-white uppercase tracking-wider">Tỷ lệ gia hạn hợp đồng</h3>
                         </div>
                         <p class="text-[11px] text-gray-500 mt-1">Hợp đồng gia hạn thành công vs Hết hạn theo tháng</p>
                     </div>
-                    <div id="chart-renewal-rate-badge" class="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 text-xs font-black">
+                    <div id="chart-renewal-rate-badge" class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 text-xs font-black">
                         0% Gia hạn
                     </div>
+                </div>
+                <!-- Progress bar ngang thanh thoát -->
+                <div class="w-full bg-white/5 rounded-full h-1.5 mb-3 overflow-hidden">
+                    <div id="chart-renewal-progress-bar" class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700" style="width: 0%"></div>
                 </div>
                 <div class="relative h-64 w-full flex items-center justify-center">
                     <canvas id="canvas-renewal-rate"></canvas>
@@ -123,6 +131,9 @@
             dashView.insertBefore(container, recentCampaigns);
         } else {
             dashView.appendChild(container);
+        }
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
         }
     }
 
@@ -329,9 +340,11 @@
         }
 
         const ctx = canvas.getContext('2d');
+        const light = isLightMode();
+        const primaryColor = light ? '#7c3aed' : '#a78bfa';
         const gradient = ctx.createLinearGradient(0, 0, 0, 240);
-        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
-        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+        gradient.addColorStop(0, light ? 'rgba(124, 58, 237, 0.22)' : 'rgba(167, 139, 250, 0.25)');
+        gradient.addColorStop(1, 'rgba(167, 139, 250, 0.00)');
 
         revenueChartInstance = new Chart(canvas, {
             type: 'line',
@@ -340,16 +353,16 @@
                 datasets: [{
                     label: 'Doanh thu (VNĐ)',
                     data: dataValues,
-                    borderColor: '#10b981',
-                    borderWidth: 2.5,
+                    borderColor: primaryColor,
+                    borderWidth: 2,
                     backgroundColor: gradient,
                     fill: true,
                     tension: 0.35,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointBackgroundColor: primaryColor,
+                    pointBorderColor: light ? '#ffffff' : '#16161d',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
                 }]
             },
             options: {
@@ -412,6 +425,11 @@
             badge.innerText = `${rate}% Gia hạn (${totalRenewed}/${totalAll})`;
         }
 
+        const pbar = document.getElementById('chart-renewal-progress-bar');
+        if (pbar) {
+            pbar.style.width = `${Math.min(100, Math.max(0, rate))}%`;
+        }
+
         const theme = getThemeColors();
 
         if (renewalChartInstance) {
@@ -426,18 +444,18 @@
                     {
                         label: 'Gia hạn thành công',
                         data: renewedData,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 6,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.7
+                        backgroundColor: '#6366f1',
+                        borderRadius: 4,
+                        barPercentage: 0.5,
+                        categoryPercentage: 0.65
                     },
                     {
                         label: 'Hết hạn không gia hạn',
                         data: expiredData,
-                        backgroundColor: '#ef4444',
-                        borderRadius: 6,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.7
+                        backgroundColor: '#f43f5e',
+                        borderRadius: 4,
+                        barPercentage: 0.5,
+                        categoryPercentage: 0.65
                     }
                 ]
             },
